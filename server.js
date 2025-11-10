@@ -162,7 +162,9 @@ let db = {
             admin_id: 898508164,
             is_active: true,
             created_at: new Date().toISOString(),
-            telegram_message_id: null
+            telegram_message_id: null,
+            action_type: null,
+            action_target: null
         }
     ],
     post_reviews: [],
@@ -1197,8 +1199,98 @@ app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     res.json({ posts });
 });
 
+// Функция публикации в Telegram (ДОБАВЛЕНА!)
+async function publishToTelegram(post) {
+    const channelId = process.env.CHANNEL_ID;
+    const groupId = process.env.GROUP_ID;
+    
+    console.log('=== ПОПЫТКА ПУБЛИКАЦИИ ===');
+    console.log('ID канала:', channelId);
+    console.log('ID группы:', groupId);
+    console.log('Заголовок поста:', post.title);
+    console.log('Тип медиа:', post.media_type);
+    console.log('URL изображения:', post.image_url);
+    
+    if (!channelId && !groupId) {
+        console.log('❌ CHANNEL_ID или GROUP_ID не настроены');
+        return;
+    }
+    
+    try {
+        const targetChatId = channelId || groupId;
+        console.log('ID целевого чата:', targetChatId);
+        
+        // Проверяем права бота
+        try {
+            const chatMember = await bot.getChatMember(targetChatId, bot.options.id);
+            console.log('Статус бота в чате:', chatMember.status);
+        } catch (error) {
+            console.log('❌ Ошибка проверки прав:', error.message);
+        }
+        
+        const caption = `*${post.title}*\n\n${post.content}\n\n💬 *Оставляйте отзывы в комментариях и получайте искры!*`;
+        
+        console.log('Создаем клавиатуру...');
+        let replyMarkup = null;
+        if (post.action_type && post.action_target) {
+            let buttonText = '';
+            let webAppUrl = '';
+            
+            if (post.action_type === 'quiz') {
+                const quiz = db.quizzes.find(q => q.id == post.action_target);
+                buttonText = `🎯 Пройти квиз: ${quiz?.title || 'Квиз'}`;
+                webAppUrl = `${process.env.APP_URL}?startapp=quiz_${post.action_target}`;
+            } else if (post.action_type === 'marathon') {
+                const marathon = db.marathons.find(m => m.id == post.action_target);
+                buttonText = `🏃‍♂️ Начать марафон: ${marathon?.title || 'Марафон'}`;
+                webAppUrl = `${process.env.APP_URL}?startapp=marathon_${post.action_target}`;
+            }
+            
+            if (buttonText && webAppUrl) {
+                replyMarkup = {
+                    inline_keyboard: [[
+                        {
+                            text: buttonText,
+                            web_app: { url: webAppUrl }
+                        }
+                    ]]
+                };
+                console.log('Кнопка создана:', buttonText);
+            }
+        }
+        
+        const options = {
+            caption: caption,
+            parse_mode: 'Markdown',
+            reply_markup: replyMarkup
+        };
+        
+        let message;
+        
+        if (post.media_type === 'image' && post.image_url) {
+            console.log('Отправляем изображение...');
+            message = await bot.sendPhoto(targetChatId, post.image_url, options);
+        } else if (post.media_type === 'video' && post.video_url) {
+            console.log('Отправляем видео...');
+            message = await bot.sendVideo(targetChatId, post.video_url, options);
+        } else {
+            console.log('Отправляем текстовое сообщение...');
+            message = await bot.sendMessage(targetChatId, caption, options);
+        }
+        
+        // Сохраняем ID сообщения в базе
+        post.telegram_message_id = message.message_id;
+        console.log(`✅ Пост опубликован в ${channelId ? 'канале' : 'группе'}: ${post.title}`);
+        console.log('ID сообщения:', message.message_id);
+        
+    } catch (error) {
+        console.error('❌ Ошибка публикации поста:', error);
+        console.error('Детали ошибки:', error.response?.body || error.message);
+    }
+}
+
 app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
-    const { post_id, title, content, image_url, video_url, media_type } = req.body;
+    const { post_id, title, content, image_url, video_url, media_type, action_type, action_target } = req.body;
     
     if (!post_id || !title) {
         return res.status(400).json({ error: 'Post ID and title are required' });
@@ -1220,13 +1312,15 @@ app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
         admin_id: req.admin.user_id,
         created_at: new Date().toISOString(),
         is_active: true,
-        telegram_message_id: null
+        telegram_message_id: null,
+        action_type: action_type || null,
+        action_target: action_target || null
     };
     
     db.channel_posts.push(newPost);
     
     // Публикуем пост в канале/группе если настроен бот
-    if (bot && process.env.CHANNEL_ID) {
+    if (bot && (process.env.CHANNEL_ID || process.env.GROUP_ID)) {
         publishToTelegram(newPost);
     }
     
@@ -1240,7 +1334,7 @@ app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
 
 app.put('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
     const postId = parseInt(req.params.postId);
-    const { title, content, image_url, video_url, media_type, is_active } = req.body;
+    const { title, content, image_url, video_url, media_type, is_active, action_type, action_target } = req.body;
     
     const post = db.channel_posts.find(p => p.id === postId);
     if (!post) {
@@ -1253,6 +1347,8 @@ app.put('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
     if (video_url) post.video_url = video_url;
     if (media_type) post.media_type = media_type;
     if (is_active !== undefined) post.is_active = is_active;
+    if (action_type !== undefined) post.action_type = action_type;
+    if (action_target !== undefined) post.action_target = action_target;
     
     res.json({ 
         success: true, 
@@ -1418,49 +1514,17 @@ if (process.env.BOT_TOKEN) {
         bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
         
         console.log('✅ Telegram Bot инициализирован');
+        console.log('=== НАСТРОЙКИ БОТА ===');
+        console.log('CHANNEL_ID:', process.env.CHANNEL_ID);
+        console.log('GROUP_ID:', process.env.GROUP_ID);
+        console.log('====================');
         
-        // Функция публикации поста в канале
-        async function publishToTelegram(post) {
-            if (!process.env.CHANNEL_ID) {
-                console.log('❌ CHANNEL_ID не настроен');
-                return;
-            }
-            
-            try {
-                const channelId = process.env.CHANNEL_ID;
-                let message;
-                
-                const caption = `*${post.title}*\n\n${post.content}\n\n💬 *Оставляйте отзывы в комментариях и получайте искры!*`;
-                
-                if (post.media_type === 'image' && post.image_url) {
-                    message = await bot.sendPhoto(channelId, post.image_url, {
-                        caption: caption,
-                        parse_mode: 'Markdown'
-                    });
-                } else if (post.media_type === 'video' && post.video_url) {
-                    message = await bot.sendVideo(channelId, post.video_url, {
-                        caption: caption,
-                        parse_mode: 'Markdown'
-                    });
-                } else {
-                    message = await bot.sendMessage(channelId, caption, {
-                        parse_mode: 'Markdown'
-                    });
-                }
-                
-                // Сохраняем ID сообщения в базе
-                post.telegram_message_id = message.message_id;
-                console.log(`✅ Пост опубликован в канале: ${post.title}`);
-                
-            } catch (error) {
-                console.error('❌ Ошибка публикации поста:', error);
-            }
-        }
+        // Функция публикации в Telegram (уже определена выше)
         
-        // Обработка комментариев в канале
+        // Обработка комментариев в канале/группе
         bot.on('message', (msg) => {
-            // Если сообщение является ответом на пост бота в канале
-            if (msg.reply_to_message && process.env.CHANNEL_ID) {
+            // Если сообщение является ответом на пост бота в канале/группе
+            if (msg.reply_to_message && (process.env.CHANNEL_ID || process.env.GROUP_ID)) {
                 const channelPostId = msg.reply_to_message.message_id;
                 const post = db.channel_posts.find(p => p.telegram_message_id === channelPostId);
                 
@@ -1564,7 +1628,8 @@ if (process.env.BOT_TOKEN) {
                 return;
             }
             
-            const adminUrl = `${process.env.APP_URL}/admin?userId=${userId}`;
+            // Исправленная ссылка на админку
+            const adminUrl = `https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net/admin.html?userId=${userId}`;
             
             const keyboard = {
                 inline_keyboard: [[
