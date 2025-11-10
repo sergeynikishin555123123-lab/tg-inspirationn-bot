@@ -42,6 +42,8 @@
         .btn-warning:hover { background: #dd6b20; }
         .btn-danger { background: #f56565; }
         .btn-danger:hover { background: #e53e3e; }
+        .btn-info { background: #4299e1; }
+        .btn-info:hover { background: #3182ce; }
         .form-group { margin-bottom: 15px; }
         .form-control { 
             width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 5px;
@@ -60,11 +62,12 @@
         .stat-card:hover { transform: translateY(-2px); }
         .stat-number { font-size: 2em; font-weight: bold; color: #667eea; margin-bottom: 5px; }
         .stat-label { color: #718096; font-size: 14px; }
-        .character-card, .quiz-card, .admin-card {
+        .character-card, .quiz-card, .admin-card, .shop-item-card, .post-card, .review-card {
             background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px;
             padding: 15px; margin-bottom: 15px; transition: all 0.3s ease;
         }
-        .character-card:hover, .quiz-card:hover, .admin-card:hover {
+        .character-card:hover, .quiz-card:hover, .admin-card:hover, 
+        .shop-item-card:hover, .post-card:hover, .review-card:hover {
             border-color: #667eea; transform: translateY(-1px);
         }
         .message {
@@ -73,6 +76,7 @@
         .message.success { background: #c6f6d5; color: #276749; border: 1px solid #9ae6b4; }
         .message.error { background: #fed7d7; color: #c53030; border: 1px solid #feb2b2; }
         .message.info { background: #bee3f8; color: #2c5aa0; border: 1px solid #90cdf4; }
+        .message.warning { background: #feebc8; color: #dd6b20; border: 1px solid #fbd38d; }
         .loading { text-align: center; color: #718096; padding: 20px; }
         .question-item {
             background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px;
@@ -92,21 +96,48 @@
         .badge-warning { background: #feebc8; color: #dd6b20; }
         .badge-danger { background: #fed7d7; color: #c53030; }
         .badge-info { background: #bee3f8; color: #2c5aa0; }
+        .badge-secondary { background: #e2e8f0; color: #4a5568; }
+        .content-preview {
+            background: white; border: 1px solid #e2e8f0; border-radius: 5px;
+            padding: 10px; margin-top: 10px; max-height: 200px; overflow-y: auto;
+        }
+        .review-text {
+            background: white; border: 1px solid #e2e8f0; border-radius: 5px;
+            padding: 10px; margin: 10px 0; font-style: italic;
+        }
+        .moderation-actions {
+            display: flex; gap: 10px; margin-top: 10px;
+        }
+        .file-preview {
+            max-width: 200px; max-height: 150px; border-radius: 5px;
+            margin: 10px 0; border: 2px solid #e2e8f0;
+        }
+        .tab-subnav {
+            display: flex; background: #f7fafc; border-radius: 5px; padding: 5px;
+            margin-bottom: 15px; flex-wrap: wrap;
+        }
+        .tab-subnav-item {
+            padding: 8px 15px; cursor: pointer; border-radius: 3px;
+            margin-right: 5px; margin-bottom: 5px; transition: all 0.3s ease;
+        }
+        .tab-subnav-item.active { background: #667eea; color: white; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🎨 Админ панель - Мастерская Вдохновения</h1>
-            <p>Управление контентом и пользователями</p>
+            <p>Управление контентом, магазином и модерацией отзывов</p>
             <div id="adminInfo">Загрузка...</div>
         </div>
 
         <div class="nav-tabs">
             <div class="nav-tab active" data-tab="dashboard">📊 Дашборд</div>
+            <div class="nav-tab" data-tab="shop">🛒 Магазин</div>
+            <div class="nav-tab" data-tab="posts">📰 Посты канала</div>
+            <div class="nav-tab" data-tab="reviews">💬 Модерация отзывов</div>
             <div class="nav-tab" data-tab="characters">👥 Персонажи</div>
             <div class="nav-tab" data-tab="quizzes">🎯 Квизы</div>
-            <div class="nav-tab" data-tab="shop">🛒 Магазин</div>
             <div class="nav-tab" data-tab="admins">🔧 Админы</div>
         </div>
 
@@ -122,29 +153,144 @@
                     <div class="stat-label">Активных квизов</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="activeCharacters">0</div>
-                    <div class="stat-label">Активных персонажей</div>
-                </div>
-                <div class="stat-card">
                     <div class="stat-number" id="shopItems">0</div>
                     <div class="stat-label">Товаров в магазине</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalPosts">0</div>
+                    <div class="stat-label">Постов в канале</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="totalSparks">0</div>
                     <div class="stat-label">Всего искр</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="totalAdmins">0</div>
-                    <div class="stat-label">Администраторов</div>
+                    <div class="stat-number" id="pendingReviews">0</div>
+                    <div class="stat-label">Отзывов на модерации</div>
                 </div>
             </div>
 
             <div class="card">
                 <h3>📈 Быстрые действия</h3>
-                <button class="btn btn-success" onclick="showTab('characters')">➕ Добавить персонажа</button>
+                <button class="btn btn-success" onclick="showTab('shop')">➕ Добавить товар</button>
+                <button class="btn btn-success" onclick="showTab('posts')">📝 Создать пост</button>
+                <button class="btn btn-warning" onclick="showTab('reviews')">💬 Модерировать отзывы</button>
                 <button class="btn btn-success" onclick="showTab('quizzes')">🎯 Создать квиз</button>
-                <button class="btn btn-success" onclick="showTab('shop')">🛒 Добавить товар</button>
                 <button class="btn" onclick="showTab('admins')">🔧 Управление админами</button>
+            </div>
+        </div>
+
+        <!-- Магазин -->
+        <div id="shop" class="tab-content">
+            <div class="card">
+                <h3>➕ Добавить товар в магазин</h3>
+                <form id="createShopItemForm">
+                    <div class="form-group">
+                        <label class="form-label">Название товара:</label>
+                        <input type="text" id="itemTitle" class="form-control" required placeholder="Введите название товара">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание:</label>
+                        <textarea id="itemDescription" class="form-control" rows="3" placeholder="Описание товара"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Тип товара:</label>
+                        <select id="itemType" class="form-control" required>
+                            <option value="video">🎥 Видео-урок</option>
+                            <option value="pdf">📄 PDF документ</option>
+                            <option value="image">🖼️ Набор изображений</option>
+                            <option value="audio">🎧 Аудио-урок</option>
+                            <option value="text">📝 Текстовый материал</option>
+                            <option value="course">📚 Мини-курс</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ссылка на файл/контент:</label>
+                        <input type="url" id="itemFileUrl" class="form-control" placeholder="https://example.com/file.mp4">
+                        <small style="color: #718096;">Для видео, PDF, аудио или изображений</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ссылка на превью:</label>
+                        <input type="url" id="itemPreviewUrl" class="form-control" placeholder="https://example.com/preview.jpg">
+                        <small style="color: #718096;">Изображение для предпросмотра товара</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Текстовое содержание:</label>
+                        <textarea id="itemContentText" class="form-control" rows="6" placeholder="Текст материала (если это текстовая статья)"></textarea>
+                        <small style="color: #718096;">Для текстовых материалов - основной контент</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Цена (искры):</label>
+                        <input type="number" id="itemPrice" class="form-control" value="10" min="0" step="0.5" required>
+                        <small style="color: #718096;">Стоимость товара в искрах</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Статус:</label>
+                        <div>
+                            <label><input type="radio" name="itemActive" value="true" checked> ✅ Активен (виден в магазине)</label>
+                            <label style="margin-left: 15px;"><input type="radio" name="itemActive" value="false"> ❌ Неактивен (скрыт)</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success">✅ Добавить товар</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>🛒 Список товаров</h3>
+                <div id="shopItemsList">
+                    <div class="loading">Загрузка товаров...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Посты канала -->
+        <div id="posts" class="tab-content">
+            <div class="card">
+                <h3>📝 Создать пост канала</h3>
+                <form id="createPostForm">
+                    <div class="form-group">
+                        <label class="form-label">ID поста (уникальный):</label>
+                        <input type="text" id="postId" class="form-control" required placeholder="post_123 или уникальный идентификатор">
+                        <small style="color: #718096;">Уникальный ID для связи с отзывами</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Заголовок поста:</label>
+                        <input type="text" id="postTitle" class="form-control" required placeholder="Введите заголовок поста">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Содержание поста:</label>
+                        <textarea id="postContent" class="form-control" rows="4" placeholder="Текст поста (опционально)"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ссылка на изображение:</label>
+                        <input type="url" id="postImageUrl" class="form-control" placeholder="https://example.com/image.jpg">
+                        <small style="color: #718096;">Изображение для поста (опционально)</small>
+                    </div>
+                    <button type="submit" class="btn btn-success">✅ Создать пост</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>📰 Список постов</h3>
+                <div id="postsList">
+                    <div class="loading">Загрузка постов...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модерация отзывов -->
+        <div id="reviews" class="tab-content">
+            <div class="tab-subnav">
+                <div class="tab-subnav-item active" data-status="pending">⏳ На модерации</div>
+                <div class="tab-subnav-item" data-status="approved">✅ Одобренные</div>
+                <div class="tab-subnav-item" data-status="rejected">❌ Отклоненные</div>
+            </div>
+
+            <div class="card">
+                <h3>💬 Отзывы на модерации</h3>
+                <div id="reviewsList">
+                    <div class="loading">Загрузка отзывов...</div>
+                </div>
             </div>
         </div>
 
@@ -192,16 +338,6 @@
                         <label class="form-label">Значение бонуса:</label>
                         <input type="text" id="characterBonusValue" class="form-control" required placeholder="Например: 10, 1-3, 2weeks">
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Доступные кнопки:</label>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 5px;">
-                            <label><input type="checkbox" name="available_buttons" value="quiz" checked> 📝 Квизы</label>
-                            <label><input type="checkbox" name="available_buttons" value="shop" checked> 🛒 Магазин</label>
-                            <label><input type="checkbox" name="available_buttons" value="activities" checked> 📊 Активности</label>
-                            <label><input type="checkbox" name="available_buttons" value="photo_work"> 📷 Фото работы</label>
-                            <label><input type="checkbox" name="available_buttons" value="invite"> 👥 Пригласить</label>
-                        </div>
-                    </div>
                     <button type="submit" class="btn btn-success">✅ Создать персонажа</button>
                 </form>
             </div>
@@ -227,14 +363,6 @@
                         <label class="form-label">Описание:</label>
                         <textarea id="quizDescription" class="form-control" rows="3" placeholder="Описание квиза"></textarea>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Награда (искры):</label>
-                        <input type="number" id="quizSparks" class="form-control" value="2" min="0" step="0.5" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Время восстановления (часы):</label>
-                        <input type="number" id="quizCooldown" class="form-control" value="24" min="1" required>
-                    </div>
                     <div id="questionsContainer">
                         <h4>Вопросы:</h4>
                         <!-- Вопросы добавляются здесь -->
@@ -248,60 +376,6 @@
                 <h3>📝 Список квизов</h3>
                 <div id="quizzesList">
                     <div class="loading">Загрузка квизов...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Магазин -->
-        <div id="shop" class="tab-content">
-            <div class="card">
-                <h3>➕ Добавить товар</h3>
-                <form id="createShopItemForm">
-                    <div class="form-group">
-                        <label class="form-label">Название товара:</label>
-                        <input type="text" id="itemTitle" class="form-control" required placeholder="Введите название товара">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Описание:</label>
-                        <textarea id="itemDescription" class="form-control" rows="3" placeholder="Описание товара"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Тип товара:</label>
-                        <select id="itemType" class="form-control" required>
-                            <option value="video">🎥 Видео</option>
-                            <option value="pdf">📄 PDF документ</option>
-                            <option value="image">🖼️ Изображение</option>
-                            <option value="audio">🎧 Аудио</option>
-                            <option value="text">📝 Текст</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Ссылка на файл:</label>
-                        <input type="url" id="itemFileUrl" class="form-control" placeholder="https://example.com/file.mp4">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Ссылка на превью:</label>
-                        <input type="url" id="itemPreviewUrl" class="form-control" placeholder="https://example.com/preview.jpg">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Цена (искры):</label>
-                        <input type="number" id="itemPrice" class="form-control" value="10" min="0" step="0.5" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Статус:</label>
-                        <div>
-                            <label><input type="radio" name="itemActive" value="true" checked> Активен</label>
-                            <label style="margin-left: 15px;"><input type="radio" name="itemActive" value="false"> Неактивен</label>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-success">✅ Добавить товар</button>
-                </form>
-            </div>
-
-            <div class="card">
-                <h3>🛒 Список товаров</h3>
-                <div id="shopItemsList">
-                    <div class="loading">Загрузка товаров...</div>
                 </div>
             </div>
         </div>
@@ -348,6 +422,7 @@
         const currentAdminId = urlParams.get('userId');
 
         let currentQuestions = [];
+        let currentReviewStatus = 'pending';
 
         // Инициализация админ панели
         async function initializeAdmin() {
@@ -372,16 +447,29 @@
                     });
                 });
 
+                // Поднавигация для отзывов
+                document.querySelectorAll('.tab-subnav-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        document.querySelectorAll('.tab-subnav-item').forEach(i => i.classList.remove('active'));
+                        item.classList.add('active');
+                        currentReviewStatus = item.dataset.status;
+                        loadReviews();
+                    });
+                });
+
                 // Формы
+                document.getElementById('createShopItemForm').addEventListener('submit', createShopItem);
+                document.getElementById('createPostForm').addEventListener('submit', createPost);
                 document.getElementById('createCharacterForm').addEventListener('submit', createCharacter);
                 document.getElementById('createQuizForm').addEventListener('submit', createQuiz);
-                document.getElementById('createShopItemForm').addEventListener('submit', createShopItem);
                 document.getElementById('addAdminForm').addEventListener('submit', addAdmin);
 
                 // Загружаем начальные данные
+                loadShopItems();
+                loadPosts();
+                loadReviews();
                 loadCharacters();
                 loadQuizzes();
-                loadShopItems();
                 loadAdmins();
 
             } catch (error) {
@@ -398,9 +486,11 @@
             document.getElementById(tabName).classList.add('active');
             
             // Загружаем данные вкладки если нужно
+            if (tabName === 'shop') loadShopItems();
+            if (tabName === 'posts') loadPosts();
+            if (tabName === 'reviews') loadReviews();
             if (tabName === 'characters') loadCharacters();
             if (tabName === 'quizzes') loadQuizzes();
-            if (tabName === 'shop') loadShopItems();
             if (tabName === 'admins') loadAdmins();
         }
 
@@ -412,10 +502,10 @@
                 
                 document.getElementById('totalUsers').textContent = data.totalUsers;
                 document.getElementById('activeQuizzes').textContent = data.activeQuizzes;
-                document.getElementById('activeCharacters').textContent = data.activeCharacters;
                 document.getElementById('shopItems').textContent = data.shopItems;
+                document.getElementById('totalPosts').textContent = data.totalPosts;
                 document.getElementById('totalSparks').textContent = data.totalSparks;
-                document.getElementById('totalAdmins').textContent = data.totalAdmins || 1;
+                document.getElementById('pendingReviews').textContent = data.pendingReviews;
 
                 // Получаем роль текущего админа
                 const adminResponse = await fetch(`${API_BASE}/api/admin/admins?userId=${currentAdminId}`);
@@ -427,6 +517,278 @@
 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // Управление магазином
+        async function loadShopItems() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/shop/items?userId=${currentAdminId}`);
+                const items = await response.json();
+                
+                const list = document.getElementById('shopItemsList');
+                list.innerHTML = items.map(item => `
+                    <div class="shop-item-card">
+                        <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 5px 0;">${item.title}</h4>
+                                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
+                                    ${item.description || 'Без описания'}
+                                </div>
+                                <div style="color: #4a5568; font-size: 14px;">
+                                    Тип: ${getItemTypeIcon(item.type)} ${item.type} • Цена: ${item.price}✨
+                                </div>
+                                ${item.file_url ? `
+                                    <div style="color: #4299e1; font-size: 12px; margin-top: 5px;">
+                                        🔗 Файл: ${item.file_url}
+                                    </div>
+                                ` : ''}
+                                ${item.content_text ? `
+                                    <div class="content-preview">
+                                        <strong>Содержание:</strong>
+                                        <p style="margin-top: 5px;">${item.content_text.substring(0, 200)}${item.content_text.length > 200 ? '...' : ''}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <span class="badge ${item.is_active ? 'badge-success' : 'badge-warning'}">
+                                ${item.is_active ? 'Активен' : 'Скрыт'}
+                            </span>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <button class="btn btn-danger" onclick="deleteShopItem(${item.id})">🗑️ Удалить</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('shopItemsList').innerHTML = '<div class="message error">Ошибка загрузки товаров</div>';
+            }
+        }
+
+        function getItemTypeIcon(type) {
+            const icons = {
+                'video': '🎥',
+                'pdf': '📄',
+                'image': '🖼️',
+                'audio': '🎧',
+                'text': '📝',
+                'course': '📚'
+            };
+            return icons[type] || '📦';
+        }
+
+        async function createShopItem(e) {
+            e.preventDefault();
+            
+            const formData = {
+                title: document.getElementById('itemTitle').value,
+                description: document.getElementById('itemDescription').value,
+                type: document.getElementById('itemType').value,
+                file_url: document.getElementById('itemFileUrl').value,
+                preview_url: document.getElementById('itemPreviewUrl').value,
+                content_text: document.getElementById('itemContentText').value,
+                price: parseFloat(document.getElementById('itemPrice').value),
+                is_active: document.querySelector('input[name="itemActive"]:checked').value === 'true'
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/shop/items?userId=${currentAdminId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Товар успешно создан!', 'success');
+                    document.getElementById('createShopItemForm').reset();
+                    loadShopItems();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при создании товара', 'error');
+            }
+        }
+
+        async function deleteShopItem(itemId) {
+            if (!confirm('Удалить этот товар?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/shop/items/${itemId}?userId=${currentAdminId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Товар удален', 'success');
+                    loadShopItems();
+                    loadDashboard();
+                } else {
+                    showMessage('❌ Ошибка удаления', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при удалении товара', 'error');
+            }
+        }
+
+        // Управление постами
+        async function loadPosts() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/channel-posts?userId=${currentAdminId}`);
+                const data = await response.json();
+                
+                const list = document.getElementById('postsList');
+                list.innerHTML = data.posts.map(post => `
+                    <div class="post-card">
+                        <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 5px 0;">${post.title}</h4>
+                                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
+                                    ID: ${post.post_id} • Отзывов: ${post.reviews_count || 0}
+                                </div>
+                                ${post.content ? `
+                                    <div style="color: #4a5568; font-size: 14px; margin-bottom: 5px;">
+                                        ${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}
+                                    </div>
+                                ` : ''}
+                                ${post.image_url ? `
+                                    <div style="margin: 5px 0;">
+                                        <img src="${post.image_url}" class="file-preview">
+                                    </div>
+                                ` : ''}
+                                <div style="color: #718096; font-size: 12px;">
+                                    Создан: ${new Date(post.created_at).toLocaleDateString('ru-RU')}
+                                    ${post.admin_username ? `• Автор: ${post.admin_username}` : ''}
+                                </div>
+                            </div>
+                            <span class="badge ${post.is_active ? 'badge-success' : 'badge-warning'}">
+                                ${post.is_active ? 'Активен' : 'Скрыт'}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов</div>';
+            }
+        }
+
+        async function createPost(e) {
+            e.preventDefault();
+            
+            const formData = {
+                post_id: document.getElementById('postId').value,
+                title: document.getElementById('postTitle').value,
+                content: document.getElementById('postContent').value,
+                image_url: document.getElementById('postImageUrl').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/channel-posts?userId=${currentAdminId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Пост успешно создан!', 'success');
+                    document.getElementById('createPostForm').reset();
+                    loadPosts();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при создании поста', 'error');
+            }
+        }
+
+        // Модерация отзывов
+        async function loadReviews() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/reviews?userId=${currentAdminId}&status=${currentReviewStatus}`);
+                const data = await response.json();
+                
+                const list = document.getElementById('reviewsList');
+                list.innerHTML = data.reviews.map(review => `
+                    <div class="review-card">
+                        <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 5px 0;">К посту: "${review.post_title}"</h4>
+                                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
+                                    Автор: ${review.tg_first_name} ${review.tg_username ? `(@${review.tg_username})` : ''}
+                                    • Рейтинг: ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
+                                </div>
+                                <div class="review-text">
+                                    "${review.review_text}"
+                                </div>
+                                <div style="color: #718096; font-size: 12px;">
+                                    Оставлен: ${new Date(review.created_at).toLocaleString('ru-RU')}
+                                    ${review.moderated_at ? `• Модерирован: ${new Date(review.moderated_at).toLocaleDateString('ru-RU')}` : ''}
+                                </div>
+                                ${review.admin_comment ? `
+                                    <div style="color: #ed8936; font-size: 12px; margin-top: 5px;">
+                                        Комментарий модератора: ${review.admin_comment}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <span class="badge ${
+                                review.status === 'approved' ? 'badge-success' : 
+                                review.status === 'rejected' ? 'badge-danger' : 'badge-warning'
+                            }">
+                                ${
+                                    review.status === 'approved' ? 'Одобрен' : 
+                                    review.status === 'rejected' ? 'Отклонен' : 'На модерации'
+                                }
+                            </span>
+                        </div>
+                        
+                        ${review.status === 'pending' ? `
+                            <div class="moderation-actions">
+                                <button class="btn btn-success" onclick="moderateReview(${review.id}, 'approved')">
+                                    ✅ Одобрить
+                                </button>
+                                <button class="btn btn-danger" onclick="moderateReview(${review.id}, 'rejected')">
+                                    ❌ Отклонить
+                                </button>
+                                <input type="text" id="comment_${review.id}" class="form-control" placeholder="Комментарий модератора (опционально)" style="flex: 1;">
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('reviewsList').innerHTML = '<div class="message error">Ошибка загрузки отзывов</div>';
+            }
+        }
+
+        async function moderateReview(reviewId, status) {
+            const adminComment = document.getElementById(`comment_${reviewId}`)?.value || '';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/reviews/${reviewId}/moderate?userId=${currentAdminId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: status,
+                        admin_comment: adminComment
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`✅ Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`, 'success');
+                    loadReviews();
+                    loadDashboard();
+                } else {
+                    showMessage('❌ Ошибка модерации', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при модерации отзыва', 'error');
             }
         }
 
@@ -465,16 +827,13 @@
         async function createCharacter(e) {
             e.preventDefault();
             
-            const availableButtons = Array.from(document.querySelectorAll('input[name="available_buttons"]:checked'))
-                .map(checkbox => checkbox.value);
-            
             const formData = {
                 class: document.getElementById('characterClass').value,
                 character_name: document.getElementById('characterName').value,
                 description: document.getElementById('characterDescription').value,
                 bonus_type: document.getElementById('characterBonusType').value,
                 bonus_value: document.getElementById('characterBonusValue').value,
-                available_buttons: availableButtons
+                available_buttons: ['quiz', 'activities', 'shop']
             };
 
             try {
@@ -588,26 +947,11 @@
                 return;
             }
 
-            // Проверяем что все вопросы заполнены
-            for (let question of currentQuestions) {
-                if (!question.question.trim()) {
-                    showMessage('❌ Заполните текст всех вопросов', 'error');
-                    return;
-                }
-                for (let option of question.options) {
-                    if (!option.trim()) {
-                        showMessage('❌ Заполните все варианты ответов', 'error');
-                        return;
-                    }
-                }
-            }
-
             const quizData = {
                 title: document.getElementById('quizTitle').value,
                 description: document.getElementById('quizDescription').value,
                 questions: currentQuestions,
-                sparks_reward: parseFloat(document.getElementById('quizSparks').value),
-                cooldown_hours: parseInt(document.getElementById('quizCooldown').value),
+                sparks_reward: 1, // Базовая награда за правильный ответ
                 is_active: true
             };
 
@@ -650,7 +994,8 @@
                                     ${quiz.description || 'Без описания'}
                                 </div>
                                 <div style="color: #4a5568; font-size: 14px;">
-                                    Вопросов: ${quiz.questions.length} • Награда: ${quiz.sparks_reward}✨
+                                    Вопросов: ${quiz.questions.length} 
+                                    • Награда: до ${quiz.questions.length * 1 + 5}✨
                                 </div>
                             </div>
                             <span class="badge ${quiz.is_active ? 'badge-success' : 'badge-warning'}">
@@ -686,96 +1031,6 @@
                 }
             } catch (error) {
                 showMessage('Ошибка при удалении квиза', 'error');
-            }
-        }
-
-        // Управление магазином
-        async function loadShopItems() {
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/shop/items?userId=${currentAdminId}`);
-                const items = await response.json();
-                
-                const list = document.getElementById('shopItemsList');
-                list.innerHTML = items.map(item => `
-                    <div class="character-card">
-                        <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 10px;">
-                            <div style="flex: 1;">
-                                <h4 style="margin: 0 0 5px 0;">${item.title}</h4>
-                                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
-                                    ${item.description || 'Без описания'}
-                                </div>
-                                <div style="color: #4a5568; font-size: 14px;">
-                                    Тип: ${item.type} • Цена: ${item.price}✨
-                                </div>
-                            </div>
-                            <span class="badge ${item.is_active ? 'badge-success' : 'badge-warning'}">
-                                ${item.is_active ? 'Активен' : 'Неактивен'}
-                            </span>
-                        </div>
-                        <div style="margin-top: 10px;">
-                            <button class="btn btn-danger" onclick="deleteShopItem(${item.id})">🗑️ Удалить</button>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                document.getElementById('shopItemsList').innerHTML = '<div class="message error">Ошибка загрузки</div>';
-            }
-        }
-
-        async function createShopItem(e) {
-            e.preventDefault();
-            
-            const formData = {
-                title: document.getElementById('itemTitle').value,
-                description: document.getElementById('itemDescription').value,
-                type: document.getElementById('itemType').value,
-                file_url: document.getElementById('itemFileUrl').value,
-                preview_url: document.getElementById('itemPreviewUrl').value,
-                price: parseFloat(document.getElementById('itemPrice').value),
-                is_active: document.querySelector('input[name="itemActive"]:checked').value === 'true'
-            };
-
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/shop/items?userId=${currentAdminId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showMessage('✅ Товар успешно создан!', 'success');
-                    document.getElementById('createShopItemForm').reset();
-                    loadShopItems();
-                    loadDashboard();
-                } else {
-                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при создании товара', 'error');
-            }
-        }
-
-        async function deleteShopItem(itemId) {
-            if (!confirm('Удалить этот товар?')) return;
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/shop/items/${itemId}?userId=${currentAdminId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Товар удален', 'success');
-                    loadShopItems();
-                    loadDashboard();
-                } else {
-                    showMessage('❌ Ошибка удаления', 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при удалении товара', 'error');
             }
         }
 
@@ -888,4 +1143,3 @@
     </script>
 </body>
 </html>
-
