@@ -475,6 +475,28 @@
                         <label class="form-label">Ссылка на изображение:</label>
                         <input type="url" id="postImageUrl" class="form-control" placeholder="https://example.com/image.jpg">
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Тип медиа:</label>
+                        <select id="postMediaType" class="form-control">
+                            <option value="text">Текст</option>
+                            <option value="image">Изображение</option>
+                            <option value="video">Видео</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Действие кнопки:</label>
+                        <select id="postActionType" class="form-control">
+                            <option value="">Без действия</option>
+                            <option value="quiz">Прикрепить квиз</option>
+                            <option value="marathon">Прикрепить марафон</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="actionTargetContainer" style="display: none;">
+                        <label class="form-label">Выберите цель:</label>
+                        <select id="postActionTarget" class="form-control">
+                            <option value="">Выберите...</option>
+                        </select>
+                    </div>
                     <button type="submit" class="btn btn-success">✅ Создать пост</button>
                 </form>
             </div>
@@ -609,6 +631,19 @@
                 document.getElementById('createPostForm').addEventListener('submit', createPost);
                 document.getElementById('addAdminForm').addEventListener('submit', addAdmin);
 
+                // Обработчики для выбора действия в посте
+                document.getElementById('postActionType').addEventListener('change', function() {
+                    const actionTargetContainer = document.getElementById('actionTargetContainer');
+                    const postActionTarget = document.getElementById('postActionTarget');
+                    
+                    if (this.value) {
+                        actionTargetContainer.style.display = 'block';
+                        loadActionTargets(this.value, postActionTarget);
+                    } else {
+                        actionTargetContainer.style.display = 'none';
+                    }
+                });
+
                 // Инициализация чекбоксов кнопок
                 initButtonCheckboxes();
 
@@ -631,6 +666,35 @@
             } catch (error) {
                 showMessage('❌ Ошибка доступа к админ панели', 'error');
                 console.error('Admin init error:', error);
+            }
+        }
+
+        // Загрузка целей для действий
+        async function loadActionTargets(actionType, selectElement) {
+            try {
+                selectElement.innerHTML = '<option value="">Выберите...</option>';
+                
+                if (actionType === 'quiz') {
+                    const response = await fetch(`${API_BASE}/api/admin/quizzes?userId=${currentAdminId}`);
+                    const quizzes = await response.json();
+                    quizzes.forEach(quiz => {
+                        const option = document.createElement('option');
+                        option.value = quiz.id;
+                        option.textContent = quiz.title;
+                        selectElement.appendChild(option);
+                    });
+                } else if (actionType === 'marathon') {
+                    const response = await fetch(`${API_BASE}/api/admin/marathons?userId=${currentAdminId}`);
+                    const marathons = await response.json();
+                    marathons.forEach(marathon => {
+                        const option = document.createElement('option');
+                        option.value = marathon.id;
+                        option.textContent = marathon.title;
+                        selectElement.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading action targets:', error);
             }
         }
 
@@ -1383,6 +1447,7 @@
                                 <h4 style="margin: 0 0 5px 0;">${post.title}</h4>
                                 <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
                                     ID: ${post.post_id} • Автор: ${post.admin_username}
+                                    ${post.action_type ? `• Действие: ${post.action_type} (${post.action_target})` : ''}
                                 </div>
                                 <div style="color: #4a5568; font-size: 14px; margin-bottom: 5px;">
                                     ${post.content || 'Без содержания'}
@@ -1393,6 +1458,7 @@
                                 <div style="color: #718096; font-size: 14px;">
                                     ${new Date(post.created_at).toLocaleString('ru-RU')}
                                     • Отзывов: ${post.reviews_count}
+                                    ${post.telegram_message_id ? `• Опубликован в Telegram` : ''}
                                 </div>
                             </div>
                             <span class="badge ${post.is_active ? 'badge-success' : 'badge-warning'}">
@@ -1402,6 +1468,9 @@
                         <div style="margin-top: 10px;">
                             <button class="btn btn-warning" onclick="editPost(${post.id})">✏️ Редактировать</button>
                             <button class="btn btn-danger" onclick="deletePost(${post.id})">🗑️ Удалить</button>
+                            ${!post.telegram_message_id ? `
+                                <button class="btn btn-info" onclick="publishPost(${post.id})">📢 Опубликовать</button>
+                            ` : ''}
                         </div>
                     </div>
                 `).join('');
@@ -1417,7 +1486,10 @@
                 post_id: document.getElementById('postId').value,
                 title: document.getElementById('postTitle').value,
                 content: document.getElementById('postContent').value,
-                image_url: document.getElementById('postImageUrl').value
+                image_url: document.getElementById('postImageUrl').value,
+                media_type: document.getElementById('postMediaType').value,
+                action_type: document.getElementById('postActionType').value || null,
+                action_target: document.getElementById('postActionTarget').value || null
             };
 
             try {
@@ -1432,6 +1504,7 @@
                 if (result.success) {
                     showMessage('✅ Пост успешно создан!', 'success');
                     document.getElementById('createPostForm').reset();
+                    document.getElementById('actionTargetContainer').style.display = 'none';
                     loadPosts();
                     loadDashboard();
                 } else {
@@ -1439,6 +1512,25 @@
                 }
             } catch (error) {
                 showMessage('Ошибка при создании поста', 'error');
+            }
+        }
+
+        async function publishPost(postId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/channel-posts/${postId}/publish?userId=${currentAdminId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Пост опубликован в Telegram!', 'success');
+                    loadPosts();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при публикации поста', 'error');
             }
         }
 
