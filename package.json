@@ -1,20 +1,18 @@
 {
   "name": "tg-inspiration-bot",
-  "version": "6.1.0",
-  "description": "Telegram bot with Mini App for inspiration workshop - Complete Spark System",
+  "version": "6.2.0",
+  "description": "Telegram bot with Mini App for inspiration workshop - Complete Spark System with Work Upload",
   "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "init-db": "node scripts/init-database.js",
-    "setup": "npm run init-db && npm start"
+    "setup": "npm start"
   },
   "dependencies": {
     "express": "^4.18.2",
     "node-telegram-bot-api": "^0.64.0",
     "cors": "^2.8.5",
-    "pg": "^8.11.3",
     "dotenv": "^16.3.1",
     "body-parser": "^1.20.2"
   },
@@ -24,7 +22,8 @@
     "mini-app",
     "inspiration",
     "sparks",
-    "rewards"
+    "rewards",
+    "works"
   ],
   "author": "Мастерская Вдохновения",
   "license": "MIT",
