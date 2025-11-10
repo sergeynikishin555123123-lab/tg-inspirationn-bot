@@ -26,7 +26,7 @@ let db = {
             class: 'Художники',
             character_id: 1,
             character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'shop', 'activities', 'invite']
+            available_buttons: ['quiz', 'shop', 'activities', 'invite', 'upload_work']
         }
     ],
     characters: [
@@ -104,7 +104,9 @@ let db = {
             is_active: true
         }
     ],
-    post_reviews: []
+    post_reviews: [],
+    user_works: [],
+    work_reviews: []
 };
 
 app.use(express.json({ limit: '50mb' }));
@@ -121,7 +123,9 @@ const SPARKS_SYSTEM = {
     QUIZ_PERFECT_BONUS: 5,
     DAILY_COMMENT: 1,
     INVITE_FRIEND: 10,
-    WRITE_REVIEW: 3
+    WRITE_REVIEW: 3,
+    UPLOAD_WORK: 5,
+    WORK_APPROVED: 15
 };
 
 // Вспомогательные функции
@@ -137,6 +141,8 @@ function addSparks(userId, sparks, activityType, description) {
     const user = db.users.find(u => u.user_id == userId);
     if (user) {
         user.sparks += sparks;
+        user.level = calculateLevel(user.sparks);
+        
         db.activities.push({
             id: Date.now(),
             user_id: userId,
@@ -183,8 +189,6 @@ app.get('/api/users/:userId', (req, res) => {
     const user = db.users.find(u => u.user_id === userId);
     
     if (user) {
-        user.level = calculateLevel(user.sparks);
-        user.available_buttons = user.available_buttons || [];
         res.json({ exists: true, user });
     } else {
         const newUser = {
@@ -226,7 +230,7 @@ app.post('/api/users/register', (req, res) => {
     user.character_id = characterId;
     user.character_name = character.character_name;
     user.is_registered = true;
-    user.available_buttons = ['quiz', 'shop', 'activities', 'invite'];
+    user.available_buttons = ['quiz', 'shop', 'activities', 'invite', 'upload_work'];
     
     let message = 'Регистрация успешна!';
     let sparksAdded = 0;
@@ -381,6 +385,51 @@ app.get('/api/webapp/users/:userId/activities', (req, res) => {
     res.json({ activities: userActivities });
 });
 
+// Загрузка работ пользователя
+app.post('/api/webapp/upload-work', (req, res) => {
+    const { userId, title, description, imageUrl, type } = req.body;
+    
+    if (!userId || !title || !imageUrl) {
+        return res.status(400).json({ error: 'User ID, title and image URL are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    const newWork = {
+        id: Date.now(),
+        user_id: userId,
+        title,
+        description: description || '',
+        image_url: imageUrl,
+        type: type || 'image',
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        moderated_at: null,
+        moderator_id: null,
+        admin_comment: null
+    };
+    
+    db.user_works.push(newWork);
+    
+    // Начисляем искры за загрузку
+    addSparks(userId, SPARKS_SYSTEM.UPLOAD_WORK, 'upload_work', `Загрузка работы: ${title}`);
+    
+    res.json({
+        success: true,
+        message: 'Работа успешно загружена и отправлена на модерацию! +5✨',
+        workId: newWork.id
+    });
+});
+
+app.get('/api/webapp/users/:userId/works', (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const userWorks = db.user_works
+        .filter(w => w.user_id === userId)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    res.json({ works: userWorks });
+});
+
 // Admin API
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
     const stats = {
@@ -389,7 +438,10 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
         activeCharacters: db.characters.filter(c => c.is_active).length,
         shopItems: db.shop_items.filter(i => i.is_active).length,
         totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
-        totalAdmins: db.admins.length
+        totalAdmins: db.admins.length,
+        pendingReviews: db.post_reviews.filter(r => r.status === 'pending').length,
+        pendingWorks: db.user_works.filter(w => w.status === 'pending').length,
+        totalPosts: db.channel_posts.filter(p => p.is_active).length
     };
     res.json(stats);
 });
@@ -422,6 +474,191 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Товар успешно создан', itemId: newItem.id });
 });
 
+app.delete('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
+    const itemId = parseInt(req.params.itemId);
+    const itemIndex = db.shop_items.findIndex(i => i.id === itemId);
+    
+    if (itemIndex === -1) {
+        return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    db.shop_items.splice(itemIndex, 1);
+    res.json({ success: true, message: 'Товар удален' });
+});
+
+// Управление работами пользователей
+app.get('/api/admin/user-works', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    const works = db.user_works
+        .filter(w => w.status === status)
+        .map(work => {
+            const user = db.users.find(u => u.user_id === work.user_id);
+            return {
+                ...work,
+                user_name: user?.tg_first_name || 'Неизвестно',
+                user_username: user?.tg_username
+            };
+        });
+    
+    res.json({ works });
+});
+
+app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
+    const workId = parseInt(req.params.workId);
+    const { status, admin_comment } = req.body;
+    const adminId = req.admin.user_id;
+    
+    const work = db.user_works.find(w => w.id === workId);
+    if (!work) {
+        return res.status(404).json({ error: 'Work not found' });
+    }
+    
+    work.status = status;
+    work.moderated_at = new Date().toISOString();
+    work.moderator_id = adminId;
+    work.admin_comment = admin_comment || null;
+    
+    if (status === 'approved') {
+        addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
+    }
+    
+    res.json({ 
+        success: true, 
+        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}` 
+    });
+});
+
+// Управление постами
+app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
+    const posts = db.channel_posts.map(post => {
+        const admin = db.admins.find(a => a.user_id === post.admin_id);
+        return {
+            ...post,
+            admin_username: admin?.username
+        };
+    });
+    res.json({ posts });
+});
+
+app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
+    const { post_id, title, content, image_url } = req.body;
+    
+    if (!post_id || !title) {
+        return res.status(400).json({ error: 'Post ID and title are required' });
+    }
+    
+    const existingPost = db.channel_posts.find(p => p.post_id === post_id);
+    if (existingPost) {
+        return res.status(400).json({ error: 'Post with this ID already exists' });
+    }
+    
+    const newPost = {
+        id: Date.now(),
+        post_id,
+        title,
+        content: content || '',
+        image_url: image_url || '',
+        admin_id: req.admin.user_id,
+        created_at: new Date().toISOString(),
+        is_active: true
+    };
+    
+    db.channel_posts.push(newPost);
+    
+    res.json({ success: true, message: 'Пост успешно создан', postId: newPost.id });
+});
+
+// Управление отзывами
+app.get('/api/admin/reviews', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    const reviews = db.post_reviews
+        .filter(r => r.status === status)
+        .map(review => {
+            const user = db.users.find(u => u.user_id === review.user_id);
+            const post = db.channel_posts.find(p => p.post_id === review.post_id);
+            return {
+                ...review,
+                tg_first_name: user?.tg_first_name,
+                tg_username: user?.tg_username,
+                post_title: post?.title
+            };
+        });
+    
+    res.json({ reviews });
+});
+
+app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
+    const reviewId = parseInt(req.params.reviewId);
+    const { status, admin_comment } = req.body;
+    
+    const review = db.post_reviews.find(r => r.id === reviewId);
+    if (!review) {
+        return res.status(404).json({ error: 'Review not found' });
+    }
+    
+    review.status = status;
+    review.moderated_at = new Date().toISOString();
+    review.moderator_id = req.admin.user_id;
+    review.admin_comment = admin_comment || null;
+    
+    if (status === 'approved') {
+        addSparks(review.user_id, SPARKS_SYSTEM.WRITE_REVIEW, 'review_approved', 'Отзыв одобрен');
+    }
+    
+    res.json({ 
+        success: true, 
+        message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}` 
+    });
+});
+
+// Управление админами
+app.get('/api/admin/admins', requireAdmin, (req, res) => {
+    res.json(db.admins);
+});
+
+app.post('/api/admin/admins', requireAdmin, (req, res) => {
+    const { user_id, username, role } = req.body;
+    
+    if (!user_id) {
+        return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    const existingAdmin = db.admins.find(a => a.user_id == user_id);
+    if (existingAdmin) {
+        return res.status(400).json({ error: 'Admin already exists' });
+    }
+    
+    const newAdmin = {
+        id: Date.now(),
+        user_id: parseInt(user_id),
+        username: username || '',
+        role: role || 'moderator',
+        created_at: new Date().toISOString()
+    };
+    
+    db.admins.push(newAdmin);
+    
+    res.json({ success: true, message: 'Админ успешно добавлен' });
+});
+
+app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
+    const userId = parseInt(req.params.userId);
+    
+    if (userId === req.admin.user_id) {
+        return res.status(400).json({ error: 'Cannot remove yourself' });
+    }
+    
+    const adminIndex = db.admins.findIndex(a => a.user_id === userId);
+    if (adminIndex === -1) {
+        return res.status(404).json({ error: 'Admin not found' });
+    }
+    
+    db.admins.splice(adminIndex, 1);
+    res.json({ success: true, message: 'Админ удален' });
+});
+
 // Telegram Bot
 let bot;
 if (process.env.BOT_TOKEN) {
@@ -442,6 +679,7 @@ if (process.env.BOT_TOKEN) {
 • 🎯 Проходить квизы и получать искры
 • 👥 Выбрать своего персонажа  
 • 🛒 Покупать обучающие материалы
+• 📸 Загружать свои работы
 • 📊 Отслеживать свой прогресс
 
 Нажмите кнопку ниже чтобы начать!`;
@@ -472,7 +710,9 @@ if (process.env.BOT_TOKEN) {
             }
             
             const adminUrl = `${process.env.APP_URL || 'https://your-domain.timeweb.cloud'}/admin?userId=${userId}`;
-            bot.sendMessage(chatId, `🔧 Панель администратора\n\n${adminUrl}`);
+            bot.sendMessage(chatId, `🔧 Панель администратора\n\n[Открыть админ панель](${adminUrl})`, {
+                parse_mode: 'Markdown'
+            });
         });
 
     } catch (error) {
@@ -483,7 +723,7 @@ if (process.env.BOT_TOKEN) {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
-    console.log(`📱 WebApp: http://localhost:${PORT}`);
-    console.log(`🔧 Admin: http://localhost:${PORT}/admin`);
+    console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
+    console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
     console.log('✅ Все системы работают!');
 });
