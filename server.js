@@ -14,9 +14,6 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
-// ==================== ДОБАВЬТЕ ЭТОТ БЛОК ЗДЕСЬ ====================
-import { readdirSync } from 'fs';
-
 // Автоматическое определение пути для TimeWeb
 const APP_ROOT = process.cwd(); // Всегда текущая директория
 
