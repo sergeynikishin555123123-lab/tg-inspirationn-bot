@@ -13,6 +13,32 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
+// ==================== КРИТИЧЕСКИ ВАЖНО: Определяем корневую папку ====================
+const APP_ROOT = (() => {
+    const possibleRoots = [
+        '/app', // TimeWeb Cloud
+        __dirname, // Локальная разработка
+        process.cwd() // Альтернативный путь
+    ];
+    
+    const fs = require('fs');
+    for (const root of possibleRoots) {
+        const testPath = join(root, 'admin', 'index.html');
+        if (fs.existsSync(testPath)) {
+            console.log('✅ Найдена корневая папка:', root);
+            return root;
+        }
+    }
+    
+    console.log('⚠️ Корневая папка не найдена, используем __dirname');
+    return __dirname;
+})();
+
+console.log('🔍 Информация о путях:');
+console.log('   __dirname:', __dirname);
+console.log('   APP_ROOT:', APP_ROOT);
+console.log('   Admin path:', join(APP_ROOT, 'admin', 'index.html'));
+
 // In-memory база данных с новой структурой
 let db = {
     users: [
@@ -154,57 +180,21 @@ app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Статические файлы
-app.use(express.static(join(__dirname, 'public')));
+// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ С ПРАВИЛЬНЫМИ ПУТЯМИ ====================
+app.use(express.static(join(APP_ROOT, 'public')));
+app.use('/admin', express.static(join(APP_ROOT, 'admin')));
 
-// Статические файлы
-app.use(express.static(join(__dirname, 'public')));
-
-// Админ панель - абсолютные пути
-app.use('/admin', express.static(join(__dirname, 'admin'), {
-    index: 'index.html',
-    fallthrough: false
-}));
+// ==================== ОСНОВНЫЕ МАРШРУТЫ ====================
+app.get('/', (req, res) => {
+    res.sendFile(join(APP_ROOT, 'public', 'index.html'));
+});
 
 app.get('/admin', (req, res) => {
-    res.sendFile(join(__dirname, 'admin', 'index.html'));
+    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
 });
 
-// Перехват всех путей для админки
-app.get('/admin*', (req, res) => {
-    res.sendFile(join(__dirname, 'admin', 'index.html'));
-});
-
-// Тестовый маршрут для админки
-app.get('/admin-test', (req, res) => {
-    const fs = require('fs');
-    const path = require('path');
-    
-    const adminPath = path.join(__dirname, 'admin');
-    const indexPath = path.join(adminPath, 'index.html');
-    
-    try {
-        if (!fs.existsSync(adminPath)) {
-            return res.json({ error: 'Папка admin не существует' });
-        }
-        
-        if (!fs.existsSync(indexPath)) {
-            return res.json({ error: 'Файл admin/index.html не существует' });
-        }
-        
-        const files = fs.readdirSync(adminPath);
-        res.json({
-            success: true,
-            adminPath: adminPath,
-            files: files,
-            indexExists: true
-        });
-    } catch (error) {
-        res.json({
-            error: error.message,
-            adminPath: adminPath
-        });
-    }
+app.get('/admin/*', (req, res) => {
+    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
 });
 
 console.log('🎨 Мастерская Вдохновения - Запуск...');
