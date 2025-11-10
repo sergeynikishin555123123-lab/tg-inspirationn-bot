@@ -154,18 +154,21 @@ app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Статические файлы - ИСПРАВЛЕННЫЙ ПУТЬ
+// Статические файлы
 app.use(express.static(join(__dirname, 'public')));
-app.use('/admin', express.static(join(__dirname, 'admin')));
 
-// Маршрут для админ панели - ДОБАВЛЕНО
+// Админ панель - исправленные маршруты
+app.use('/admin', express.static(join(__dirname, 'admin')));
 app.get('/admin', (req, res) => {
     res.sendFile(join(__dirname, 'admin', 'index.html'));
 });
-
-// Добавьте этот маршрут для корректной работы API
 app.get('/admin/*', (req, res) => {
     res.sendFile(join(__dirname, 'admin', 'index.html'));
+});
+
+// Основное приложение
+app.get('/', (req, res) => {
+    res.sendFile(join(__dirname, 'public', 'index.html'));
 });
 
 console.log('🎨 Мастерская Вдохновения - Запуск...');
