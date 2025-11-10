@@ -1463,32 +1463,33 @@ if (process.env.BOT_TOKEN) {
             });
         });
 
-        bot.onText(/\/admin/, (msg) => {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
-            
-            const admin = db.admins.find(a => a.user_id == userId);
-            if (!admin) {
-                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
-                return;
+       bot.onText(/\/admin/, (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    
+    const admin = db.admins.find(a => a.user_id == userId);
+    if (!admin) {
+        bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+        return;
+    }
+    
+    // ИСПРАВЛЕННАЯ ССЫЛКА:
+    const adminUrl = `${process.env.APP_URL}/admin.html?userId=${userId}`;
+    
+    const keyboard = {
+        inline_keyboard: [[
+            {
+                text: "🔧 Открыть Админ Панель",
+                url: adminUrl
             }
-            
-            // ИСПРАВЛЕНИЕ: Рабочая ссылка на админ панель
-            const adminUrl = `${process.env.APP_URL}/admin?userId=${userId}`;
-            const keyboard = {
-                inline_keyboard: [[
-                    {
-                        text: "🔧 Открыть Админ Панель",
-                        url: adminUrl
-                    }
-                ]]
-            };
-            
-            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            });
-        });
+        ]]
+    };
+    
+    bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
+        parse_mode: 'Markdown',
+        reply_markup: keyboard
+    });
+});
 
         bot.onText(/\/stats/, (msg) => {
             const chatId = msg.chat.id;
