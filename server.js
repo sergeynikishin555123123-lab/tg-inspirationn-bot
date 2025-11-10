@@ -157,18 +157,54 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Статические файлы
 app.use(express.static(join(__dirname, 'public')));
 
-// Админ панель - исправленные маршруты
-app.use('/admin', express.static(join(__dirname, 'admin')));
+// Статические файлы
+app.use(express.static(join(__dirname, 'public')));
+
+// Админ панель - абсолютные пути
+app.use('/admin', express.static(join(__dirname, 'admin'), {
+    index: 'index.html',
+    fallthrough: false
+}));
+
 app.get('/admin', (req, res) => {
     res.sendFile(join(__dirname, 'admin', 'index.html'));
 });
-app.get('/admin/*', (req, res) => {
+
+// Перехват всех путей для админки
+app.get('/admin*', (req, res) => {
     res.sendFile(join(__dirname, 'admin', 'index.html'));
 });
 
-// Основное приложение
-app.get('/', (req, res) => {
-    res.sendFile(join(__dirname, 'public', 'index.html'));
+// Тестовый маршрут для админки
+app.get('/admin-test', (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    
+    const adminPath = path.join(__dirname, 'admin');
+    const indexPath = path.join(adminPath, 'index.html');
+    
+    try {
+        if (!fs.existsSync(adminPath)) {
+            return res.json({ error: 'Папка admin не существует' });
+        }
+        
+        if (!fs.existsSync(indexPath)) {
+            return res.json({ error: 'Файл admin/index.html не существует' });
+        }
+        
+        const files = fs.readdirSync(adminPath);
+        res.json({
+            success: true,
+            adminPath: adminPath,
+            files: files,
+            indexExists: true
+        });
+    } catch (error) {
+        res.json({
+            error: error.message,
+            adminPath: adminPath
+        });
+    }
 });
 
 console.log('🎨 Мастерская Вдохновения - Запуск...');
