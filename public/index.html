@@ -547,7 +547,7 @@
             }
         }
 
-        // Загрузка кнопок действий - ИСПРАВЛЕНО: убраны дублирующиеся кнопки
+        // Загрузка кнопок действий
         function loadActionButtons(availableButtons) {
             const container = document.getElementById('actionButtons');
             container.innerHTML = '';
@@ -985,7 +985,7 @@
                         marathonElement.className = 'marathon-card';
                         marathonElement.innerHTML = `
                             <div style="font-weight: 600; margin-bottom: 8px;">${marathon.title}</div>
-                            <div style="color: #718096; margin-bottom: 8px;">${marathon.description || 'Описание отсутствует'}</div>
+                            <div style="color: #718096; margin-bottom: 8px;">${marathon.description || 'Описание отсутствует'}}</div>
                             <div style="color: #48bb78; margin-bottom: 12px;">
                                 Награда: ${marathon.sparks_reward}✨ 
                                 <small style="color: #718096;">(${marathon.duration_days} дней)</small>
