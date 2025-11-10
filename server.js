@@ -4,7 +4,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readdirSync } from 'fs';
+import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -13,12 +13,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
+
+// Автоматическое определение пути для TimeWeb
 const APP_ROOT = process.cwd();
 
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 console.log('📁 Содержимое корневой папки:', readdirSync(APP_ROOT));
 
-// In-memory база данных
+// In-memory база данных с новой структурой
 let db = {
     users: [
         {
@@ -45,10 +47,39 @@ let db = {
             icon: '🎨',
             available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite'],
             is_active: true
+        },
+        {
+            id: 2,
+            name: 'Стилисты',
+            description: 'Мастера создания образов',
+            icon: '👗',
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite'],
+            is_active: true
+        },
+        {
+            id: 3,
+            name: 'Мастера',
+            description: 'Ремесленники прикладного искусства',
+            icon: '🧵',
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite'],
+            is_active: true
+        },
+        {
+            id: 4,
+            name: 'Историки',
+            description: 'Знатоки истории искусств',
+            icon: '🏛️',
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite'],
+            is_active: true
         }
     ],
     characters: [
-        { id: 1, role_id: 1, name: 'Лука Цветной', description: 'Рисует с детства, любит эксперименты с цветом', bonus_type: 'percent_bonus', bonus_value: '10', is_active: true }
+        { id: 1, role_id: 1, name: 'Лука Цветной', description: 'Рисует с детства, любит эксперименты с цветом', bonus_type: 'percent_bonus', bonus_value: '10', is_active: true },
+        { id: 2, role_id: 1, name: 'Марина Кисть', description: 'Строгая преподавательница академической живописи', bonus_type: 'forgiveness', bonus_value: '1', is_active: true },
+        { id: 3, role_id: 1, name: 'Феликс Штрих', description: 'Экспериментатор, мастер зарисовок', bonus_type: 'random_gift', bonus_value: '1-3', is_active: true },
+        { id: 4, role_id: 2, name: 'Эстелла Моде', description: 'Бывший стилист, обучает восприятию образа', bonus_type: 'percent_bonus', bonus_value: '5', is_active: true },
+        { id: 5, role_id: 2, name: 'Роза Ателье', description: 'Мастер практического шитья', bonus_type: 'secret_advice', bonus_value: '2weeks', is_active: true },
+        { id: 6, role_id: 2, name: 'Гертруда Линия', description: 'Ценит детали и аксессуары', bonus_type: 'series_bonus', bonus_value: '1', is_active: true }
     ],
     quizzes: [
         {
@@ -59,6 +90,11 @@ let db = {
                 {
                     question: "Кто написал картину 'Мона Лиза'?",
                     options: ["Винсент Ван Гог", "Леонардо да Винчи", "Пабло Пикассо", "Клод Моне"],
+                    correctAnswer: 1
+                },
+                {
+                    question: "Какие цвета являются основными?",
+                    options: ["Красный, синий, зеленый", "Красный, желтый, синий", "Фиолетовый, оранжевый, зеленый", "Черный, белый, серый"],
                     correctAnswer: 1
                 }
             ],
@@ -75,7 +111,8 @@ let db = {
             description: "7-дневный марафон по основам акварельной живописи",
             duration_days: 7,
             tasks: [
-                { day: 1, title: "Основные техники", description: "Изучите основные техники работы с акварелью" }
+                { day: 1, title: "Основные техники", description: "Изучите основные техники работы с акварелью" },
+                { day: 2, title: "Смешивание цветов", description: "Практикуйтесь в смешивании цветов" }
             ],
             sparks_reward: 50,
             is_active: true,
@@ -91,7 +128,19 @@ let db = {
             file_url: "https://example.com/watercolor-course.mp4",
             preview_url: "https://via.placeholder.com/300x200/667eea/ffffff?text=Акварель",
             price: 15,
-            content_text: "В этом уроке вы научитесь основам работы с акварелью.",
+            content_text: "В этом уроке вы научитесь основам работы с акварелью, смешиванию цветов и созданию первых работ.",
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            title: "📚 Основы композиции",
+            description: "PDF руководство по основам композиции в живописи",
+            type: "pdf",
+            file_url: "https://example.com/composition-guide.pdf",
+            preview_url: "https://via.placeholder.com/300x200/764ba2/ffffff?text=Композиция",
+            price: 10,
+            content_text: "Подробное руководство по построению композиции в художественных работах.",
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -101,7 +150,23 @@ let db = {
         { id: 1, user_id: 898508164, username: 'admin', role: 'superadmin', created_at: new Date().toISOString() }
     ],
     purchases: [],
-    channel_posts: [],
+    channel_posts: [
+        {
+            id: 1,
+            post_id: "post_art_basics",
+            title: "🎨 Основы композиции в живописи",
+            content: "Сегодня поговорим о фундаментальных принципах построения композиции. Золотое сечение, правило третей и многое другое!",
+            image_url: "https://via.placeholder.com/400x300/764ba2/ffffff?text=Композиция",
+            video_url: null,
+            media_type: 'image',
+            admin_id: 898508164,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            telegram_message_id: null,
+            action_type: null,
+            action_target: null
+        }
+    ],
     post_reviews: [],
     user_works: [],
     work_reviews: [],
@@ -113,7 +178,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Статические файлы
+// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ С ПРАВИЛЬНЫМИ ПУТЯМИ ====================
 app.use(express.static(join(APP_ROOT, 'public')));
 app.use('/admin', express.static(join(APP_ROOT, 'admin')));
 
@@ -732,6 +797,45 @@ app.post('/api/admin/roles', requireAdmin, (req, res) => {
     });
 });
 
+app.put('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
+    const roleId = parseInt(req.params.roleId);
+    const { name, description, icon, available_buttons, is_active } = req.body;
+    
+    const role = db.roles.find(r => r.id === roleId);
+    if (!role) {
+        return res.status(404).json({ error: 'Role not found' });
+    }
+    
+    if (name) role.name = name;
+    if (description) role.description = description;
+    if (icon) role.icon = icon;
+    if (available_buttons) role.available_buttons = available_buttons;
+    if (is_active !== undefined) role.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Роль успешно обновлена',
+        role: role
+    });
+});
+
+app.delete('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
+    const roleId = parseInt(req.params.roleId);
+    const roleIndex = db.roles.findIndex(r => r.id === roleId);
+    
+    if (roleIndex === -1) {
+        return res.status(404).json({ error: 'Role not found' });
+    }
+    
+    const usersWithRole = db.users.filter(u => u.class === db.roles[roleIndex].name);
+    if (usersWithRole.length > 0) {
+        return res.status(400).json({ error: 'Нельзя удалить роль, у которой есть пользователи' });
+    }
+    
+    db.roles.splice(roleIndex, 1);
+    res.json({ success: true, message: 'Роль удалена' });
+});
+
 // Управление персонажами
 app.get('/api/admin/characters', requireAdmin, (req, res) => {
     const characters = db.characters.map(character => {
@@ -771,6 +875,45 @@ app.post('/api/admin/characters', requireAdmin, (req, res) => {
     });
 });
 
+app.put('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
+    const characterId = parseInt(req.params.characterId);
+    const { name, description, bonus_type, bonus_value, is_active } = req.body;
+    
+    const character = db.characters.find(c => c.id === characterId);
+    if (!character) {
+        return res.status(404).json({ error: 'Character not found' });
+    }
+    
+    if (name) character.name = name;
+    if (description) character.description = description;
+    if (bonus_type) character.bonus_type = bonus_type;
+    if (bonus_value) character.bonus_value = bonus_value;
+    if (is_active !== undefined) character.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Персонаж успешно обновлен',
+        character: character
+    });
+});
+
+app.delete('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
+    const characterId = parseInt(req.params.characterId);
+    const characterIndex = db.characters.findIndex(c => c.id === characterId);
+    
+    if (characterIndex === -1) {
+        return res.status(404).json({ error: 'Character not found' });
+    }
+    
+    const usersWithCharacter = db.users.filter(u => u.character_id === characterId);
+    if (usersWithCharacter.length > 0) {
+        return res.status(400).json({ error: 'Нельзя удалить персонажа, у которого есть пользователи' });
+    }
+    
+    db.characters.splice(characterIndex, 1);
+    res.json({ success: true, message: 'Персонаж удален' });
+});
+
 // Управление магазином
 app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
     res.json(db.shop_items);
@@ -804,6 +947,43 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
         itemId: newItem.id,
         item: newItem
     });
+});
+
+app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
+    const itemId = parseInt(req.params.itemId);
+    const { title, description, type, file_url, preview_url, price, content_text, is_active } = req.body;
+    
+    const item = db.shop_items.find(i => i.id === itemId);
+    if (!item) {
+        return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    if (title) item.title = title;
+    if (description) item.description = description;
+    if (type) item.type = type;
+    if (file_url) item.file_url = file_url;
+    if (preview_url) item.preview_url = preview_url;
+    if (price) item.price = parseFloat(price);
+    if (content_text) item.content_text = content_text;
+    if (is_active !== undefined) item.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Товар успешно обновлен',
+        item: item
+    });
+});
+
+app.delete('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
+    const itemId = parseInt(req.params.itemId);
+    const itemIndex = db.shop_items.findIndex(i => i.id === itemId);
+    
+    if (itemIndex === -1) {
+        return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    db.shop_items.splice(itemIndex, 1);
+    res.json({ success: true, message: 'Товар удален' });
 });
 
 // Управление квизами
@@ -848,6 +1028,41 @@ app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
     });
 });
 
+app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const { title, description, questions, sparks_reward, cooldown_hours, is_active } = req.body;
+    
+    const quiz = db.quizzes.find(q => q.id === quizId);
+    if (!quiz) {
+        return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    if (title) quiz.title = title;
+    if (description) quiz.description = description;
+    if (questions) quiz.questions = questions;
+    if (sparks_reward) quiz.sparks_reward = sparks_reward;
+    if (cooldown_hours !== undefined) quiz.cooldown_hours = cooldown_hours;
+    if (is_active !== undefined) quiz.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Квиз успешно обновлен',
+        quiz: quiz
+    });
+});
+
+app.delete('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const quizIndex = db.quizzes.findIndex(q => q.id === quizId);
+    
+    if (quizIndex === -1) {
+        return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    db.quizzes.splice(quizIndex, 1);
+    res.json({ success: true, message: 'Квиз удален' });
+});
+
 // Управление марафонами
 app.get('/api/admin/marathons', requireAdmin, (req, res) => {
     const marathons = db.marathons.map(marathon => {
@@ -887,6 +1102,41 @@ app.post('/api/admin/marathons', requireAdmin, (req, res) => {
         marathonId: newMarathon.id,
         marathon: newMarathon
     });
+});
+
+app.put('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
+    const marathonId = parseInt(req.params.marathonId);
+    const { title, description, duration_days, tasks, sparks_reward, is_active } = req.body;
+    
+    const marathon = db.marathons.find(m => m.id === marathonId);
+    if (!marathon) {
+        return res.status(404).json({ error: 'Marathon not found' });
+    }
+    
+    if (title) marathon.title = title;
+    if (description) marathon.description = description;
+    if (duration_days) marathon.duration_days = parseInt(duration_days);
+    if (tasks) marathon.tasks = tasks;
+    if (sparks_reward) marathon.sparks_reward = sparks_reward;
+    if (is_active !== undefined) marathon.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Марафон успешно обновлен',
+        marathon: marathon
+    });
+});
+
+app.delete('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
+    const marathonId = parseInt(req.params.marathonId);
+    const marathonIndex = db.marathons.findIndex(m => m.id === marathonId);
+    
+    if (marathonIndex === -1) {
+        return res.status(404).json({ error: 'Marathon not found' });
+    }
+    
+    db.marathons.splice(marathonIndex, 1);
+    res.json({ success: true, message: 'Марафон удален' });
 });
 
 // Управление работами пользователей
@@ -949,46 +1199,39 @@ app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     res.json({ posts });
 });
 
-// Функция публикации в Telegram (ИСПРАВЛЕННАЯ)
+// Функция публикации в Telegram (ДОБАВЛЕНА!)
 async function publishToTelegram(post) {
     const channelId = process.env.CHANNEL_ID;
+    const groupId = process.env.GROUP_ID;
     
-    console.log('=== ПОПЫТКА ПУБЛИКАЦИИ В ТЕЛЕГРАМ ===');
+    console.log('=== ПОПЫТКА ПУБЛИКАЦИИ ===');
     console.log('ID канала:', channelId);
+    console.log('ID группы:', groupId);
     console.log('Заголовок поста:', post.title);
     console.log('Тип медиа:', post.media_type);
     console.log('URL изображения:', post.image_url);
-    console.log('Тип действия:', post.action_type);
-    console.log('Цель действия:', post.action_target);
     
-    if (!channelId) {
-        console.log('❌ CHANNEL_ID не настроен');
-        return;
-    }
-    
-    if (!bot) {
-        console.log('❌ Бот не инициализирован');
+    if (!channelId && !groupId) {
+        console.log('❌ CHANNEL_ID или GROUP_ID не настроены');
         return;
     }
     
     try {
-        console.log('ID целевого чата:', channelId);
+        const targetChatId = channelId || groupId;
+        console.log('ID целевого чата:', targetChatId);
         
         // Проверяем права бота
         try {
-            const chatMember = await bot.getChatMember(channelId, bot.options.id);
+            const chatMember = await bot.getChatMember(targetChatId, bot.options.id);
             console.log('Статус бота в чате:', chatMember.status);
         } catch (error) {
             console.log('❌ Ошибка проверки прав:', error.message);
-            return;
         }
         
         const caption = `*${post.title}*\n\n${post.content}\n\n💬 *Оставляйте отзывы в комментариях и получайте искры!*`;
         
         console.log('Создаем клавиатуру...');
         let replyMarkup = null;
-        
-        // Создаем кнопку только для постов с действиями (квизы и марафоны)
         if (post.action_type && post.action_target) {
             let buttonText = '';
             let webAppUrl = '';
@@ -1017,6 +1260,7 @@ async function publishToTelegram(post) {
         }
         
         const options = {
+            caption: caption,
             parse_mode: 'Markdown',
             reply_markup: replyMarkup
         };
@@ -1025,24 +1269,19 @@ async function publishToTelegram(post) {
         
         if (post.media_type === 'image' && post.image_url) {
             console.log('Отправляем изображение...');
-            options.caption = caption;
-            message = await bot.sendPhoto(channelId, post.image_url, options);
+            message = await bot.sendPhoto(targetChatId, post.image_url, options);
         } else if (post.media_type === 'video' && post.video_url) {
             console.log('Отправляем видео...');
-            options.caption = caption;
-            message = await bot.sendVideo(channelId, post.video_url, options);
+            message = await bot.sendVideo(targetChatId, post.video_url, options);
         } else {
             console.log('Отправляем текстовое сообщение...');
-            message = await bot.sendMessage(channelId, caption, options);
+            message = await bot.sendMessage(targetChatId, caption, options);
         }
         
         // Сохраняем ID сообщения в базе
-        const postInDb = db.channel_posts.find(p => p.id === post.id);
-        if (postInDb) {
-            postInDb.telegram_message_id = message.message_id;
-            console.log(`✅ Пост опубликован в канале: ${post.title}`);
-            console.log('ID сообщения:', message.message_id);
-        }
+        post.telegram_message_id = message.message_id;
+        console.log(`✅ Пост опубликован в ${channelId ? 'канале' : 'группе'}: ${post.title}`);
+        console.log('ID сообщения:', message.message_id);
         
     } catch (error) {
         console.error('❌ Ошибка публикации поста:', error);
@@ -1080,12 +1319,9 @@ app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
     
     db.channel_posts.push(newPost);
     
-    // Публикуем пост в канале если настроен бот и CHANNEL_ID
-    if (bot && process.env.CHANNEL_ID) {
-        // Отправляем публикацию в фоновом режиме
-        publishToTelegram(newPost).catch(error => {
-            console.error('Ошибка при публикации:', error);
-        });
+    // Публикуем пост в канале/группе если настроен бот
+    if (bot && (process.env.CHANNEL_ID || process.env.GROUP_ID)) {
+        publishToTelegram(newPost);
     }
     
     res.json({ 
@@ -1094,6 +1330,43 @@ app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
         postId: newPost.id,
         post: newPost
     });
+});
+
+app.put('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
+    const postId = parseInt(req.params.postId);
+    const { title, content, image_url, video_url, media_type, is_active, action_type, action_target } = req.body;
+    
+    const post = db.channel_posts.find(p => p.id === postId);
+    if (!post) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    if (title) post.title = title;
+    if (content) post.content = content;
+    if (image_url) post.image_url = image_url;
+    if (video_url) post.video_url = video_url;
+    if (media_type) post.media_type = media_type;
+    if (is_active !== undefined) post.is_active = is_active;
+    if (action_type !== undefined) post.action_type = action_type;
+    if (action_target !== undefined) post.action_target = action_target;
+    
+    res.json({ 
+        success: true, 
+        message: 'Пост успешно обновлен',
+        post: post
+    });
+});
+
+app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
+    const postId = parseInt(req.params.postId);
+    const postIndex = db.channel_posts.findIndex(p => p.id === postId);
+    
+    if (postIndex === -1) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    db.channel_posts.splice(postIndex, 1);
+    res.json({ success: true, message: 'Пост удален' });
 });
 
 // Управление отзывами
@@ -1178,6 +1451,22 @@ app.post('/api/admin/admins', requireAdmin, (req, res) => {
     });
 });
 
+app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
+    const userId = parseInt(req.params.userId);
+    
+    if (userId === req.admin.user_id) {
+        return res.status(400).json({ error: 'Cannot remove yourself' });
+    }
+    
+    const adminIndex = db.admins.findIndex(a => a.user_id === userId);
+    if (adminIndex === -1) {
+        return res.status(404).json({ error: 'Admin not found' });
+    }
+    
+    db.admins.splice(adminIndex, 1);
+    res.json({ success: true, message: 'Админ удален' });
+});
+
 // Полная статистика
 app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     const stats = {
@@ -1227,37 +1516,34 @@ if (process.env.BOT_TOKEN) {
         console.log('✅ Telegram Bot инициализирован');
         console.log('=== НАСТРОЙКИ БОТА ===');
         console.log('CHANNEL_ID:', process.env.CHANNEL_ID);
+        console.log('GROUP_ID:', process.env.GROUP_ID);
         console.log('====================');
         
-        // Обработка комментариев в канале
-        bot.on('message', async (msg) => {
-            // Если сообщение является ответом на пост бота в канале
-            if (msg.reply_to_message && process.env.CHANNEL_ID) {
+        // Функция публикации в Telegram (уже определена выше)
+        
+        // Обработка комментариев в канале/группе
+        bot.on('message', (msg) => {
+            // Если сообщение является ответом на пост бота в канале/группе
+            if (msg.reply_to_message && (process.env.CHANNEL_ID || process.env.GROUP_ID)) {
                 const channelPostId = msg.reply_to_message.message_id;
                 const post = db.channel_posts.find(p => p.telegram_message_id === channelPostId);
                 
-                if (post && msg.from && msg.text) {
+                if (post && msg.from) {
                     const userId = msg.from.id;
                     const reviewText = msg.text;
-                    
-                    console.log('📝 Получен комментарий к посту:', {
-                        userId: userId,
-                        postId: post.post_id,
-                        text: reviewText
-                    });
                     
                     // Проверяем, не оставлял ли пользователь уже отзыв
                     const existingReview = db.post_reviews.find(
                         r => r.user_id === userId && r.post_id === post.post_id
                     );
                     
-                    if (!existingReview) {
+                    if (!existingReview && reviewText) {
                         const newReview = {
                             id: Date.now(),
                             user_id: userId,
                             post_id: post.post_id,
                             review_text: reviewText,
-                            rating: 5,
+                            rating: 5, // По умолчанию 5 звезд
                             status: 'pending',
                             created_at: new Date().toISOString(),
                             moderated_at: null,
@@ -1266,19 +1552,12 @@ if (process.env.BOT_TOKEN) {
                         };
                         
                         db.post_reviews.push(newReview);
-                        console.log('✅ Комментарий сохранен как отзыв на модерацию');
                         
                         // Уведомляем пользователя
-                        try {
-                            await bot.sendMessage(userId, 
-                                '📝 Ваш отзыв получен и отправлен на модерацию! После одобрения вы получите +3✨\n\n' +
-                                `Ваш отзыв: "${reviewText}"`
-                            );
-                        } catch (error) {
-                            console.log('Пользователь не начал диалог с ботом');
-                        }
-                    } else {
-                        console.log('❌ Пользователь уже оставлял отзыв на этот пост');
+                        bot.sendMessage(userId, 
+                            '📝 Ваш отзыв получен и отправлен на модерацию! После одобрения вы получите +3✨\n\n' +
+                            `Ваш отзыв: "${reviewText}"`
+                        ).catch(() => {}); // Игнорируем ошибки если пользователь не начал диалог с ботом
                     }
                 }
             }
@@ -1328,7 +1607,7 @@ if (process.env.BOT_TOKEN) {
                 inline_keyboard: [[
                     {
                         text: "📱 Открыть Личный Кабинет",
-                        web_app: { url: process.env.APP_URL }
+                        web_app: { url: process.env.APP_URL || `https://your-domain.timeweb.cloud` }
                     }
                 ]]
             };
@@ -1349,7 +1628,8 @@ if (process.env.BOT_TOKEN) {
                 return;
             }
             
-            const adminUrl = `${process.env.APP_URL}/admin?userId=${userId}`;
+            // Исправленная ссылка на админку
+            const adminUrl = `https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net/admin.html?userId=${userId}`;
             
             const keyboard = {
                 inline_keyboard: [[
@@ -1405,8 +1685,8 @@ if (process.env.BOT_TOKEN) {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
-    console.log(`📱 WebApp: ${process.env.APP_URL}`);
-    console.log(`🔧 Admin: ${process.env.APP_URL}/admin`);
+    console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
+    console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
     console.log(`🎯 Квизов: ${db.quizzes.length}`);
     console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
     console.log(`🛒 Товаров: ${db.shop_items.length}`);
