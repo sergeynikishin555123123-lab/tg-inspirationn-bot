@@ -1,7 +1,7 @@
 {
   "name": "tg-inspiration-bot",
-  "version": "6.3.0",
-  "description": "Telegram bot with Mini App for inspiration workshop - Complete working system",
+  "version": "7.0.0",
+  "description": "Telegram bot with Mini App for inspiration workshop - Complete system with roles and marathons",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -23,7 +23,9 @@
     "sparks",
     "rewards",
     "works",
-    "quizzes"
+    "quizzes",
+    "marathons",
+    "roles"
   ],
   "author": "Мастерская Вдохновения",
   "license": "MIT",
