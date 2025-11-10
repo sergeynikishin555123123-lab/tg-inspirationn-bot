@@ -153,8 +153,15 @@ let db = {
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Статические файлы - ИСПРАВЛЕННЫЙ ПУТЬ
 app.use(express.static(join(__dirname, 'public')));
 app.use('/admin', express.static(join(__dirname, 'admin')));
+
+// Маршрут для админ панели - ДОБАВЛЕНО
+app.get('/admin', (req, res) => {
+    res.sendFile(join(__dirname, 'admin', 'index.html'));
+});
 
 console.log('🎨 Мастерская Вдохновения - Запуск...');
 
