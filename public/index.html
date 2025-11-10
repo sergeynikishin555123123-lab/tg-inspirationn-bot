@@ -26,6 +26,7 @@
         .btn-secondary { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
         .btn-warning { background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); }
         .btn-danger { background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%); }
+        .btn-info { background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); }
         .sparks { 
             font-size: 42px; font-weight: bold; text-align: center; color: #ffd700; 
             text-shadow: 0 2px 4px rgba(255,215,0,0.3); margin: 15px 0; padding: 10px;
@@ -39,12 +40,16 @@
         }
         .character-card:hover { border-color: #667eea; transform: translateY(-2px); }
         .character-card.selected { border-color: #667eea; background: rgba(102,126,234,0.1); }
-        .quiz-card {
+        .quiz-card, .post-card, .shop-item {
             background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 15px;
             margin-bottom: 10px;
         }
         .shop-item {
             background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 15px;
+            margin-bottom: 10px;
+        }
+        .purchase-item {
+            background: #f0fff4; border: 2px solid #9ae6b4; border-radius: 12px; padding: 15px;
             margin-bottom: 10px;
         }
         .loading { text-align: center; color: #718096; padding: 20px; }
@@ -66,6 +71,26 @@
         .progress-fill {
             background: linear-gradient(135deg, #48bb78, #38a169); height: 100%;
             transition: width 0.3s ease;
+        }
+        .review-form {
+            background: #f7fafc; border-radius: 12px; padding: 15px; margin: 15px 0;
+        }
+        .stars { display: flex; gap: 5px; margin: 10px 0; }
+        .star { font-size: 24px; cursor: pointer; color: #e2e8f0; }
+        .star.active { color: #f6ad55; }
+        .spark-badge {
+            background: linear-gradient(135deg, #f6e05e, #d69e2e);
+            color: #744210; padding: 4px 8px; border-radius: 12px;
+            font-size: 12px; font-weight: bold; margin-left: 8px;
+        }
+        .invite-section {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; padding: 15px; border-radius: 12px; margin: 15px 0;
+            text-align: center;
+        }
+        .invite-link {
+            background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px;
+            margin: 10px 0; word-break: break-all; font-family: monospace;
         }
     </style>
 </head>
@@ -116,9 +141,23 @@
                 </div>
                 <button class="btn btn-secondary" onclick="showScreen('quizzesScreen')">📝 Пройти квиз</button>
                 <button class="btn btn-warning" onclick="showScreen('shopScreen')">🛒 Магазин</button>
+                <button class="btn btn-info" onclick="showScreen('postsScreen')">📰 Посты канала</button>
                 <button class="btn" onclick="showScreen('activitiesScreen')">📊 Мои активности</button>
+                <button class="btn" onclick="showScreen('purchasesScreen')">📦 Мои покупки</button>
+                <button class="btn" onclick="showScreen('inviteScreen')">👥 Пригласить друга</button>
                 <button class="btn" onclick="showScreen('changeCharacterScreen')">👥 Сменить персонажа</button>
                 <button class="btn" onclick="refreshData()">🔄 Обновить данные</button>
+            </div>
+
+            <!-- Ежедневный бонус -->
+            <div class="card" id="dailyBonusCard" style="display: none;">
+                <h3 style="margin-bottom: 15px;">🎁 Ежедневный бонус</h3>
+                <p style="text-align: center; color: #718096; margin-bottom: 15px;">
+                    Оставьте комментарий под любым постом в канале и получите +1✨ ежедневно!
+                </p>
+                <button class="btn btn-info" onclick="claimDailyComment()" id="dailyCommentBtn">
+                    💬 Получить бонус за комментарий
+                </button>
             </div>
         </div>
 
@@ -139,28 +178,6 @@
                     </div>
                     <button class="btn" onclick="completeRegistration()" id="completeBtn" disabled>
                         ✅ Завершить регистрацию
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Экран смены персонажа -->
-        <div id="changeCharacterScreen" class="screen">
-            <div class="card">
-                <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
-                <h2 style="text-align: center; margin-bottom: 20px;">👥 Смена персонажа</h2>
-                
-                <div id="changeClassesList" class="loading">
-                    Загрузка классов...
-                </div>
-
-                <div id="changeCharactersSection" style="display: none;">
-                    <h3 style="margin-bottom: 15px;">👥 Выберите нового персонажа:</h3>
-                    <div id="changeCharactersList">
-                        <!-- Персонажи загружаются здесь -->
-                    </div>
-                    <button class="btn" onclick="changeCharacter()" id="changeCharacterBtn" disabled>
-                        🔄 Сменить персонажа
                     </button>
                 </div>
             </div>
@@ -228,6 +245,92 @@
             </div>
         </div>
 
+        <!-- Экран постов канала -->
+        <div id="postsScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
+                <h2 style="text-align: center; margin-bottom: 20px;">📰 Посты канала</h2>
+                <div id="postsList" class="loading">
+                    Загрузка постов...
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран отзыва к посту -->
+        <div id="reviewScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('postsScreen')">← Назад</button>
+                <h2 id="reviewPostTitle" style="text-align: center; margin-bottom: 20px;"></h2>
+                
+                <div class="review-form">
+                    <h3 style="margin-bottom: 15px;">💬 Написать отзыв</h3>
+                    <p style="color: #718096; margin-bottom: 15px;">
+                        За качественный отзыв вы получите <span class="spark-badge">+3✨</span>
+                    </p>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Оценка:</label>
+                        <div class="stars" id="ratingStars">
+                            <span class="star" data-rating="1">★</span>
+                            <span class="star" data-rating="2">★</span>
+                            <span class="star" data-rating="3">★</span>
+                            <span class="star" data-rating="4">★</span>
+                            <span class="star" data-rating="5">★</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Текст отзыва:</label>
+                        <textarea id="reviewText" rows="4" style="width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px;" 
+                                  placeholder="Поделитесь вашими впечатлениями..."></textarea>
+                    </div>
+                    
+                    <button class="btn btn-success" onclick="submitReview()">📨 Отправить отзыв</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран приглашения друзей -->
+        <div id="inviteScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
+                <h2 style="text-align: center; margin-bottom: 20px;">👥 Пригласить друга</h2>
+                
+                <div class="invite-section">
+                    <h3 style="margin-bottom: 10px;">🎁 Пригласите друга и получите +10✨</h3>
+                    <p style="margin-bottom: 15px; opacity: 0.9;">
+                        Поделитесь ссылкой с другом. Когда он зарегистрируется, вы оба получите бонус!
+                    </p>
+                    
+                    <div class="invite-link" id="inviteLink">
+                        Загрузка ссылки...
+                    </div>
+                    
+                    <button class="btn" onclick="copyInviteLink()" style="background: rgba(255,255,255,0.3);">
+                        📋 Скопировать ссылку
+                    </button>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h3 style="margin-bottom: 15px;">📊 Ваши приглашения</h3>
+                    <div id="invitesList">
+                        <div class="info">Здесь появятся приглашенные вами друзья</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран покупок -->
+        <div id="purchasesScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
+                <h2 style="text-align: center; margin-bottom: 20px;">📦 Мои покупки</h2>
+                <div id="purchasesList" class="loading">
+                    Загрузка покупок...
+                </div>
+            </div>
+        </div>
+
         <!-- Экран активностей -->
         <div id="activitiesScreen" class="screen">
             <div class="card">
@@ -235,6 +338,28 @@
                 <h2 style="text-align: center; margin-bottom: 20px;">📊 История активностей</h2>
                 <div id="activitiesList" class="loading">
                     Загрузка активностей...
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран смены персонажа -->
+        <div id="changeCharacterScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
+                <h2 style="text-align: center; margin-bottom: 20px;">👥 Смена персонажа</h2>
+                
+                <div id="changeClassesList" class="loading">
+                    Загрузка классов...
+                </div>
+
+                <div id="changeCharactersSection" style="display: none;">
+                    <h3 style="margin-bottom: 15px;">👥 Выберите нового персонажа:</h3>
+                    <div id="changeCharactersList">
+                        <!-- Персонажи загружаются здесь -->
+                    </div>
+                    <button class="btn" onclick="changeCharacter()" id="changeCharacterBtn" disabled>
+                        🔄 Сменить персонажа
+                    </button>
                 </div>
             </div>
         </div>
@@ -253,6 +378,8 @@
         let currentQuiz = null;
         let currentAnswers = [];
         let currentQuestionIndex = 0;
+        let currentPostId = null;
+        let currentRating = 5;
 
         const API_BASE_URL = window.location.origin;
 
@@ -296,9 +423,12 @@
                 
                 if (currentUser.is_registered) {
                     document.getElementById('welcomeBlock').style.display = 'none';
+                    document.getElementById('dailyBonusCard').style.display = 'block';
                     loadActionButtons(currentUser.available_buttons);
+                    updateDailyBonusButton();
                 } else {
                     document.getElementById('welcomeBlock').style.display = 'block';
+                    document.getElementById('dailyBonusCard').style.display = 'none';
                 }
                 
                 hideLoading('userData');
@@ -324,6 +454,18 @@
             }
         }
 
+        // Обновление кнопки ежедневного бонуса
+        function updateDailyBonusButton() {
+            const btn = document.getElementById('dailyCommentBtn');
+            if (currentUser.can_comment_today) {
+                btn.disabled = false;
+                btn.innerHTML = '💬 Получить бонус за комментарий <span class="spark-badge">+1✨</span>';
+            } else {
+                btn.disabled = true;
+                btn.innerHTML = '💬 Бонус уже получен сегодня';
+            }
+        }
+
         // Загрузка кнопок действий
         function loadActionButtons(availableButtons) {
             const container = document.getElementById('actionButtons');
@@ -334,7 +476,7 @@
                 'shop': { text: '🛒 Магазин', screen: 'shopScreen', class: 'btn-warning' },
                 'activities': { text: '📊 Мои активности', screen: 'activitiesScreen', class: 'btn' },
                 'photo_work': { text: '📷 Фото работы', screen: 'mainScreen', class: 'btn' },
-                'invite': { text: '👥 Пригласить друга', screen: 'mainScreen', class: 'btn' }
+                'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', class: 'btn' }
             };
 
             availableButtons.forEach(btnKey => {
@@ -358,7 +500,10 @@
             
             if (screenId === 'quizzesScreen') loadQuizzes();
             if (screenId === 'shopScreen') loadShopItems();
+            if (screenId === 'postsScreen') loadChannelPosts();
             if (screenId === 'activitiesScreen') loadActivities();
+            if (screenId === 'purchasesScreen') loadPurchases();
+            if (screenId === 'inviteScreen') loadInviteInfo();
             if (screenId === 'registrationScreen') loadRegistration();
             if (screenId === 'changeCharacterScreen') loadChangeCharacter();
         }
@@ -495,125 +640,6 @@
             }
         }
 
-        // Загрузка смены персонажа
-        async function loadChangeCharacter() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/webapp/classes`);
-                const classes = await response.json();
-                
-                const classesList = document.getElementById('changeClassesList');
-                classesList.innerHTML = '';
-                
-                classes.forEach(cls => {
-                    const classBtn = document.createElement('button');
-                    classBtn.className = 'btn';
-                    classBtn.style.marginBottom = '10px';
-                    classBtn.innerHTML = `
-                        <div style="font-size: 24px; margin-bottom: 5px;">${cls.icon}</div>
-                        <div style="font-weight: 600;">${cls.name}</div>
-                        <div style="font-size: 14px; color: #718096; margin-top: 5px;">${cls.description}</div>
-                    `;
-                    classBtn.onclick = () => selectChangeClass(cls);
-                    classesList.appendChild(classBtn);
-                });
-                
-            } catch (error) {
-                document.getElementById('changeClassesList').innerHTML = '<div class="error">Ошибка загрузки классов</div>';
-            }
-        }
-
-        // Выбор класса при смене персонажа
-        async function selectChangeClass(cls) {
-            selectedClass = cls;
-            selectedCharacter = null;
-            document.getElementById('changeCharacterBtn').disabled = true;
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/webapp/characters`);
-                charactersData = await response.json();
-                
-                const charactersList = document.getElementById('changeCharactersList');
-                charactersList.innerHTML = '';
-                
-                const classCharacters = charactersData[cls.id] || [];
-                
-                classCharacters.forEach(character => {
-                    const isCurrent = currentUser.character_id === character.id;
-                    const card = document.createElement('div');
-                    card.className = `character-card ${isCurrent ? 'selected' : ''}`;
-                    if (!isCurrent) {
-                        card.onclick = () => selectChangeCharacter(character);
-                    }
-                    card.innerHTML = `
-                        <div style="font-weight: 600; margin-bottom: 5px;">
-                            ${character.character_name} ${isCurrent ? ' (Текущий)' : ''}
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
-                        <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
-                    `;
-                    charactersList.appendChild(card);
-                });
-                
-                document.getElementById('changeCharactersSection').style.display = 'block';
-                
-            } catch (error) {
-                document.getElementById('changeCharactersList').innerHTML = '<div class="error">Ошибка загрузки персонажей</div>';
-            }
-        }
-
-        // Выбор персонажа при смене
-        function selectChangeCharacter(character) {
-            if (currentUser.character_id === character.id) {
-                showMessage('Это ваш текущий персонаж', 'error');
-                return;
-            }
-            
-            selectedCharacter = character;
-            
-            document.querySelectorAll('.character-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            event.currentTarget.classList.add('selected');
-            
-            document.getElementById('changeCharacterBtn').disabled = false;
-        }
-
-        // Смена персонажа
-        async function changeCharacter() {
-            if (!selectedClass || !selectedCharacter) {
-                showMessage('Пожалуйста, выберите класс и персонажа', 'error');
-                return;
-            }
-
-            try {
-                showMessage('⏳ Меняем персонажа...', 'loading');
-
-                const response = await fetch(`${API_BASE_URL}/api/users/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        userClass: selectedClass.id,
-                        characterId: selectedCharacter.id,
-                        tgUsername: tg?.initDataUnsafe?.user?.username || '',
-                        tgFirstName: tg?.initDataUnsafe?.user?.first_name || 'Пользователь'
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showMessage('🎉 ' + result.message, 'success');
-                    showScreen('mainScreen');
-                    setTimeout(() => loadUserData(), 1000);
-                } else {
-                    showMessage(`Ошибка: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при смене персонажа', 'error');
-            }
-        }
-
         // Загрузка квизов
         async function loadQuizzes() {
             try {
@@ -630,9 +656,14 @@
                         quizElement.innerHTML = `
                             <div style="font-weight: 600; margin-bottom: 8px;">${quiz.title}</div>
                             <div style="color: #718096; margin-bottom: 8px;">${quiz.description || 'Описание отсутствует'}</div>
-                            <div style="color: #48bb78; margin-bottom: 12px;">Награда: ${quiz.sparks_reward}✨</div>
+                            <div style="color: #48bb78; margin-bottom: 12px;">
+                                Награда: до ${quiz.questions.length * 1 + 5}✨ 
+                                <small style="color: #718096;">(${quiz.questions.length} вопросов)</small>
+                            </div>
                             <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
-                                ${quiz.completed ? '✅ Пройден' : '🆕 Новый'} • ${quiz.questions.length} вопросов
+                                ${quiz.completed ? '✅ Пройден' : '🆕 Новый'} 
+                                <span class="spark-badge">+1✨ за правильный ответ</span>
+                                <span class="spark-badge">+5✨ за все верно</span>
                             </div>
                             <button class="btn ${quiz.completed ? 'btn-warning' : 'btn-secondary'}" onclick="startQuiz(${quiz.id})">
                                 ${quiz.completed ? 'Пройти снова' : 'Начать квиз'}
@@ -751,19 +782,23 @@
         // Показать результаты квиза
         function showQuizResult(result) {
             const resultContent = document.getElementById('quizResultContent');
+            const bonusText = result.perfectScore ? `<div class="success" style="margin: 10px 0;">🎉 Бонус за идеальный результат: +5✨</div>` : '';
+            
             resultContent.innerHTML = `
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 48px; margin-bottom: 10px;">${result.passed ? '🎉' : '😔'}</div>
-                    <div style="font-size: 24px; font-weight: 600; margin-bottom: 10px; color: ${result.passed ? '#48bb78' : '#f56565'};">
-                        ${result.passed ? 'Поздравляем!' : 'Попробуйте еще раз!'}
+                    <div style="font-size: 48px; margin-bottom: 10px;">${result.perfectScore ? '🎉' : result.passed ? '✅' : '😔'}</div>
+                    <div style="font-size: 24px; font-weight: 600; margin-bottom: 10px; color: ${result.perfectScore ? '#48bb78' : result.passed ? '#48bb78' : '#f56565'};">
+                        ${result.perfectScore ? 'Идеально!' : result.passed ? 'Хорошо!' : 'Попробуйте еще раз!'}
                     </div>
                     <div style="font-size: 18px; margin-bottom: 10px;">${result.message}</div>
                     <div style="color: #718096; margin-bottom: 20px;">
                         Правильных ответов: ${result.correctAnswers} из ${result.totalQuestions} (${result.scorePercentage}%)
                     </div>
-                    ${result.sparksEarned > 0 ? `
-                        <div class="sparks" style="font-size: 36px;">+${result.sparksEarned}✨</div>
-                    ` : ''}
+                    ${bonusText}
+                    <div class="sparks" style="font-size: 36px;">+${result.sparksEarned}✨</div>
+                    <div style="color: #718096; font-size: 14px; margin-top: 10px;">
+                        ${result.correctAnswers} × 1✨ + ${result.perfectScore ? '5✨ бонус' : '0✨ бонус'}
+                    </div>
                 </div>
             `;
             
@@ -783,6 +818,7 @@
                 
                 if (items.length > 0) {
                     items.forEach(item => {
+                        const canAfford = currentUser.sparks >= item.price;
                         const itemElement = document.createElement('div');
                         itemElement.className = 'shop-item';
                         itemElement.innerHTML = `
@@ -790,9 +826,9 @@
                             <div style="color: #718096; margin-bottom: 8px;">${item.description || 'Описание отсутствует'}</div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div style="color: #48bb78; font-weight: 600;">${item.price}✨</div>
-                                <button class="btn btn-secondary" onclick="purchaseItem(${item.id})" 
-                                        ${currentUser.sparks < item.price ? 'disabled style="opacity: 0.5;"' : ''}>
-                                    Купить
+                                <button class="btn ${canAfford ? 'btn-secondary' : 'btn'}" onclick="purchaseItem(${item.id})" 
+                                        ${!canAfford ? 'disabled' : ''}>
+                                    ${canAfford ? 'Купить' : 'Недостаточно искр'}
                                 </button>
                             </div>
                         `;
@@ -824,9 +860,14 @@
                 
                 if (result.success) {
                     showMessage('🎉 ' + result.message, 'success');
+                    // Показываем купленный контент
+                    if (result.purchasedItem) {
+                        showMessage(`📦 Получен доступ: ${result.purchasedItem.title}`, 'info');
+                    }
                     setTimeout(() => {
                         loadUserData();
                         loadShopItems();
+                        loadPurchases();
                     }, 1000);
                 } else {
                     showMessage(`Ошибка: ${result.error}`, 'error');
@@ -834,6 +875,215 @@
             } catch (error) {
                 showMessage('Ошибка при покупке', 'error');
             }
+        }
+
+        // Загрузка покупок пользователя
+        async function loadPurchases() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/webapp/users/${currentUserId}/purchases`);
+                const data = await response.json();
+                
+                const purchasesList = document.getElementById('purchasesList');
+                purchasesList.innerHTML = '';
+                
+                if (data.purchases && data.purchases.length > 0) {
+                    data.purchases.forEach(purchase => {
+                        const purchaseElement = document.createElement('div');
+                        purchaseElement.className = 'purchase-item';
+                        purchaseElement.innerHTML = `
+                            <div style="font-weight: 600; margin-bottom: 8px;">${purchase.title}</div>
+                            <div style="color: #718096; margin-bottom: 8px;">${purchase.description || 'Без описания'}</div>
+                            <div style="color: #48bb78; font-weight: 600; margin-bottom: 8px;">
+                                Куплено за: ${purchase.price_paid}✨
+                            </div>
+                            <div style="color: #718096; font-size: 14px;">
+                                ${new Date(purchase.purchased_at).toLocaleDateString('ru-RU')}
+                                ${purchase.content_text ? '• 📝 Текст доступен' : ''}
+                                ${purchase.file_url ? '• 🔗 Ссылка доступна' : ''}
+                            </div>
+                            ${purchase.content_text ? `
+                                <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 8px;">
+                                    <strong>Содержание:</strong>
+                                    <p style="margin-top: 5px;">${purchase.content_text}</p>
+                                </div>
+                            ` : ''}
+                            ${purchase.file_url ? `
+                                <div style="margin-top: 10px;">
+                                    <a href="${purchase.file_url}" target="_blank" class="btn btn-info" style="text-decoration: none;">
+                                        📥 Скачать файл
+                                    </a>
+                                </div>
+                            ` : ''}
+                        `;
+                        purchasesList.appendChild(purchaseElement);
+                    });
+                } else {
+                    purchasesList.innerHTML = '<div class="info">У вас пока нет покупок</div>';
+                }
+            } catch (error) {
+                document.getElementById('purchasesList').innerHTML = '<div class="error">Ошибка загрузки покупок</div>';
+            }
+        }
+
+        // Загрузка постов канала
+        async function loadChannelPosts() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/webapp/channel-posts`);
+                const data = await response.json();
+                
+                const postsList = document.getElementById('postsList');
+                postsList.innerHTML = '';
+                
+                if (data.posts && data.posts.length > 0) {
+                    data.posts.forEach(post => {
+                        const postElement = document.createElement('div');
+                        postElement.className = 'post-card';
+                        postElement.innerHTML = `
+                            <div style="font-weight: 600; margin-bottom: 8px;">${post.title}</div>
+                            <div style="color: #718096; margin-bottom: 8px;">${post.content || 'Без описания'}</div>
+                            ${post.image_url ? `
+                                <div style="margin-bottom: 8px;">
+                                    <img src="${post.image_url}" style="max-width: 100%; border-radius: 8px;">
+                                </div>
+                            ` : ''}
+                            <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
+                                Опубликовано: ${new Date(post.created_at).toLocaleDateString('ru-RU')}
+                            </div>
+                            <button class="btn btn-info" onclick="writeReview('${post.post_id}', '${post.title}')">
+                                💬 Написать отзыв <span class="spark-badge">+3✨</span>
+                            </button>
+                        `;
+                        postsList.appendChild(postElement);
+                    });
+                } else {
+                    postsList.innerHTML = '<div class="info">Посты пока не доступны</div>';
+                }
+            } catch (error) {
+                document.getElementById('postsList').innerHTML = '<div class="error">Ошибка загрузки постов</div>';
+            }
+        }
+
+        // Написание отзыва
+        function writeReview(postId, postTitle) {
+            currentPostId = postId;
+            document.getElementById('reviewPostTitle').textContent = postTitle;
+            
+            // Сброс рейтинга
+            currentRating = 5;
+            updateStars();
+            
+            // Очистка текста
+            document.getElementById('reviewText').value = '';
+            
+            showScreen('reviewScreen');
+        }
+
+        // Обновление звезд рейтинга
+        function updateStars() {
+            const stars = document.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < currentRating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        // Инициализация звезд рейтинга
+        function initStars() {
+            const stars = document.querySelectorAll('.star');
+            stars.forEach(star => {
+                star.addEventListener('click', () => {
+                    currentRating = parseInt(star.dataset.rating);
+                    updateStars();
+                });
+            });
+        }
+
+        // Отправка отзыва
+        async function submitReview() {
+            const reviewText = document.getElementById('reviewText').value.trim();
+            
+            if (!reviewText) {
+                showMessage('Пожалуйста, напишите текст отзыва', 'error');
+                return;
+            }
+            
+            try {
+                showMessage('⏳ Отправляем отзыв...', 'loading');
+                
+                const response = await fetch(`${API_BASE_URL}/api/webapp/posts/${currentPostId}/review`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        reviewText: reviewText,
+                        rating: currentRating
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('🎉 ' + result.message, 'success');
+                    setTimeout(() => {
+                        showScreen('postsScreen');
+                        loadUserData();
+                    }, 2000);
+                } else {
+                    showMessage(`Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при отправке отзыва', 'error');
+            }
+        }
+
+        // Получение ежедневного бонуса за комментарий
+        async function claimDailyComment() {
+            try {
+                showMessage('⏳ Проверяем возможность получения бонуса...', 'loading');
+                
+                const response = await fetch(`${API_BASE_URL}/api/webapp/daily-comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('🎉 ' + result.message, 'success');
+                    setTimeout(() => {
+                        loadUserData();
+                    }, 1000);
+                } else {
+                    showMessage(`Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при получении бонуса', 'error');
+            }
+        }
+
+        // Загрузка информации о приглашениях
+        async function loadInviteInfo() {
+            // Генерация ссылки приглашения
+            const inviteLink = `https://t.me/${tg?.initDataUnsafe?.user?.username || 'your_bot'}?start=ref_${currentUserId}`;
+            document.getElementById('inviteLink').textContent = inviteLink;
+            
+            // TODO: Загрузка списка приглашенных друзей
+        }
+
+        // Копирование ссылки приглашения
+        function copyInviteLink() {
+            const inviteLink = document.getElementById('inviteLink').textContent;
+            navigator.clipboard.writeText(inviteLink).then(() => {
+                showMessage('📋 Ссылка скопирована в буфер обмена!', 'success');
+            }).catch(() => {
+                showMessage('❌ Не удалось скопировать ссылку', 'error');
+            });
         }
 
         // Загрузка активностей
@@ -903,7 +1153,10 @@
         }
 
         // Запуск приложения
-        document.addEventListener('DOMContentLoaded', initializeApp);
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            initStars();
+        });
     </script>
 </body>
 </html>
