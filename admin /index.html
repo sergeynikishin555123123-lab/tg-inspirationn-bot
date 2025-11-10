@@ -852,28 +852,6 @@
             }
         }
 
-        async function deleteRole(roleId) {
-            if (!confirm('Удалить эту роль?')) return;
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/roles/${roleId}?userId=${currentAdminId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Роль удалена', 'success');
-                    loadRoles();
-                    loadDashboard();
-                } else {
-                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при удалении роли', 'error');
-            }
-        }
-
         // Управление персонажами
         async function loadCharacters() {
             try {
@@ -944,28 +922,6 @@
                 }
             } catch (error) {
                 showMessage('Ошибка при создании персонажа', 'error');
-            }
-        }
-
-        async function deleteCharacter(characterId) {
-            if (!confirm('Удалить этого персонажа?')) return;
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/characters/${characterId}?userId=${currentAdminId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Персонаж удален', 'success');
-                    loadCharacters();
-                    loadDashboard();
-                } else {
-                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при удалении', 'error');
             }
         }
 
@@ -1119,28 +1075,6 @@
             }
         }
 
-        async function deleteQuiz(quizId) {
-            if (!confirm('Удалить этот квиз?')) return;
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/quizzes/${quizId}?userId=${currentAdminId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Квиз удален', 'success');
-                    loadQuizzes();
-                    loadDashboard();
-                } else {
-                    showMessage('❌ Ошибка удаления', 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при удалении квиза', 'error');
-            }
-        }
-
         // Управление марафонами
         function addTask() {
             const taskId = Date.now();
@@ -1266,28 +1200,6 @@
                 `).join('');
             } catch (error) {
                 document.getElementById('marathonsList').innerHTML = '<div class="message error">Ошибка загрузки марафонов</div>';
-            }
-        }
-
-        async function deleteMarathon(marathonId) {
-            if (!confirm('Удалить этот марафон?')) return;
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/marathons/${marathonId}?userId=${currentAdminId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Марафон удален', 'success');
-                    loadMarathons();
-                    loadDashboard();
-                } else {
-                    showMessage('❌ Ошибка удаления', 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при удалении марафона', 'error');
             }
         }
 
@@ -1468,9 +1380,6 @@
                         <div style="margin-top: 10px;">
                             <button class="btn btn-warning" onclick="editPost(${post.id})">✏️ Редактировать</button>
                             <button class="btn btn-danger" onclick="deletePost(${post.id})">🗑️ Удалить</button>
-                            ${!post.telegram_message_id ? `
-                                <button class="btn btn-info" onclick="publishPost(${post.id})">📢 Опубликовать</button>
-                            ` : ''}
                         </div>
                     </div>
                 `).join('');
@@ -1512,25 +1421,6 @@
                 }
             } catch (error) {
                 showMessage('Ошибка при создании поста', 'error');
-            }
-        }
-
-        async function publishPost(postId) {
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/channel-posts/${postId}/publish?userId=${currentAdminId}`, {
-                    method: 'POST'
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showMessage('✅ Пост опубликован в Telegram!', 'success');
-                    loadPosts();
-                } else {
-                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при публикации поста', 'error');
             }
         }
 
@@ -1666,28 +1556,6 @@
                 }
             } catch (error) {
                 showMessage('Ошибка при добавлении админа', 'error');
-            }
-        }
-
-        async function deleteAdmin(userId) {
-            if (!confirm('Удалить этого администратора?')) return;
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/admins/${userId}?userId=${currentAdminId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Админ удален', 'success');
-                    loadAdmins();
-                    loadDashboard();
-                } else {
-                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при удалении админа', 'error');
             }
         }
 
