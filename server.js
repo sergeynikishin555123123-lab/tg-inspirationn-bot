@@ -16,16 +16,43 @@ const __dirname = dirname(__filename);
 const app = express();
 
 // Подключение к PostgreSQL TimeWeb
-const db = new Client({
+const dbConfig = {
     host: process.env.DB_HOST || '789badf9748826d5c6ffd045.twc1.net',
     port: process.env.DB_PORT || 5432,
     database: process.env.DB_NAME || 'default_db',
     user: process.env.DB_USER || 'gen_user',
     password: process.env.DB_PASSWORD,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+};
+
+console.log('🔗 Конфигурация базы данных:', {
+    host: dbConfig.host,
+    port: dbConfig.port,
+    database: dbConfig.database,
+    user: dbConfig.user,
+    hasPassword: !!dbConfig.password
 });
 
-let dbClient = db;
+let dbClient;
+
+async function connectDatabase() {
+    try {
+        dbClient = new Client(dbConfig);
+        await dbClient.connect();
+        console.log('✅ Подключение к PostgreSQL установлено');
+        return true;
+    } catch (error) {
+        console.error('❌ Ошибка подключения к базе данных:', error.message);
+        return false;
+    }
+}
+
+// Пробуем подключиться к базе
+connectDatabase().then(success => {
+    if (!success) {
+        console.log('🚫 База данных недоступна, но сервер продолжает работу');
+    }
+});
 
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
@@ -33,7 +60,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(join(__dirname, 'public')));
 app.use('/admin', express.static(join(__dirname, 'admin')));
 
-console.log('🎨 Мастерская Вдохновения - Запуск с новой системой искр...');
+console.log('🎨 Мастерская Вдохновения - Запуск...');
 
 // ==================== СИСТЕМА НАЧИСЛЕНИЯ ИСКР ====================
 
@@ -46,6 +73,82 @@ const SPARKS_SYSTEM = {
     PARTICIPATE_MARATHON: 7,
     WRITE_REVIEW: 3
 };
+
+// ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+
+function calculateLevel(sparks) {
+    if (sparks >= 400) return 'Наставник';
+    if (sparks >= 300) return 'Мастер';
+    if (sparks >= 150) return 'Знаток';
+    if (sparks >= 50) return 'Искатель';
+    return 'Ученик';
+}
+
+async function addSparks(userId, sparks, activityType, description) {
+    if (!dbClient) return false;
+    
+    try {
+        await dbClient.query(
+            'UPDATE users SET sparks = sparks + $1 WHERE user_id = $2',
+            [sparks, userId]
+        );
+        await dbClient.query(
+            'INSERT INTO activities (user_id, activity_type, sparks_earned, description) VALUES ($1, $2, $3, $4)',
+            [userId, activityType, sparks, description]
+        );
+        return true;
+    } catch (error) {
+        console.error('❌ Error adding sparks:', error);
+        return false;
+    }
+}
+
+// ==================== MIDDLEWARE ====================
+
+const requireAdmin = async (req, res, next) => {
+    const userId = req.query.userId || req.body.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ error: 'User ID required' });
+    }
+    
+    if (!dbClient) {
+        return res.status(500).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const result = await dbClient.query('SELECT * FROM admins WHERE user_id = $1', [userId]);
+        if (result.rows.length === 0) {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+        req.admin = result.rows[0];
+        next();
+    } catch (error) {
+        return res.status(500).json({ error: 'Database error' });
+    }
+};
+
+// ==================== BASIC ROUTES ====================
+
+app.get('/health', async (req, res) => {
+    const dbStatus = dbClient ? 'Connected' : 'Disconnected';
+    
+    res.json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        version: '6.1.0',
+        database: dbStatus,
+        bot: process.env.BOT_TOKEN ? 'Configured' : 'Not configured'
+    });
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/admin', (req, res) => {
+    res.sendFile(join(__dirname, 'admin', 'index.html'));
+});
 
 // ==================== ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ ====================
 
