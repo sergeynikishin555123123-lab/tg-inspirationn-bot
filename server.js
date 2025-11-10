@@ -117,12 +117,22 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(join(APP_ROOT, 'public')));
 app.use('/admin', express.static(join(APP_ROOT, 'admin')));
 
+// Админ-панель маршруты
 app.get('/admin', (req, res) => {
     res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
 });
 
 app.get('/admin/*', (req, res) => {
     res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
+});
+
+// Явный маршрут для admin.html
+app.get('/admin.html', (req, res) => {
+    const userId = req.query.userId;
+    if (!userId) {
+        return res.status(400).send('User ID required');
+    }
+    res.redirect(`/admin?userId=${userId}`);
 });
 
 console.log('🎨 Мастерская Вдохновения - Запуск...');
@@ -949,7 +959,7 @@ app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     res.json({ posts });
 });
 
-// Функция публикации в Telegram (ИСПРАВЛЕННАЯ)
+// Функция публикации в Telegram (ПОЛНОСТЬЮ ПЕРЕПИСАННАЯ)
 async function publishToTelegram(post) {
     const channelId = process.env.CHANNEL_ID;
     
@@ -972,12 +982,21 @@ async function publishToTelegram(post) {
     }
     
     try {
-        console.log('ID целевого чата:', channelId);
+        console.log('🔍 Проверяем права бота в канале...');
         
-        // Проверяем права бота
+        // Проверяем права бота в канале
         try {
+            const chat = await bot.getChat(channelId);
+            console.log('✅ Канал найден:', chat.title);
+            
+            // Пробуем получить информацию о боте в канале
             const chatMember = await bot.getChatMember(channelId, bot.options.id);
-            console.log('Статус бота в чате:', chatMember.status);
+            console.log('👤 Статус бота в канале:', chatMember.status);
+            
+            if (chatMember.status !== 'administrator') {
+                console.log('❌ Бот не является администратором канала');
+                return;
+            }
         } catch (error) {
             console.log('❌ Ошибка проверки прав:', error.message);
             return;
@@ -985,7 +1004,7 @@ async function publishToTelegram(post) {
         
         const caption = `*${post.title}*\n\n${post.content}\n\n💬 *Оставляйте отзывы в комментариях и получайте искры!*`;
         
-        console.log('Создаем клавиатуру...');
+        console.log('🛠 Создаем клавиатуру...');
         let replyMarkup = null;
         
         // Создаем кнопку только для постов с действиями (квизы и марафоны)
@@ -1012,7 +1031,7 @@ async function publishToTelegram(post) {
                         }
                     ]]
                 };
-                console.log('Кнопка создана:', buttonText);
+                console.log('✅ Кнопка создана:', buttonText, webAppUrl);
             }
         }
         
@@ -1023,17 +1042,32 @@ async function publishToTelegram(post) {
         
         let message;
         
+        console.log('📤 Отправляем сообщение в канал...');
+        
         if (post.media_type === 'image' && post.image_url) {
-            console.log('Отправляем изображение...');
+            console.log('🖼 Отправляем изображение...');
             options.caption = caption;
-            message = await bot.sendPhoto(channelId, post.image_url, options);
+            try {
+                message = await bot.sendPhoto(channelId, post.image_url, options);
+                console.log('✅ Изображение отправлено');
+            } catch (error) {
+                console.log('❌ Ошибка отправки изображения, пробуем текст...');
+                message = await bot.sendMessage(channelId, caption, options);
+            }
         } else if (post.media_type === 'video' && post.video_url) {
-            console.log('Отправляем видео...');
+            console.log('🎥 Отправляем видео...');
             options.caption = caption;
-            message = await bot.sendVideo(channelId, post.video_url, options);
+            try {
+                message = await bot.sendVideo(channelId, post.video_url, options);
+                console.log('✅ Видео отправлено');
+            } catch (error) {
+                console.log('❌ Ошибка отправки видео, пробуем текст...');
+                message = await bot.sendMessage(channelId, caption, options);
+            }
         } else {
-            console.log('Отправляем текстовое сообщение...');
+            console.log('📝 Отправляем текстовое сообщение...');
             message = await bot.sendMessage(channelId, caption, options);
+            console.log('✅ Текст отправлен');
         }
         
         // Сохраняем ID сообщения в базе
@@ -1041,12 +1075,14 @@ async function publishToTelegram(post) {
         if (postInDb) {
             postInDb.telegram_message_id = message.message_id;
             console.log(`✅ Пост опубликован в канале: ${post.title}`);
-            console.log('ID сообщения:', message.message_id);
+            console.log('📨 ID сообщения:', message.message_id);
+            console.log('🔗 Ссылка на пост:', `https://t.me/c/${channelId.toString().replace('-100', '')}/${message.message_id}`);
         }
         
     } catch (error) {
-        console.error('❌ Ошибка публикации поста:', error);
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА ПУБЛИКАЦИИ:', error);
         console.error('Детали ошибки:', error.response?.body || error.message);
+        console.error('Стек ошибки:', error.stack);
     }
 }
 
