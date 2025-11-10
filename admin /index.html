@@ -323,13 +323,19 @@
                         <label class="form-label">Описание:</label>
                         <textarea id="quizDescription" class="form-control" rows="3" placeholder="Описание квиза"></textarea>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Кулдаун (часы):</label>
+                        <input type="number" id="quizCooldown" class="form-control" value="24" min="0" step="1" placeholder="0 = без кулдауна">
+                        <small style="color: #718096;">Через сколько часов можно пройти квиз повторно (0 - всегда доступен)</small>
+                    </div>
                     <div id="questionsContainer">
                         <h4>Вопросы:</h4>
                     </div>
                     <button type="button" class="btn" onclick="addQuestion()">➕ Добавить вопрос</button>
                     <div class="form-group" style="margin-top: 20px;">
-                        <label class="form-label">Награда за квиз (искры):</label>
+                        <label class="form-label">Награда за идеальный результат (искры):</label>
                         <input type="number" id="quizSparksReward" class="form-control" value="5" min="1" step="1">
+                        <small style="color: #718096;">Награда за все правильные ответы. За каждый правильный ответ начисляется 1 искра.</small>
                     </div>
                     <button type="submit" class="btn btn-success" style="margin-top: 20px;">✅ Создать квиз</button>
                 </form>
@@ -984,7 +990,8 @@
                 title: document.getElementById('quizTitle').value,
                 description: document.getElementById('quizDescription').value,
                 questions: currentQuestions,
-                sparks_reward: parseInt(document.getElementById('quizSparksReward').value) || 5
+                sparks_reward: parseInt(document.getElementById('quizSparksReward').value) || 5,
+                cooldown_hours: parseInt(document.getElementById('quizCooldown').value) || 24
             };
 
             try {
@@ -1028,6 +1035,7 @@
                                 <div style="color: #4a5568; font-size: 14px;">
                                     Вопросов: ${quiz.questions.length} 
                                     • Награда: ${quiz.sparks_reward}✨
+                                    • Кулдаун: ${quiz.cooldown_hours || 0}ч
                                     • Прохождений: ${quiz.completions_count || 0}
                                     ${quiz.average_score ? `• Средний балл: ${quiz.average_score.toFixed(1)}` : ''}
                                 </div>
@@ -1219,8 +1227,477 @@
             }
         }
 
-        // Остальные функции управления (магазин, работы, посты, отзывы, админы, статистика)
-        // Аналогичны предыдущим версиям, но адаптированы под новую структуру
+        // Управление магазином
+        async function loadShopItems() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/shop/items?userId=${currentAdminId}`);
+                const items = await response.json();
+                
+                const list = document.getElementById('shopItemsList');
+                list.innerHTML = items.map(item => `
+                    <div class="shop-item-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 5px 0;">${item.title}</h4>
+                                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
+                                    ${item.description || 'Без описания'}
+                                </div>
+                                <div style="color: #4a5568; font-size: 14px;">
+                                    Тип: ${item.type} • Цена: ${item.price}✨
+                                </div>
+                            </div>
+                            <span class="badge ${item.is_active ? 'badge-success' : 'badge-warning'}">
+                                ${item.is_active ? 'Активен' : 'Неактивен'}
+                            </span>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <button class="btn btn-warning" onclick="editShopItem(${item.id})">✏️ Редактировать</button>
+                            <button class="btn btn-danger" onclick="deleteShopItem(${item.id})">🗑️ Удалить</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('shopItemsList').innerHTML = '<div class="message error">Ошибка загрузки товаров</div>';
+            }
+        }
+
+        async function createShopItem(e) {
+            e.preventDefault();
+            
+            const formData = {
+                title: document.getElementById('itemTitle').value,
+                description: document.getElementById('itemDescription').value,
+                type: document.getElementById('itemType').value,
+                file_url: document.getElementById('itemFileUrl').value,
+                preview_url: document.getElementById('itemPreviewUrl').value,
+                price: parseFloat(document.getElementById('itemPrice').value),
+                content_text: document.getElementById('itemContentText').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/shop/items?userId=${currentAdminId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Товар успешно создан!', 'success');
+                    document.getElementById('createShopItemForm').reset();
+                    loadShopItems();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при создании товара', 'error');
+            }
+        }
+
+        // Управление работами
+        async function loadUserWorks() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/user-works?status=${currentWorkStatus}&userId=${currentAdminId}`);
+                const data = await response.json();
+                
+                const list = document.getElementById('userWorksList');
+                list.innerHTML = data.works.map(work => `
+                    <div class="work-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 5px 0;">${work.title}</h4>
+                                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
+                                    Пользователь: ${work.user_name}${work.user_username ? ` (@${work.user_username})` : ''}
+                                </div>
+                                ${work.description ? `
+                                    <div style="color: #4a5568; font-size: 14px; margin-bottom: 5px;">
+                                        ${work.description}
+                                    </div>
+                                ` : ''}
+                                <img src="${work.image_url}" class="work-image">
+                                <div style="color: #718096; font-size: 14px; margin-top: 5px;">
+                                    ${new Date(work.created_at).toLocaleString('ru-RU')}
+                                </div>
+                            </div>
+                            <span class="badge ${work.status === 'approved' ? 'badge-success' : work.status === 'rejected' ? 'badge-danger' : 'badge-warning'}">
+                                ${work.status === 'approved' ? 'Одобрено' : work.status === 'rejected' ? 'Отклонено' : 'На модерации'}
+                            </span>
+                        </div>
+                        ${work.status === 'pending' ? `
+                            <div class="moderation-actions">
+                                <button class="btn btn-success" onclick="moderateWork(${work.id}, 'approved')">✅ Одобрить</button>
+                                <button class="btn btn-danger" onclick="moderateWork(${work.id}, 'rejected')">❌ Отклонить</button>
+                            </div>
+                        ` : work.admin_comment ? `
+                            <div style="color: #718096; font-size: 14px; margin-top: 10px;">
+                                <strong>Комментарий модератора:</strong> ${work.admin_comment}
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('userWorksList').innerHTML = '<div class="message error">Ошибка загрузки работ</div>';
+            }
+        }
+
+        async function moderateWork(workId, status) {
+            const adminComment = prompt('Введите комментарий модератора (опционально):');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/user-works/${workId}/moderate?userId=${currentAdminId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: status,
+                        admin_comment: adminComment
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`✅ Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}!`, 'success');
+                    loadUserWorks();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при модерации работы', 'error');
+            }
+        }
+
+        // Управление постами
+        async function loadPosts() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/channel-posts?userId=${currentAdminId}`);
+                const data = await response.json();
+                
+                const list = document.getElementById('postsList');
+                list.innerHTML = data.posts.map(post => `
+                    <div class="post-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 5px 0;">${post.title}</h4>
+                                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
+                                    ID: ${post.post_id} • Автор: ${post.admin_username}
+                                </div>
+                                <div style="color: #4a5568; font-size: 14px; margin-bottom: 5px;">
+                                    ${post.content || 'Без содержания'}
+                                </div>
+                                ${post.image_url ? `
+                                    <img src="${post.image_url}" class="file-preview">
+                                ` : ''}
+                                <div style="color: #718096; font-size: 14px;">
+                                    ${new Date(post.created_at).toLocaleString('ru-RU')}
+                                    • Отзывов: ${post.reviews_count}
+                                </div>
+                            </div>
+                            <span class="badge ${post.is_active ? 'badge-success' : 'badge-warning'}">
+                                ${post.is_active ? 'Активен' : 'Неактивен'}
+                            </span>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <button class="btn btn-warning" onclick="editPost(${post.id})">✏️ Редактировать</button>
+                            <button class="btn btn-danger" onclick="deletePost(${post.id})">🗑️ Удалить</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов</div>';
+            }
+        }
+
+        async function createPost(e) {
+            e.preventDefault();
+            
+            const formData = {
+                post_id: document.getElementById('postId').value,
+                title: document.getElementById('postTitle').value,
+                content: document.getElementById('postContent').value,
+                image_url: document.getElementById('postImageUrl').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/channel-posts?userId=${currentAdminId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Пост успешно создан!', 'success');
+                    document.getElementById('createPostForm').reset();
+                    loadPosts();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при создании поста', 'error');
+            }
+        }
+
+        // Управление отзывами
+        async function loadReviews() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/reviews?status=${currentReviewStatus}&userId=${currentAdminId}`);
+                const data = await response.json();
+                
+                const list = document.getElementById('reviewsList');
+                list.innerHTML = data.reviews.map(review => `
+                    <div class="review-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 5px 0;">${review.post_title}</h4>
+                                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
+                                    Пользователь: ${review.tg_first_name}${review.tg_username ? ` (@${review.tg_username})` : ''}
+                                    • Рейтинг: ${'⭐'.repeat(review.rating)}
+                                </div>
+                                <div class="review-text">${review.review_text}</div>
+                                <div style="color: #718096; font-size: 14px;">
+                                    ${new Date(review.created_at).toLocaleString('ru-RU')}
+                                </div>
+                            </div>
+                            <span class="badge ${review.status === 'approved' ? 'badge-success' : review.status === 'rejected' ? 'badge-danger' : 'badge-warning'}">
+                                ${review.status === 'approved' ? 'Одобрен' : review.status === 'rejected' ? 'Отклонен' : 'На модерации'}
+                            </span>
+                        </div>
+                        ${review.status === 'pending' ? `
+                            <div class="moderation-actions">
+                                <button class="btn btn-success" onclick="moderateReview(${review.id}, 'approved')">✅ Одобрить</button>
+                                <button class="btn btn-danger" onclick="moderateReview(${review.id}, 'rejected')">❌ Отклонить</button>
+                            </div>
+                        ` : review.admin_comment ? `
+                            <div style="color: #718096; font-size: 14px; margin-top: 10px;">
+                                <strong>Комментарий модератора:</strong> ${review.admin_comment}
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('reviewsList').innerHTML = '<div class="message error">Ошибка загрузки отзывов</div>';
+            }
+        }
+
+        async function moderateReview(reviewId, status) {
+            const adminComment = prompt('Введите комментарий модератора (опционально):');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/reviews/${reviewId}/moderate?userId=${currentAdminId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: status,
+                        admin_comment: adminComment
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`✅ Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}!`, 'success');
+                    loadReviews();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при модерации отзыва', 'error');
+            }
+        }
+
+        // Управление админами
+        async function loadAdmins() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/admins?userId=${currentAdminId}`);
+                const admins = await response.json();
+                
+                const list = document.getElementById('adminsList');
+                list.innerHTML = admins.map(admin => `
+                    <div class="admin-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 5px 0;">ID: ${admin.user_id}</h4>
+                                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
+                                    Username: ${admin.username || 'Не указан'}
+                                </div>
+                                <div style="color: #4a5568; font-size: 14px;">
+                                    ${new Date(admin.created_at).toLocaleString('ru-RU')}
+                                </div>
+                            </div>
+                            <span class="badge ${admin.role === 'superadmin' ? 'badge-danger' : admin.role === 'admin' ? 'badge-info' : 'badge-secondary'}">
+                                ${admin.role}
+                            </span>
+                        </div>
+                        ${admin.user_id != currentAdminId ? `
+                            <div style="margin-top: 10px;">
+                                <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">🗑️ Удалить</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки админов</div>';
+            }
+        }
+
+        async function addAdmin(e) {
+            e.preventDefault();
+            
+            const formData = {
+                user_id: document.getElementById('adminUserId').value,
+                username: document.getElementById('adminUsername').value,
+                role: document.getElementById('adminRole').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/admins?userId=${currentAdminId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Админ успешно добавлен!', 'success');
+                    document.getElementById('addAdminForm').reset();
+                    loadAdmins();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при добавлении админа', 'error');
+            }
+        }
+
+        async function deleteAdmin(userId) {
+            if (!confirm('Удалить этого администратора?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/admins/${userId}?userId=${currentAdminId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Админ удален', 'success');
+                    loadAdmins();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при удалении админа', 'error');
+            }
+        }
+
+        // Полная статистика
+        async function loadFullStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/full-stats?userId=${currentAdminId}`);
+                const stats = await response.json();
+                
+                const container = document.getElementById('fullStats');
+                container.innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.users.total}</div>
+                            <div class="stat-label">Всего пользователей</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.users.registered}</div>
+                            <div class="stat-label">Зарегистрировано</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.users.active_today}</div>
+                            <div class="stat-label">Активных сегодня</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.activities.total_sparks.toFixed(1)}</div>
+                            <div class="stat-label">Всего искр</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <h4>👥 Пользователи по ролям:</h4>
+                        ${stats.users.by_role.map(role => `
+                            <div style="display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #e2e8f0;">
+                                <span>${role.role}</span>
+                                <span style="font-weight: 600;">${role.count}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <h4>📊 Контент:</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.content.quizzes}</div>
+                                <div class="stat-label">Квизов</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.content.marathons}</div>
+                                <div class="stat-label">Марафонов</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.content.shop_items}</div>
+                                <div class="stat-label">Товаров</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.content.posts}</div>
+                                <div class="stat-label">Постов</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <h4>📈 Активности:</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.activities.total_purchases}</div>
+                                <div class="stat-label">Покупок</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.activities.total_works}</div>
+                                <div class="stat-label">Работ</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.completions.quizzes}</div>
+                                <div class="stat-label">Завершенных квизов</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.completions.marathons}</div>
+                                <div class="stat-label">Завершенных марафонов</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <h4>⏳ Ожидают модерации:</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.activities.pending_moderation.works}</div>
+                                <div class="stat-label">Работ</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.activities.pending_moderation.reviews}</div>
+                                <div class="stat-label">Отзывов</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('fullStats').innerHTML = '<div class="message error">Ошибка загрузки статистики</div>';
+            }
+        }
 
         // Вспомогательные функции
         function showMessage(message, type) {
