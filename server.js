@@ -197,6 +197,46 @@ app.get('/admin/*', (req, res) => {
     res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
 });
 
+// ==================== ДИАГНОСТИЧЕСКИЕ МАРШРУТЫ ====================
+app.get('/debug-paths', (req, res) => {
+    const fs = require('fs');
+    
+    const paths = {
+        APP_ROOT: APP_ROOT,
+        __dirname: __dirname,
+        process_cwd: process.cwd(),
+        admin: {
+            path: join(APP_ROOT, 'admin'),
+            exists: fs.existsSync(join(APP_ROOT, 'admin')),
+            files: fs.existsSync(join(APP_ROOT, 'admin')) ? fs.readdirSync(join(APP_ROOT, 'admin')) : []
+        },
+        public: {
+            path: join(APP_ROOT, 'public'),
+            exists: fs.existsSync(join(APP_ROOT, 'public')),
+            files: fs.existsSync(join(APP_ROOT, 'public')) ? fs.readdirSync(join(APP_ROOT, 'public')) : []
+        },
+        admin_index: {
+            path: join(APP_ROOT, 'admin', 'index.html'),
+            exists: fs.existsSync(join(APP_ROOT, 'admin', 'index.html'))
+        },
+        public_index: {
+            path: join(APP_ROOT, 'public', 'index.html'),
+            exists: fs.existsSync(join(APP_ROOT, 'public', 'index.html'))
+        }
+    };
+    
+    res.json(paths);
+});
+
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        app_root: APP_ROOT,
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
+
 console.log('🎨 Мастерская Вдохновения - Запуск...');
 
 // Система начисления искр - ИСПРАВЛЕНА
