@@ -4,6 +4,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { readdirSync, existsSync } from 'fs'; // ← ДОБАВЬТЕ ЭТО
 import dotenv from 'dotenv';
 
 dotenv.config();
