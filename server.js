@@ -1516,13 +1516,27 @@ if (process.env.BOT_TOKEN) {
 }
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Сервер запущен на порту ${PORT}`);
-    console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
-    console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
-    console.log(`🎯 Квизов: ${db.quizzes.length}`);
-    console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
-    console.log(`🛒 Товаров: ${db.shop_items.length}`);
-    console.log(`👥 Пользователей: ${db.users.length}`);
-    console.log('✅ Все системы работают!');
-});
+
+function startServer(port) {
+    const server = app.listen(port, '0.0.0.0', () => {
+        console.log(`🚀 Сервер запущен на порту ${port}`);
+        console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${port}`}`);
+        console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${port}`}/admin`);
+        console.log(`🎯 Квизов: ${db.quizzes.length}`);
+        console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
+        console.log(`🛒 Товаров: ${db.shop_items.length}`);
+        console.log(`👥 Пользователей: ${db.users.length}`);
+        console.log('✅ Все системы работают!');
+    });
+
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.log(`⚠️ Порт ${port} занят, пробуем порт ${port + 1}`);
+            startServer(port + 1);
+        } else {
+            console.error('❌ Ошибка сервера:', err);
+        }
+    });
+}
+
+startServer(PORT);
