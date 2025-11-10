@@ -4,7 +4,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readdirSync, existsSync } from 'fs'; // ← ДОБАВЬТЕ ЭТО
+import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -15,11 +15,10 @@ const __dirname = dirname(__filename);
 const app = express();
 
 // Автоматическое определение пути для TimeWeb
-const APP_ROOT = process.cwd(); // Всегда текущая директория
+const APP_ROOT = process.cwd();
 
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 console.log('📁 Содержимое корневой папки:', readdirSync(APP_ROOT));
-// ==================== КОНЕЦ ДОБАВЛЕННОГО БЛОКА ====================
 
 // In-memory база данных с новой структурой
 let db = {
@@ -146,9 +145,12 @@ let db = {
             title: "🎨 Основы композиции в живописи",
             content: "Сегодня поговорим о фундаментальных принципах построения композиции. Золотое сечение, правило третей и многое другое!",
             image_url: "https://via.placeholder.com/400x300/764ba2/ffffff?text=Композиция",
+            video_url: null,
+            media_type: 'image',
             admin_id: 898508164,
             is_active: true,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            telegram_message_id: null
         }
     ],
     post_reviews: [],
@@ -176,7 +178,7 @@ app.get('/admin/*', (req, res) => {
 
 console.log('🎨 Мастерская Вдохновения - Запуск...');
 
-// Система начисления искр - ИСПРАВЛЕНА
+// Система начисления искр
 const SPARKS_SYSTEM = {
     QUIZ_PER_CORRECT_ANSWER: 1,
     QUIZ_PERFECT_BONUS: 5,
@@ -371,7 +373,6 @@ app.get('/api/webapp/quizzes', (req, res) => {
             qc => qc.user_id === userId && qc.quiz_id === quiz.id
         );
         
-        // Проверяем кулдаун
         let canRetake = true;
         if (completion && quiz.cooldown_hours > 0) {
             const lastCompletion = new Date(completion.completed_at);
@@ -406,7 +407,6 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
         return res.status(404).json({ error: 'Quiz not found' });
     }
     
-    // Проверяем кулдаун
     const existingCompletion = db.quiz_completions.find(
         qc => qc.user_id === userId && qc.quiz_id === quizId
     );
@@ -434,14 +434,12 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
     let sparksEarned = 0;
     const perfectScore = correctAnswers === quiz.questions.length;
     
-    // ИСПРАВЛЕННАЯ ЛОГИКА: либо 1 за правильный ответ, либо 5 за идеальный результат
     if (perfectScore) {
         sparksEarned = SPARKS_SYSTEM.QUIZ_PERFECT_BONUS;
     } else {
         sparksEarned = correctAnswers * SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER;
     }
     
-    // Сохраняем результат квиза
     if (existingCompletion) {
         existingCompletion.score = correctAnswers;
         existingCompletion.sparks_earned = sparksEarned;
@@ -527,12 +525,10 @@ app.post('/api/webapp/marathons/:marathonId/complete-day', (req, res) => {
         db.marathon_completions.push(completion);
     }
     
-    // ИСПРАВЛЕНИЕ: Проверяем, не завершен ли уже этот день
     if (completion.current_day > day) {
         return res.status(400).json({ error: 'Этот день уже завершен' });
     }
     
-    // Начисляем искры за выполнение дня только если это новый день
     let sparksEarned = 0;
     if (completion.current_day === day) {
         sparksEarned = SPARKS_SYSTEM.MARATHON_DAY_COMPLETION;
@@ -542,7 +538,6 @@ app.post('/api/webapp/marathons/:marathonId/complete-day', (req, res) => {
         completion.progress = Math.round((day / marathon.duration_days) * 100);
     }
     
-    // Проверяем завершение марафона
     if (day >= marathon.duration_days) {
         completion.completed = true;
         completion.progress = 100;
@@ -616,7 +611,8 @@ app.get('/api/webapp/users/:userId/purchases', (req, res) => {
                 description: item?.description,
                 type: item?.type,
                 file_url: item?.file_url,
-                content_text: item?.content_text
+                content_text: item?.content_text,
+                preview_url: item?.preview_url
             };
         })
         .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
@@ -659,9 +655,6 @@ app.post('/api/webapp/upload-work', (req, res) => {
     };
     
     db.user_works.push(newWork);
-    
-    // ИСПРАВЛЕНИЕ: Начисляем искры только после модерации
-    // Убрали начисление SPARKS_SYSTEM.UPLOAD_WORK здесь
     
     res.json({
         success: true,
@@ -820,7 +813,6 @@ app.delete('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
         return res.status(404).json({ error: 'Role not found' });
     }
     
-    // Проверяем, нет ли пользователей с этой ролью
     const usersWithRole = db.users.filter(u => u.class === db.roles[roleIndex].name);
     if (usersWithRole.length > 0) {
         return res.status(400).json({ error: 'Нельзя удалить роль, у которой есть пользователи' });
@@ -899,7 +891,6 @@ app.delete('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
         return res.status(404).json({ error: 'Character not found' });
     }
     
-    // Проверяем, нет ли пользователей с этим персонажем
     const usersWithCharacter = db.users.filter(u => u.character_id === characterId);
     if (usersWithCharacter.length > 0) {
         return res.status(400).json({ error: 'Нельзя удалить персонажа, у которого есть пользователи' });
@@ -1008,7 +999,7 @@ app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
         description: description || '',
         questions: questions,
         sparks_reward: sparks_reward || 5,
-        cooldown_hours: cooldown_hours || 24, // Добавлен кулдаун
+        cooldown_hours: cooldown_hours || 24,
         is_active: true,
         created_at: new Date().toISOString()
     };
@@ -1036,7 +1027,7 @@ app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
     if (description) quiz.description = description;
     if (questions) quiz.questions = questions;
     if (sparks_reward) quiz.sparks_reward = sparks_reward;
-    if (cooldown_hours !== undefined) quiz.cooldown_hours = cooldown_hours; // Обновляем кулдаун
+    if (cooldown_hours !== undefined) quiz.cooldown_hours = cooldown_hours;
     if (is_active !== undefined) quiz.is_active = is_active;
     
     res.json({ 
@@ -1168,7 +1159,6 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
     work.moderator_id = adminId;
     work.admin_comment = admin_comment || null;
     
-    // ИСПРАВЛЕНИЕ: Начисляем искры только после одобрения
     if (status === 'approved') {
         addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
     }
@@ -1196,7 +1186,7 @@ app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
 });
 
 app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
-    const { post_id, title, content, image_url } = req.body;
+    const { post_id, title, content, image_url, video_url, media_type } = req.body;
     
     if (!post_id || !title) {
         return res.status(400).json({ error: 'Post ID and title are required' });
@@ -1213,12 +1203,20 @@ app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
         title,
         content: content || '',
         image_url: image_url || '',
+        video_url: video_url || '',
+        media_type: media_type || 'text',
         admin_id: req.admin.user_id,
         created_at: new Date().toISOString(),
-        is_active: true
+        is_active: true,
+        telegram_message_id: null
     };
     
     db.channel_posts.push(newPost);
+    
+    // Публикуем пост в канале/группе если настроен бот
+    if (bot && process.env.CHANNEL_ID) {
+        publishToTelegram(newPost);
+    }
     
     res.json({ 
         success: true, 
@@ -1230,7 +1228,7 @@ app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
 
 app.put('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
     const postId = parseInt(req.params.postId);
-    const { title, content, image_url, is_active } = req.body;
+    const { title, content, image_url, video_url, media_type, is_active } = req.body;
     
     const post = db.channel_posts.find(p => p.id === postId);
     if (!post) {
@@ -1240,6 +1238,8 @@ app.put('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
     if (title) post.title = title;
     if (content) post.content = content;
     if (image_url) post.image_url = image_url;
+    if (video_url) post.video_url = video_url;
+    if (media_type) post.media_type = media_type;
     if (is_active !== undefined) post.is_active = is_active;
     
     res.json({ 
@@ -1407,12 +1407,91 @@ if (process.env.BOT_TOKEN) {
         
         console.log('✅ Telegram Bot инициализирован');
         
+        // Функция публикации поста в канале
+        async function publishToTelegram(post) {
+            if (!process.env.CHANNEL_ID) {
+                console.log('❌ CHANNEL_ID не настроен');
+                return;
+            }
+            
+            try {
+                const channelId = process.env.CHANNEL_ID;
+                let message;
+                
+                const caption = `*${post.title}*\n\n${post.content}\n\n💬 *Оставляйте отзывы в комментариях и получайте искры!*`;
+                
+                if (post.media_type === 'image' && post.image_url) {
+                    message = await bot.sendPhoto(channelId, post.image_url, {
+                        caption: caption,
+                        parse_mode: 'Markdown'
+                    });
+                } else if (post.media_type === 'video' && post.video_url) {
+                    message = await bot.sendVideo(channelId, post.video_url, {
+                        caption: caption,
+                        parse_mode: 'Markdown'
+                    });
+                } else {
+                    message = await bot.sendMessage(channelId, caption, {
+                        parse_mode: 'Markdown'
+                    });
+                }
+                
+                // Сохраняем ID сообщения в базе
+                post.telegram_message_id = message.message_id;
+                console.log(`✅ Пост опубликован в канале: ${post.title}`);
+                
+            } catch (error) {
+                console.error('❌ Ошибка публикации поста:', error);
+            }
+        }
+        
+        // Обработка комментариев в канале
+        bot.on('message', (msg) => {
+            // Если сообщение является ответом на пост бота в канале
+            if (msg.reply_to_message && process.env.CHANNEL_ID) {
+                const channelPostId = msg.reply_to_message.message_id;
+                const post = db.channel_posts.find(p => p.telegram_message_id === channelPostId);
+                
+                if (post && msg.from) {
+                    const userId = msg.from.id;
+                    const reviewText = msg.text;
+                    
+                    // Проверяем, не оставлял ли пользователь уже отзыв
+                    const existingReview = db.post_reviews.find(
+                        r => r.user_id === userId && r.post_id === post.post_id
+                    );
+                    
+                    if (!existingReview && reviewText) {
+                        const newReview = {
+                            id: Date.now(),
+                            user_id: userId,
+                            post_id: post.post_id,
+                            review_text: reviewText,
+                            rating: 5, // По умолчанию 5 звезд
+                            status: 'pending',
+                            created_at: new Date().toISOString(),
+                            moderated_at: null,
+                            moderator_id: null,
+                            admin_comment: null
+                        };
+                        
+                        db.post_reviews.push(newReview);
+                        
+                        // Уведомляем пользователя
+                        bot.sendMessage(userId, 
+                            '📝 Ваш отзыв получен и отправлен на модерацию! После одобрения вы получите +3✨\n\n' +
+                            `Ваш отзыв: "${reviewText}"`
+                        ).catch(() => {}); // Игнорируем ошибки если пользователь не начал диалог с ботом
+                    }
+                }
+            }
+        });
+
         bot.onText(/\/start/, (msg) => {
             const chatId = msg.chat.id;
             const name = msg.from.first_name || 'Друг';
             const userId = msg.from.id;
             
-            // Создаем или обновляем пользователя
             let user = db.users.find(u => u.user_id === userId);
             if (!user) {
                 user = {
@@ -1463,33 +1542,32 @@ if (process.env.BOT_TOKEN) {
             });
         });
 
-       bot.onText(/\/admin/, (msg) => {
-    const chatId = msg.chat.id;
-    const userId = msg.from.id;
-    
-    const admin = db.admins.find(a => a.user_id == userId);
-    if (!admin) {
-        bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
-        return;
-    }
-    
-    // ИСПРАВЛЕННАЯ ССЫЛКА:
-    const adminUrl = `${process.env.APP_URL}/admin.html?userId=${userId}`;
-    
-    const keyboard = {
-        inline_keyboard: [[
-            {
-                text: "🔧 Открыть Админ Панель",
-                url: adminUrl
+        bot.onText(/\/admin/, (msg) => {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            const admin = db.admins.find(a => a.user_id == userId);
+            if (!admin) {
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+                return;
             }
-        ]]
-    };
-    
-    bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-    });
-});
+            
+            const adminUrl = `${process.env.APP_URL}/admin?userId=${userId}`;
+            
+            const keyboard = {
+                inline_keyboard: [[
+                    {
+                        text: "🔧 Открыть Админ Панель",
+                        url: adminUrl
+                    }
+                ]]
+            };
+            
+            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            });
+        });
 
         bot.onText(/\/stats/, (msg) => {
             const chatId = msg.chat.id;
