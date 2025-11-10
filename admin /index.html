@@ -62,12 +62,12 @@
         .stat-card:hover { transform: translateY(-2px); }
         .stat-number { font-size: 2em; font-weight: bold; color: #667eea; margin-bottom: 5px; }
         .stat-label { color: #718096; font-size: 14px; }
-        .character-card, .quiz-card, .admin-card, .shop-item-card, .post-card, .review-card {
+        .character-card, .quiz-card, .admin-card, .shop-item-card, .post-card, .review-card, .work-card {
             background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px;
             padding: 15px; margin-bottom: 15px; transition: all 0.3s ease;
         }
         .character-card:hover, .quiz-card:hover, .admin-card:hover, 
-        .shop-item-card:hover, .post-card:hover, .review-card:hover {
+        .shop-item-card:hover, .post-card:hover, .review-card:hover, .work-card:hover {
             border-color: #667eea; transform: translateY(-1px);
         }
         .message {
@@ -121,52 +121,57 @@
             margin-right: 5px; margin-bottom: 5px; transition: all 0.3s ease;
         }
         .tab-subnav-item.active { background: #667eea; color: white; }
+        .work-image {
+            max-width: 100%; max-height: 200px; border-radius: 8px;
+            margin: 10px 0; border: 2px solid #e2e8f0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🎨 Админ панель - Мастерская Вдохновения</h1>
-            <p>Управление контентом, магазином и модерацией отзывов</p>
+            <p>Управление контентом, магазином и модерацией</p>
             <div id="adminInfo">Загрузка...</div>
         </div>
 
         <div class="nav-tabs">
             <div class="nav-tab active" data-tab="dashboard">📊 Дашборд</div>
             <div class="nav-tab" data-tab="shop">🛒 Магазин</div>
-            <div class="nav-tab" data-tab="posts">📰 Посты канала</div>
-            <div class="nav-tab" data-tab="reviews">💬 Модерация отзывов</div>
-            <div class="nav-tab" data-tab="characters">👥 Персонажи</div>
+            <div class="nav-tab" data-tab="user-works">🖼️ Работы</div>
+            <div class="nav-tab" data-tab="posts">📰 Посты</div>
+            <div class="nav-tab" data-tab="reviews">💬 Отзывы</div>
             <div class="nav-tab" data-tab="quizzes">🎯 Квизы</div>
+            <div class="nav-tab" data-tab="characters">👥 Персонажи</div>
             <div class="nav-tab" data-tab="admins">🔧 Админы</div>
         </div>
 
         <!-- Дашборд -->
         <div id="dashboard" class="tab-content active">
-            <div class="stats-grid">
+            <div class="stats-grid" id="dashboardStats">
                 <div class="stat-card">
-                    <div class="stat-number" id="totalUsers">0</div>
+                    <div class="stat-number">0</div>
                     <div class="stat-label">Всего пользователей</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="activeQuizzes">0</div>
+                    <div class="stat-number">0</div>
                     <div class="stat-label">Активных квизов</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="shopItems">0</div>
+                    <div class="stat-number">0</div>
                     <div class="stat-label">Товаров в магазине</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="totalPosts">0</div>
+                    <div class="stat-number">0</div>
                     <div class="stat-label">Постов в канале</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="totalSparks">0</div>
+                    <div class="stat-number">0</div>
                     <div class="stat-label">Всего искр</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="pendingReviews">0</div>
-                    <div class="stat-label">Отзывов на модерации</div>
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Работ на модерации</div>
                 </div>
             </div>
 
@@ -174,6 +179,7 @@
                 <h3>📈 Быстрые действия</h3>
                 <button class="btn btn-success" onclick="showTab('shop')">➕ Добавить товар</button>
                 <button class="btn btn-success" onclick="showTab('posts')">📝 Создать пост</button>
+                <button class="btn btn-warning" onclick="showTab('user-works')">🖼️ Модерировать работы</button>
                 <button class="btn btn-warning" onclick="showTab('reviews')">💬 Модерировать отзывы</button>
                 <button class="btn btn-success" onclick="showTab('quizzes')">🎯 Создать квиз</button>
                 <button class="btn" onclick="showTab('admins')">🔧 Управление админами</button>
@@ -224,13 +230,6 @@
                         <input type="number" id="itemPrice" class="form-control" value="10" min="0" step="0.5" required>
                         <small style="color: #718096;">Стоимость товара в искрах</small>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Статус:</label>
-                        <div>
-                            <label><input type="radio" name="itemActive" value="true" checked> ✅ Активен (виден в магазине)</label>
-                            <label style="margin-left: 15px;"><input type="radio" name="itemActive" value="false"> ❌ Неактивен (скрыт)</label>
-                        </div>
-                    </div>
                     <button type="submit" class="btn btn-success">✅ Добавить товар</button>
                 </form>
             </div>
@@ -239,6 +238,22 @@
                 <h3>🛒 Список товаров</h3>
                 <div id="shopItemsList">
                     <div class="loading">Загрузка товаров...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Работы пользователей -->
+        <div id="user-works" class="tab-content">
+            <div class="tab-subnav">
+                <div class="tab-subnav-item active" data-status="pending">⏳ Ожидают модерации</div>
+                <div class="tab-subnav-item" data-status="approved">✅ Одобренные</div>
+                <div class="tab-subnav-item" data-status="rejected">❌ Отклоненные</div>
+            </div>
+
+            <div class="card">
+                <h3>🖼️ Работы пользователей</h3>
+                <div id="userWorksList">
+                    <div class="loading">Загрузка работ...</div>
                 </div>
             </div>
         </div>
@@ -290,6 +305,40 @@
                 <h3>💬 Отзывы на модерации</h3>
                 <div id="reviewsList">
                     <div class="loading">Загрузка отзывов...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Квизы -->
+        <div id="quizzes" class="tab-content">
+            <div class="card">
+                <h3>➕ Создать квиз</h3>
+                <form id="createQuizForm">
+                    <div class="form-group">
+                        <label class="form-label">Название квиза:</label>
+                        <input type="text" id="quizTitle" class="form-control" required placeholder="Введите название квиза">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание:</label>
+                        <textarea id="quizDescription" class="form-control" rows="3" placeholder="Описание квиза"></textarea>
+                    </div>
+                    <div id="questionsContainer">
+                        <h4>Вопросы:</h4>
+                    </div>
+                    <button type="button" class="btn" onclick="addQuestion()">➕ Добавить вопрос</button>
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label class="form-label">Награда за квиз (искры):</label>
+                        <input type="number" id="quizSparksReward" class="form-control" value="2" min="1" step="1">
+                        <small style="color: #718096;">Базовое количество искр за правильный ответ</small>
+                    </div>
+                    <button type="submit" class="btn btn-success" style="margin-top: 20px;">✅ Создать квиз</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>📝 Список квизов</h3>
+                <div id="quizzesList">
+                    <div class="loading">Загрузка квизов...</div>
                 </div>
             </div>
         </div>
@@ -350,36 +399,6 @@
             </div>
         </div>
 
-        <!-- Квизы -->
-        <div id="quizzes" class="tab-content">
-            <div class="card">
-                <h3>➕ Создать квиз</h3>
-                <form id="createQuizForm">
-                    <div class="form-group">
-                        <label class="form-label">Название квиза:</label>
-                        <input type="text" id="quizTitle" class="form-control" required placeholder="Введите название квиза">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Описание:</label>
-                        <textarea id="quizDescription" class="form-control" rows="3" placeholder="Описание квиза"></textarea>
-                    </div>
-                    <div id="questionsContainer">
-                        <h4>Вопросы:</h4>
-                        <!-- Вопросы добавляются здесь -->
-                    </div>
-                    <button type="button" class="btn" onclick="addQuestion()">➕ Добавить вопрос</button>
-                    <button type="submit" class="btn btn-success" style="margin-top: 20px;">✅ Создать квиз</button>
-                </form>
-            </div>
-
-            <div class="card">
-                <h3>📝 Список квизов</h3>
-                <div id="quizzesList">
-                    <div class="loading">Загрузка квизов...</div>
-                </div>
-            </div>
-        </div>
-
         <!-- Админы -->
         <div id="admins" class="tab-content">
             <div class="card">
@@ -423,6 +442,7 @@
 
         let currentQuestions = [];
         let currentReviewStatus = 'pending';
+        let currentWorkStatus = 'pending';
 
         // Инициализация админ панели
         async function initializeAdmin() {
@@ -447,13 +467,21 @@
                     });
                 });
 
-                // Поднавигация для отзывов
+                // Поднавигация
                 document.querySelectorAll('.tab-subnav-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        document.querySelectorAll('.tab-subnav-item').forEach(i => i.classList.remove('active'));
-                        item.classList.add('active');
-                        currentReviewStatus = item.dataset.status;
-                        loadReviews();
+                    item.addEventListener('click', function() {
+                        const tab = this.closest('.tab-content');
+                        const items = tab.querySelectorAll('.tab-subnav-item');
+                        items.forEach(i => i.classList.remove('active'));
+                        this.classList.add('active');
+                        
+                        if (tab.id === 'user-works') {
+                            currentWorkStatus = this.dataset.status;
+                            loadUserWorks();
+                        } else if (tab.id === 'reviews') {
+                            currentReviewStatus = this.dataset.status;
+                            loadReviews();
+                        }
                     });
                 });
 
@@ -466,14 +494,19 @@
 
                 // Загружаем начальные данные
                 loadShopItems();
+                loadUserWorks();
                 loadPosts();
                 loadReviews();
-                loadCharacters();
                 loadQuizzes();
+                loadCharacters();
                 loadAdmins();
+
+                // Добавляем первый вопрос
+                addQuestion();
 
             } catch (error) {
                 showMessage('❌ Ошибка доступа к админ панели', 'error');
+                console.error('Admin init error:', error);
             }
         }
 
@@ -487,10 +520,11 @@
             
             // Загружаем данные вкладки если нужно
             if (tabName === 'shop') loadShopItems();
+            if (tabName === 'user-works') loadUserWorks();
             if (tabName === 'posts') loadPosts();
             if (tabName === 'reviews') loadReviews();
-            if (tabName === 'characters') loadCharacters();
             if (tabName === 'quizzes') loadQuizzes();
+            if (tabName === 'characters') loadCharacters();
             if (tabName === 'admins') loadAdmins();
         }
 
@@ -500,12 +534,33 @@
                 const response = await fetch(`${API_BASE}/api/admin/stats?userId=${currentAdminId}`);
                 const data = await response.json();
                 
-                document.getElementById('totalUsers').textContent = data.totalUsers;
-                document.getElementById('activeQuizzes').textContent = data.activeQuizzes;
-                document.getElementById('shopItems').textContent = data.shopItems;
-                document.getElementById('totalPosts').textContent = data.totalPosts;
-                document.getElementById('totalSparks').textContent = data.totalSparks;
-                document.getElementById('pendingReviews').textContent = data.pendingReviews;
+                const stats = document.getElementById('dashboardStats');
+                stats.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-number">${data.totalUsers}</div>
+                        <div class="stat-label">Всего пользователей</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${data.activeQuizzes}</div>
+                        <div class="stat-label">Активных квизов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${data.shopItems}</div>
+                        <div class="stat-label">Товаров в магазине</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${data.totalPosts}</div>
+                        <div class="stat-label">Постов в канале</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${data.totalSparks.toFixed(1)}</div>
+                        <div class="stat-label">Всего искр</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${data.pendingWorks}</div>
+                        <div class="stat-label">Работ на модерации</div>
+                    </div>
+                `;
 
                 // Получаем роль текущего админа
                 const adminResponse = await fetch(`${API_BASE}/api/admin/admins?userId=${currentAdminId}`);
@@ -529,7 +584,7 @@
                 const list = document.getElementById('shopItemsList');
                 list.innerHTML = items.map(item => `
                     <div class="shop-item-card">
-                        <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                             <div style="flex: 1;">
                                 <h4 style="margin: 0 0 5px 0;">${item.title}</h4>
                                 <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
@@ -586,8 +641,7 @@
                 file_url: document.getElementById('itemFileUrl').value,
                 preview_url: document.getElementById('itemPreviewUrl').value,
                 content_text: document.getElementById('itemContentText').value,
-                price: parseFloat(document.getElementById('itemPrice').value),
-                is_active: document.querySelector('input[name="itemActive"]:checked').value === 'true'
+                price: parseFloat(document.getElementById('itemPrice').value)
             };
 
             try {
@@ -634,6 +688,93 @@
             }
         }
 
+        // Управление работами пользователей
+        async function loadUserWorks() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/user-works?userId=${currentAdminId}&status=${currentWorkStatus}`);
+                const data = await response.json();
+                
+                const list = document.getElementById('userWorksList');
+                list.innerHTML = data.works.map(work => `
+                    <div class="work-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 5px 0;">${work.title}</h4>
+                                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
+                                    Автор: ${work.user_name} ${work.user_username ? `(@${work.user_username})` : ''}
+                                </div>
+                                ${work.description ? `
+                                    <div style="color: #4a5568; font-size: 14px; margin-bottom: 5px;">
+                                        ${work.description}
+                                    </div>
+                                ` : ''}
+                                <img src="${work.image_url}" class="work-image">
+                                <div style="color: #718096; font-size: 12px; margin-top: 5px;">
+                                    Загружено: ${new Date(work.created_at).toLocaleString('ru-RU')}
+                                    ${work.moderated_at ? `• Модерировано: ${new Date(work.moderated_at).toLocaleDateString('ru-RU')}` : ''}
+                                </div>
+                                ${work.admin_comment ? `
+                                    <div style="color: #ed8936; font-size: 12px; margin-top: 5px;">
+                                        Комментарий: ${work.admin_comment}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <span class="badge ${
+                                work.status === 'approved' ? 'badge-success' : 
+                                work.status === 'rejected' ? 'badge-danger' : 'badge-warning'
+                            }">
+                                ${
+                                    work.status === 'approved' ? 'Одобрено' : 
+                                    work.status === 'rejected' ? 'Отклонено' : 'На модерации'
+                                }
+                            </span>
+                        </div>
+                        
+                        ${work.status === 'pending' ? `
+                            <div class="moderation-actions">
+                                <button class="btn btn-success" onclick="moderateWork(${work.id}, 'approved')">
+                                    ✅ Одобрить
+                                </button>
+                                <button class="btn btn-danger" onclick="moderateWork(${work.id}, 'rejected')">
+                                    ❌ Отклонить
+                                </button>
+                                <input type="text" id="work_comment_${work.id}" class="form-control" placeholder="Комментарий модератора (опционально)" style="flex: 1;">
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('userWorksList').innerHTML = '<div class="message error">Ошибка загрузки работ</div>';
+            }
+        }
+
+        async function moderateWork(workId, status) {
+            const adminComment = document.getElementById(`work_comment_${workId}`)?.value || '';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/user-works/${workId}/moderate?userId=${currentAdminId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: status,
+                        admin_comment: adminComment
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`✅ Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`, 'success');
+                    loadUserWorks();
+                    loadDashboard();
+                } else {
+                    showMessage('❌ Ошибка модерации', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при модерации работы', 'error');
+            }
+        }
+
         // Управление постами
         async function loadPosts() {
             try {
@@ -643,7 +784,7 @@
                 const list = document.getElementById('postsList');
                 list.innerHTML = data.posts.map(post => `
                     <div class="post-card">
-                        <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                             <div style="flex: 1;">
                                 <h4 style="margin: 0 0 5px 0;">${post.title}</h4>
                                 <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
@@ -716,7 +857,7 @@
                 const list = document.getElementById('reviewsList');
                 list.innerHTML = data.reviews.map(review => `
                     <div class="review-card">
-                        <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                             <div style="flex: 1;">
                                 <h4 style="margin: 0 0 5px 0;">К посту: "${review.post_title}"</h4>
                                 <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
@@ -792,94 +933,6 @@
             }
         }
 
-        // Управление персонажами
-        async function loadCharacters() {
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/characters?userId=${currentAdminId}`);
-                const characters = await response.json();
-                
-                const list = document.getElementById('charactersList');
-                list.innerHTML = characters.map(char => `
-                    <div class="character-card">
-                        <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 10px;">
-                            <div style="flex: 1;">
-                                <h4 style="margin: 0 0 5px 0;">${char.character_name}</h4>
-                                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
-                                    Класс: ${char.class} • Бонус: ${char.bonus_type} (${char.bonus_value})
-                                </div>
-                                <div style="color: #4a5568; font-size: 14px;">${char.description || 'Без описания'}</div>
-                            </div>
-                            <span class="badge ${char.is_active ? 'badge-success' : 'badge-warning'}">
-                                ${char.is_active ? 'Активен' : 'Неактивен'}
-                            </span>
-                        </div>
-                        <div style="margin-top: 10px;">
-                            <button class="btn btn-warning" onclick="editCharacter(${char.id})">✏️ Редактировать</button>
-                            <button class="btn btn-danger" onclick="deleteCharacter(${char.id})">🗑️ Удалить</button>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                document.getElementById('charactersList').innerHTML = '<div class="message error">Ошибка загрузки персонажей</div>';
-            }
-        }
-
-        async function createCharacter(e) {
-            e.preventDefault();
-            
-            const formData = {
-                class: document.getElementById('characterClass').value,
-                character_name: document.getElementById('characterName').value,
-                description: document.getElementById('characterDescription').value,
-                bonus_type: document.getElementById('characterBonusType').value,
-                bonus_value: document.getElementById('characterBonusValue').value,
-                available_buttons: ['quiz', 'activities', 'shop']
-            };
-
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/characters?userId=${currentAdminId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showMessage('✅ Персонаж успешно создан!', 'success');
-                    document.getElementById('createCharacterForm').reset();
-                    loadCharacters();
-                    loadDashboard();
-                } else {
-                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при создании персонажа', 'error');
-            }
-        }
-
-        async function deleteCharacter(characterId) {
-            if (!confirm('Удалить этого персонажа?')) return;
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/characters/${characterId}?userId=${currentAdminId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Персонаж удален', 'success');
-                    loadCharacters();
-                    loadDashboard();
-                } else {
-                    showMessage('❌ Ошибка удаления', 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при удалении', 'error');
-            }
-        }
-
         // Управление квизами
         function addQuestion() {
             const questionId = Date.now();
@@ -896,7 +949,7 @@
             const container = document.getElementById('questionsContainer');
             container.innerHTML = '<h4>Вопросы:</h4>' + currentQuestions.map((question, qIndex) => `
                 <div class="question-item">
-                    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <h5 style="margin: 0;">Вопрос ${qIndex + 1}</h5>
                         <button type="button" class="btn btn-danger" onclick="removeQuestion(${question.id})">🗑️ Удалить</button>
                     </div>
@@ -947,12 +1000,25 @@
                 return;
             }
 
+            // Проверяем, что все вопросы заполнены
+            for (let question of currentQuestions) {
+                if (!question.question.trim()) {
+                    showMessage('❌ Заполните текст всех вопросов', 'error');
+                    return;
+                }
+                for (let option of question.options) {
+                    if (!option.trim()) {
+                        showMessage('❌ Заполните все варианты ответов', 'error');
+                        return;
+                    }
+                }
+            }
+
             const quizData = {
                 title: document.getElementById('quizTitle').value,
                 description: document.getElementById('quizDescription').value,
                 questions: currentQuestions,
-                sparks_reward: 1, // Базовая награда за правильный ответ
-                is_active: true
+                sparks_reward: parseInt(document.getElementById('quizSparksReward').value) || 1
             };
 
             try {
@@ -987,7 +1053,7 @@
                 const list = document.getElementById('quizzesList');
                 list.innerHTML = quizzes.map(quiz => `
                     <div class="quiz-card">
-                        <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                             <div style="flex: 1;">
                                 <h4 style="margin: 0 0 5px 0;">${quiz.title}</h4>
                                 <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
@@ -995,7 +1061,9 @@
                                 </div>
                                 <div style="color: #4a5568; font-size: 14px;">
                                     Вопросов: ${quiz.questions.length} 
-                                    • Награда: до ${quiz.questions.length * 1 + 5}✨
+                                    • Награда: ${quiz.sparks_reward}✨
+                                    • Прохождений: ${quiz.completions_count || 0}
+                                    ${quiz.average_score ? `• Средний балл: ${quiz.average_score.toFixed(1)}` : ''}
                                 </div>
                             </div>
                             <span class="badge ${quiz.is_active ? 'badge-success' : 'badge-warning'}">
@@ -1008,7 +1076,7 @@
                     </div>
                 `).join('');
             } catch (error) {
-                document.getElementById('quizzesList').innerHTML = '<div class="message error">Ошибка загрузки</div>';
+                document.getElementById('quizzesList').innerHTML = '<div class="message error">Ошибка загрузки квизов</div>';
             }
         }
 
@@ -1034,6 +1102,92 @@
             }
         }
 
+        // Управление персонажами
+        async function loadCharacters() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/characters?userId=${currentAdminId}`);
+                const characters = await response.json();
+                
+                const list = document.getElementById('charactersList');
+                list.innerHTML = characters.map(char => `
+                    <div class="character-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 5px 0;">${char.character_name}</h4>
+                                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
+                                    Класс: ${char.class} • Бонус: ${char.bonus_type} (${char.bonus_value})
+                                </div>
+                                <div style="color: #4a5568; font-size: 14px;">${char.description || 'Без описания'}</div>
+                            </div>
+                            <span class="badge ${char.is_active ? 'badge-success' : 'badge-warning'}">
+                                ${char.is_active ? 'Активен' : 'Неактивен'}
+                            </span>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <button class="btn btn-danger" onclick="deleteCharacter(${char.id})">🗑️ Удалить</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('charactersList').innerHTML = '<div class="message error">Ошибка загрузки персонажей</div>';
+            }
+        }
+
+        async function createCharacter(e) {
+            e.preventDefault();
+            
+            const formData = {
+                class: document.getElementById('characterClass').value,
+                character_name: document.getElementById('characterName').value,
+                description: document.getElementById('characterDescription').value,
+                bonus_type: document.getElementById('characterBonusType').value,
+                bonus_value: document.getElementById('characterBonusValue').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/characters?userId=${currentAdminId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Персонаж успешно создан!', 'success');
+                    document.getElementById('createCharacterForm').reset();
+                    loadCharacters();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при создании персонажа', 'error');
+            }
+        }
+
+        async function deleteCharacter(characterId) {
+            if (!confirm('Удалить этого персонажа?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/characters/${characterId}?userId=${currentAdminId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Персонаж удален', 'success');
+                    loadCharacters();
+                    loadDashboard();
+                } else {
+                    showMessage('❌ Ошибка удаления', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при удалении', 'error');
+            }
+        }
+
         // Управление админами
         async function loadAdmins() {
             try {
@@ -1043,7 +1197,7 @@
                 const list = document.getElementById('adminsList');
                 list.innerHTML = admins.map(admin => `
                     <div class="admin-card">
-                        <div style="display: flex; justify-content: between; align-items: center;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div style="flex: 1;">
                                 <div style="font-weight: 600; margin-bottom: 5px;">
                                     ID: ${admin.user_id} ${admin.username ? `(@${admin.username})` : ''}
@@ -1137,9 +1291,6 @@
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', initializeAdmin);
-
-        // Добавляем первый вопрос при загрузке
-        document.addEventListener('DOMContentLoaded', addQuestion);
     </script>
 </body>
 </html>
