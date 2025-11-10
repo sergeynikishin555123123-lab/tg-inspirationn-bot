@@ -13,20 +13,23 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
-// In-memory база данных
+// In-memory база данных с полными данными
 let db = {
     users: [
         {
             id: 1,
             user_id: 12345,
             tg_first_name: 'Тестовый Пользователь',
+            tg_username: 'test_user',
             sparks: 25.5,
             level: 'Ученик',
             is_registered: true,
             class: 'Художники',
             character_id: 1,
             character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'shop', 'activities', 'invite', 'upload_work']
+            available_buttons: ['quiz', 'shop', 'activities', 'invite', 'upload_work'],
+            registration_date: new Date().toISOString(),
+            last_active: new Date().toISOString()
         }
     ],
     characters: [
@@ -58,6 +61,30 @@ let db = {
                     question: "Какие цвета являются основными?",
                     options: ["Красный, синий, зеленый", "Красный, желтый, синий", "Фиолетовый, оранжевый, зеленый", "Черный, белый, серый"],
                     correctAnswer: 1
+                },
+                {
+                    question: "Что такое акварель?",
+                    options: ["Масляная краска", "Водорастворимая краска", "Акриловая краска", "Темперная краска"],
+                    correctAnswer: 1
+                }
+            ],
+            sparks_reward: 2,
+            is_active: true
+        },
+        {
+            id: 2,
+            title: "👗 История моды",
+            description: "Тест по истории моды и стиля",
+            questions: [
+                {
+                    question: "В каком веке появился первый кринолин?",
+                    options: ["16 век", "17 век", "18 век", "19 век"],
+                    correctAnswer: 2
+                },
+                {
+                    question: "Кто считается основателем модного дома Chanel?",
+                    options: ["Коко Шанель", "Кристиан Диор", "Ив Сен-Лоран", "Живанши"],
+                    correctAnswer: 0
                 }
             ],
             sparks_reward: 2,
@@ -86,13 +113,49 @@ let db = {
             price: 10,
             content_text: null,
             is_active: true
+        },
+        {
+            id: 3,
+            title: "💡 Секреты цветовых сочетаний",
+            description: "Текстовый материал о психологии цвета",
+            type: "text",
+            file_url: null,
+            preview_url: "https://via.placeholder.com/300x200/ed8936/ffffff?text=Цвет",
+            price: 8,
+            content_text: "Цвет - это мощный инструмент в руках художника. В этом материале вы узнаете о психологическом воздействии цветов и научитесь создавать гармоничные палитры.",
+            is_active: true
         }
     ],
-    activities: [],
-    admins: [
-        { id: 1, user_id: 898508164, username: 'admin', role: 'superadmin' }
+    activities: [
+        {
+            id: 1,
+            user_id: 12345,
+            activity_type: 'registration',
+            sparks_earned: 5,
+            description: 'Регистрация',
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            user_id: 12345,
+            activity_type: 'quiz',
+            sparks_earned: 3,
+            description: 'Квиз: Основы живописи',
+            created_at: new Date().toISOString()
+        }
     ],
-    purchases: [],
+    admins: [
+        { id: 1, user_id: 898508164, username: 'admin', role: 'superadmin', created_at: new Date().toISOString() }
+    ],
+    purchases: [
+        {
+            id: 1,
+            user_id: 12345,
+            item_id: 1,
+            price_paid: 15,
+            purchased_at: new Date().toISOString()
+        }
+    ],
     channel_posts: [
         {
             id: 1,
@@ -101,12 +164,59 @@ let db = {
             content: "Сегодня поговорим о фундаментальных принципах построения композиции. Золотое сечение, правило третей и многое другое!",
             image_url: "https://via.placeholder.com/400x300/764ba2/ffffff?text=Композиция",
             admin_id: 898508164,
+            created_at: new Date().toISOString(),
+            is_active: true
+        },
+        {
+            id: 2,
+            post_id: "post_color_psychology",
+            title: "🌈 Психология цвета в искусстве",
+            content: "Как цвета влияют на восприятие artwork? Красный - страсть, синий - спокойствие, жёлтый - энергия. Узнайте больше!",
+            image_url: "https://via.placeholder.com/400x300/4299e1/ffffff?text=Цвета",
+            admin_id: 898508164,
+            created_at: new Date().toISOString(),
             is_active: true
         }
     ],
-    post_reviews: [],
-    user_works: [],
-    work_reviews: []
+    post_reviews: [
+        {
+            id: 1,
+            user_id: 12345,
+            post_id: "post_art_basics",
+            review_text: "Отличный пост! Очень познавательно.",
+            rating: 5,
+            status: "approved",
+            created_at: new Date().toISOString(),
+            moderated_at: new Date().toISOString(),
+            moderator_id: 898508164
+        }
+    ],
+    user_works: [
+        {
+            id: 1,
+            user_id: 12345,
+            title: "Мой первый натюрморт",
+            description: "Попытка рисования акварелью",
+            image_url: "https://via.placeholder.com/400x300/48bb78/ffffff?text=Натюрморт",
+            type: "image",
+            status: "approved",
+            created_at: new Date().toISOString(),
+            moderated_at: new Date().toISOString(),
+            moderator_id: 898508164,
+            admin_comment: "Отличная работа для начала!"
+        }
+    ],
+    quiz_completions: [
+        {
+            id: 1,
+            user_id: 12345,
+            quiz_id: 1,
+            completed_at: new Date().toISOString(),
+            score: 2,
+            sparks_earned: 3,
+            perfect_score: false
+        }
+    ]
 };
 
 app.use(express.json({ limit: '50mb' }));
@@ -125,7 +235,8 @@ const SPARKS_SYSTEM = {
     INVITE_FRIEND: 10,
     WRITE_REVIEW: 3,
     UPLOAD_WORK: 5,
-    WORK_APPROVED: 15
+    WORK_APPROVED: 15,
+    REGISTRATION_BONUS: 5
 };
 
 // Вспомогательные функции
@@ -142,18 +253,40 @@ function addSparks(userId, sparks, activityType, description) {
     if (user) {
         user.sparks += sparks;
         user.level = calculateLevel(user.sparks);
+        user.last_active = new Date().toISOString();
         
-        db.activities.push({
+        const activity = {
             id: Date.now(),
             user_id: userId,
             activity_type: activityType,
             sparks_earned: sparks,
             description: description,
             created_at: new Date().toISOString()
-        });
-        return true;
+        };
+        
+        db.activities.push(activity);
+        return activity;
     }
-    return false;
+    return null;
+}
+
+function getUserStats(userId) {
+    const user = db.users.find(u => u.user_id == userId);
+    if (!user) return null;
+    
+    const activities = db.activities.filter(a => a.user_id == userId);
+    const purchases = db.purchases.filter(p => p.user_id == userId);
+    const works = db.user_works.filter(w => w.user_id == userId);
+    const quizCompletions = db.quiz_completions.filter(q => q.user_id == userId);
+    
+    return {
+        totalActivities: activities.length,
+        totalPurchases: purchases.length,
+        totalWorks: works.length,
+        approvedWorks: works.filter(w => w.status === 'approved').length,
+        totalQuizzesCompleted: quizCompletions.length,
+        totalSparksEarned: activities.reduce((sum, a) => sum + a.sparks_earned, 0)
+    };
 }
 
 // Middleware
@@ -179,7 +312,10 @@ app.get('/health', (req, res) => {
         status: 'OK', 
         timestamp: new Date().toISOString(),
         version: '1.0.0',
-        database: 'In-Memory'
+        database: 'In-Memory',
+        users: db.users.length,
+        quizzes: db.quizzes.length,
+        shop_items: db.shop_items.length
     });
 });
 
@@ -189,7 +325,14 @@ app.get('/api/users/:userId', (req, res) => {
     const user = db.users.find(u => u.user_id === userId);
     
     if (user) {
-        res.json({ exists: true, user });
+        const stats = getUserStats(userId);
+        res.json({ 
+            exists: true, 
+            user: {
+                ...user,
+                stats: stats
+            }
+        });
     } else {
         const newUser = {
             id: Date.now(),
@@ -201,10 +344,15 @@ app.get('/api/users/:userId', (req, res) => {
             class: null,
             character_id: null,
             character_name: null,
-            available_buttons: []
+            available_buttons: [],
+            registration_date: new Date().toISOString(),
+            last_active: new Date().toISOString()
         };
         db.users.push(newUser);
-        res.json({ exists: false, user: newUser });
+        res.json({ 
+            exists: false, 
+            user: newUser 
+        });
     }
 });
 
@@ -231,17 +379,23 @@ app.post('/api/users/register', (req, res) => {
     user.character_name = character.character_name;
     user.is_registered = true;
     user.available_buttons = ['quiz', 'shop', 'activities', 'invite', 'upload_work'];
+    user.last_active = new Date().toISOString();
     
     let message = 'Регистрация успешна!';
     let sparksAdded = 0;
     
     if (isNewUser) {
-        sparksAdded = 5;
+        sparksAdded = SPARKS_SYSTEM.REGISTRATION_BONUS;
         addSparks(userId, sparksAdded, 'registration', 'Регистрация');
-        message = 'Регистрация успешна! +5✨';
+        message = `Регистрация успешна! +${sparksAdded}✨`;
     }
     
-    res.json({ success: true, message, sparksAdded });
+    res.json({ 
+        success: true, 
+        message, 
+        sparksAdded,
+        user: user
+    });
 });
 
 app.get('/api/webapp/classes', (req, res) => {
@@ -266,12 +420,24 @@ app.get('/api/webapp/characters', (req, res) => {
 });
 
 app.get('/api/webapp/quizzes', (req, res) => {
+    const userId = parseInt(req.query.userId);
     const quizzes = db.quizzes.filter(q => q.is_active);
-    const quizzesWithStatus = quizzes.map(quiz => ({
-        ...quiz,
-        completed: false,
-        can_retake: true
-    }));
+    
+    const quizzesWithStatus = quizzes.map(quiz => {
+        const completion = db.quiz_completions.find(
+            qc => qc.user_id === userId && qc.quiz_id === quiz.id
+        );
+        
+        return {
+            ...quiz,
+            completed: !!completion,
+            user_score: completion ? completion.score : 0,
+            total_questions: quiz.questions.length,
+            can_retake: true,
+            last_completion: completion ? completion.completed_at : null
+        };
+    });
+    
     res.json(quizzesWithStatus);
 });
 
@@ -304,6 +470,28 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
         sparksEarned += SPARKS_SYSTEM.QUIZ_PERFECT_BONUS;
     }
     
+    // Сохраняем результат квиза
+    const existingCompletion = db.quiz_completions.find(
+        qc => qc.user_id === userId && qc.quiz_id === quizId
+    );
+    
+    if (existingCompletion) {
+        existingCompletion.score = correctAnswers;
+        existingCompletion.sparks_earned = sparksEarned;
+        existingCompletion.perfect_score = perfectScore;
+        existingCompletion.completed_at = new Date().toISOString();
+    } else {
+        db.quiz_completions.push({
+            id: Date.now(),
+            user_id: userId,
+            quiz_id: quizId,
+            completed_at: new Date().toISOString(),
+            score: correctAnswers,
+            sparks_earned: sparksEarned,
+            perfect_score: perfectScore
+        });
+    }
+    
     if (sparksEarned > 0) {
         addSparks(userId, sparksEarned, 'quiz', `Квиз: ${quiz.title}`);
     }
@@ -314,6 +502,7 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
         totalQuestions: quiz.questions.length,
         sparksEarned,
         perfectScore,
+        scorePercentage: Math.round((correctAnswers / quiz.questions.length) * 100),
         message: perfectScore ? 
             `Идеально! 🎉 +${sparksEarned}✨` : 
             `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨`
@@ -341,27 +530,23 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
     
     user.sparks -= item.price;
     
-    db.purchases.push({
+    const purchase = {
         id: Date.now(),
         user_id: userId,
         item_id: itemId,
         price_paid: item.price,
         purchased_at: new Date().toISOString()
-    });
+    };
     
-    db.activities.push({
-        id: Date.now(),
-        user_id: userId,
-        activity_type: 'purchase',
-        sparks_earned: -item.price,
-        description: `Покупка: ${item.title}`,
-        created_at: new Date().toISOString()
-    });
+    db.purchases.push(purchase);
+    
+    addSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
     
     res.json({
         success: true,
         message: `Покупка успешна! Куплено: ${item.title}`,
-        remainingSparks: user.sparks
+        remainingSparks: user.sparks,
+        purchase: purchase
     });
 });
 
@@ -371,8 +556,17 @@ app.get('/api/webapp/users/:userId/purchases', (req, res) => {
         .filter(p => p.user_id === userId)
         .map(purchase => {
             const item = db.shop_items.find(i => i.id === purchase.item_id);
-            return { ...purchase, ...item };
-        });
+            return { 
+                ...purchase, 
+                title: item?.title,
+                description: item?.description,
+                type: item?.type,
+                file_url: item?.file_url,
+                content_text: item?.content_text
+            };
+        })
+        .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
+        
     res.json({ purchases: userPurchases });
 });
 
@@ -381,7 +575,7 @@ app.get('/api/webapp/users/:userId/activities', (req, res) => {
     const userActivities = db.activities
         .filter(a => a.user_id === userId)
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        .slice(0, 20);
+        .slice(0, 50);
     res.json({ activities: userActivities });
 });
 
@@ -418,7 +612,8 @@ app.post('/api/webapp/upload-work', (req, res) => {
     res.json({
         success: true,
         message: 'Работа успешно загружена и отправлена на модерацию! +5✨',
-        workId: newWork.id
+        workId: newWork.id,
+        work: newWork
     });
 });
 
@@ -430,10 +625,72 @@ app.get('/api/webapp/users/:userId/works', (req, res) => {
     res.json({ works: userWorks });
 });
 
+// Посты канала и отзывы
+app.get('/api/webapp/channel-posts', (req, res) => {
+    const posts = db.channel_posts
+        .filter(p => p.is_active)
+        .map(post => {
+            const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
+            return {
+                ...post,
+                reviews_count: reviews.length,
+                average_rating: reviews.length > 0 ? 
+                    reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0
+            };
+        })
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        
+    res.json({ posts: posts });
+});
+
+app.post('/api/webapp/posts/:postId/review', (req, res) => {
+    const postId = req.params.postId;
+    const { userId, reviewText, rating } = req.body;
+    
+    if (!userId || !reviewText) {
+        return res.status(400).json({ error: 'User ID and review text are required' });
+    }
+    
+    const post = db.channel_posts.find(p => p.post_id === postId);
+    if (!post) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    const existingReview = db.post_reviews.find(
+        r => r.user_id === userId && r.post_id === postId
+    );
+    
+    if (existingReview) {
+        return res.status(400).json({ error: 'Вы уже оставляли отзыв на этот пост' });
+    }
+    
+    const newReview = {
+        id: Date.now(),
+        user_id: userId,
+        post_id: postId,
+        review_text: reviewText,
+        rating: rating || 5,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        moderated_at: null,
+        moderator_id: null,
+        admin_comment: null
+    };
+    
+    db.post_reviews.push(newReview);
+    
+    res.json({
+        success: true,
+        message: 'Отзыв отправлен на модерацию! После одобрения вы получите +3✨',
+        reviewId: newReview.id
+    });
+});
+
 // Admin API
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
     const stats = {
         totalUsers: db.users.length,
+        registeredUsers: db.users.filter(u => u.is_registered).length,
         activeQuizzes: db.quizzes.filter(q => q.is_active).length,
         activeCharacters: db.characters.filter(c => c.is_active).length,
         shopItems: db.shop_items.filter(i => i.is_active).length,
@@ -441,7 +698,9 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
         totalAdmins: db.admins.length,
         pendingReviews: db.post_reviews.filter(r => r.status === 'pending').length,
         pendingWorks: db.user_works.filter(w => w.status === 'pending').length,
-        totalPosts: db.channel_posts.filter(p => p.is_active).length
+        totalPosts: db.channel_posts.filter(p => p.is_active).length,
+        totalPurchases: db.purchases.length,
+        totalActivities: db.activities.length
     };
     res.json(stats);
 });
@@ -466,12 +725,18 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
         preview_url: preview_url || '',
         price: parseFloat(price),
         content_text: content_text || '',
-        is_active: true
+        is_active: true,
+        created_at: new Date().toISOString()
     };
     
     db.shop_items.push(newItem);
     
-    res.json({ success: true, message: 'Товар успешно создан', itemId: newItem.id });
+    res.json({ 
+        success: true, 
+        message: 'Товар успешно создан', 
+        itemId: newItem.id,
+        item: newItem
+    });
 });
 
 app.delete('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
@@ -499,7 +764,8 @@ app.get('/api/admin/user-works', requireAdmin, (req, res) => {
                 user_name: user?.tg_first_name || 'Неизвестно',
                 user_username: user?.tg_username
             };
-        });
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     
     res.json({ works });
 });
@@ -525,7 +791,8 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
     
     res.json({ 
         success: true, 
-        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}` 
+        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
+        work: work
     });
 });
 
@@ -533,11 +800,14 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
 app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     const posts = db.channel_posts.map(post => {
         const admin = db.admins.find(a => a.user_id === post.admin_id);
+        const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
         return {
             ...post,
-            admin_username: admin?.username
+            admin_username: admin?.username,
+            reviews_count: reviews.length
         };
-    });
+    }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
     res.json({ posts });
 });
 
@@ -566,7 +836,12 @@ app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
     
     db.channel_posts.push(newPost);
     
-    res.json({ success: true, message: 'Пост успешно создан', postId: newPost.id });
+    res.json({ 
+        success: true, 
+        message: 'Пост успешно создан', 
+        postId: newPost.id,
+        post: newPost
+    });
 });
 
 // Управление отзывами
@@ -578,13 +853,16 @@ app.get('/api/admin/reviews', requireAdmin, (req, res) => {
         .map(review => {
             const user = db.users.find(u => u.user_id === review.user_id);
             const post = db.channel_posts.find(p => p.post_id === review.post_id);
+            const moderator = db.admins.find(a => a.user_id === review.moderator_id);
             return {
                 ...review,
                 tg_first_name: user?.tg_first_name,
                 tg_username: user?.tg_username,
-                post_title: post?.title
+                post_title: post?.title,
+                moderator_username: moderator?.username
             };
-        });
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     
     res.json({ reviews });
 });
@@ -609,7 +887,8 @@ app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     
     res.json({ 
         success: true, 
-        message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}` 
+        message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`,
+        review: review
     });
 });
 
@@ -640,7 +919,11 @@ app.post('/api/admin/admins', requireAdmin, (req, res) => {
     
     db.admins.push(newAdmin);
     
-    res.json({ success: true, message: 'Админ успешно добавлен' });
+    res.json({ 
+        success: true, 
+        message: 'Админ успешно добавлен',
+        admin: newAdmin
+    });
 });
 
 app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
@@ -659,6 +942,92 @@ app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Админ удален' });
 });
 
+// Управление квизами
+app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
+    const quizzes = db.quizzes.map(quiz => {
+        const completions = db.quiz_completions.filter(qc => qc.quiz_id === quiz.id);
+        return {
+            ...quiz,
+            completions_count: completions.length,
+            average_score: completions.length > 0 ? 
+                completions.reduce((sum, qc) => sum + qc.score, 0) / completions.length : 0
+        };
+    });
+    res.json(quizzes);
+});
+
+app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
+    const { title, description, questions, sparks_reward } = req.body;
+    
+    if (!title || !questions || !Array.isArray(questions)) {
+        return res.status(400).json({ error: 'Title and questions array are required' });
+    }
+    
+    const newQuiz = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        questions: questions,
+        sparks_reward: sparks_reward || 1,
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.quizzes.push(newQuiz);
+    
+    res.json({ 
+        success: true, 
+        message: 'Квиз успешно создан', 
+        quizId: newQuiz.id,
+        quiz: newQuiz
+    });
+});
+
+app.delete('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const quizIndex = db.quizzes.findIndex(q => q.id === quizId);
+    
+    if (quizIndex === -1) {
+        return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    db.quizzes.splice(quizIndex, 1);
+    res.json({ success: true, message: 'Квиз удален' });
+});
+
+// Управление персонажами
+app.get('/api/admin/characters', requireAdmin, (req, res) => {
+    res.json(db.characters);
+});
+
+app.post('/api/admin/characters', requireAdmin, (req, res) => {
+    const { class: charClass, character_name, description, bonus_type, bonus_value } = req.body;
+    
+    if (!charClass || !character_name || !bonus_type || !bonus_value) {
+        return res.status(400).json({ error: 'Class, character name, bonus type and value are required' });
+    }
+    
+    const newCharacter = {
+        id: Date.now(),
+        class: charClass,
+        character_name,
+        description: description || '',
+        bonus_type,
+        bonus_value,
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.characters.push(newCharacter);
+    
+    res.json({ 
+        success: true, 
+        message: 'Персонаж успешно создан', 
+        characterId: newCharacter.id,
+        character: newCharacter
+    });
+});
+
 // Telegram Bot
 let bot;
 if (process.env.BOT_TOKEN) {
@@ -670,6 +1039,30 @@ if (process.env.BOT_TOKEN) {
         bot.onText(/\/start/, (msg) => {
             const chatId = msg.chat.id;
             const name = msg.from.first_name || 'Друг';
+            const userId = msg.from.id;
+            
+            // Создаем или обновляем пользователя
+            let user = db.users.find(u => u.user_id === userId);
+            if (!user) {
+                user = {
+                    id: Date.now(),
+                    user_id: userId,
+                    tg_first_name: msg.from.first_name,
+                    tg_username: msg.from.username,
+                    sparks: 0,
+                    level: 'Ученик',
+                    is_registered: false,
+                    class: null,
+                    character_id: null,
+                    character_name: null,
+                    available_buttons: [],
+                    registration_date: new Date().toISOString(),
+                    last_active: new Date().toISOString()
+                };
+                db.users.push(user);
+            } else {
+                user.last_active = new Date().toISOString();
+            }
             
             const welcomeText = `🎨 Привет, ${name}!
 
@@ -715,6 +1108,35 @@ if (process.env.BOT_TOKEN) {
             });
         });
 
+        bot.onText(/\/stats/, (msg) => {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            const admin = db.admins.find(a => a.user_id == userId);
+            if (!admin) {
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа.');
+                return;
+            }
+            
+            const stats = {
+                totalUsers: db.users.length,
+                registeredUsers: db.users.filter(u => u.is_registered).length,
+                activeQuizzes: db.quizzes.filter(q => q.is_active).length,
+                shopItems: db.shop_items.filter(i => i.is_active).length,
+                totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0)
+            };
+            
+            const statsText = `📊 Статистика бота:
+            
+👥 Пользователи: ${stats.totalUsers}
+✅ Зарегистрировано: ${stats.registeredUsers}
+🎯 Активных квизов: ${stats.activeQuizzes}
+🛒 Товаров в магазине: ${stats.shopItems}
+✨ Всего искр: ${stats.totalSparks.toFixed(1)}`;
+            
+            bot.sendMessage(chatId, statsText);
+        });
+
     } catch (error) {
         console.error('❌ Ошибка инициализации бота:', error);
     }
@@ -725,5 +1147,8 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
     console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
     console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
+    console.log(`🎯 Квизов: ${db.quizzes.length}`);
+    console.log(`🛒 Товаров: ${db.shop_items.length}`);
+    console.log(`👥 Пользователей: ${db.users.length}`);
     console.log('✅ Все системы работают!');
 });
