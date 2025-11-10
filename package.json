@@ -1,7 +1,7 @@
 {
   "name": "tg-inspiration-bot",
-  "version": "5.0.0",
-  "description": "Telegram bot with Mini App for inspiration workshop - PostgreSQL Version",
+  "version": "6.0.0",
+  "description": "Telegram bot with Mini App for inspiration workshop - Complete Spark System",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -21,7 +21,8 @@
     "bot",
     "mini-app",
     "inspiration",
-    "postgresql"
+    "sparks",
+    "rewards"
   ],
   "author": "Мастерская Вдохновения",
   "license": "MIT",
