@@ -92,6 +92,7 @@ let db = {
                 }
             ],
             sparks_reward: 5,
+            cooldown_hours: 24,
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -157,7 +158,7 @@ app.use('/admin', express.static(join(__dirname, 'admin')));
 
 console.log('🎨 Мастерская Вдохновения - Запуск...');
 
-// Система начисления искр
+// Система начисления искр - ИСПРАВЛЕНА
 const SPARKS_SYSTEM = {
     QUIZ_PER_CORRECT_ANSWER: 1,
     QUIZ_PERFECT_BONUS: 5,
@@ -352,12 +353,21 @@ app.get('/api/webapp/quizzes', (req, res) => {
             qc => qc.user_id === userId && qc.quiz_id === quiz.id
         );
         
+        // Проверяем кулдаун
+        let canRetake = true;
+        if (completion && quiz.cooldown_hours > 0) {
+            const lastCompletion = new Date(completion.completed_at);
+            const now = new Date();
+            const hoursSinceCompletion = (now - lastCompletion) / (1000 * 60 * 60);
+            canRetake = hoursSinceCompletion >= quiz.cooldown_hours;
+        }
+        
         return {
             ...quiz,
             completed: !!completion,
             user_score: completion ? completion.score : 0,
             total_questions: quiz.questions.length,
-            can_retake: true,
+            can_retake: canRetake,
             last_completion: completion ? completion.completed_at : null
         };
     });
@@ -378,6 +388,24 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
         return res.status(404).json({ error: 'Quiz not found' });
     }
     
+    // Проверяем кулдаун
+    const existingCompletion = db.quiz_completions.find(
+        qc => qc.user_id === userId && qc.quiz_id === quizId
+    );
+    
+    if (existingCompletion && quiz.cooldown_hours > 0) {
+        const lastCompletion = new Date(existingCompletion.completed_at);
+        const now = new Date();
+        const hoursSinceCompletion = (now - lastCompletion) / (1000 * 60 * 60);
+        
+        if (hoursSinceCompletion < quiz.cooldown_hours) {
+            const hoursLeft = Math.ceil(quiz.cooldown_hours - hoursSinceCompletion);
+            return res.status(400).json({ 
+                error: `Квиз можно пройти повторно через ${hoursLeft} часов` 
+            });
+        }
+    }
+    
     let correctAnswers = 0;
     quiz.questions.forEach((question, index) => {
         if (answers[index] === question.correctAnswer) {
@@ -388,17 +416,14 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
     let sparksEarned = 0;
     const perfectScore = correctAnswers === quiz.questions.length;
     
-    sparksEarned += correctAnswers * SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER;
-    
+    // ИСПРАВЛЕННАЯ ЛОГИКА: либо 1 за правильный ответ, либо 5 за идеальный результат
     if (perfectScore) {
-        sparksEarned += SPARKS_SYSTEM.QUIZ_PERFECT_BONUS;
+        sparksEarned = SPARKS_SYSTEM.QUIZ_PERFECT_BONUS;
+    } else {
+        sparksEarned = correctAnswers * SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER;
     }
     
     // Сохраняем результат квиза
-    const existingCompletion = db.quiz_completions.find(
-        qc => qc.user_id === userId && qc.quiz_id === quizId
-    );
-    
     if (existingCompletion) {
         existingCompletion.score = correctAnswers;
         existingCompletion.sparks_earned = sparksEarned;
@@ -484,12 +509,20 @@ app.post('/api/webapp/marathons/:marathonId/complete-day', (req, res) => {
         db.marathon_completions.push(completion);
     }
     
-    // Начисляем искры за выполнение дня
-    const sparksEarned = SPARKS_SYSTEM.MARATHON_DAY_COMPLETION;
-    addSparks(userId, sparksEarned, 'marathon_day', `Марафон: ${marathon.title} - день ${day}`);
+    // ИСПРАВЛЕНИЕ: Проверяем, не завершен ли уже этот день
+    if (completion.current_day > day) {
+        return res.status(400).json({ error: 'Этот день уже завершен' });
+    }
     
-    completion.current_day = day + 1;
-    completion.progress = Math.round((day / marathon.duration_days) * 100);
+    // Начисляем искры за выполнение дня только если это новый день
+    let sparksEarned = 0;
+    if (completion.current_day === day) {
+        sparksEarned = SPARKS_SYSTEM.MARATHON_DAY_COMPLETION;
+        addSparks(userId, sparksEarned, 'marathon_day', `Марафон: ${marathon.title} - день ${day}`);
+        
+        completion.current_day = day + 1;
+        completion.progress = Math.round((day / marathon.duration_days) * 100);
+    }
     
     // Проверяем завершение марафона
     if (day >= marathon.duration_days) {
@@ -609,12 +642,12 @@ app.post('/api/webapp/upload-work', (req, res) => {
     
     db.user_works.push(newWork);
     
-    // Начисляем искры за загрузку
-    addSparks(userId, SPARKS_SYSTEM.UPLOAD_WORK, 'upload_work', `Загрузка работы: ${title}`);
+    // ИСПРАВЛЕНИЕ: Начисляем искры только после модерации
+    // Убрали начисление SPARKS_SYSTEM.UPLOAD_WORK здесь
     
     res.json({
         success: true,
-        message: 'Работа успешно загружена и отправлена на модерацию! +5✨',
+        message: 'Работа успешно загружена и отправлена на модерацию! После одобрения вы получите +15✨',
         workId: newWork.id,
         work: newWork
     });
@@ -945,7 +978,7 @@ app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
 });
 
 app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
-    const { title, description, questions, sparks_reward } = req.body;
+    const { title, description, questions, sparks_reward, cooldown_hours } = req.body;
     
     if (!title || !questions || !Array.isArray(questions)) {
         return res.status(400).json({ error: 'Title and questions array are required' });
@@ -957,6 +990,7 @@ app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
         description: description || '',
         questions: questions,
         sparks_reward: sparks_reward || 5,
+        cooldown_hours: cooldown_hours || 24, // Добавлен кулдаун
         is_active: true,
         created_at: new Date().toISOString()
     };
@@ -973,7 +1007,7 @@ app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
 
 app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
     const quizId = parseInt(req.params.quizId);
-    const { title, description, questions, sparks_reward, is_active } = req.body;
+    const { title, description, questions, sparks_reward, cooldown_hours, is_active } = req.body;
     
     const quiz = db.quizzes.find(q => q.id === quizId);
     if (!quiz) {
@@ -984,6 +1018,7 @@ app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
     if (description) quiz.description = description;
     if (questions) quiz.questions = questions;
     if (sparks_reward) quiz.sparks_reward = sparks_reward;
+    if (cooldown_hours !== undefined) quiz.cooldown_hours = cooldown_hours; // Обновляем кулдаун
     if (is_active !== undefined) quiz.is_active = is_active;
     
     res.json({ 
@@ -1115,6 +1150,7 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
     work.moderator_id = adminId;
     work.admin_comment = admin_comment || null;
     
+    // ИСПРАВЛЕНИЕ: Начисляем искры только после одобрения
     if (status === 'approved') {
         addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
     }
@@ -1419,9 +1455,20 @@ if (process.env.BOT_TOKEN) {
                 return;
             }
             
-            const adminUrl = `${process.env.APP_URL || 'https://your-domain.timeweb.cloud'}/admin?userId=${userId}`;
-            bot.sendMessage(chatId, `🔧 Панель администратора\n\n[Открыть админ панель](${adminUrl})`, {
-                parse_mode: 'Markdown'
+            // ИСПРАВЛЕНИЕ: Рабочая ссылка на админ панель
+            const adminUrl = `${process.env.APP_URL}/admin?userId=${userId}`;
+            const keyboard = {
+                inline_keyboard: [[
+                    {
+                        text: "🔧 Открыть Админ Панель",
+                        url: adminUrl
+                    }
+                ]]
+            };
+            
+            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
             });
         });
 
