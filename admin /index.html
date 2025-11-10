@@ -3,458 +3,1343 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админ панель - Мастерская Вдохновения</title>
+    <title>Админ-панель - Мастерская Вдохновения</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f6fa; color: #2d3748; line-height: 1.6; padding: 20px;
+            background: #f7fafc; color: #2d3748; line-height: 1.6;
         }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { 
-            background: white; padding: 20px; border-radius: 10px; 
+        .admin-container {
+            display: flex; min-height: 100vh;
+        }
+        .sidebar {
+            width: 250px; background: #2d3748; color: white;
+            padding: 20px 0; position: fixed; height: 100vh;
+            overflow-y: auto;
+        }
+        .main-content {
+            flex: 1; margin-left: 250px; padding: 20px;
+        }
+        .logo {
+            text-align: center; padding: 0 20px 20px; border-bottom: 1px solid #4a5568;
+            margin-bottom: 20px;
+        }
+        .logo h1 { font-size: 18px; color: #fff; }
+        .logo .subtitle { font-size: 12px; color: #a0aec0; margin-top: 5px; }
+        .nav-item {
+            padding: 12px 20px; color: #cbd5e0; text-decoration: none;
+            display: block; transition: all 0.3s ease; border-left: 3px solid transparent;
+        }
+        .nav-item:hover { background: #4a5568; color: white; }
+        .nav-item.active { background: #4a5568; color: white; border-left-color: #667eea; }
+        .nav-section { margin-bottom: 20px; }
+        .nav-section-title {
+            padding: 10px 20px; color: #a0aec0; font-size: 12px;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .header {
+            background: white; padding: 20px; border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .nav-tabs { 
-            display: flex; background: white; border-radius: 10px; padding: 10px;
-            margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); flex-wrap: wrap;
-        }
-        .nav-tab { 
-            padding: 10px 20px; cursor: pointer; border-radius: 5px; margin-right: 10px;
-            margin-bottom: 5px; transition: all 0.3s ease; white-space: nowrap;
-        }
-        .nav-tab.active { background: #667eea; color: white; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .card { 
-            background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .btn {
-            background: #667eea; color: white; border: none; padding: 10px 20px;
-            border-radius: 5px; cursor: pointer; margin-right: 10px; margin-bottom: 10px;
-            transition: all 0.3s ease;
-        }
-        .btn:hover { background: #5a67d8; transform: translateY(-1px); }
-        .btn-success { background: #48bb78; }
-        .btn-success:hover { background: #38a169; }
-        .btn-warning { background: #ed8936; }
-        .btn-warning:hover { background: #dd6b20; }
-        .btn-danger { background: #f56565; }
-        .btn-danger:hover { background: #e53e3e; }
-        .btn-info { background: #4299e1; }
-        .btn-info:hover { background: #3182ce; }
-        .form-group { margin-bottom: 15px; }
-        .form-control { 
-            width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 5px;
-            font-size: 16px; margin-top: 5px; transition: border-color 0.3s ease;
-        }
-        .form-control:focus { border-color: #667eea; outline: none; }
-        .form-label { font-weight: 600; margin-bottom: 5px; display: block; }
         .stats-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px; margin-bottom: 20px;
         }
         .stat-card {
-            background: white; padding: 20px; border-radius: 10px; text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); transition: transform 0.3s ease;
+            background: white; padding: 20px; border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center;
         }
-        .stat-card:hover { transform: translateY(-2px); }
-        .stat-number { font-size: 2em; font-weight: bold; color: #667eea; margin-bottom: 5px; }
+        .stat-number {
+            font-size: 32px; font-weight: bold; margin-bottom: 5px;
+        }
         .stat-label { color: #718096; font-size: 14px; }
-        .role-card, .character-card, .quiz-card, .marathon-card, .admin-card, .shop-item-card, .post-card, .review-card, .work-card {
-            background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px;
-            padding: 15px; margin-bottom: 15px; transition: all 0.3s ease;
+        .card {
+            background: white; padding: 20px; border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px;
         }
-        .role-card:hover, .character-card:hover, .quiz-card:hover, .marathon-card:hover, .admin-card:hover, 
-        .shop-item-card:hover, .post-card:hover, .review-card:hover, .work-card:hover {
-            border-color: #667eea; transform: translateY(-1px);
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0;
         }
-        .message {
-            padding: 10px; border-radius: 5px; margin-bottom: 15px;
+        .card-title { font-size: 18px; font-weight: 600; }
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;
+            font-size: 14px; font-weight: 600; transition: all 0.3s ease;
         }
-        .message.success { background: #c6f6d5; color: #276749; border: 1px solid #9ae6b4; }
-        .message.error { background: #fed7d7; color: #c53030; border: 1px solid #feb2b2; }
-        .message.info { background: #bee3f8; color: #2c5aa0; border: 1px solid #90cdf4; }
-        .message.warning { background: #feebc8; color: #dd6b20; border: 1px solid #fbd38d; }
-        .loading { text-align: center; color: #718096; padding: 20px; }
-        .question-item {
-            background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px;
-            padding: 15px; margin-bottom: 15px;
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5a67d8; }
+        .btn-success { background: #48bb78; color: white; }
+        .btn-success:hover { background: #38a169; }
+        .btn-warning { background: #ed8936; color: white; }
+        .btn-warning:hover { background: #dd6b20; }
+        .btn-danger { background: #f56565; color: white; }
+        .btn-danger:hover { background: #e53e3e; }
+        .btn-secondary { background: #a0aec0; color: white; }
+        .btn-secondary:hover { background: #718096; }
+        .table-container {
+            overflow-x: auto; margin-top: 15px;
         }
-        .option-item { 
-            display: flex; align-items: center; margin-bottom: 8px; padding: 8px;
-            background: white; border-radius: 5px;
+        table {
+            width: 100%; border-collapse: collapse; background: white;
         }
-        .option-item input[type="radio"] { margin-right: 10px; }
-        .option-item input[type="text"] { flex: 1; padding: 5px; border: 1px solid #e2e8f0; border-radius: 3px; }
+        th, td {
+            padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0;
+        }
+        th { background: #f7fafc; font-weight: 600; color: #4a5568; }
+        tr:hover { background: #f7fafc; }
         .badge {
-            display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 12px;
-            font-weight: 600; margin-left: 10px;
+            padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;
         }
         .badge-success { background: #c6f6d5; color: #276749; }
         .badge-warning { background: #feebc8; color: #dd6b20; }
         .badge-danger { background: #fed7d7; color: #c53030; }
         .badge-info { background: #bee3f8; color: #2c5aa0; }
-        .badge-secondary { background: #e2e8f0; color: #4a5568; }
-        .content-preview {
-            background: white; border: 1px solid #e2e8f0; border-radius: 5px;
-            padding: 10px; margin-top: 10px; max-height: 200px; overflow-y: auto;
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 5px; font-weight: 600; }
+        .form-control {
+            width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px;
+            font-size: 14px; transition: border-color 0.3s ease;
         }
-        .review-text {
-            background: white; border: 1px solid #e2e8f0; border-radius: 5px;
-            padding: 10px; margin: 10px 0; font-style: italic;
+        .form-control:focus { border-color: #667eea; outline: none; }
+        .form-select { 
+            width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px;
+            background: white; font-size: 14px;
         }
-        .moderation-actions {
-            display: flex; gap: 10px; margin-top: 10px;
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center;
+            justify-content: center;
         }
-        .file-preview {
-            max-width: 200px; max-height: 150px; border-radius: 5px;
-            margin: 10px 0; border: 2px solid #e2e8f0;
+        .modal-content {
+            background: white; padding: 30px; border-radius: 10px; width: 90%;
+            max-width: 600px; max-height: 90vh; overflow-y: auto;
         }
-        .tab-subnav {
-            display: flex; background: #f7fafc; border-radius: 5px; padding: 5px;
-            margin-bottom: 15px; flex-wrap: wrap;
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0;
         }
-        .tab-subnav-item {
-            padding: 8px 15px; cursor: pointer; border-radius: 3px;
-            margin-right: 5px; margin-bottom: 5px; transition: all 0.3s ease;
+        .modal-title { font-size: 20px; font-weight: 600; }
+        .close { background: none; border: none; font-size: 24px; cursor: pointer; }
+        .tabs {
+            display: flex; background: #f7fafc; border-radius: 8px; padding: 5px;
+            margin-bottom: 20px;
         }
-        .tab-subnav-item.active { background: #667eea; color: white; }
+        .tab {
+            flex: 1; padding: 10px; text-align: center; cursor: pointer;
+            border-radius: 6px; transition: all 0.3s ease;
+        }
+        .tab.active { background: #667eea; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .loading { text-align: center; padding: 40px; color: #718096; }
+        .error { background: #fed7d7; color: #c53030; padding: 10px; border-radius: 6px; margin: 10px 0; }
+        .success { background: #c6f6d5; color: #276749; padding: 10px; border-radius: 6px; margin: 10px 0; }
+        .search-box {
+            display: flex; margin-bottom: 20px;
+        }
+        .search-input {
+            flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px 0 0 6px;
+            border-right: none;
+        }
+        .search-btn {
+            padding: 10px 20px; background: #667eea; color: white; border: none;
+            border-radius: 0 6px 6px 0; cursor: pointer;
+        }
+        .pagination {
+            display: flex; justify-content: center; margin-top: 20px;
+            gap: 5px;
+        }
+        .page-btn {
+            padding: 8px 12px; border: 1px solid #e2e8f0; background: white;
+            cursor: pointer; border-radius: 4px;
+        }
+        .page-btn.active { background: #667eea; color: white; border-color: #667eea; }
+        .page-btn:hover:not(.active) { background: #f7fafc; }
+        .action-btns { display: flex; gap: 5px; }
         .work-image {
-            max-width: 100%; max-height: 200px; border-radius: 8px;
-            margin: 10px 0; border: 2px solid #e2e8f0;
+            max-width: 100px; max-height: 100px; border-radius: 4px;
+            border: 1px solid #e2e8f0; cursor: pointer;
         }
-        .buttons-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px; margin: 10px 0;
+        .work-image:hover { opacity: 0.8; }
+        .image-modal .modal-content { max-width: 90%; }
+        .image-modal img { max-width: 100%; border-radius: 8px; }
+        .filter-bar {
+            display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
         }
-        .button-checkbox {
-            display: flex; align-items: center; padding: 8px; background: white;
-            border: 2px solid #e2e8f0; border-radius: 5px; cursor: pointer;
+        .filter-select {
+            padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 6px;
+            background: white; min-width: 150px;
         }
-        .button-checkbox.checked { border-color: #667eea; background: #edf2f7; }
-        .button-checkbox input { margin-right: 8px; }
-        .media-preview {
-            max-width: 300px; max-height: 200px; border-radius: 8px;
-            margin: 10px 0; border: 2px solid #e2e8f0;
+        .sparks { color: #d69e2e; font-weight: bold; }
+        .user-avatar {
+            width: 40px; height: 40px; border-radius: 50%; background: #667eea;
+            color: white; display: flex; align-items: center; justify-content: center;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎨 Админ панель - Мастерская Вдохновения</h1>
-            <p>Полное управление приложением</p>
-            <div id="adminInfo">Загрузка...</div>
-        </div>
-
-        <div class="nav-tabs">
-            <div class="nav-tab active" data-tab="dashboard">📊 Дашборд</div>
-            <div class="nav-tab" data-tab="roles">🎭 Роли</div>
-            <div class="nav-tab" data-tab="characters">👥 Персонажи</div>
-            <div class="nav-tab" data-tab="quizzes">🎯 Квизы</div>
-            <div class="nav-tab" data-tab="marathons">🏃‍♂️ Марафоны</div>
-            <div class="nav-tab" data-tab="shop">🛒 Магазин</div>
-            <div class="nav-tab" data-tab="user-works">🖼️ Работы</div>
-            <div class="nav-tab" data-tab="posts">📰 Посты</div>
-            <div class="nav-tab" data-tab="reviews">💬 Отзывы</div>
-            <div class="nav-tab" data-tab="admins">🔧 Админы</div>
-            <div class="nav-tab" data-tab="stats">📈 Статистика</div>
-        </div>
-
-        <!-- Дашборд -->
-        <div id="dashboard" class="tab-content active">
-            <div class="stats-grid" id="dashboardStats">
-                <div class="stat-card">
-                    <div class="stat-number">0</div>
-                    <div class="stat-label">Всего пользователей</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">0</div>
-                    <div class="stat-label">Активных квизов</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">0</div>
-                    <div class="stat-label">Активных марафонов</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">0</div>
-                    <div class="stat-label">Товаров в магазине</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">0</div>
-                    <div class="stat-label">Всего искр</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">0</div>
-                    <div class="stat-label">Работ на модерации</div>
-                </div>
+    <div class="admin-container">
+        <!-- Боковая панель -->
+        <div class="sidebar">
+            <div class="logo">
+                <h1>🎨 Мастерская Вдохновения</h1>
+                <div class="subtitle">Админ-панель</div>
             </div>
-
-            <div class="card">
-                <h3>📈 Быстрые действия</h3>
-                <button class="btn btn-success" onclick="showTab('roles')">🎭 Добавить роль</button>
-                <button class="btn btn-success" onclick="showTab('characters')">👥 Добавить персонажа</button>
-                <button class="btn btn-success" onclick="showTab('quizzes')">🎯 Создать квиз</button>
-                <button class="btn btn-success" onclick="showTab('marathons')">🏃‍♂️ Создать марафон</button>
-                <button class="btn btn-success" onclick="showTab('shop')">🛒 Добавить товар</button>
-                <button class="btn btn-warning" onclick="showTab('user-works')">🖼️ Модерировать работы</button>
-                <button class="btn btn-warning" onclick="showTab('reviews')">💬 Модерировать отзывы</button>
-                <button class="btn btn-success" onclick="showTab('posts')">📰 Создать пост</button>
-                <button class="btn" onclick="showTab('admins')">🔧 Управление админами</button>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Основное</div>
+                <a href="#" class="nav-item active" onclick="showSection('dashboard')">
+                    📊 Дашборд
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('users')">
+                    👥 Пользователи
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('works')">
+                    🖼️ Работы
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Контент</div>
+                <a href="#" class="nav-item" onclick="showSection('quizzes')">
+                    🎯 Квизы
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('marathons')">
+                    🏃‍♂️ Марафоны
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('posts')">
+                    📰 Посты канала
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Магазин</div>
+                <a href="#" class="nav-item" onclick="showSection('shop')">
+                    🛒 Товары
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('purchases')">
+                    📦 Покупки
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Настройки</div>
+                <a href="#" class="nav-item" onclick="showSection('roles')">
+                    🎭 Роли
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('characters')">
+                    👥 Персонажи
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('system')">
+                    ⚙️ Система
+                </a>
             </div>
         </div>
 
-        <!-- Роли -->
-        <div id="roles" class="tab-content">
-            <!-- Форма создания роли -->
-            <div class="card">
-                <h3>🎭 Создать роль</h3>
-                <form id="createRoleForm">
-                    <div class="form-group">
-                        <label class="form-label">Название роли:</label>
-                        <input type="text" id="roleName" class="form-control" required placeholder="Введите название роли">
+        <!-- Основной контент -->
+        <div class="main-content">
+            <!-- Заголовок -->
+            <div class="header">
+                <div>
+                    <h2 id="sectionTitle">Дашборд</h2>
+                    <div style="color: #718096; font-size: 14px;" id="sectionSubtitle">
+                        Общая статистика и аналитика
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Описание:</label>
-                        <textarea id="roleDescription" class="form-control" rows="3" placeholder="Описание роли" required></textarea>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div id="adminInfo">
+                        <div style="font-weight: 600;">Администратор</div>
+                        <div style="color: #718096; font-size: 14px;">Система</div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Иконка:</label>
-                        <input type="text" id="roleIcon" class="form-control" placeholder="🎨" value="🎨">
+                    <button class="btn btn-secondary" onclick="refreshAllData()">
+                        🔄 Обновить
+                    </button>
+                </div>
+            </div>
+
+            <!-- Дашборд -->
+            <div id="dashboardSection" class="section-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalUsers">0</div>
+                        <div class="stat-label">Всего пользователей</div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Доступные кнопки:</label>
-                        <div class="buttons-grid">
-                            <label class="button-checkbox">
-                                <input type="checkbox" name="available_buttons" value="quiz" checked>
-                                🎯 Квизы
-                            </label>
-                            <label class="button-checkbox">
-                                <input type="checkbox" name="available_buttons" value="marathon" checked>
-                                🏃‍♂️ Марафоны
-                            </label>
-                            <label class="button-checkbox">
-                                <input type="checkbox" name="available_buttons" value="works" checked>
-                                🖼️ Работы
-                            </label>
-                            <label class="button-checkbox">
-                                <input type="checkbox" name="available_buttons" value="activities" checked>
-                                📊 Активности
-                            </label>
-                            <label class="button-checkbox">
-                                <input type="checkbox" name="available_buttons" value="posts" checked>
-                                📰 Посты
-                            </label>
-                            <label class="button-checkbox">
-                                <input type="checkbox" name="available_buttons" value="shop" checked>
-                                🛒 Магазин
-                            </label>
-                            <label class="button-checkbox">
-                                <input type="checkbox" name="available_buttons" value="invite" checked>
-                                👥 Пригласить
-                            </label>
+                    <div class="stat-card">
+                        <div class="stat-number" id="activeUsers">0</div>
+                        <div class="stat-label">Активных сегодня</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalWorks">0</div>
+                        <div class="stat-label">Всего работ</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="pendingWorks">0</div>
+                        <div class="stat-label">Работ на модерации</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalQuizzes">0</div>
+                        <div class="stat-label">Пройдено квизов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalSparks">0</div>
+                        <div class="stat-label">Выдано искр</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📈 Активность пользователей</div>
+                    </div>
+                    <div id="activityChart">
+                        <div class="loading">Загрузка графика активности...</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">🎭 Распределение по ролям</div>
+                        </div>
+                        <div id="rolesChart">
+                            <div class="loading">Загрузка распределения ролей...</div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-success">✅ Создать роль</button>
-                </form>
-            </div>
 
-            <!-- Список ролей -->
-            <div class="card">
-                <h3>📋 Список ролей</h3>
-                <div id="rolesList">
-                    <div class="loading">Загрузка ролей...</div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">📊 Статусы работ</div>
+                        </div>
+                        <div id="worksStatusChart">
+                            <div class="loading">Загрузка статусов работ...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Посты канала -->
-        <div id="posts" class="tab-content">
-            <div class="card">
-                <h3>📰 Создать пост</h3>
-                <form id="createPostForm">
-                    <div class="form-group">
-                        <label class="form-label">ID поста (уникальный):</label>
-                        <input type="text" id="postId" class="form-control" required placeholder="post_123">
+            <!-- Пользователи -->
+            <div id="usersSection" class="section-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">👥 Управление пользователями</div>
+                        <div class="search-box">
+                            <input type="text" id="userSearch" class="search-input" placeholder="Поиск по имени или ID...">
+                            <button class="search-btn" onclick="searchUsers()">🔍</button>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Заголовок поста:</label>
-                        <input type="text" id="postTitle" class="form-control" required placeholder="Введите заголовок поста">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Содержание поста:</label>
-                        <textarea id="postContent" class="form-control" rows="4" placeholder="Текст поста"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Тип медиа:</label>
-                        <select id="postMediaType" class="form-control" onchange="toggleMediaFields()">
-                            <option value="text">Только текст</option>
-                            <option value="image">Изображение</option>
-                            <option value="video">Видео</option>
+
+                    <div class="filter-bar">
+                        <select id="userRoleFilter" class="filter-select" onchange="filterUsers()">
+                            <option value="">Все роли</option>
+                        </select>
+                        <select id="userStatusFilter" class="filter-select" onchange="filterUsers()">
+                            <option value="">Все статусы</option>
+                            <option value="active">Активные</option>
+                            <option value="inactive">Неактивные</option>
+                        </select>
+                        <select id="userSort" class="filter-select" onchange="filterUsers()">
+                            <option value="newest">Сначала новые</option>
+                            <option value="oldest">Сначала старые</option>
+                            <option value="sparks">По искрам</option>
+                            <option value="level">По уровню</option>
                         </select>
                     </div>
-                    <div class="form-group" id="imageField" style="display: none;">
-                        <label class="form-label">Ссылка на изображение:</label>
-                        <input type="url" id="postImageUrl" class="form-control" placeholder="https://example.com/image.jpg">
+
+                    <div class="table-container">
+                        <table id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Пользователь</th>
+                                    <th>Роль</th>
+                                    <th>Уровень</th>
+                                    <th>Искры</th>
+                                    <th>Активность</th>
+                                    <th>Статус</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr>
+                                    <td colspan="8" class="loading">Загрузка пользователей...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="form-group" id="videoField" style="display: none;">
-                        <label class="form-label">Ссылка на видео:</label>
-                        <input type="url" id="postVideoUrl" class="form-control" placeholder="https://example.com/video.mp4">
+
+                    <div class="pagination" id="usersPagination">
+                        <!-- Пагинация загружается динамически -->
                     </div>
-                    <button type="submit" class="btn btn-success">✅ Создать пост</button>
-                </form>
+                </div>
             </div>
 
-            <div class="card">
-                <h3>📰 Список постов</h3>
-                <div id="postsList">
-                    <div class="loading">Загрузка постов...</div>
+            <!-- Работы -->
+            <div id="worksSection" class="section-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🖼️ Модерация работ</div>
+                        <div class="tabs">
+                            <div class="tab active" onclick="showWorksTab('pending')">⏳ На модерации</div>
+                            <div class="tab" onclick="showWorksTab('approved')">✅ Одобренные</div>
+                            <div class="tab" onclick="showWorksTab('rejected')">❌ Отклоненные</div>
+                            <div class="tab" onclick="showWorksTab('all')">📋 Все работы</div>
+                        </div>
+                    </div>
+
+                    <div class="filter-bar">
+                        <select id="worksUserFilter" class="filter-select" onchange="filterWorks()">
+                            <option value="">Все пользователи</option>
+                        </select>
+                        <select id="worksDateFilter" class="filter-select" onchange="filterWorks()">
+                            <option value="">Все даты</option>
+                            <option value="today">Сегодня</option>
+                            <option value="week">За неделю</option>
+                            <option value="month">За месяц</option>
+                        </select>
+                    </div>
+
+                    <div id="worksPendingTab" class="tab-content active">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Изображение</th>
+                                        <th>Название</th>
+                                        <th>Автор</th>
+                                        <th>Дата</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pendingWorksBody">
+                                    <tr>
+                                        <td colspan="6" class="loading">Загрузка работ...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="worksApprovedTab" class="tab-content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Изображение</th>
+                                        <th>Название</th>
+                                        <th>Автор</th>
+                                        <th>Дата</th>
+                                        <th>Модератор</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="approvedWorksBody">
+                                    <!-- Одобренные работы -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="worksRejectedTab" class="tab-content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Изображение</th>
+                                        <th>Название</th>
+                                        <th>Автор</th>
+                                        <th>Дата</th>
+                                        <th>Причина</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rejectedWorksBody">
+                                    <!-- Отклоненные работы -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="worksAllTab" class="tab-content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Изображение</th>
+                                        <th>Название</th>
+                                        <th>Автор</th>
+                                        <th>Дата</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="allWorksBody">
+                                    <!-- Все работы -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="pagination" id="worksPagination">
+                        <!-- Пагинация загружается динамически -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Квизы -->
+            <div id="quizzesSection" class="section-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🎯 Управление квизами</div>
+                        <button class="btn btn-primary" onclick="showAddQuizModal()">
+                            ➕ Добавить квиз
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Название</th>
+                                    <th>Вопросы</th>
+                                    <th>Награда</th>
+                                    <th>Статус</th>
+                                    <th>Прохождения</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quizzesTableBody">
+                                <tr>
+                                    <td colspan="7" class="loading">Загрузка квизов...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Марафоны -->
+            <div id="marathonsSection" class="section-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🏃‍♂️ Управление марафонами</div>
+                        <button class="btn btn-primary" onclick="showAddMarathonModal()">
+                            ➕ Добавить марафон
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Название</th>
+                                    <th>Дни</th>
+                                    <th>Награда</th>
+                                    <th>Участники</th>
+                                    <th>Статус</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="marathonsTableBody">
+                                <tr>
+                                    <td colspan="7" class="loading">Загрузка марафонов...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Посты канала -->
+            <div id="postsSection" class="section-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📰 Управление постами канала</div>
+                        <button class="btn btn-primary" onclick="showAddPostModal()">
+                            ➕ Добавить пост
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Заголовок</th>
+                                    <th>Тип</th>
+                                    <th>Дата</th>
+                                    <th>Отзывы</th>
+                                    <th>Рейтинг</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="postsTableBody">
+                                <tr>
+                                    <td colspan="7" class="loading">Загрузка постов...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Магазин -->
+            <div id="shopSection" class="section-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🛒 Управление товарами</div>
+                        <button class="btn btn-primary" onclick="showAddShopItemModal()">
+                            ➕ Добавить товар
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Название</th>
+                                    <th>Цена</th>
+                                    <th>Тип</th>
+                                    <th>Продано</th>
+                                    <th>Доход</th>
+                                    <th>Статус</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shopTableBody">
+                                <tr>
+                                    <td colspan="8" class="loading">Загрузка товаров...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Покупки -->
+            <div id="purchasesSection" class="section-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📦 История покупок</div>
+                    </div>
+
+                    <div class="filter-bar">
+                        <select id="purchaseItemFilter" class="filter-select" onchange="filterPurchases()">
+                            <option value="">Все товары</option>
+                        </select>
+                        <select id="purchaseUserFilter" class="filter-select" onchange="filterPurchases()">
+                            <option value="">Все пользователи</option>
+                        </select>
+                        <select id="purchaseDateFilter" class="filter-select" onchange="filterPurchases()">
+                            <option value="">Все даты</option>
+                            <option value="today">Сегодня</option>
+                            <option value="week">За неделю</option>
+                            <option value="month">За месяц</option>
+                        </select>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Товар</th>
+                                    <th>Покупатель</th>
+                                    <th>Цена</th>
+                                    <th>Дата</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="purchasesTableBody">
+                                <tr>
+                                    <td colspan="6" class="loading">Загрузка покупок...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Роли -->
+            <div id="rolesSection" class="section-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🎭 Управление ролями</div>
+                        <button class="btn btn-primary" onclick="showAddRoleModal()">
+                            ➕ Добавить роль
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Название</th>
+                                    <th>Иконка</th>
+                                    <th>Описание</th>
+                                    <th>Пользователи</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rolesTableBody">
+                                <tr>
+                                    <td colspan="6" class="loading">Загрузка ролей...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Персонажи -->
+            <div id="charactersSection" class="section-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">👥 Управление персонажами</div>
+                        <button class="btn btn-primary" onclick="showAddCharacterModal()">
+                            ➕ Добавить персонажа
+                        </button>
+                    </div>
+
+                    <div class="filter-bar">
+                        <select id="characterRoleFilter" class="filter-select" onchange="filterCharacters()">
+                            <option value="">Все роли</option>
+                        </select>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя</th>
+                                    <th>Роль</th>
+                                    <th>Бонус</th>
+                                    <th>Значение</th>
+                                    <th>Пользователи</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="charactersTableBody">
+                                <tr>
+                                    <td colspan="7" class="loading">Загрузка персонажей...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Система -->
+            <div id="systemSection" class="section-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">⚙️ Настройки системы</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Название системы:</label>
+                        <input type="text" class="form-control" id="systemName" value="Мастерская Вдохновения">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Награда за работу (искры):</label>
+                        <input type="number" class="form-control" id="workReward" value="15">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Награда за приглашение (искры):</label>
+                        <input type="number" class="form-control" id="inviteReward" value="10">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Бонус за идеальный квиз (%):</label>
+                        <input type="number" class="form-control" id="perfectQuizBonus" value="50">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Максимальный размер файла (MB):</label>
+                        <input type="number" class="form-control" id="maxFileSize" value="5">
+                    </div>
+
+                    <button class="btn btn-success" onclick="saveSystemSettings()">
+                        💾 Сохранить настройки
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🔄 Системные операции</div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <button class="btn btn-warning" onclick="recalculateUserStats()">
+                            📊 Пересчитать статистику
+                        </button>
+                        <button class="btn btn-warning" onclick="cleanupOldData()">
+                            🗑️ Очистить старые данные
+                        </button>
+                        <button class="btn btn-danger" onclick="resetTestData()">
+                            🧪 Сбросить тестовые данные
+                        </button>
+                        <button class="btn btn-danger" onclick="exportAllData()">
+                            📥 Экспорт всех данных
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!-- Остальные вкладки остаются такими же -->
-        <!-- [Здесь должен быть остальной HTML код из предыдущей версии] -->
-
     </div>
 
-    <div id="messageArea"></div>
+    <!-- Модальные окна -->
+    <div id="imageModal" class="modal image-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Просмотр изображения</div>
+                <button class="close" onclick="closeModal('imageModal')">&times;</button>
+            </div>
+            <img id="modalImage" src="" alt="Изображение работы">
+        </div>
+    </div>
+
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Редактирование пользователя</div>
+                <button class="close" onclick="closeModal('userModal')">&times;</button>
+            </div>
+            <form id="userForm">
+                <input type="hidden" id="editUserId">
+                <div class="form-group">
+                    <label class="form-label">Имя:</label>
+                    <input type="text" class="form-control" id="editUserName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Уровень:</label>
+                    <input type="number" class="form-control" id="editUserLevel" min="1" max="100" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Искры:</label>
+                    <input type="number" class="form-control" id="editUserSparks" step="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Роль:</label>
+                    <select class="form-select" id="editUserRole" required>
+                        <option value="">Выберите роль</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Персонаж:</label>
+                    <select class="form-select" id="editUserCharacter" required>
+                        <option value="">Выберите персонажа</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Статус:</label>
+                    <select class="form-select" id="editUserStatus" required>
+                        <option value="active">Активный</option>
+                        <option value="inactive">Неактивный</option>
+                        <option value="banned">Заблокирован</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success">💾 Сохранить изменения</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="workModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Модерация работы</div>
+                <button class="close" onclick="closeModal('workModal')">&times;</button>
+            </div>
+            <div id="workModalContent">
+                <!-- Содержимое загружается динамически -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Сообщения -->
+    <div id="messageArea" style="position: fixed; top: 20px; right: 20px; z-index: 1000; max-width: 400px;"></div>
 
     <script>
-        const API_BASE = window.location.origin;
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentAdminId = urlParams.get('userId');
+        // Глобальные переменные
+        let currentSection = 'dashboard';
+        let currentWorksTab = 'pending';
+        let currentPage = {
+            users: 1,
+            works: 1,
+            purchases: 1
+        };
+        const itemsPerPage = 10;
 
-        let currentQuestions = [];
-        let currentTasks = [];
-        let currentReviewStatus = 'pending';
-        let currentWorkStatus = 'pending';
-
-        // Инициализация админ панели
+        // Инициализация админ-панели
         async function initializeAdmin() {
-            if (!currentAdminId) {
-                showMessage('❌ User ID не найден в URL параметрах', 'error');
+            console.log('🚀 Инициализация админ-панели...');
+            await loadDashboardData();
+            setupEventListeners();
+            console.log('✅ Админ-панель инициализирована');
+        }
+
+        // Загрузка данных дашборда
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/admin/dashboard');
+                const data = await response.json();
+                
+                // Обновляем статистику
+                document.getElementById('totalUsers').textContent = data.totalUsers || 0;
+                document.getElementById('activeUsers').textContent = data.activeUsers || 0;
+                document.getElementById('totalWorks').textContent = data.totalWorks || 0;
+                document.getElementById('pendingWorks').textContent = data.pendingWorks || 0;
+                document.getElementById('totalQuizzes').textContent = data.totalQuizzes || 0;
+                document.getElementById('totalSparks').textContent = data.totalSparks || 0;
+                
+                // Загружаем графики
+                renderActivityChart(data.activityData);
+                renderRolesChart(data.rolesData);
+                renderWorksStatusChart(data.worksStatusData);
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки дашборда:', error);
+                showMessage('Ошибка загрузки данных дашборда', 'error');
+            }
+        }
+
+        // Рендер графика активности
+        function renderActivityChart(activityData) {
+            const container = document.getElementById('activityChart');
+            if (!activityData || activityData.length === 0) {
+                container.innerHTML = '<div class="info">Нет данных для отображения</div>';
                 return;
             }
-
-            try {
-                await loadDashboard();
-                document.getElementById('adminInfo').innerHTML = `
-                    <div style="margin-top: 10px;">
-                        <strong>ID администратора:</strong> ${currentAdminId}
-                        <span class="badge badge-success" id="adminRoleBadge">Загрузка...</span>
+            
+            // Простая реализация графика (можно заменить на Chart.js)
+            let html = '<div style="height: 300px; display: flex; align-items: end; gap: 10px; padding: 20px 0;">';
+            const maxValue = Math.max(...activityData.map(d => d.value));
+            
+            activityData.forEach(day => {
+                const height = (day.value / maxValue) * 250;
+                html += `
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div style="width: 30px; background: #667eea; border-radius: 4px 4px 0 0; height: ${height}px;"></div>
+                        <div style="font-size: 12px; margin-top: 5px; color: #718096;">${day.date}</div>
                     </div>
                 `;
-                
-                // Навигация
-                document.querySelectorAll('.nav-tab').forEach(tab => {
-                    tab.addEventListener('click', () => {
-                        showTab(tab.dataset.tab);
-                    });
-                });
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
 
-                // Поднавигация
-                document.querySelectorAll('.tab-subnav-item').forEach(item => {
-                    item.addEventListener('click', function() {
-                        const tab = this.closest('.tab-content');
-                        const items = tab.querySelectorAll('.tab-subnav-item');
-                        items.forEach(i => i.classList.remove('active'));
-                        this.classList.add('active');
+        // Рендер распределения ролей
+        function renderRolesChart(rolesData) {
+            const container = document.getElementById('rolesChart');
+            if (!rolesData || rolesData.length === 0) {
+                container.innerHTML = '<div class="info">Нет данных для отображения</div>';
+                return;
+            }
+            
+            let html = '<div style="padding: 10px 0;">';
+            const total = rolesData.reduce((sum, role) => sum + role.count, 0);
+            
+            rolesData.forEach(role => {
+                const percentage = ((role.count / total) * 100).toFixed(1);
+                html += `
+                    <div style="margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: between; margin-bottom: 5px;">
+                            <span>${role.name}</span>
+                            <span style="color: #718096;">${percentage}%</span>
+                        </div>
+                        <div style="background: #e2e8f0; border-radius: 4px; height: 8px;">
+                            <div style="background: #667eea; height: 100%; border-radius: 4px; width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Рендер статусов работ
+        function renderWorksStatusChart(worksData) {
+            const container = document.getElementById('worksStatusChart');
+            if (!worksData || worksData.length === 0) {
+                container.innerHTML = '<div class="info">Нет данных для отображения</div>';
+                return;
+            }
+            
+            let html = '<div style="padding: 10px 0;">';
+            const total = worksData.reduce((sum, status) => sum + status.count, 0);
+            
+            worksData.forEach(status => {
+                const percentage = ((status.count / total) * 100).toFixed(1);
+                const color = status.status === 'approved' ? '#48bb78' : 
+                             status.status === 'pending' ? '#ed8936' : '#f56565';
+                
+                html += `
+                    <div style="margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: between; margin-bottom: 5px;">
+                            <span>${getStatusText(status.status)}</span>
+                            <span style="color: #718096;">${percentage}%</span>
+                        </div>
+                        <div style="background: #e2e8f0; border-radius: 4px; height: 8px;">
+                            <div style="background: ${color}; height: 100%; border-radius: 4px; width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Переключение секций
+        function showSection(sectionId) {
+            // Скрываем все секции
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Убираем активный класс у всех пунктов меню
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Показываем выбранную секцию
+            document.getElementById(sectionId + 'Section').style.display = 'block';
+            
+            // Активируем пункт меню
+            document.querySelectorAll('.nav-item').forEach(item => {
+                if (item.textContent.includes(getSectionTitle(sectionId))) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Обновляем заголовок
+            document.getElementById('sectionTitle').textContent = getSectionTitle(sectionId);
+            document.getElementById('sectionSubtitle').textContent = getSectionSubtitle(sectionId);
+            
+            currentSection = sectionId;
+            
+            // Загружаем данные для секции
+            loadSectionData(sectionId);
+        }
+
+        // Загрузка данных для секции
+        async function loadSectionData(sectionId) {
+            switch(sectionId) {
+                case 'users':
+                    await loadUsers();
+                    break;
+                case 'works':
+                    await loadWorks();
+                    break;
+                case 'quizzes':
+                    await loadQuizzes();
+                    break;
+                case 'marathons':
+                    await loadMarathons();
+                    break;
+                case 'posts':
+                    await loadPosts();
+                    break;
+                case 'shop':
+                    await loadShopItems();
+                    break;
+                case 'purchases':
+                    await loadPurchases();
+                    break;
+                case 'roles':
+                    await loadRoles();
+                    break;
+                case 'characters':
+                    await loadCharacters();
+                    break;
+            }
+        }
+
+        // Загрузка пользователей
+        async function loadUsers(page = 1) {
+            try {
+                const response = await fetch(`/api/admin/users?page=${page}&limit=${itemsPerPage}`);
+                const data = await response.json();
+                
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = '';
+                
+                if (data.users && data.users.length > 0) {
+                    data.users.forEach(user => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${user.id}</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div class="user-avatar">${user.tg_first_name ? user.tg_first_name[0].toUpperCase() : 'U'}</div>
+                                    <div>
+                                        <div style="font-weight: 600;">${user.tg_first_name || 'Неизвестно'}</div>
+                                        <div style="color: #718096; font-size: 12px;">@${user.tg_username || 'без username'}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>${user.class || 'Не выбрана'}</td>
+                            <td>${user.level}</td>
+                            <td class="sparks">${user.sparks.toFixed(1)}✨</td>
+                            <td>${new Date(user.last_activity).toLocaleDateString('ru-RU')}</td>
+                            <td>
+                                <span class="badge ${user.is_active ? 'badge-success' : 'badge-danger'}">
+                                    ${user.is_active ? 'Активен' : 'Неактивен'}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn btn-secondary" onclick="editUser(${user.id})">✏️</button>
+                                    <button class="btn btn-warning" onclick="viewUserActivities(${user.id})">📊</button>
+                                    <button class="btn btn-danger" onclick="deleteUser(${user.id})">🗑️</button>
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                    
+                    renderPagination('usersPagination', page, data.totalPages, 'loadUsers');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="8" class="info">Пользователи не найдены</td></tr>';
+                }
+                
+                // Загружаем фильтры
+                await loadUserFilters();
+                
+            } catch (error) {
+                document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="8" class="error">Ошибка загрузки пользователей</td></tr>';
+            }
+        }
+
+        // Загрузка работ
+        async function loadWorks() {
+            try {
+                const response = await fetch(`/api/admin/works?status=${currentWorksTab}&page=${currentPage.works}&limit=${itemsPerPage}`);
+                const data = await response.json();
+                
+                const bodies = {
+                    'pending': 'pendingWorksBody',
+                    'approved': 'approvedWorksBody',
+                    'rejected': 'rejectedWorksBody',
+                    'all': 'allWorksBody'
+                };
+                
+                Object.keys(bodies).forEach(tab => {
+                    const tbody = document.getElementById(bodies[tab]);
+                    if (tbody) {
+                        tbody.innerHTML = '';
+                    }
+                });
+                
+                if (data.works && data.works.length > 0) {
+                    data.works.forEach(work => {
+                        const statusBadge = work.status === 'approved' ? 'badge-success' : 
+                                          work.status === 'pending' ? 'badge-warning' : 'badge-danger';
+                        const statusText = work.status === 'approved' ? 'Одобрено' : 
+                                         work.status === 'pending' ? 'На модерации' : 'Отклонено';
                         
-                        if (tab.id === 'user-works') {
-                            currentWorkStatus = this.dataset.status;
-                            loadUserWorks();
-                        } else if (tab.id === 'reviews') {
-                            currentReviewStatus = this.dataset.status;
-                            loadReviews();
+                        const row = `
+                            <tr>
+                                <td>${work.id}</td>
+                                <td>
+                                    <img src="${work.image_url}" class="work-image" onclick="viewImage('${work.image_url}')">
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600;">${work.title}</div>
+                                    ${work.description ? `<div style="color: #718096; font-size: 12px;">${work.description}</div>` : ''}
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600;">${work.user_name || 'Неизвестно'}</div>
+                                    <div style="color: #718096; font-size: 12px;">ID: ${work.user_id}</div>
+                                </td>
+                                <td>${new Date(work.created_at).toLocaleDateString('ru-RU')}</td>
+                                ${currentWorksTab === 'approved' ? `<td>${work.moderated_by || 'Система'}</td>` : ''}
+                                ${currentWorksTab === 'rejected' ? `<td>${work.admin_comment || 'Причина не указана'}</td>` : ''}
+                                ${currentWorksTab === 'all' ? `<td><span class="badge ${statusBadge}">${statusText}</span></td>` : ''}
+                                <td>
+                                    <div class="action-btns">
+                                        ${work.status === 'pending' ? `
+                                            <button class="btn btn-success" onclick="approveWork(${work.id})">✅</button>
+                                            <button class="btn btn-danger" onclick="rejectWork(${work.id})">❌</button>
+                                        ` : ''}
+                                        <button class="btn btn-secondary" onclick="viewWorkDetails(${work.id})">👁️</button>
+                                        <button class="btn btn-warning" onclick="editWork(${work.id})">✏️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        
+                        // Добавляем строку в соответствующую таблицу
+                        if (currentWorksTab === 'all') {
+                            document.getElementById('allWorksBody').innerHTML += row;
+                        } else {
+                            document.getElementById(bodies[currentWorksTab]).innerHTML += row;
                         }
                     });
-                });
-
-                // Формы
-                document.getElementById('createRoleForm').addEventListener('submit', createRole);
-                document.getElementById('createCharacterForm').addEventListener('submit', createCharacter);
-                document.getElementById('createQuizForm').addEventListener('submit', createQuiz);
-                document.getElementById('createMarathonForm').addEventListener('submit', createMarathon);
-                document.getElementById('createShopItemForm').addEventListener('submit', createShopItem);
-                document.getElementById('createPostForm').addEventListener('submit', createPost);
-                document.getElementById('addAdminForm').addEventListener('submit', addAdmin);
-
-                // Инициализация чекбоксов кнопок
-                initButtonCheckboxes();
-
-                // Загружаем начальные данные
-                loadRoles();
-                loadCharacters();
-                loadQuizzes();
-                loadMarathons();
-                loadShopItems();
-                loadUserWorks();
-                loadPosts();
-                loadReviews();
-                loadAdmins();
-                loadFullStats();
-
-                // Добавляем первый вопрос и задание
-                addQuestion();
-                addTask();
-
-            } catch (error) {
-                showMessage('❌ Ошибка доступа к админ панели', 'error');
-                console.error('Admin init error:', error);
-            }
-        }
-
-        // Переключение полей медиа в форме постов
-        function toggleMediaFields() {
-            const mediaType = document.getElementById('postMediaType').value;
-            document.getElementById('imageField').style.display = mediaType === 'image' ? 'block' : 'none';
-            document.getElementById('videoField').style.display = mediaType === 'video' ? 'block' : 'none';
-        }
-
-        // Создание поста с поддержкой медиа
-        async function createPost(e) {
-            e.preventDefault();
-            
-            const formData = {
-                post_id: document.getElementById('postId').value,
-                title: document.getElementById('postTitle').value,
-                content: document.getElementById('postContent').value,
-                image_url: document.getElementById('postImageUrl').value,
-                video_url: document.getElementById('postVideoUrl').value,
-                media_type: document.getElementById('postMediaType').value
-            };
-
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/channel-posts?userId=${currentAdminId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showMessage('✅ Пост успешно создан и опубликован в канале!', 'success');
-                    document.getElementById('createPostForm').reset();
-                    toggleMediaFields(); // Сбрасываем поля медиа
-                    loadPosts();
-                    loadDashboard();
+                    
+                    renderPagination('worksPagination', currentPage.works, data.totalPages, 'loadWorksPage');
                 } else {
-                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                    const noDataMsg = '<tr><td colspan="7" class="info">Работы не найдены</td></tr>';
+                    document.getElementById(bodies[currentWorksTab]).innerHTML = noDataMsg;
                 }
+                
             } catch (error) {
-                showMessage('Ошибка при создании поста', 'error');
+                const errorMsg = '<tr><td colspan="7" class="error">Ошибка загрузки работ</td></tr>';
+                document.getElementById('pendingWorksBody').innerHTML = errorMsg;
             }
         }
 
-        // Остальные функции остаются такими же...
-        // [Здесь должен быть остальной JavaScript код из предыдущей версии]
+        // Переключение вкладок работ
+        function showWorksTab(tab) {
+            currentWorksTab = tab;
+            currentPage.works = 1;
+            
+            // Обновляем активные вкладки
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => {
+                if (t.textContent.includes(
+                    tab === 'pending' ? 'На модерации' :
+                    tab === 'approved' ? 'Одобренные' :
+                    tab === 'rejected' ? 'Отклоненные' : 'Все работы'
+                )) {
+                    t.classList.add('active');
+                }
+            });
+            
+            // Показываем активную вкладку контента
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById('works' + capitalizeFirst(tab) + 'Tab').classList.add('active');
+            
+            // Загружаем данные
+            loadWorks();
+        }
 
-        // Инициализация
+        // Вспомогательные функции
+        function getSectionTitle(sectionId) {
+            const titles = {
+                'dashboard': 'Дашборд',
+                'users': 'Пользователи',
+                'works': 'Работы',
+                'quizzes': 'Квизы',
+                'marathons': 'Марафоны',
+                'posts': 'Посты канала',
+                'shop': 'Магазин',
+                'purchases': 'Покупки',
+                'roles': 'Роли',
+                'characters': 'Персонажи',
+                'system': 'Система'
+            };
+            return titles[sectionId] || sectionId;
+        }
+
+        function getSectionSubtitle(sectionId) {
+            const subtitles = {
+                'dashboard': 'Общая статистика и аналитика',
+                'users': 'Управление пользователями системы',
+                'works': 'Модерация пользовательских работ',
+                'quizzes': 'Создание и управление квизами',
+                'marathons': 'Организация обучающих марафонов',
+                'posts': 'Управление контентом канала',
+                'shop': 'Товары и цены магазина',
+                'purchases': 'История покупок пользователей',
+                'roles': 'Настройка ролей пользователей',
+                'characters': 'Управление персонажами и бонусами',
+                'system': 'Настройки системы и операции'
+            };
+            return subtitles[sectionId] || 'Управление разделом';
+        }
+
+        function getStatusText(status) {
+            const statuses = {
+                'pending': 'На модерации',
+                'approved': 'Одобрено',
+                'rejected': 'Отклонено'
+            };
+            return statuses[status] || status;
+        }
+
+        function capitalizeFirst(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        function showMessage(message, type = 'info') {
+            const messageArea = document.getElementById('messageArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error' : 
+                                 type === 'success' ? 'success' : 'info';
+            messageDiv.style.marginBottom = '10px';
+            messageDiv.textContent = message;
+            messageArea.appendChild(messageDiv);
+            
+            setTimeout(() => messageDiv.remove(), 5000);
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function viewImage(imageUrl) {
+            document.getElementById('modalImage').src = imageUrl;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+
+        function refreshAllData() {
+            loadDashboardData();
+            if (currentSection !== 'dashboard') {
+                loadSectionData(currentSection);
+            }
+            showMessage('✅ Данные обновлены!', 'success');
+        }
+
+        // Инициализация при загрузке
         document.addEventListener('DOMContentLoaded', initializeAdmin);
+
+        // Заглушки для остальных функций (реализуются аналогично)
+        async function loadUserFilters() { /* ... */ }
+        async function loadQuizzes() { /* ... */ }
+        async function loadMarathons() { /* ... */ }
+        async function loadPosts() { /* ... */ }
+        async function loadShopItems() { /* ... */ }
+        async function loadPurchases() { /* ... */ }
+        async function loadRoles() { /* ... */ }
+        async function loadCharacters() { /* ... */ }
+        function renderPagination(containerId, currentPage, totalPages, callback) { /* ... */ }
+        function editUser(userId) { /* ... */ }
+        function viewUserActivities(userId) { /* ... */ }
+        function deleteUser(userId) { /* ... */ }
+        function approveWork(workId) { /* ... */ }
+        function rejectWork(workId) { /* ... */ }
+        function viewWorkDetails(workId) { /* ... */ }
+        function editWork(workId) { /* ... */ }
+        function showAddQuizModal() { /* ... */ }
+        function showAddMarathonModal() { /* ... */ }
+        function showAddPostModal() { /* ... */ }
+        function showAddShopItemModal() { /* ... */ }
+        function showAddRoleModal() { /* ... */ }
+        function showAddCharacterModal() { /* ... */ }
+        function saveSystemSettings() { /* ... */ }
+        function recalculateUserStats() { /* ... */ }
+        function cleanupOldData() { /* ... */ }
+        function resetTestData() { /* ... */ }
+        function exportAllData() { /* ... */ }
+        function setupEventListeners() { /* ... */ }
+
     </script>
 </body>
 </html>
