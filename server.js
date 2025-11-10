@@ -17,28 +17,15 @@ const app = express();
 
 // Подключение к PostgreSQL TimeWeb
 const db = new Client({
-    host: '789badf9748826d5c6ffd045.twc1.net',
-    port: 5432,
-    database: 'default_db',
-    user: 'gen_user',
-    password: process.env.DB_PASSWORD, // Добавьте в переменные окружения
-    ssl: {
-        rejectUnauthorized: true,
-        ca: process.env.DB_SSL_CERT // Для продакшена
-    }
-});
-
-// Для разработки - отключаем SSL проверку
-const dbDev = new Client({
-    host: '789badf9748826d5c6ffd045.twc1.net',
-    port: 5432,
-    database: 'default_db',
-    user: 'gen_user',
+    host: process.env.DB_HOST || '789badf9748826d5c6ffd045.twc1.net',
+    port: process.env.DB_PORT || 5432,
+    database: process.env.DB_NAME || 'default_db',
+    user: process.env.DB_USER || 'gen_user',
     password: process.env.DB_PASSWORD,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : false
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-let dbClient = process.env.NODE_ENV === 'production' ? db : dbDev;
+let dbClient = db;
 
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
@@ -46,7 +33,19 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(join(__dirname, 'public')));
 app.use('/admin', express.static(join(__dirname, 'admin')));
 
-console.log('🎨 Мастерская Вдохновения - Запуск PostgreSQL версии...');
+console.log('🎨 Мастерская Вдохновения - Запуск с новой системой искр...');
+
+// ==================== СИСТЕМА НАЧИСЛЕНИЯ ИСКР ====================
+
+const SPARKS_SYSTEM = {
+    QUIZ_PER_CORRECT_ANSWER: 1,
+    QUIZ_PERFECT_BONUS: 5,
+    DAILY_COMMENT: 1,
+    INVITE_FRIEND: 10,
+    PARTICIPATE_POLL: 2,
+    PARTICIPATE_MARATHON: 7,
+    WRITE_REVIEW: 3
+};
 
 // ==================== ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ ====================
 
@@ -115,6 +114,7 @@ async function initializeDatabase() {
                 completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 score INTEGER NOT NULL,
                 sparks_earned REAL NOT NULL,
+                perfect_score BOOLEAN DEFAULT FALSE,
                 UNIQUE(user_id, quiz_id)
             )
         `);
@@ -149,6 +149,7 @@ async function initializeDatabase() {
                 file_url TEXT,
                 preview_url TEXT,
                 price REAL NOT NULL,
+                content_text TEXT,
                 is_active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -160,7 +161,96 @@ async function initializeDatabase() {
                 user_id BIGINT NOT NULL,
                 item_id INTEGER NOT NULL,
                 price_paid REAL NOT NULL,
-                purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                content_delivered BOOLEAN DEFAULT FALSE
+            )
+        `);
+
+        // НОВЫЕ ТАБЛИЦЫ ДЛЯ КОММЕНТАРИЕВ И ПОСТОВ
+        await dbClient.query(`
+            CREATE TABLE IF NOT EXISTS channel_posts (
+                id SERIAL PRIMARY KEY,
+                post_id TEXT UNIQUE NOT NULL,
+                title TEXT NOT NULL,
+                content TEXT,
+                image_url TEXT,
+                admin_id BIGINT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE
+            )
+        `);
+
+        await dbClient.query(`
+            CREATE TABLE IF NOT EXISTS post_reviews (
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL,
+                post_id TEXT NOT NULL,
+                review_text TEXT NOT NULL,
+                rating INTEGER DEFAULT 5,
+                status TEXT DEFAULT 'pending', -- pending, approved, rejected
+                admin_comment TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                moderated_at TIMESTAMP,
+                moderator_id BIGINT
+            )
+        `);
+
+        await dbClient.query(`
+            CREATE TABLE IF NOT EXISTS user_invites (
+                id SERIAL PRIMARY KEY,
+                inviter_id BIGINT NOT NULL,
+                invited_id BIGINT NOT NULL,
+                invite_code TEXT NOT NULL,
+                completed BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await dbClient.query(`
+            CREATE TABLE IF NOT EXISTS polls (
+                id SERIAL PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT,
+                options TEXT NOT NULL, -- JSON array
+                created_by BIGINT NOT NULL,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await dbClient.query(`
+            CREATE TABLE IF NOT EXISTS poll_participants (
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL,
+                poll_id INTEGER NOT NULL,
+                selected_option INTEGER NOT NULL,
+                participated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, poll_id)
+            )
+        `);
+
+        await dbClient.query(`
+            CREATE TABLE IF NOT EXISTS marathons (
+                id SERIAL PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT,
+                start_date TIMESTAMP NOT NULL,
+                end_date TIMESTAMP NOT NULL,
+                reward_sparks REAL DEFAULT 7,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await dbClient.query(`
+            CREATE TABLE IF NOT EXISTS marathon_participants (
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL,
+                marathon_id INTEGER NOT NULL,
+                completed BOOLEAN DEFAULT FALSE,
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                completed_at TIMESTAMP,
+                UNIQUE(user_id, marathon_id)
             )
         `);
 
@@ -238,19 +328,10 @@ async function initializeDatabase() {
             );
         }
 
-        // Добавляем тестовые товары
-        await dbClient.query(
-            `INSERT INTO shop_items (title, description, type, file_url, preview_url, price) 
-             VALUES ($1, $2, $3, $4, $5, $6) 
-             ON CONFLICT DO NOTHING`,
-            ['🎨 Урок акварели', 'Видеоурок по основам акварели', 'video', 'https://example.com/video1.mp4', 'https://example.com/preview1.jpg', 15]
-        );
-
         console.log('✅ База данных PostgreSQL готова');
 
     } catch (error) {
         console.error('❌ Ошибка инициализации базы данных:', error);
-        // Продолжаем работу даже при ошибке БД
     }
 }
 
@@ -264,6 +345,23 @@ function calculateLevel(sparks) {
     if (sparks >= 150) return 'Знаток';
     if (sparks >= 50) return 'Искатель';
     return 'Ученик';
+}
+
+async function addSparks(userId, sparks, activityType, description) {
+    try {
+        await dbClient.query(
+            'UPDATE users SET sparks = sparks + $1 WHERE user_id = $2',
+            [sparks, userId]
+        );
+        await dbClient.query(
+            'INSERT INTO activities (user_id, activity_type, sparks_earned, description) VALUES ($1, $2, $3, $4)',
+            [userId, activityType, sparks, description]
+        );
+        return true;
+    } catch (error) {
+        console.error('❌ Error adding sparks:', error);
+        return false;
+    }
 }
 
 // ==================== MIDDLEWARE ====================
@@ -291,19 +389,18 @@ const requireAdmin = async (req, res, next) => {
 
 app.get('/health', async (req, res) => {
     try {
-        // Проверяем подключение к БД
         await dbClient.query('SELECT 1');
         res.json({ 
             status: 'OK', 
             timestamp: new Date().toISOString(),
-            version: '5.0.0',
+            version: '6.0.0',
             database: 'Connected'
         });
     } catch (error) {
         res.json({ 
             status: 'OK', 
             timestamp: new Date().toISOString(),
-            version: '5.0.0', 
+            version: '6.0.0', 
             database: 'Disconnected',
             error: error.message
         });
@@ -337,6 +434,12 @@ app.get('/api/users/:userId', async (req, res) => {
             const user = result.rows[0];
             user.level = calculateLevel(user.sparks);
             user.available_buttons = JSON.parse(user.available_buttons || '[]');
+            
+            // Проверяем ежедневный бонус за комментарий
+            const today = new Date().toDateString();
+            const lastCommentDate = user.daily_commented ? new Date(user.last_active).toDateString() : null;
+            user.can_comment_today = today !== lastCommentDate;
+            
             res.json({ exists: true, user });
         } else {
             // Создаем нового пользователя
@@ -355,7 +458,8 @@ app.get('/api/users/:userId', async (req, res) => {
                     class: null,
                     character_name: null,
                     tg_first_name: 'Новый пользователь',
-                    available_buttons: []
+                    available_buttons: [],
+                    can_comment_today: true
                 }
             });
         }
@@ -397,11 +501,7 @@ app.post('/api/users/register', async (req, res) => {
         
         if (isNewUser) {
             sparksAdded = 5;
-            await dbClient.query('UPDATE users SET sparks = sparks + $1 WHERE user_id = $2', [sparksAdded, userId]);
-            await dbClient.query(
-                'INSERT INTO activities (user_id, activity_type, sparks_earned, description) VALUES ($1, $2, $3, $4)',
-                [userId, 'registration', sparksAdded, 'Регистрация']
-            );
+            await addSparks(userId, sparksAdded, 'registration', 'Регистрация в приложении');
             message = 'Регистрация успешна! +5✨';
         }
         
@@ -505,44 +605,50 @@ app.post('/api/webapp/quizzes/:quizId/submit', async (req, res) => {
             }
         });
         
-        const scorePercentage = (correctAnswers / questions.length) * 100;
-        const sparksEarned = scorePercentage >= 60 ? quiz.sparks_reward : 0;
+        // НОВАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР
+        let sparksEarned = 0;
+        const perfectScore = correctAnswers === questions.length;
+        
+        // За каждый правильный ответ
+        sparksEarned += correctAnswers * SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER;
+        
+        // Бонус за идеальное прохождение
+        if (perfectScore) {
+            sparksEarned += SPARKS_SYSTEM.QUIZ_PERFECT_BONUS;
+        }
         
         // Сохраняем результат
         await dbClient.query(
-            `INSERT INTO quiz_completions (user_id, quiz_id, score, sparks_earned) 
-             VALUES ($1, $2, $3, $4) 
+            `INSERT INTO quiz_completions (user_id, quiz_id, score, sparks_earned, perfect_score) 
+             VALUES ($1, $2, $3, $4, $5) 
              ON CONFLICT (user_id, quiz_id) DO UPDATE SET
-             completed_at = CURRENT_TIMESTAMP, score = EXCLUDED.score, sparks_earned = EXCLUDED.sparks_earned`,
-            [userId, quizId, correctAnswers, sparksEarned]
+             completed_at = CURRENT_TIMESTAMP, score = EXCLUDED.score, sparks_earned = EXCLUDED.sparks_earned, perfect_score = EXCLUDED.perfect_score`,
+            [userId, quizId, correctAnswers, sparksEarned, perfectScore]
         );
         
         // Обновляем искры пользователя
         if (sparksEarned > 0) {
-            await dbClient.query('UPDATE users SET sparks = sparks + $1 WHERE user_id = $2', [sparksEarned, userId]);
-            await dbClient.query(
-                'INSERT INTO activities (user_id, activity_type, sparks_earned, description) VALUES ($1, $2, $3, $4)',
-                [userId, 'quiz', sparksEarned, `Квиз: ${quiz.title}`]
-            );
+            await addSparks(userId, sparksEarned, 'quiz', `Квиз: ${quiz.title} (${correctAnswers}/${questions.length} правильных)`);
         }
         
         res.json({
             success: true,
             correctAnswers,
             totalQuestions: questions.length,
-            scorePercentage: Math.round(scorePercentage),
+            scorePercentage: Math.round((correctAnswers / questions.length) * 100),
             sparksEarned,
-            passed: sparksEarned > 0,
-            message: sparksEarned > 0 ? 
-                `Поздравляем! Вы получили ${sparksEarned}✨ (${correctAnswers}/${questions.length})` : 
-                `Попробуйте еще раз! Правильно: ${correctAnswers}/${questions.length}`
+            perfectScore,
+            passed: correctAnswers > 0,
+            message: perfectScore ? 
+                `Идеально! 🎉 +${sparksEarned}✨ (${correctAnswers} правильных + бонус)` : 
+                `Правильно: ${correctAnswers}/${questions.length}. +${sparksEarned}✨`
         });
     } catch (error) {
         res.status(500).json({ error: 'Database error' });
     }
 });
 
-// Магазин
+// Магазин - получение товаров
 app.get('/api/webapp/shop/items', async (req, res) => {
     try {
         const result = await dbClient.query("SELECT * FROM shop_items WHERE is_active = TRUE ORDER BY price ASC");
@@ -581,7 +687,10 @@ app.post('/api/webapp/shop/purchase', async (req, res) => {
         
         // Совершаем покупку
         await dbClient.query("UPDATE users SET sparks = sparks - $1 WHERE user_id = $2", [item.price, userId]);
-        await dbClient.query("INSERT INTO purchases (user_id, item_id, price_paid) VALUES ($1, $2, $3)", [userId, itemId, item.price]);
+        await dbClient.query(
+            "INSERT INTO purchases (user_id, item_id, price_paid, content_delivered) VALUES ($1, $2, $3, $4)",
+            [userId, itemId, item.price, true]
+        );
         await dbClient.query(
             "INSERT INTO activities (user_id, activity_type, sparks_earned, description) VALUES ($1, $2, $3, $4)",
             [userId, 'purchase', -item.price, `Покупка: ${item.title}`]
@@ -592,8 +701,35 @@ app.post('/api/webapp/shop/purchase', async (req, res) => {
         res.json({
             success: true,
             message: `Покупка успешна! Куплено: ${item.title}`,
-            remainingSparks: newBalanceResult.rows[0].sparks
+            remainingSparks: newBalanceResult.rows[0].sparks,
+            purchasedItem: {
+                title: item.title,
+                description: item.description,
+                type: item.type,
+                content: item.content_text || item.file_url,
+                purchasedAt: new Date().toISOString()
+            }
         });
+    } catch (error) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Получение купленных товаров пользователя
+app.get('/api/webapp/users/:userId/purchases', async (req, res) => {
+    const userId = req.params.userId;
+    
+    try {
+        const result = await dbClient.query(
+            `SELECT p.*, si.title, si.description, si.type, si.content_text, si.file_url
+             FROM purchases p
+             JOIN shop_items si ON p.item_id = si.id
+             WHERE p.user_id = $1
+             ORDER BY p.purchased_at DESC`,
+            [userId]
+        );
+        
+        res.json({ purchases: result.rows });
     } catch (error) {
         res.status(500).json({ error: 'Database error' });
     }
@@ -614,6 +750,152 @@ app.get('/api/webapp/users/:userId/activities', async (req, res) => {
     }
 });
 
+// ==================== НОВЫЕ API ДЛЯ КОММЕНТАРИЕВ И ОТЗЫВОВ ====================
+
+// Получение постов канала
+app.get('/api/webapp/channel-posts', async (req, res) => {
+    try {
+        const result = await dbClient.query(`
+            SELECT cp.*, a.username as admin_username
+            FROM channel_posts cp
+            LEFT JOIN admins a ON cp.admin_id = a.user_id
+            WHERE cp.is_active = TRUE
+            ORDER BY cp.created_at DESC
+        `);
+        
+        res.json({ posts: result.rows });
+    } catch (error) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Написание отзыва к посту
+app.post('/api/webapp/posts/:postId/review', async (req, res) => {
+    const { postId } = req.params;
+    const { userId, reviewText, rating = 5 } = req.body;
+    
+    if (!userId || !reviewText) {
+        return res.status(400).json({ error: 'User ID and review text are required' });
+    }
+    
+    try {
+        // Проверяем существование поста
+        const postResult = await dbClient.query('SELECT * FROM channel_posts WHERE post_id = $1', [postId]);
+        if (postResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+        
+        // Проверяем не оставлял ли пользователь уже отзыв к этому посту
+        const existingReview = await dbClient.query(
+            'SELECT * FROM post_reviews WHERE user_id = $1 AND post_id = $2',
+            [userId, postId]
+        );
+        
+        if (existingReview.rows.length > 0) {
+            return res.status(400).json({ error: 'Вы уже оставляли отзыв к этому посту' });
+        }
+        
+        // Сохраняем отзыв
+        await dbClient.query(
+            `INSERT INTO post_reviews (user_id, post_id, review_text, rating, status)
+             VALUES ($1, $2, $3, $4, 'pending')`,
+            [userId, postId, reviewText, rating]
+        );
+        
+        // Начисляем искры за отзыв
+        await addSparks(userId, SPARKS_SYSTEM.WRITE_REVIEW, 'review', `Отзыв к посту`);
+        
+        res.json({
+            success: true,
+            message: 'Отзыв отправлен на модерацию! +3✨',
+            sparksEarned: SPARKS_SYSTEM.WRITE_REVIEW
+        });
+        
+    } catch (error) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Ежедневный комментарий
+app.post('/api/webapp/daily-comment', async (req, res) => {
+    const { userId } = req.body;
+    
+    if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    try {
+        const userResult = await dbClient.query('SELECT * FROM users WHERE user_id = $1', [userId]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const user = userResult.rows[0];
+        const today = new Date().toDateString();
+        const lastCommentDate = user.daily_commented ? new Date(user.last_active).toDateString() : null;
+        
+        if (today === lastCommentDate) {
+            return res.status(400).json({ error: 'Вы уже получали бонус за комментарий сегодня' });
+        }
+        
+        // Начисляем бонус
+        await addSparks(userId, SPARKS_SYSTEM.DAILY_COMMENT, 'daily_comment', 'Ежедневный комментарий');
+        await dbClient.query(
+            'UPDATE users SET daily_commented = TRUE, last_active = CURRENT_TIMESTAMP WHERE user_id = $1',
+            [userId]
+        );
+        
+        res.json({
+            success: true,
+            message: 'Бонус за комментарий получен! +1✨',
+            sparksEarned: SPARKS_SYSTEM.DAILY_COMMENT
+        });
+        
+    } catch (error) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Приглашение друга
+app.post('/api/webapp/invite-friend', async (req, res) => {
+    const { inviterId, invitedId } = req.body;
+    
+    if (!inviterId || !invitedId) {
+        return res.status(400).json({ error: 'Inviter and invited user IDs are required' });
+    }
+    
+    try {
+        // Проверяем не приглашал ли уже этот пользователь
+        const existingInvite = await dbClient.query(
+            'SELECT * FROM user_invites WHERE inviter_id = $1 AND invited_id = $2',
+            [inviterId, invitedId]
+        );
+        
+        if (existingInvite.rows.length > 0) {
+            return res.status(400).json({ error: 'Вы уже приглашали этого пользователя' });
+        }
+        
+        // Создаем запись о приглашении
+        const inviteCode = `invite_${inviterId}_${Date.now()}`;
+        await dbClient.query(
+            'INSERT INTO user_invites (inviter_id, invited_id, invite_code, completed) VALUES ($1, $2, $3, TRUE)',
+            [inviterId, invitedId, inviteCode]
+        );
+        
+        // Начисляем искры за приглашение
+        await addSparks(inviterId, SPARKS_SYSTEM.INVITE_FRIEND, 'invite', 'Приглашение друга');
+        
+        res.json({
+            success: true,
+            message: 'Друг приглашен! +10✨',
+            sparksEarned: SPARKS_SYSTEM.INVITE_FRIEND
+        });
+        
+    } catch (error) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
 // ==================== ADMIN API ====================
 
 // Статистика
@@ -625,14 +907,18 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
             charactersResult,
             shopItemsResult,
             sparksResult,
-            adminsResult
+            adminsResult,
+            postsResult,
+            reviewsResult
         ] = await Promise.all([
             dbClient.query('SELECT COUNT(*) as count FROM users'),
             dbClient.query('SELECT COUNT(*) as count FROM quizzes WHERE is_active = TRUE'),
             dbClient.query('SELECT COUNT(*) as count FROM characters WHERE is_active = TRUE'),
             dbClient.query('SELECT COUNT(*) as count FROM shop_items WHERE is_active = TRUE'),
             dbClient.query('SELECT SUM(sparks) as total FROM users'),
-            dbClient.query('SELECT COUNT(*) as count FROM admins')
+            dbClient.query('SELECT COUNT(*) as count FROM admins'),
+            dbClient.query('SELECT COUNT(*) as count FROM channel_posts WHERE is_active = TRUE'),
+            dbClient.query('SELECT COUNT(*) as count FROM post_reviews WHERE status = $1', ['pending'])
         ]);
 
         res.json({
@@ -642,9 +928,11 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
             shopItems: parseInt(shopItemsResult.rows[0].count),
             totalSparks: parseFloat(sparksResult.rows[0].total) || 0,
             totalAdmins: parseInt(adminsResult.rows[0].count),
+            totalPosts: parseInt(postsResult.rows[0].count),
+            pendingReviews: parseInt(reviewsResult.rows[0].count),
             activeToday: parseInt(usersResult.rows[0].count),
             totalPosts: 0,
-            pendingModeration: 0,
+            pendingModeration: parseInt(reviewsResult.rows[0].count),
             registeredToday: 0
         });
     } catch (error) {
@@ -652,159 +940,9 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
     }
 });
 
-// Управление персонажами
-app.get('/api/admin/characters', requireAdmin, async (req, res) => {
-    try {
-        const result = await dbClient.query("SELECT * FROM characters ORDER BY class, character_name");
-        
-        const parsed = result.rows.map(char => ({
-            ...char,
-            available_buttons: JSON.parse(char.available_buttons || '[]')
-        }));
-        
-        res.json(parsed);
-    } catch (error) {
-        res.status(500).json({ error: 'Database error' });
-    }
-});
-
-app.post('/api/admin/characters', requireAdmin, async (req, res) => {
-    const { class: charClass, character_name, description, bonus_type, bonus_value, available_buttons } = req.body;
-    
-    console.log('👥 Добавление персонажа:', { charClass, character_name });
-    
-    if (!charClass || !character_name || !bonus_type || !bonus_value) {
-        return res.status(400).json({ error: 'Все обязательные поля должны быть заполнены' });
-    }
-    
-    const buttonsJson = JSON.stringify(available_buttons || ['quiz', 'activities']);
-    
-    try {
-        const result = await dbClient.query(
-            `INSERT INTO characters (class, character_name, description, bonus_type, bonus_value, available_buttons) 
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-            [charClass, character_name, description, bonus_type, bonus_value, buttonsJson]
-        );
-        
-        res.json({
-            success: true,
-            message: 'Персонаж успешно создан',
-            characterId: result.rows[0].id
-        });
-    } catch (error) {
-        console.error('❌ Error creating character:', error);
-        res.status(500).json({ error: 'Error creating character' });
-    }
-});
-
-app.put('/api/admin/characters/:id', requireAdmin, async (req, res) => {
-    const { id } = req.params;
-    const { class: charClass, character_name, description, bonus_type, bonus_value, available_buttons, is_active } = req.body;
-    
-    const buttonsJson = JSON.stringify(available_buttons || []);
-    
-    try {
-        await dbClient.query(
-            `UPDATE characters SET class=$1, character_name=$2, description=$3, bonus_type=$4, bonus_value=$5, available_buttons=$6, is_active=$7 WHERE id=$8`,
-            [charClass, character_name, description, bonus_type, bonus_value, buttonsJson, is_active, id]
-        );
-        
-        res.json({
-            success: true,
-            message: 'Персонаж успешно обновлен'
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Database error' });
-    }
-});
-
-app.delete('/api/admin/characters/:id', requireAdmin, async (req, res) => {
-    const { id } = req.params;
-    
-    try {
-        await dbClient.query(`DELETE FROM characters WHERE id = $1`, [id]);
-        
-        res.json({
-            success: true,
-            message: 'Персонаж удален'
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Database error' });
-    }
-});
-
-// Управление квизами
-app.get('/api/admin/quizzes', requireAdmin, async (req, res) => {
-    try {
-        const result = await dbClient.query("SELECT * FROM quizzes ORDER BY created_at DESC");
-        
-        const parsed = result.rows.map(quiz => ({
-            ...quiz,
-            questions: JSON.parse(quiz.questions || '[]')
-        }));
-        
-        res.json(parsed);
-    } catch (error) {
-        res.status(500).json({ error: 'Database error' });
-    }
-});
-
-app.post('/api/admin/quizzes', requireAdmin, async (req, res) => {
-    const { title, description, questions, sparks_reward, cooldown_hours, is_active } = req.body;
-    
-    console.log('🎯 Создание квиза:', title);
-    
-    if (!title || !questions) {
-        return res.status(400).json({ error: 'Title and questions are required' });
-    }
-    
-    const questionsJson = JSON.stringify(questions);
-    
-    try {
-        const result = await dbClient.query(
-            `INSERT INTO quizzes (title, description, questions, sparks_reward, cooldown_hours, is_active) 
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-            [title, description, questionsJson, sparks_reward || 1, cooldown_hours || 24, is_active !== false]
-        );
-        
-        res.json({
-            success: true,
-            message: 'Квиз успешно создан',
-            quizId: result.rows[0].id
-        });
-    } catch (error) {
-        console.error('❌ Error creating quiz:', error);
-        res.status(500).json({ error: 'Error creating quiz' });
-    }
-});
-
-app.delete('/api/admin/quizzes/:id', requireAdmin, async (req, res) => {
-    const { id } = req.params;
-    
-    try {
-        await dbClient.query(`DELETE FROM quizzes WHERE id = $1`, [id]);
-        
-        res.json({
-            success: true,
-            message: 'Квиз удален'
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Database error' });
-    }
-});
-
-// Управление товарами
-app.get('/api/admin/shop/items', requireAdmin, async (req, res) => {
-    try {
-        const result = await dbClient.query("SELECT * FROM shop_items ORDER BY created_at DESC");
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({ error: 'Database error' });
-    }
-});
-
+// Управление магазином - создание товара
 app.post('/api/admin/shop/items', requireAdmin, async (req, res) => {
-    const { title, description, type, file_url, preview_url, price, is_active } = req.body;
+    const { title, description, type, file_url, preview_url, price, content_text, is_active } = req.body;
     
     console.log('🛒 Создание товара:', title);
     
@@ -814,9 +952,9 @@ app.post('/api/admin/shop/items', requireAdmin, async (req, res) => {
     
     try {
         const result = await dbClient.query(
-            `INSERT INTO shop_items (title, description, type, file_url, preview_url, price, is_active) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-            [title, description, type || 'video', file_url, preview_url, price, is_active !== false]
+            `INSERT INTO shop_items (title, description, type, file_url, preview_url, price, content_text, is_active) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+            [title, description, type || 'video', file_url, preview_url, price, content_text, is_active !== false]
         );
         
         res.json({
@@ -830,70 +968,175 @@ app.post('/api/admin/shop/items', requireAdmin, async (req, res) => {
     }
 });
 
-app.delete('/api/admin/shop/items/:id', requireAdmin, async (req, res) => {
-    const { id } = req.params;
-    
+// Управление постами канала
+app.get('/api/admin/channel-posts', requireAdmin, async (req, res) => {
     try {
-        await dbClient.query(`DELETE FROM shop_items WHERE id = $1`, [id]);
-        
-        res.json({
-            success: true,
-            message: 'Товар удален'
-        });
+        const result = await dbClient.query(`
+            SELECT cp.*, a.username as admin_username,
+                   (SELECT COUNT(*) FROM post_reviews pr WHERE pr.post_id = cp.post_id) as reviews_count
+            FROM channel_posts cp
+            LEFT JOIN admins a ON cp.admin_id = a.user_id
+            ORDER BY cp.created_at DESC
+        `);
+        res.json({ posts: result.rows });
     } catch (error) {
         res.status(500).json({ error: 'Database error' });
     }
 });
 
-// Управление админами
-app.get('/api/admin/admins', requireAdmin, async (req, res) => {
-    try {
-        const result = await dbClient.query("SELECT * FROM admins ORDER BY role, user_id");
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({ error: 'Database error' });
-    }
-});
-
-app.post('/api/admin/admins', requireAdmin, async (req, res) => {
-    const { user_id, username, role } = req.body;
+app.post('/api/admin/channel-posts', requireAdmin, async (req, res) => {
+    const { post_id, title, content, image_url } = req.body;
+    const adminId = req.admin.user_id;
     
-    console.log('🔧 Добавление админа:', { user_id, username, role });
-    
-    if (!user_id) {
-        return res.status(400).json({ error: 'User ID is required' });
+    if (!post_id || !title) {
+        return res.status(400).json({ error: 'Post ID and title are required' });
     }
     
     try {
         await dbClient.query(
-            `INSERT INTO admins (user_id, username, role) VALUES ($1, $2, $3) 
-             ON CONFLICT (user_id) DO UPDATE SET username = EXCLUDED.username, role = EXCLUDED.role`,
-            [user_id, username, role || 'moderator']
+            `INSERT INTO channel_posts (post_id, title, content, image_url, admin_id) 
+             VALUES ($1, $2, $3, $4, $5) 
+             ON CONFLICT (post_id) DO UPDATE SET
+             title = EXCLUDED.title, content = EXCLUDED.content, image_url = EXCLUDED.image_url`,
+            [post_id, title, content, image_url, adminId]
         );
         
         res.json({
             success: true,
-            message: 'Админ успешно добавлен'
+            message: 'Пост успешно сохранен'
         });
     } catch (error) {
-        console.error('❌ Error adding admin:', error);
-        res.status(500).json({ error: 'Error adding admin' });
+        res.status(500).json({ error: 'Database error' });
     }
 });
 
-app.delete('/api/admin/admins/:userId', requireAdmin, async (req, res) => {
-    const { userId } = req.params;
+// Модерация отзывов
+app.get('/api/admin/reviews', requireAdmin, async (req, res) => {
+    const { status = 'pending' } = req.query;
     
-    if (userId == req.admin.user_id) {
-        return res.status(400).json({ error: 'Нельзя удалить самого себя' });
+    try {
+        const result = await dbClient.query(`
+            SELECT pr.*, u.tg_first_name, u.tg_username, cp.title as post_title
+            FROM post_reviews pr
+            JOIN users u ON pr.user_id = u.user_id
+            JOIN channel_posts cp ON pr.post_id = cp.post_id
+            WHERE pr.status = $1
+            ORDER BY pr.created_at DESC
+        `, [status]);
+        
+        res.json({ reviews: result.rows });
+    } catch (error) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, async (req, res) => {
+    const { reviewId } = req.params;
+    const { status, admin_comment } = req.body;
+    const moderatorId = req.admin.user_id;
+    
+    if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status' });
     }
     
     try {
-        await dbClient.query(`DELETE FROM admins WHERE user_id = $1`, [userId]);
+        await dbClient.query(
+            `UPDATE post_reviews 
+             SET status = $1, admin_comment = $2, moderator_id = $3, moderated_at = CURRENT_TIMESTAMP 
+             WHERE id = $4`,
+            [status, admin_comment, moderatorId, reviewId]
+        );
         
         res.json({
             success: true,
-            message: 'Админ удален'
+            message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Управление опросами
+app.get('/api/admin/polls', requireAdmin, async (req, res) => {
+    try {
+        const result = await dbClient.query(`
+            SELECT p.*, a.username as creator_username,
+                   (SELECT COUNT(*) FROM poll_participants pp WHERE pp.poll_id = p.id) as participants_count
+            FROM polls p
+            LEFT JOIN admins a ON p.created_by = a.user_id
+            ORDER BY p.created_at DESC
+        `);
+        
+        const polls = result.rows.map(poll => ({
+            ...poll,
+            options: JSON.parse(poll.options || '[]')
+        }));
+        
+        res.json({ polls });
+    } catch (error) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+app.post('/api/admin/polls', requireAdmin, async (req, res) => {
+    const { title, description, options } = req.body;
+    const createdBy = req.admin.user_id;
+    
+    if (!title || !options || !Array.isArray(options)) {
+        return res.status(400).json({ error: 'Title and options array are required' });
+    }
+    
+    try {
+        const optionsJson = JSON.stringify(options);
+        const result = await dbClient.query(
+            `INSERT INTO polls (title, description, options, created_by) 
+             VALUES ($1, $2, $3, $4) RETURNING id`,
+            [title, description, optionsJson, createdBy]
+        );
+        
+        res.json({
+            success: true,
+            message: 'Опрос создан',
+            pollId: result.rows[0].id
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Управление марафонами
+app.get('/api/admin/marathons', requireAdmin, async (req, res) => {
+    try {
+        const result = await dbClient.query(`
+            SELECT m.*, 
+                   (SELECT COUNT(*) FROM marathon_participants mp WHERE mp.marathon_id = m.id) as participants_count
+            FROM marathons m
+            ORDER BY m.created_at DESC
+        `);
+        res.json({ marathons: result.rows });
+    } catch (error) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+app.post('/api/admin/marathons', requireAdmin, async (req, res) => {
+    const { title, description, start_date, end_date, reward_sparks } = req.body;
+    
+    if (!title || !start_date || !end_date) {
+        return res.status(400).json({ error: 'Title, start date and end date are required' });
+    }
+    
+    try {
+        const result = await dbClient.query(
+            `INSERT INTO marathons (title, description, start_date, end_date, reward_sparks) 
+             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+            [title, description, start_date, end_date, reward_sparks || SPARKS_SYSTEM.PARTICIPATE_MARATHON]
+        );
+        
+        res.json({
+            success: true,
+            message: 'Марафон создан',
+            marathonId: result.rows[0].id
         });
     } catch (error) {
         res.status(500).json({ error: 'Database error' });
@@ -930,6 +1173,8 @@ try {
 • 👥 Выбрать своего персонажа  
 • 🛒 Покупать обучающие материалы
 • 📊 Отслеживать свой прогресс
+• 💬 Оставлять отзывы к постам
+• 👥 Приглашать друзей
 
 Нажмите кнопку ниже чтобы начать!`;
         
@@ -993,6 +1238,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔧 Admin Panel: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
     console.log(`🤖 Bot Token: ${process.env.BOT_TOKEN ? '✅ Настроен' : '❌ Отсутствует'}`);
     console.log(`🗄️ Database: PostgreSQL TimeWeb`);
+    console.log(`✨ Новая система искр активирована`);
     console.log('✅ Все системы работают');
 }).on('error', (err) => {
     console.error('❌ Server error:', err);
