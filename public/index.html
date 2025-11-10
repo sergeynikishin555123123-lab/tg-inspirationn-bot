@@ -351,19 +351,17 @@
                     </div>
 
                     <button class="btn btn-success" onclick="uploadWork()" id="uploadWorkBtn" disabled style="margin-top: 20px;">
-                        📤 Загрузить работу <span class="spark-badge">+5✨</span>
+                        📤 Загрузить работу
                     </button>
 
                     <div class="info" style="margin-top: 15px;">
-                        💡 После модерации работы вы получите дополнительные <strong>+15✨</strong>
+                        💡 После модерации работы вы получите <strong>+15✨</strong>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Остальные экраны (магазин, посты, активности, приглашения) -->
-        <!-- Для экономии места оставлю их структуру, но код аналогичный предыдущим версиям -->
-
         <div id="shopScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
@@ -523,7 +521,7 @@
             }
         }
 
-        // Загрузка кнопок действий
+        // Загрузка кнопок действий - ИСПРАВЛЕНО: убраны дублирующиеся кнопки
         function loadActionButtons(availableButtons) {
             const container = document.getElementById('actionButtons');
             container.innerHTML = '';
@@ -538,6 +536,7 @@
                 'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', class: 'btn' }
             };
 
+            // Создаем только те кнопки, которые есть в available_buttons
             availableButtons.forEach(btnKey => {
                 if (buttons[btnKey]) {
                     const btn = buttons[btnKey];
@@ -718,21 +717,22 @@
                 
                 if (quizzes.length > 0) {
                     quizzes.forEach(quiz => {
-                        const maxSparks = quiz.questions.length * 1 + 5;
                         const quizElement = document.createElement('div');
                         quizElement.className = 'quiz-card';
                         quizElement.innerHTML = `
                             <div style="font-weight: 600; margin-bottom: 8px;">${quiz.title}</div>
                             <div style="color: #718096; margin-bottom: 8px;">${quiz.description || 'Описание отсутствует'}</div>
                             <div style="color: #48bb78; margin-bottom: 12px;">
-                                Награда: до ${maxSparks}✨ 
-                                <small style="color: #718096;">(${quiz.questions.length} вопросов)</small>
+                                Награда: ${quiz.questions.length} вопросов = до ${quiz.questions.length}✨ 
+                                ${quiz.sparks_reward > quiz.questions.length ? `+ бонус ${quiz.sparks_reward}✨ за идеальный результат` : ''}
                             </div>
                             <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
                                 ${quiz.completed ? '✅ Пройден' : '🆕 Новый'} 
                                 ${quiz.user_score !== undefined ? `• Результат: ${quiz.user_score}/${quiz.total_questions}` : ''}
+                                ${!quiz.can_retake ? '• 🔄 Доступен позже' : ''}
                             </div>
-                            <button class="btn ${quiz.completed ? 'btn-warning' : 'btn-secondary'}" onclick="startQuiz(${quiz.id})">
+                            <button class="btn ${quiz.completed ? 'btn-warning' : 'btn-secondary'}" 
+                                    onclick="startQuiz(${quiz.id})" ${!quiz.can_retake ? 'disabled' : ''}>
                                 ${quiz.completed ? 'Пройти снова' : 'Начать квиз'}
                             </button>
                         `;
@@ -841,7 +841,7 @@
                 if (result.success) {
                     showQuizResult(result);
                 } else {
-                    showMessage('Ошибка при отправке квиза', 'error');
+                    showMessage(result.error || 'Ошибка при отправке квиза', 'error');
                 }
             } catch (error) {
                 showMessage('Ошибка при отправке квиза', 'error');
@@ -851,7 +851,7 @@
         // Показать результаты квиза
         function showQuizResult(result) {
             const resultContent = document.getElementById('quizResultContent');
-            const bonusText = result.perfectScore ? `<div class="success" style="margin: 10px 0;">🎉 Бонус за идеальный результат: +5✨</div>` : '';
+            const bonusText = result.perfectScore ? `<div class="success" style="margin: 10px 0;">🎉 Бонус за идеальный результат: +${result.sparksEarned - result.correctAnswers}✨</div>` : '';
             
             resultContent.innerHTML = `
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -865,6 +865,10 @@
                     </div>
                     ${bonusText}
                     <div class="sparks" style="font-size: 36px;">+${result.sparksEarned}✨</div>
+                    <div style="color: #718096; margin-top: 10px;">
+                        ${result.correctAnswers}✨ за правильные ответы
+                        ${result.perfectScore ? `+ ${result.sparksEarned - result.correctAnswers}✨ бонус` : ''}
+                    </div>
                 </div>
             `;
             
@@ -964,7 +968,7 @@
             `;
         }
 
-        // Завершение дня марафона
+        // Завершение дня марафона - ИСПРАВЛЕНО: начисление искр только один раз
         async function completeMarathonDay(day) {
             try {
                 showMessage('⏳ Отмечаем выполнение...', 'loading');
@@ -1296,7 +1300,7 @@
 
         function copyInviteLink() {
             const inviteLink = `https://t.me/your_bot?start=ref_${currentUserId}`;
-            navigator.clipboard.writeText(inviteLink).then(() => {
+            navigator.clipboard.writeText(invoiceLink).then(() => {
                 showMessage('📋 Ссылка скопирована в буфер обмена!', 'success');
             }).catch(() => {
                 showMessage('❌ Не удалось скопировать ссылку', 'error');
