@@ -2443,4 +2443,4 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🛒 Товаров: ${db.shop_items.length}`);
     console.log(`👥 Пользователей: ${db.users.length}`);
     console.log('✅ Все системы работают!');
-});Ы
+});
