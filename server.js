@@ -98,7 +98,8 @@ let db = {
                     correctAnswer: 1
                 }
             ],
-            sparks_reward: 5,
+            sparks_per_correct: 1, // 1 искра за правильный ответ
+            sparks_perfect_bonus: 5, // 5 искр за идеальный результат
             cooldown_hours: 24,
             is_active: true,
             created_at: new Date().toISOString()
@@ -114,7 +115,7 @@ let db = {
                 { day: 1, title: "Основные техники", description: "Изучите основные техники работы с акварелью" },
                 { day: 2, title: "Смешивание цветов", description: "Практикуйтесь в смешивании цветов" }
             ],
-            sparks_reward: 50,
+            sparks_per_day: 7, // 7 искр за каждый день марафона
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -171,7 +172,8 @@ let db = {
     user_works: [],
     work_reviews: [],
     marathon_completions: [],
-    quiz_completions: []
+    quiz_completions: [],
+    daily_reviews: [] // Для отслеживания ежедневных отзывов
 };
 
 app.use(express.json({ limit: '50mb' }));
@@ -192,17 +194,18 @@ app.get('/admin/*', (req, res) => {
 
 console.log('🎨 Мастерская Вдохновения - Запуск...');
 
-// Система начисления искр
+// НОВАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР (исправленная)
 const SPARKS_SYSTEM = {
-    QUIZ_PER_CORRECT_ANSWER: 1,
-    QUIZ_PERFECT_BONUS: 5,
-    MARATHON_DAY_COMPLETION: 5,
-    MARATHON_COMPLETION: 20,
-    INVITE_FRIEND: 10,
-    WRITE_REVIEW: 3,
-    UPLOAD_WORK: 5,
-    WORK_APPROVED: 15,
-    REGISTRATION_BONUS: 10
+    QUIZ_PER_CORRECT_ANSWER: 1, // 1 искра за правильный ответ
+    QUIZ_PERFECT_BONUS: 5, // 5 искр за идеальный результат
+    MARATHON_DAY_COMPLETION: 7, // 7 искр за день марафона
+    INVITE_FRIEND: 10, // 10 искр за приглашение друга
+    WRITE_REVIEW: 3, // 3 искры за отзыв о занятии
+    DAILY_COMMENT: 1, // 1 искра за комментарий под постом (1 раз в день)
+    UPLOAD_WORK: 5, // 5 искр за загрузку работы
+    WORK_APPROVED: 15, // 15 искр за одобренную работу
+    REGISTRATION_BONUS: 10, // 10 искр за регистрацию
+    PARTICIPATE_POLL: 2 // 2 искры за участие в опросе
 };
 
 // Вспомогательные функции
@@ -445,13 +448,20 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
         }
     });
     
+    // ИСПРАВЛЕННОЕ НАЧИСЛЕНИЕ ИСКР ДЛЯ КВИЗОВ
     let sparksEarned = 0;
     const perfectScore = correctAnswers === quiz.questions.length;
     
+    // Используем настройки из квиза или значения по умолчанию
+    const sparksPerCorrect = quiz.sparks_per_correct || SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER;
+    const perfectBonus = quiz.sparks_perfect_bonus || SPARKS_SYSTEM.QUIZ_PERFECT_BONUS;
+    
+    // Начисляем искры за правильные ответы
+    sparksEarned = correctAnswers * sparksPerCorrect;
+    
+    // Добавляем бонус за идеальный результат
     if (perfectScore) {
-        sparksEarned = SPARKS_SYSTEM.QUIZ_PERFECT_BONUS;
-    } else {
-        sparksEarned = correctAnswers * SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER;
+        sparksEarned += perfectBonus;
     }
     
     if (existingCompletion) {
@@ -483,8 +493,8 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
         perfectScore,
         scorePercentage: Math.round((correctAnswers / quiz.questions.length) * 100),
         message: perfectScore ? 
-            `Идеально! 🎉 +${sparksEarned}✨` : 
-            `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨`
+            `Идеально! 🎉 +${sparksEarned}✨ (${correctAnswers}×${sparksPerCorrect} + ${perfectBonus} бонус)` : 
+            `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨ (${correctAnswers}×${sparksPerCorrect})`
     });
 });
 
@@ -545,7 +555,8 @@ app.post('/api/webapp/marathons/:marathonId/complete-day', (req, res) => {
     
     let sparksEarned = 0;
     if (completion.current_day === day) {
-        sparksEarned = SPARKS_SYSTEM.MARATHON_DAY_COMPLETION;
+        // Используем настройки из марафона или значение по умолчанию
+        sparksEarned = marathon.sparks_per_day || SPARKS_SYSTEM.MARATHON_DAY_COMPLETION;
         addSparks(userId, sparksEarned, 'marathon_day', `Марафон: ${marathon.title} - день ${day}`);
         
         completion.current_day = day + 1;
@@ -556,7 +567,8 @@ app.post('/api/webapp/marathons/:marathonId/complete-day', (req, res) => {
         completion.completed = true;
         completion.progress = 100;
         
-        const marathonSparks = marathon.sparks_reward;
+        // Награда за завершение марафона (сумма за все дни)
+        const marathonSparks = marathon.sparks_per_day * marathon.duration_days;
         addSparks(userId, marathonSparks, 'marathon_completion', `Завершение марафона: ${marathon.title}`);
     }
     
@@ -567,7 +579,7 @@ app.post('/api/webapp/marathons/:marathonId/complete-day', (req, res) => {
         progress: completion.progress,
         completed: completion.completed,
         message: completion.completed ? 
-            `🎉 Марафон завершен! +${marathon.sparks_reward}✨` : 
+            `🎉 Марафон завершен! +${marathon.sparks_per_day * marathon.duration_days}✨` : 
             `День ${day} завершен! +${sparksEarned}✨`
     });
 });
@@ -670,9 +682,12 @@ app.post('/api/webapp/upload-work', (req, res) => {
     
     db.user_works.push(newWork);
     
+    // Начисляем искры за загрузку работы
+    addSparks(userId, SPARKS_SYSTEM.UPLOAD_WORK, 'upload_work', `Загрузка работы: ${title}`);
+    
     res.json({
         success: true,
-        message: 'Работа успешно загружена и отправлена на модерацию! После одобрения вы получите +15✨',
+        message: `Работа успешно загружена! Получено +${SPARKS_SYSTEM.UPLOAD_WORK}✨. После одобрения вы получите +${SPARKS_SYSTEM.WORK_APPROVED}✨`,
         workId: newWork.id,
         work: newWork
     });
@@ -704,6 +719,7 @@ app.get('/api/webapp/channel-posts', (req, res) => {
     res.json({ posts: posts });
 });
 
+// ИСПРАВЛЕННЫЙ МЕТОД ДЛЯ ОТЗЫВОВ С ПРОВЕРКОЙ ЕЖЕДНЕВНОГО ЛИМИТА
 app.post('/api/webapp/posts/:postId/review', (req, res) => {
     const postId = req.params.postId;
     const { userId, reviewText, rating } = req.body;
@@ -717,12 +733,34 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
         return res.status(404).json({ error: 'Post not found' });
     }
     
+    // Проверяем, не оставлял ли пользователь уже отзыв на этот пост
     const existingReview = db.post_reviews.find(
         r => r.user_id === userId && r.post_id === postId
     );
     
     if (existingReview) {
         return res.status(400).json({ error: 'Вы уже оставляли отзыв на этот пост' });
+    }
+    
+    // Проверяем ежедневный лимит комментариев (1 в день)
+    const today = new Date().toDateString();
+    const todayReviews = db.daily_reviews.filter(
+        dr => dr.user_id === userId && new Date(dr.date).toDateString() === today
+    );
+    
+    let sparksEarned = SPARKS_SYSTEM.WRITE_REVIEW; // 3 искры за отзыв о занятии
+    
+    if (todayReviews.length === 0) {
+        // Первый комментарий сегодня - начисляем дополнительно 1 искру
+        sparksEarned += SPARKS_SYSTEM.DAILY_COMMENT;
+        
+        // Сохраняем информацию о ежедневном комментарии
+        db.daily_reviews.push({
+            id: Date.now(),
+            user_id: userId,
+            date: new Date().toISOString(),
+            type: 'daily_comment'
+        });
     }
     
     const newReview = {
@@ -740,10 +778,85 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
     
     db.post_reviews.push(newReview);
     
+    // Начисляем искры сразу за отзыв
+    addSparks(userId, sparksEarned, 'post_review', `Отзыв к посту: ${post.title}`);
+    
+    const message = todayReviews.length === 0 
+        ? `Отзыв отправлен! +${sparksEarned}✨ (3 за отзыв + 1 за первый комментарий сегодня)`
+        : `Отзыв отправлен! +${sparksEarned}✨`;
+    
     res.json({
         success: true,
-        message: 'Отзыв отправлен на модерацию! После одобрения вы получите +3✨',
-        reviewId: newReview.id
+        message: message,
+        reviewId: newReview.id,
+        sparksEarned: sparksEarned
+    });
+});
+
+// Новый метод для приглашения друзей
+app.post('/api/webapp/invite-friend', (req, res) => {
+    const { userId, friendId } = req.body;
+    
+    if (!userId || !friendId) {
+        return res.status(400).json({ error: 'User ID and friend ID are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    const friend = db.users.find(u => u.user_id == friendId);
+    
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!friend) return res.status(404).json({ error: 'Friend not found' });
+    
+    // Проверяем, не приглашал ли уже этого друга
+    const existingInvite = db.activities.find(
+        a => a.user_id === userId && 
+        a.activity_type === 'invite_friend' && 
+        a.description.includes(`Приглашен друг: ${friendId}`)
+    );
+    
+    if (existingInvite) {
+        return res.status(400).json({ error: 'Вы уже приглашали этого друга' });
+    }
+    
+    // Начисляем искры за приглашение
+    addSparks(userId, SPARKS_SYSTEM.INVITE_FRIEND, 'invite_friend', `Приглашен друг: ${friendId}`);
+    
+    res.json({
+        success: true,
+        message: `Друг приглашен! +${SPARKS_SYSTEM.INVITE_FRIEND}✨`,
+        sparksEarned: SPARKS_SYSTEM.INVITE_FRIEND
+    });
+});
+
+// Новый метод для участия в опросе
+app.post('/api/webapp/participate-poll', (req, res) => {
+    const { userId, pollId } = req.body;
+    
+    if (!userId || !pollId) {
+        return res.status(400).json({ error: 'User ID and poll ID are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    // Проверяем, не участвовал ли уже в этом опросе
+    const existingParticipation = db.activities.find(
+        a => a.user_id === userId && 
+        a.activity_type === 'participate_poll' && 
+        a.description.includes(`Опрос: ${pollId}`)
+    );
+    
+    if (existingParticipation) {
+        return res.status(400).json({ error: 'Вы уже участвовали в этом опросе' });
+    }
+    
+    // Начисляем искры за участие в опросе
+    addSparks(userId, SPARKS_SYSTEM.PARTICIPATE_POLL, 'participate_poll', `Участие в опросе: ${pollId}`);
+    
+    res.json({
+        success: true,
+        message: `Участие в опросе засчитано! +${SPARKS_SYSTEM.PARTICIPATE_POLL}✨`,
+        sparksEarned: SPARKS_SYSTEM.PARTICIPATE_POLL
     });
 });
 
@@ -1001,7 +1114,7 @@ app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
 });
 
 app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
-    const { title, description, questions, sparks_reward, cooldown_hours } = req.body;
+    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours } = req.body;
     
     if (!title || !questions || !Array.isArray(questions)) {
         return res.status(400).json({ error: 'Title and questions array are required' });
@@ -1012,7 +1125,8 @@ app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
         title,
         description: description || '',
         questions: questions,
-        sparks_reward: sparks_reward || 5,
+        sparks_per_correct: sparks_per_correct || SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER,
+        sparks_perfect_bonus: sparks_perfect_bonus || SPARKS_SYSTEM.QUIZ_PERFECT_BONUS,
         cooldown_hours: cooldown_hours || 24,
         is_active: true,
         created_at: new Date().toISOString()
@@ -1030,7 +1144,7 @@ app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
 
 app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
     const quizId = parseInt(req.params.quizId);
-    const { title, description, questions, sparks_reward, cooldown_hours, is_active } = req.body;
+    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, is_active } = req.body;
     
     const quiz = db.quizzes.find(q => q.id === quizId);
     if (!quiz) {
@@ -1040,7 +1154,8 @@ app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
     if (title) quiz.title = title;
     if (description) quiz.description = description;
     if (questions) quiz.questions = questions;
-    if (sparks_reward) quiz.sparks_reward = sparks_reward;
+    if (sparks_per_correct !== undefined) quiz.sparks_per_correct = sparks_per_correct;
+    if (sparks_perfect_bonus !== undefined) quiz.sparks_perfect_bonus = sparks_perfect_bonus;
     if (cooldown_hours !== undefined) quiz.cooldown_hours = cooldown_hours;
     if (is_active !== undefined) quiz.is_active = is_active;
     
@@ -1077,7 +1192,7 @@ app.get('/api/admin/marathons', requireAdmin, (req, res) => {
 });
 
 app.post('/api/admin/marathons', requireAdmin, (req, res) => {
-    const { title, description, duration_days, tasks, sparks_reward } = req.body;
+    const { title, description, duration_days, tasks, sparks_per_day } = req.body;
     
     if (!title || !duration_days || !tasks || !Array.isArray(tasks)) {
         return res.status(400).json({ error: 'Title, duration and tasks array are required' });
@@ -1089,7 +1204,7 @@ app.post('/api/admin/marathons', requireAdmin, (req, res) => {
         description: description || '',
         duration_days: parseInt(duration_days),
         tasks: tasks,
-        sparks_reward: sparks_reward || 50,
+        sparks_per_day: sparks_per_day || SPARKS_SYSTEM.MARATHON_DAY_COMPLETION,
         is_active: true,
         created_at: new Date().toISOString()
     };
@@ -1106,7 +1221,7 @@ app.post('/api/admin/marathons', requireAdmin, (req, res) => {
 
 app.put('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
     const marathonId = parseInt(req.params.marathonId);
-    const { title, description, duration_days, tasks, sparks_reward, is_active } = req.body;
+    const { title, description, duration_days, tasks, sparks_per_day, is_active } = req.body;
     
     const marathon = db.marathons.find(m => m.id === marathonId);
     if (!marathon) {
@@ -1117,7 +1232,7 @@ app.put('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
     if (description) marathon.description = description;
     if (duration_days) marathon.duration_days = parseInt(duration_days);
     if (tasks) marathon.tasks = tasks;
-    if (sparks_reward) marathon.sparks_reward = sparks_reward;
+    if (sparks_per_day !== undefined) marathon.sparks_per_day = sparks_per_day;
     if (is_active !== undefined) marathon.is_active = is_active;
     
     res.json({ 
@@ -1199,12 +1314,12 @@ app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     res.json({ posts });
 });
 
-// Функция публикации в Telegram (ИСПРАВЛЕННАЯ!)
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ ПУБЛИКАЦИИ В TELEGRAM
 async function publishToTelegram(post) {
     const channelId = process.env.CHANNEL_ID;
     const groupId = process.env.GROUP_ID;
     
-    console.log('=== ПОПЫТКА ПУБЛИКАЦИИ ===');
+    console.log('=== ПОПЫТКА ПУБЛИКАЦИИ В TELEGRAM ===');
     console.log('ID канала:', channelId);
     console.log('ID группы:', groupId);
     console.log('Заголовок поста:', post.title);
@@ -1214,7 +1329,7 @@ async function publishToTelegram(post) {
     
     if (!channelId && !groupId) {
         console.log('❌ CHANNEL_ID или GROUP_ID не настроены');
-        return;
+        return { success: false, error: 'CHANNEL_ID или GROUP_ID не настроены' };
     }
     
     try {
@@ -1223,10 +1338,19 @@ async function publishToTelegram(post) {
         
         // Проверяем права бота
         try {
+            const chat = await bot.getChat(targetChatId);
+            console.log('Информация о чате:', chat.title || chat.username);
+            
             const chatMember = await bot.getChatMember(targetChatId, bot.options.polling ? bot.options.polling.params.id : bot.options.id);
             console.log('Статус бота в чате:', chatMember.status);
+            
+            if (!['administrator', 'creator'].includes(chatMember.status)) {
+                console.log('❌ Бот не является администратором в чате');
+                return { success: false, error: 'Бот не является администратором в чате' };
+            }
         } catch (error) {
             console.log('❌ Ошибка проверки прав:', error.message);
+            return { success: false, error: `Ошибка проверки прав: ${error.message}` };
         }
         
         const caption = `*${post.title}*\n\n${post.content}\n\n💬 *Оставляйте отзывы в комментариях и получайте искры!*`;
@@ -1268,51 +1392,94 @@ async function publishToTelegram(post) {
         
         let message;
         
-        if (post.media_type === 'image' && post.image_url) {
-            console.log('Отправляем изображение...');
-            try {
+        try {
+            if (post.media_type === 'image' && post.image_url) {
+                console.log('Отправляем изображение...');
                 message = await bot.sendPhoto(targetChatId, post.image_url, options);
                 console.log('✅ Изображение отправлено успешно');
-            } catch (error) {
-                console.error('❌ Ошибка отправки изображения:', error);
-                // Пробуем отправить как текстовое сообщение с ссылкой
-                message = await bot.sendMessage(targetChatId, `${caption}\n\n📷 [Изображение](${post.image_url})`, {
-                    parse_mode: 'Markdown',
-                    reply_markup: replyMarkup
-                });
-            }
-        } else if (post.media_type === 'video' && post.video_url) {
-            console.log('Отправляем видео...');
-            try {
+            } else if (post.media_type === 'video' && post.video_url) {
+                console.log('Отправляем видео...');
                 message = await bot.sendVideo(targetChatId, post.video_url, options);
                 console.log('✅ Видео отправлено успешно');
-            } catch (error) {
-                console.error('❌ Ошибка отправки видео:', error);
-                // Пробуем отправить как текстовое сообщение с ссылкой
-                message = await bot.sendMessage(targetChatId, `${caption}\n\n🎥 [Видео](${post.video_url})`, {
+            } else {
+                console.log('Отправляем текстовое сообщение...');
+                message = await bot.sendMessage(targetChatId, caption, options);
+            }
+            
+            // Сохраняем ID сообщения в базе
+            if (message && message.message_id) {
+                post.telegram_message_id = message.message_id;
+                console.log(`✅ Пост опубликован в ${channelId ? 'канале' : 'группе'}: ${post.title}`);
+                console.log('ID сообщения:', message.message_id);
+                return { success: true, message_id: message.message_id };
+            } else {
+                console.log('❌ Не удалось получить ID сообщения');
+                return { success: false, error: 'Не удалось получить ID сообщения' };
+            }
+            
+        } catch (sendError) {
+            console.error('❌ Ошибка отправки сообщения:', sendError);
+            // Пробуем отправить как текстовое сообщение с ссылкой
+            try {
+                let fallbackText = `*${post.title}*\n\n${post.content}\n\n`;
+                if (post.image_url) fallbackText += `📷 [Изображение](${post.image_url})\n\n`;
+                if (post.video_url) fallbackText += `🎥 [Видео](${post.video_url})\n\n`;
+                fallbackText += '💬 *Оставляйте отзывы в комментариях и получайте искры!*';
+                
+                message = await bot.sendMessage(targetChatId, fallbackText, {
                     parse_mode: 'Markdown',
                     reply_markup: replyMarkup
                 });
+                
+                if (message && message.message_id) {
+                    post.telegram_message_id = message.message_id;
+                    console.log(`✅ Пост опубликован (fallback): ${post.title}`);
+                    return { success: true, message_id: message.message_id, fallback: true };
+                }
+            } catch (fallbackError) {
+                console.error('❌ Ошибка fallback отправки:', fallbackError);
+                return { success: false, error: fallbackError.message };
             }
-        } else {
-            console.log('Отправляем текстовое сообщение...');
-            message = await bot.sendMessage(targetChatId, caption, options);
-        }
-        
-        // Сохраняем ID сообщения в базе
-        if (message && message.message_id) {
-            post.telegram_message_id = message.message_id;
-            console.log(`✅ Пост опубликован в ${channelId ? 'канале' : 'группе'}: ${post.title}`);
-            console.log('ID сообщения:', message.message_id);
-        } else {
-            console.log('❌ Не удалось получить ID сообщения');
         }
         
     } catch (error) {
         console.error('❌ Ошибка публикации поста:', error);
         console.error('Детали ошибки:', error.response?.body || error.message);
+        return { success: false, error: error.message };
     }
 }
+
+// Новый метод для публикации поста в Telegram
+app.post('/api/admin/channel-posts/:postId/publish', requireAdmin, async (req, res) => {
+    const postId = parseInt(req.params.postId);
+    
+    const post = db.channel_posts.find(p => p.id === postId);
+    if (!post) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    try {
+        const result = await publishToTelegram(post);
+        
+        if (result.success) {
+            res.json({ 
+                success: true, 
+                message: 'Пост успешно опубликован в Telegram!',
+                message_id: result.message_id
+            });
+        } else {
+            res.status(500).json({ 
+                success: false, 
+                error: result.error || 'Неизвестная ошибка публикации'
+            });
+        }
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
 
 app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
     const { post_id, title, content, image_url, video_url, media_type, action_type, action_target } = req.body;
@@ -1343,11 +1510,6 @@ app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
     };
     
     db.channel_posts.push(newPost);
-    
-    // Публикуем пост в канале/группе если настроен бот
-    if (bot && (process.env.CHANNEL_ID || process.env.GROUP_ID)) {
-        publishToTelegram(newPost);
-    }
     
     res.json({ 
         success: true, 
@@ -1431,9 +1593,7 @@ app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     review.moderator_id = req.admin.user_id;
     review.admin_comment = admin_comment || null;
     
-    if (status === 'approved') {
-        addSparks(review.user_id, SPARKS_SYSTEM.WRITE_REVIEW, 'review_approved', 'Отзыв одобрен');
-    }
+    // Искры начисляются сразу при отправке отзыва, поэтому здесь не начисляем повторно
     
     res.json({ 
         success: true, 
@@ -1545,7 +1705,7 @@ if (process.env.BOT_TOKEN) {
         console.log('====================');
         
         // Обработка комментариев в канале/группе
-        bot.on('message', (msg) => {
+        bot.on('message', async (msg) => {
             // Если сообщение является ответом на пост бота в канале/группе
             if (msg.reply_to_message && (process.env.CHANNEL_ID || process.env.GROUP_ID)) {
                 const channelPostId = msg.reply_to_message.message_id;
@@ -1561,26 +1721,54 @@ if (process.env.BOT_TOKEN) {
                     );
                     
                     if (!existingReview && reviewText) {
+                        // Проверяем ежедневный лимит комментариев (1 в день)
+                        const today = new Date().toDateString();
+                        const todayReviews = db.daily_reviews.filter(
+                            dr => dr.user_id === userId && new Date(dr.date).toDateString() === today
+                        );
+                        
+                        let sparksEarned = SPARKS_SYSTEM.WRITE_REVIEW; // 3 искры за отзыв о занятии
+                        
+                        if (todayReviews.length === 0) {
+                            // Первый комментарий сегодня - начисляем дополнительно 1 искру
+                            sparksEarned += SPARKS_SYSTEM.DAILY_COMMENT;
+                            
+                            // Сохраняем информацию о ежедневном комментарии
+                            db.daily_reviews.push({
+                                id: Date.now(),
+                                user_id: userId,
+                                date: new Date().toISOString(),
+                                type: 'daily_comment'
+                            });
+                        }
+                        
                         const newReview = {
                             id: Date.now(),
                             user_id: userId,
                             post_id: post.post_id,
                             review_text: reviewText,
                             rating: 5, // По умолчанию 5 звезд
-                            status: 'pending',
+                            status: 'approved', // Автоматически одобряем комментарии из Telegram
                             created_at: new Date().toISOString(),
-                            moderated_at: null,
+                            moderated_at: new Date().toISOString(),
                             moderator_id: null,
-                            admin_comment: null
+                            admin_comment: 'Автоматически одобрен из Telegram'
                         };
                         
                         db.post_reviews.push(newReview);
                         
+                        // Начисляем искры
+                        addSparks(userId, sparksEarned, 'telegram_comment', `Комментарий к посту: ${post.title}`);
+                        
                         // Уведомляем пользователя
-                        bot.sendMessage(userId, 
-                            '📝 Ваш отзыв получен и отправлен на модерацию! После одобрения вы получите +3✨\n\n' +
-                            `Ваш отзыв: "${reviewText}"`
-                        ).catch(() => {}); // Игнорируем ошибки если пользователь не начал диалог с ботом
+                        try {
+                            await bot.sendMessage(userId, 
+                                `📝 Ваш комментарий получен! +${sparksEarned}✨\n\n` +
+                                `Комментарий: "${reviewText}"`
+                            );
+                        } catch (error) {
+                            console.log('Пользователь не начал диалог с ботом');
+                        }
                     }
                 }
             }
