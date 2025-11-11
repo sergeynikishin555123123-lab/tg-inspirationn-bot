@@ -4,8 +4,10 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readdirSync, existsSync } from 'fs';
+import { readdirSync, existsSync, writeFileSync, mkdirSync } from 'fs';
 import dotenv from 'dotenv';
+import multer from 'multer';
+import path from 'path';
 
 dotenv.config();
 
@@ -19,6 +21,35 @@ const APP_ROOT = process.cwd();
 
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 console.log('📁 Содержимое корневой папки:', readdirSync(APP_ROOT));
+
+// Настройка multer для загрузки файлов
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = join(APP_ROOT, 'public', 'uploads');
+    if (!existsSync(uploadDir)) {
+      mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
 
 // In-memory база данных с новой структурой
 let db = {
@@ -336,7 +367,7 @@ let db = {
             description: "Определите эпоху по фрагменту картины",
             type: "guess_era",
             category: "history",
-            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjNjY3ZWVhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7Qp9C10YDQvdC+0YHRjCDQtNC10L3QvtC6INC60LDRgNGC0LjQu9GMPC90ZXh0Pjwvc3ZnPg==",
+            image_url: "/uploads/interactive-1.jpg",
             question: "Какой эпохе принадлежит этот фрагмент?",
             options: ["Ренессанс", "Барокко", "Импрессионизм", "Кубизм"],
             correct_answer: 0,
@@ -350,53 +381,11 @@ let db = {
             description: "Создай гармоничный образ для конкретного события",
             type: "style_match",
             category: "style",
-            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjNzY0YmEyIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7Qn9C+0LTQutC70Y7Rh9C10L3QuNGPINC+0YHRgtCw0LvRjNC90YvQuTwvdGV4dD48L3N2Zz4=",
+            image_url: "/uploads/interactive-2.jpg",
             question: "Какое сочетание цветов подойдет для деловой встречи?",
             options: ["Черный + белый + красный акцент", "Ярко-красный + зеленый", "Фиолетовый + оранжевый", "Розовый + голубой"],
             correct_answer: 0,
             sparks_reward: 1,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 3,
-            title: "✏️ Продолжи рисунок",
-            description: "Дорисуйте предложенный контур и создайте свою работу",
-            type: "drawing_challenge",
-            category: "art",
-            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZTY5NTIyIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7Qn9C+0LTQutC70Y7Rh9C10L3QuNGPINC+0YHRgtCw0LvRjNC90YvQuTwvdGV4dD48L3N2Zz4=",
-            question: "Дорисуйте этот контур и создайте свою уникальную работу",
-            options: [],
-            correct_answer: null,
-            sparks_reward: 3,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 4,
-            title: "🔍 Найди отличия",
-            description: "Найдите все отличия между двумя изображениями",
-            type: "find_difference",
-            category: "art",
-            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjNDI5OWUxIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7QndCw0LnQtSDQt9C90LDRh9C10L3QuNC1PC90ZXh0Pjwvc3ZnPg==",
-            question: "Сколько отличий вы нашли между изображениями?",
-            options: ["2 отличия", "3 отличия", "4 отличия", "5 отличий"],
-            correct_answer: 2,
-            sparks_reward: 2,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 5,
-            title: "🧩 Исторический пазл",
-            description: "Соберите пазл из фрагментов известной картины",
-            type: "puzzle",
-            category: "history",
-            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWR4OTM2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7Qn9Cw0LfQttC1INC/0LDRgdC/0YvRgjwvdGV4dD48L3N2Zz4=",
-            question: "Из скольких фрагментов состоит этот пазл?",
-            options: ["6 фрагментов", "9 фрагментов", "12 фрагментов", "16 фрагментов"],
-            correct_answer: 1,
-            sparks_reward: 2,
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -2117,6 +2106,28 @@ app.get('/api/admin/interactives', requireAdmin, (req, res) => {
     res.json(interactives);
 });
 
+// НОВЫЙ МЕТОД ДЛЯ ЗАГРУЗКИ ИЗОБРАЖЕНИЙ ДЛЯ ИНТЕРАКТИВОВ
+app.post('/api/admin/interactives/upload-image', upload.single('image'), requireAdmin, (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No image file uploaded' });
+        }
+        
+        const imageUrl = `/uploads/${req.file.filename}`;
+        
+        res.json({
+            success: true,
+            imageUrl: imageUrl,
+            message: 'Изображение успешно загружено'
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка загрузки изображения: ' + error.message 
+        });
+    }
+});
+
 app.post('/api/admin/interactives', requireAdmin, (req, res) => {
     const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward } = req.body;
     
@@ -2228,6 +2239,73 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     };
     
     res.json(stats);
+});
+
+// ФУНКЦИИ РЕДАКТИРОВАНИЯ (УБИРАЕМ ЗАГЛУШКИ)
+app.get('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const interactive = db.interactives.find(i => i.id === interactiveId);
+    
+    if (!interactive) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    res.json(interactive);
+});
+
+app.get('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
+    const roleId = parseInt(req.params.roleId);
+    const role = db.roles.find(r => r.id === roleId);
+    
+    if (!role) {
+        return res.status(404).json({ error: 'Role not found' });
+    }
+    
+    res.json(role);
+});
+
+app.get('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
+    const characterId = parseInt(req.params.characterId);
+    const character = db.characters.find(c => c.id === characterId);
+    
+    if (!character) {
+        return res.status(404).json({ error: 'Character not found' });
+    }
+    
+    res.json(character);
+});
+
+app.get('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const quiz = db.quizzes.find(q => q.id === quizId);
+    
+    if (!quiz) {
+        return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    res.json(quiz);
+});
+
+app.get('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
+    const marathonId = parseInt(req.params.marathonId);
+    const marathon = db.marathons.find(m => m.id === marathonId);
+    
+    if (!marathon) {
+        return res.status(404).json({ error: 'Marathon not found' });
+    }
+    
+    res.json(marathon);
+});
+
+app.get('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
+    const itemId = parseInt(req.params.itemId);
+    const item = db.shop_items.find(i => i.id === itemId);
+    
+    if (!item) {
+        return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    res.json(item);
 });
 
 // Telegram Bot
