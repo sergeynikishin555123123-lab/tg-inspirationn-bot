@@ -35,11 +35,11 @@
         .screen { display: none; }
         .active { display: block; }
         .back-btn { background: #718096; margin-bottom: 15px; }
-        .role-card, .character-card {
+        .role-card, .character-card, .interactive-card {
             background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 15px;
             margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;
         }
-        .role-card:hover, .character-card:hover { border-color: #667eea; transform: translateY(-2px); }
+        .role-card:hover, .character-card:hover, .interactive-card:hover { border-color: #667eea; transform: translateY(-2px); }
         .role-card.selected, .character-card.selected { border-color: #667eea; background: rgba(102,126,234,0.1); }
         .quiz-card, .marathon-card, .post-card, .shop-item, .work-card {
             background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 15px;
@@ -137,6 +137,62 @@
             max-width: 100%; border-radius: 8px; margin: 10px 0;
             border: 2px solid #e2e8f0;
         }
+        .interactive-tabs {
+            display: flex; background: #f7fafc; border-radius: 12px; padding: 5px; margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .interactive-tab {
+            flex: 1; min-width: 80px; padding: 10px; text-align: center; cursor: pointer; 
+            border-radius: 8px; transition: all 0.3s ease; margin: 2px;
+        }
+        .interactive-tab.active { background: #667eea; color: white; }
+        .interactive-image {
+            max-width: 100%; border-radius: 12px; margin: 15px 0;
+            border: 3px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .category-badge {
+            display: inline-block; padding: 6px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 600; margin: 5px 5px 5px 0;
+        }
+        .category-history { background: #fed7d7; color: #c53030; }
+        .category-style { background: #c6f6d5; color: #276749; }
+        .category-art { background: #bee3f8; color: #2c5aa0; }
+        .category-craft { background: #feebc8; color: #dd6b20; }
+        .compliment-input {
+            width: 100%; padding: 15px; border: 2px solid #e2e8f0; border-radius: 12px;
+            font-size: 16px; margin: 10px 0; resize: vertical; min-height: 100px;
+        }
+        .compliment-input:focus {
+            border-color: #667eea; outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .interactive-result {
+            text-align: center; padding: 20px;
+        }
+        .result-icon {
+            font-size: 64px; margin-bottom: 15px;
+        }
+        .drawing-canvas {
+            width: 100%; height: 300px; border: 2px dashed #667eea; border-radius: 12px;
+            margin: 15px 0; background: #f7fafc; cursor: crosshair;
+        }
+        .drawing-tools {
+            display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap;
+        }
+        .drawing-tool {
+            padding: 8px 15px; border: 2px solid #e2e8f0; border-radius: 8px;
+            background: white; cursor: pointer; transition: all 0.3s ease;
+        }
+        .drawing-tool.active {
+            border-color: #667eea; background: #edf2f7;
+        }
+        .color-picker {
+            width: 40px; height: 40px; border: 2px solid #e2e8f0; border-radius: 8px;
+            cursor: pointer; margin: 5px;
+        }
+        .interactive-description {
+            color: #718096; font-size: 14px; margin: 10px 0; line-height: 1.5;
+        }
     </style>
 </head>
 <body>
@@ -183,8 +239,8 @@
                                     <div class="stat-label">Марафонов</div>
                                 </div>
                                 <div class="stat-item">
-                                    <div class="stat-number" id="statActivities">0</div>
-                                    <div class="stat-label">Активностей</div>
+                                    <div class="stat-number" id="statInteractives">0</div>
+                                    <div class="stat-label">Интерактивов</div>
                                 </div>
                             </div>
                         </div>
@@ -312,6 +368,114 @@
                 <div id="marathonContent">
                     <!-- Задания марафона загружаются здесь -->
                 </div>
+            </div>
+        </div>
+
+        <!-- Экран интерактивов -->
+        <div id="interactivesScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
+                <h2 style="text-align: center; margin-bottom: 20px;">🎮 Интерактивные задания</h2>
+                
+                <div class="interactive-tabs">
+                    <div class="interactive-tab active" data-category="all">Все</div>
+                    <div class="interactive-tab" data-category="history">🏛️ История</div>
+                    <div class="interactive-tab" data-category="style">👗 Стиль</div>
+                    <div class="interactive-tab" data-category="art">🎨 Искусство</div>
+                    <div class="interactive-tab" data-category="craft">🧵 Ремесло</div>
+                </div>
+
+                <div id="interactivesList" class="loading">
+                    Загрузка интерактивов...
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран прохождения интерактива -->
+        <div id="interactiveScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('interactivesScreen')">← Назад</button>
+                <h2 id="interactiveTitle" style="text-align: center; margin-bottom: 10px;"></h2>
+                <p id="interactiveDescription" style="text-align: center; color: #718096; margin-bottom: 20px;"></p>
+                
+                <div id="interactiveContent">
+                    <!-- Содержание интерактива загружается здесь -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран результатов интерактива -->
+        <div id="interactiveResultScreen" class="screen">
+            <div class="card">
+                <h2 style="text-align: center; margin-bottom: 20px;">🎯 Результаты</h2>
+                <div id="interactiveResultContent">
+                    <!-- Результаты загружаются здесь -->
+                </div>
+                <button class="btn" onclick="showScreen('interactivesScreen')">🎮 К списку интерактивов</button>
+                <button class="btn btn-secondary" onclick="showScreen('mainScreen')">🏠 На главную</button>
+            </div>
+        </div>
+
+        <!-- Экран рисовального челленджа -->
+        <div id="drawingChallengeScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('interactiveScreen')">← Назад</button>
+                <h2 id="drawingTitle" style="text-align: center; margin-bottom: 10px;"></h2>
+                <p id="drawingDescription" style="text-align: center; color: #718096; margin-bottom: 20px;"></p>
+                
+                <div id="drawingReference">
+                    <!-- Референсное изображение -->
+                </div>
+                
+                <canvas id="drawingCanvas" class="drawing-canvas"></canvas>
+                
+                <div class="drawing-tools">
+                    <div class="drawing-tool active" data-tool="brush">🖌️ Кисть</div>
+                    <div class="drawing-tool" data-tool="eraser">🧽 Ластик</div>
+                    <div style="display: flex; align-items: center; margin-left: auto;">
+                        <div class="color-picker" style="background: #000000;" data-color="#000000"></div>
+                        <div class="color-picker" style="background: #ff0000;" data-color="#ff0000"></div>
+                        <div class="color-picker" style="background: #0000ff;" data-color="#0000ff"></div>
+                        <div class="color-picker" style="background: #00ff00;" data-color="#00ff00"></div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 8px;">Название работы:</label>
+                    <input type="text" id="drawingWorkTitle" class="form-control" placeholder="Введите название вашей работы">
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 8px;">Описание (опционально):</label>
+                    <textarea id="drawingWorkDescription" class="form-control" rows="3" placeholder="Опишите вашу работу..."></textarea>
+                </div>
+                
+                <button class="btn btn-success" onclick="submitDrawingWork()" style="margin-top: 20px;">
+                    📤 Отправить работу
+                </button>
+            </div>
+        </div>
+
+        <!-- Экран челленджа комплиментов -->
+        <div id="complimentChallengeScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('interactivesScreen')">← Назад</button>
+                <h2 style="text-align: center; margin-bottom: 10px;">💝 День уверенности</h2>
+                <p style="text-align: center; color: #718096; margin-bottom: 20px;">
+                    Сделайте комплимент себе и получите +0.5✨ за участие в челлендже!
+                </p>
+                
+                <div class="info">
+                    <h4 style="margin-bottom: 10px;">💡 Как это работает:</h4>
+                    <p style="margin-bottom: 10px;">Напишите комплимент себе в комментарии ниже. Это может быть что угодно - ваши достижения, качества, или просто приятные слова себе.</p>
+                    <p>Каждый день можно участвовать один раз. Будьте добрее к себе! 💖</p>
+                </div>
+                
+                <textarea id="complimentText" class="compliment-input" placeholder="Напишите здесь ваш комплимент себе..."></textarea>
+                
+                <button class="btn btn-success" onclick="submitCompliment()">
+                    💝 Отправить комплимент
+                </button>
             </div>
         </div>
 
@@ -455,146 +619,1199 @@
         let currentQuiz = null;
         let currentAnswers = [];
         let currentQuestionIndex = 0;
-        let currentMarathon = null;
-        let currentWorkImage = null;
+                let currentMarathon = null;
+        let currentMarathonDay = 1;
+        let currentInteractive = null;
         let currentWorksTab = 'view';
         let currentShopTab = 'items';
-
-        const API_BASE_URL = window.location.origin;
+        let currentInteractiveCategory = 'all';
+        let drawingCanvas = null;
+        let drawingContext = null;
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let currentColor = '#000000';
+        let currentTool = 'brush';
+        let uploadedImage = null;
 
         // Инициализация приложения
-        async function initializeApp() {
-            console.log('🚀 Инициализация приложения...');
-            
-            if (window.Telegram && Telegram.WebApp) {
-                tg = Telegram.WebApp;
-                tg.ready();
+        async function initApp() {
+            try {
+                // Инициализация Telegram WebApp
+                tg = window.Telegram.WebApp;
                 tg.expand();
+                tg.enableClosingConfirmation();
                 
-                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                    currentUserId = tg.initDataUnsafe.user.id;
-                    console.log('👤 Telegram User ID:', currentUserId);
-                }
+                currentUserId = tg.initDataUnsafe.user?.id || tg.initDataUnsafe.start_param?.replace('ref_', '') || 12345;
+                
+                console.log('👤 User ID:', currentUserId);
+                console.log('📱 Platform:', tg.platform);
+                
+                // Загружаем данные пользователя
+                await loadUserData();
+                
+                // Инициализация рисовального холста
+                initDrawingCanvas();
+                
+                // Обработчики для интерактивных вкладок
+                document.querySelectorAll('.interactive-tab').forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                        currentInteractiveCategory = this.dataset.category;
+                        loadInteractives();
+                    });
+                });
+                
+            } catch (error) {
+                console.error('Ошибка инициализации:', error);
+                showMessage('❌ Ошибка загрузки приложения', 'error');
             }
-            
-            if (!currentUserId) {
-                currentUserId = 12345;
-                console.log('👤 Using test ID:', currentUserId);
-            }
-            
-            await loadUserData();
-            setupUploadArea();
-            console.log('✅ Приложение инициализировано');
         }
 
         // Загрузка данных пользователя
         async function loadUserData() {
             try {
-                showLoading('userData');
-                
-                const response = await fetch(`${API_BASE_URL}/api/users/${currentUserId}`);
-                if (!response.ok) throw new Error('Network error');
-                
+                const response = await fetch(`/api/users/${currentUserId}`);
                 const data = await response.json();
-                currentUser = data.user;
                 
-                displayUserData(currentUser);
-                
-                if (currentUser.is_registered) {
-                    document.getElementById('welcomeBlock').style.display = 'none';
-                    document.getElementById('actionsBlock').style.display = 'block';
-                    document.getElementById('userStats').style.display = 'block';
-                    loadActionButtons(currentUser.available_buttons);
+                if (data.exists) {
+                    currentUser = data.user;
+                    showUserData();
+                    loadAvailableButtons();
                 } else {
-                    document.getElementById('welcomeBlock').style.display = 'block';
-                    document.getElementById('actionsBlock').style.display = 'none';
-                    document.getElementById('userStats').style.display = 'none';
+                    showWelcomeScreen();
                 }
-                
-                hideLoading('userData');
-                document.getElementById('userContent').style.display = 'block';
-                
             } catch (error) {
-                console.error('❌ Error loading user data:', error);
-                showError('userData', 'Ошибка загрузки данных');
+                console.error('Ошибка загрузки пользователя:', error);
+                showMessage('❌ Ошибка загрузки данных', 'error');
             }
         }
 
-        // Отображение данных пользователя
-        function displayUserData(user) {
-            document.getElementById('userName').textContent = user.tg_first_name || 'Неизвестно';
-            document.getElementById('userLevel').textContent = user.level;
-            document.getElementById('sparksCount').textContent = `✨ ${user.sparks.toFixed(1)}`;
-            document.getElementById('userRole').textContent = user.class || 'Не выбрана';
-            document.getElementById('userCharacter').textContent = user.character_name || 'Не выбран';
+        // Показать данные пользователя
+        function showUserData() {
+            document.getElementById('userContent').style.display = 'block';
+            document.getElementById('welcomeBlock').style.display = 'none';
+            document.getElementById('actionsBlock').style.display = 'block';
             
-            // Обновляем статистику
-            if (user.stats) {
-                document.getElementById('statQuizzes').textContent = user.stats.totalQuizzesCompleted || 0;
-                document.getElementById('statWorks').textContent = user.stats.totalWorks || 0;
-                document.getElementById('statMarathons').textContent = user.stats.totalMarathonsCompleted || 0;
-                document.getElementById('statActivities').textContent = user.stats.totalActivities || 0;
+            document.getElementById('userName').textContent = currentUser.tg_first_name;
+            document.getElementById('userLevel').textContent = currentUser.level;
+            document.getElementById('sparksCount').textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
+            document.getElementById('userRole').textContent = currentUser.class || 'Не выбрана';
+            document.getElementById('userCharacter').textContent = currentUser.character_name || 'Не выбран';
+            
+            // Обновляем статистику если есть
+            if (currentUser.stats) {
+                document.getElementById('userStats').style.display = 'block';
+                document.getElementById('statQuizzes').textContent = currentUser.stats.totalQuizzesCompleted;
+                document.getElementById('statWorks').textContent = currentUser.stats.totalWorks;
+                document.getElementById('statMarathons').textContent = currentUser.stats.totalMarathonsCompleted;
+                document.getElementById('statInteractives').textContent = currentUser.stats.totalInteractivesCompleted;
             }
             
-            // Обновляем баланс в магазине
-            if (document.getElementById('shopSparks')) {
-                document.getElementById('shopSparks').textContent = `✨ ${user.sparks.toFixed(1)}`;
-            }
-
-            // Обновляем ID для приглашения
-            if (document.getElementById('inviteUserId')) {
-                document.getElementById('inviteUserId').textContent = currentUserId;
-            }
+            // Заполняем имя в форме регистрации
+            document.getElementById('userFirstName').value = currentUser.tg_first_name;
         }
 
-        // Загрузка кнопок действий
-        function loadActionButtons(availableButtons) {
-            const container = document.getElementById('actionButtons');
-            container.innerHTML = '';
+        // Показать экран приветствия
+        function showWelcomeScreen() {
+            document.getElementById('userContent').style.display = 'none';
+            document.getElementById('welcomeBlock').style.display = 'block';
+            document.getElementById('actionsBlock').style.display = 'none';
+        }
 
+        // Загрузка доступных кнопок
+        function loadAvailableButtons() {
+            const buttonsContainer = document.getElementById('actionButtons');
+            const availableButtons = currentUser.available_buttons || [];
+            
             const buttons = {
-                'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', class: 'btn-secondary' },
-                'marathon': { text: '🏃‍♂️ Марафоны', screen: 'marathonsScreen', class: 'btn-warning' },
-                'works': { text: '🖼️ Мои работы', screen: 'worksScreen', class: 'btn-success' },
-                'activities': { text: '📊 Мои активности', screen: 'activitiesScreen', class: 'btn' },
-                'posts': { text: '📰 Посты канала', screen: 'postsScreen', class: 'btn-info' },
-                'shop': { text: '🛒 Магазин', screen: 'shopScreen', class: 'btn' },
-                'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', class: 'btn' }
+                'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary' },
+                'marathon': { text: '🏃‍♂️ Участвовать в марафоне', screen: 'marathonsScreen', color: 'btn-warning' },
+                'works': { text: '🖼️ Мои работы', screen: 'worksScreen', color: 'btn-info' },
+                'activities': { text: '📊 История активностей', screen: 'activitiesScreen', color: 'btn' },
+                'posts': { text: '📰 Посты канала', screen: 'postsScreen', color: 'btn-success' },
+                'shop': { text: '🛒 Магазин', screen: 'shopScreen', color: 'btn-danger' },
+                'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info' },
+                'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success' }
             };
-
-            // Создаем только те кнопки, которые есть в available_buttons
-            availableButtons.forEach(btnKey => {
-                if (buttons[btnKey]) {
-                    const btn = buttons[btnKey];
+            
+            buttonsContainer.innerHTML = '';
+            
+            availableButtons.forEach(buttonKey => {
+                if (buttons[buttonKey]) {
                     const button = document.createElement('button');
-                    button.className = `btn ${btn.class}`;
-                    button.textContent = btn.text;
-                    button.onclick = () => showScreen(btn.screen);
-                    container.appendChild(button);
+                    button.className = `btn ${buttons[buttonKey].color}`;
+                    button.textContent = buttons[buttonKey].text;
+                    button.onclick = () => showScreen(buttons[buttonKey].screen);
+                    buttonsContainer.appendChild(button);
                 }
             });
+            
+            // Всегда показываем кнопку интерактивов
+            if (!availableButtons.includes('interactives')) {
+                const interactiveButton = document.createElement('button');
+                interactiveButton.className = 'btn btn-success';
+                interactiveButton.textContent = '🎮 Интерактивные задания';
+                interactiveButton.onclick = () => showScreen('interactivesScreen');
+                buttonsContainer.appendChild(interactiveButton);
+            }
         }
 
-        // Управление экранами
-        function showScreen(screenId) {
+        // Показать экран
+        function showScreen(screenName) {
             document.querySelectorAll('.screen').forEach(screen => {
                 screen.classList.remove('active');
             });
-            document.getElementById(screenId).classList.add('active');
+            document.getElementById(screenName).classList.add('active');
             
             // Загружаем данные для экрана
-            if (screenId === 'quizzesScreen') loadQuizzes();
-            if (screenId === 'marathonsScreen') loadMarathons();
-            if (screenId === 'worksScreen') loadMyWorks();
-            if (screenId === 'shopScreen') loadShopItems();
-            if (screenId === 'postsScreen') loadChannelPosts();
-            if (screenId === 'activitiesScreen') loadActivities();
-            if (screenId === 'registrationScreen') loadRegistration();
+            switch(screenName) {
+                case 'quizzesScreen':
+                    loadQuizzes();
+                    break;
+                case 'marathonsScreen':
+                    loadMarathons();
+                    break;
+                case 'worksScreen':
+                    loadWorks();
+                    break;
+                case 'shopScreen':
+                    loadShop();
+                    break;
+                case 'postsScreen':
+                    loadPosts();
+                    break;
+                case 'activitiesScreen':
+                    loadActivities();
+                    break;
+                case 'interactivesScreen':
+                    loadInteractives();
+                    break;
+                case 'inviteScreen':
+                    document.getElementById('inviteUserId').textContent = currentUserId;
+                    break;
+            }
         }
 
-        // Управление вкладками магазина
+        // Регистрация - загрузка ролей
+        async function loadRoles() {
+            try {
+                const response = await fetch('/api/webapp/roles');
+                const roles = await response.json();
+                
+                const rolesList = document.getElementById('rolesList');
+                rolesList.innerHTML = '';
+                
+                roles.forEach(role => {
+                    const roleCard = document.createElement('div');
+                    roleCard.className = 'role-card';
+                    roleCard.innerHTML = `
+                        <div style="font-size: 24px; margin-bottom: 8px;">${role.icon}</div>
+                        <div style="font-weight: 600; margin-bottom: 5px;">${role.name}</div>
+                        <div style="color: #718096; font-size: 14px;">${role.description}</div>
+                    `;
+                    roleCard.onclick = () => selectRole(role);
+                    rolesList.appendChild(roleCard);
+                });
+            } catch (error) {
+                document.getElementById('rolesList').innerHTML = '<div class="error">Ошибка загрузки ролей</div>';
+            }
+        }
+
+        // Выбор роли
+        function selectRole(role) {
+            selectedRole = role;
+            
+            // Снимаем выделение со всех карточек
+            document.querySelectorAll('.role-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Выделяем выбранную карточку
+            event.currentTarget.classList.add('selected');
+            
+            // Загружаем персонажей для выбранной роли
+            loadCharacters(role.id);
+        }
+
+        // Загрузка персонажей
+        async function loadCharacters(roleId) {
+            try {
+                const response = await fetch(`/api/webapp/characters/${roleId}`);
+                const characters = await response.json();
+                
+                const charactersSection = document.getElementById('charactersSection');
+                const charactersList = document.getElementById('charactersList');
+                
+                charactersSection.style.display = 'block';
+                charactersList.innerHTML = '';
+                
+                characters.forEach(character => {
+                    const characterCard = document.createElement('div');
+                    characterCard.className = 'character-card';
+                    characterCard.innerHTML = `
+                        <div style="font-weight: 600; margin-bottom: 5px;">${character.name}</div>
+                        <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
+                        <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
+                    `;
+                    characterCard.onclick = () => selectCharacter(character);
+                    charactersList.appendChild(characterCard);
+                });
+            } catch (error) {
+                document.getElementById('charactersList').innerHTML = '<div class="error">Ошибка загрузки персонажей</div>';
+            }
+        }
+
+        // Получить описание бонуса
+        function getBonusDescription(character) {
+            const bonuses = {
+                'percent_bonus': `+${character.bonus_value}% к наградам`,
+                'forgiveness': `${character.bonus_value} право на ошибку`,
+                'random_gift': `Случайный подарок ${character.bonus_value} раз в день`,
+                'secret_advice': `Секретные советы на ${character.bonus_value}`,
+                'series_bonus': `+${character.bonus_value} к серийным наградам`
+            };
+            return bonuses[character.bonus_type] || 'Особый бонус';
+        }
+
+        // Выбор персонажа
+        function selectCharacter(character) {
+            selectedCharacter = character;
+            
+            // Снимаем выделение со всех карточек
+            document.querySelectorAll('.character-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Выделяем выбранную карточку
+            event.currentTarget.classList.add('selected');
+            
+            // Активируем кнопку завершения регистрации
+            document.getElementById('completeBtn').disabled = false;
+        }
+
+        // Завершение регистрации
+        async function completeRegistration() {
+            if (!selectedRole || !selectedCharacter) {
+                showMessage('❌ Выберите роль и персонажа', 'error');
+                return;
+            }
+            
+            const firstName = document.getElementById('userFirstName').value.trim();
+            if (!firstName) {
+                showMessage('❌ Введите ваше имя', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/users/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        firstName: firstName,
+                        roleId: selectedRole.id,
+                        characterId: selectedCharacter.id
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    await loadUserData();
+                    showScreen('mainScreen');
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка регистрации', 'error');
+            }
+        }
+
+        // Загрузка квизов
+        async function loadQuizzes() {
+            try {
+                const response = await fetch(`/api/webapp/quizzes?userId=${currentUserId}`);
+                const quizzes = await response.json();
+                
+                const quizzesList = document.getElementById('quizzesList');
+                quizzesList.innerHTML = '';
+                
+                quizzes.forEach(quiz => {
+                    const quizCard = document.createElement('div');
+                    quizCard.className = 'quiz-card';
+                    
+                    let statusBadge = '';
+                    if (quiz.completed) {
+                        statusBadge = `<span class="status-badge status-approved">✅ Пройден</span>`;
+                    } else if (!quiz.can_retake && quiz.last_completion) {
+                        const lastCompletion = new Date(quiz.last_completion);
+                        const nextAvailable = new Date(lastCompletion.getTime() + quiz.cooldown_hours * 60 * 60 * 1000);
+                        const hoursLeft = Math.ceil((nextAvailable - new Date()) / (1000 * 60 * 60));
+                        statusBadge = `<span class="status-badge status-pending">⏳ Доступен через ${hoursLeft}ч</span>`;
+                    }
+                    
+                    quizCard.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <h3 style="margin: 0;">${quiz.title}</h3>
+                            ${statusBadge}
+                        </div>
+                        <p style="color: #718096; margin-bottom: 10px;">${quiz.description}</p>
+                        <div style="color: #4a5568; font-size: 14px; margin-bottom: 10px;">
+                            Вопросов: ${quiz.total_questions} 
+                            • ${quiz.sparks_per_correct}✨ за правильный ответ
+                            ${quiz.sparks_perfect_bonus ? `• ${quiz.sparks_perfect_bonus}✨ бонус за идеал` : ''}
+                            ${quiz.user_score ? `• Ваш результат: ${quiz.user_score}/${quiz.total_questions}` : ''}
+                        </div>
+                        <button class="btn ${quiz.completed || !quiz.can_retake ? 'btn-secondary' : 'btn-primary'}" 
+                                onclick="startQuiz(${quiz.id})" 
+                                ${quiz.completed || !quiz.can_retake ? 'disabled' : ''}>
+                            ${quiz.completed ? '✅ Пройден' : !quiz.can_retake ? '⏳ Недоступен' : '🎯 Начать квиз'}
+                        </button>
+                    `;
+                    
+                    quizzesList.appendChild(quizCard);
+                });
+            } catch (error) {
+                document.getElementById('quizzesList').innerHTML = '<div class="error">Ошибка загрузки квизов</div>';
+            }
+        }
+
+        // Начать квиз
+        async function startQuiz(quizId) {
+            try {
+                const response = await fetch(`/api/webapp/quizzes?userId=${currentUserId}`);
+                const quizzes = await response.json();
+                currentQuiz = quizzes.find(q => q.id === quizId);
+                
+                if (!currentQuiz) {
+                    showMessage('❌ Квиз не найден', 'error');
+                    return;
+                }
+                
+                currentQuestionIndex = 0;
+                currentAnswers = [];
+                
+                document.getElementById('quizTitle').textContent = currentQuiz.title;
+                document.getElementById('quizDescription').textContent = currentQuiz.description;
+                document.getElementById('totalQuestions').textContent = currentQuiz.questions.length;
+                
+                showScreen('quizScreen');
+                showQuestion();
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки квиза', 'error');
+            }
+        }
+
+        // Показать вопрос
+        function showQuestion() {
+            const question = currentQuiz.questions[currentQuestionIndex];
+            const quizContent = document.getElementById('quizContent');
+            const submitBtn = document.getElementById('submitQuizBtn');
+            
+            document.getElementById('currentQuestion').textContent = currentQuestionIndex + 1;
+            document.getElementById('quizProgress').style.width = `${((currentQuestionIndex) / currentQuiz.questions.length) * 100}%`;
+            
+            quizContent.innerHTML = `
+                <div class="question">
+                    <h3 style="margin-bottom: 15px;">${question.question}</h3>
+                    <div class="options">
+                        ${question.options.map((option, index) => `
+                            <div class="option" onclick="selectAnswer(${index})">
+                                ${option}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            submitBtn.style.display = currentQuestionIndex === currentQuiz.questions.length - 1 ? 'block' : 'none';
+        }
+
+        // Выбор ответа
+        function selectAnswer(answerIndex) {
+            // Снимаем выделение со всех вариантов
+            document.querySelectorAll('.option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Выделяем выбранный вариант
+            event.currentTarget.classList.add('selected');
+            
+            // Сохраняем ответ
+            currentAnswers[currentQuestionIndex] = answerIndex;
+            
+            // Автоматически переходим к следующему вопросу через 1 секунду
+            setTimeout(() => {
+                if (currentQuestionIndex < currentQuiz.questions.length - 1) {
+                    currentQuestionIndex++;
+                    showQuestion();
+                }
+            }, 1000);
+        }
+
+        // Отправить результаты квиза
+        async function submitQuiz() {
+            try {
+                const response = await fetch(`/api/webapp/quizzes/${currentQuiz.id}/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        answers: currentAnswers
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showQuizResult(result);
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка отправки результатов', 'error');
+            }
+        }
+
+        // Показать результаты квиза
+        function showQuizResult(result) {
+            const resultContent = document.getElementById('quizResultContent');
+            
+            resultContent.innerHTML = `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">${result.perfectScore ? '🎉' : '📊'}</div>
+                    <h3 style="margin-bottom: 10px; color: ${result.perfectScore ? '#48bb78' : '#667eea'};">
+                        ${result.perfectScore ? 'Идеальный результат!' : 'Квиз завершен!'}
+                    </h3>
+                    <div style="font-size: 18px; margin-bottom: 10px;">
+                        Правильных ответов: <strong>${result.correctAnswers}/${result.totalQuestions}</strong>
+                    </div>
+                    <div style="font-size: 24px; color: #d69e2e; margin-bottom: 15px;">
+                        +${result.sparksEarned}✨
+                    </div>
+                    <div style="color: #718096; margin-bottom: 20px;">
+                        ${result.message}
+                    </div>
+                </div>
+            `;
+            
+            showScreen('quizResultScreen');
+            loadUserData(); // Обновляем данные пользователя
+        }
+
+        // Загрузка марафонов
+        async function loadMarathons() {
+            try {
+                const response = await fetch(`/api/webapp/marathons?userId=${currentUserId}`);
+                const marathons = await response.json();
+                
+                const marathonsList = document.getElementById('marathonsList');
+                marathonsList.innerHTML = '';
+                
+                marathons.forEach(marathon => {
+                    const marathonCard = document.createElement('div');
+                    marathonCard.className = 'marathon-card';
+                    
+                    const progressPercent = marathon.progress || 0;
+                    const isCompleted = marathon.completed;
+                    const canContinue = !isCompleted && marathon.current_day <= marathon.duration_days;
+                    
+                    marathonCard.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <h3 style="margin: 0;">${marathon.title}</h3>
+                            <span class="status-badge ${isCompleted ? 'status-approved' : 'status-pending'}">
+                                ${isCompleted ? '✅ Завершен' : `День ${marathon.current_day}/${marathon.duration_days}`}
+                            </span>
+                        </div>
+                        <p style="color: #718096; margin-bottom: 10px;">${marathon.description}</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                        </div>
+                        <div style="color: #4a5568; font-size: 14px; margin-bottom: 10px;">
+                            Длительность: ${marathon.duration_days} дней
+                            • ${marathon.sparks_per_day}✨ за день
+                            • Прогресс: ${progressPercent}%
+                        </div>
+                        <button class="btn ${isCompleted ? 'btn-secondary' : 'btn-primary'}" 
+                                onclick="startMarathon(${marathon.id})" 
+                                ${!canContinue && !isCompleted ? 'disabled' : ''}>
+                            ${isCompleted ? '✅ Завершен' : canContinue ? '🏃‍♂️ Продолжить' : '🔒 Недоступен'}
+                        </button>
+                    `;
+                    
+                    marathonsList.appendChild(marathonCard);
+                });
+            } catch (error) {
+                document.getElementById('marathonsList').innerHTML = '<div class="error">Ошибка загрузки марафонов</div>';
+            }
+        }
+
+        // Начать марафон
+        async function startMarathon(marathonId) {
+            try {
+                const response = await fetch(`/api/webapp/marathons?userId=${currentUserId}`);
+                const marathons = await response.json();
+                currentMarathon = marathons.find(m => m.id === marathonId);
+                
+                if (!currentMarathon) {
+                    showMessage('❌ Марафон не найден', 'error');
+                    return;
+                }
+                
+                currentMarathonDay = currentMarathon.current_day;
+                
+                document.getElementById('marathonTitle').textContent = currentMarathon.title;
+                document.getElementById('marathonDescription').textContent = currentMarathon.description;
+                document.getElementById('totalDays').textContent = currentMarathon.duration_days;
+                document.getElementById('progressPercent').textContent = currentMarathon.progress || 0;
+                
+                showScreen('marathonScreen');
+                showMarathonDay();
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки марафона', 'error');
+            }
+        }
+
+        // Показать день марафона
+        function showMarathonDay() {
+            const day = currentMarathon.tasks.find(t => t.day === currentMarathonDay);
+            if (!day) return;
+            
+            document.getElementById('currentDay').textContent = currentMarathonDay;
+            document.getElementById('marathonProgress').style.width = `${((currentMarathonDay - 1) / currentMarathon.duration_days) * 100}%`;
+            
+            const marathonContent = document.getElementById('marathonContent');
+            marathonContent.innerHTML = `
+                <div class="marathon-day ${currentMarathonDay <= currentMarathon.current_day ? 'completed' : ''}">
+                    <h3 style="margin-bottom: 10px;">День ${day.day}: ${day.title}</h3>
+                    <p style="color: #718096; margin-bottom: 15px;">${day.description}</p>
+                    ${currentMarathonDay === currentMarathon.current_day ? `
+                        <button class="btn btn-success" onclick="completeMarathonDay(${currentMarathonDay})">
+                            ✅ Завершить день ${currentMarathonDay}
+                        </button>
+                    ` : currentMarathonDay < currentMarathon.current_day ? `
+                        <div class="success" style="text-align: center;">
+                            ✅ День завершен! +${currentMarathon.sparks_per_day}✨
+                        </div>
+                    ` : `
+                        <div class="info" style="text-align: center;">
+                            ⏳ Этот день станет доступен после завершения предыдущих дней
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+
+        // Завершить день марафона
+        async function completeMarathonDay(day) {
+            try {
+                const response = await fetch(`/api/webapp/marathons/${currentMarathon.id}/complete-day`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        day: day
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    currentMarathonDay++;
+                    
+                    if (result.completed) {
+                        showMessage('🎉 Поздравляем! Марафон завершен!', 'success');
+                        showScreen('marathonsScreen');
+                    } else {
+                        showMarathonDay();
+                    }
+                    
+                    loadUserData(); // Обновляем данные пользователя
+                    loadMarathons(); // Обновляем список марафонов
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка завершения дня', 'error');
+            }
+        }
+
+        // Загрузка интерактивов
+        async function loadInteractives() {
+            try {
+                const response = await fetch(`/api/webapp/interactives?userId=${currentUserId}`);
+                const interactives = await response.json();
+                
+                const interactivesList = document.getElementById('interactivesList');
+                interactivesList.innerHTML = '';
+                
+                const filteredInteractives = currentInteractiveCategory === 'all' 
+                    ? interactives 
+                    : interactives.filter(i => i.category === currentInteractiveCategory);
+                
+                if (filteredInteractives.length === 0) {
+                    interactivesList.innerHTML = '<div class="info">Нет доступных интерактивов в этой категории</div>';
+                    return;
+                }
+                
+                filteredInteractives.forEach(interactive => {
+                    const interactiveCard = document.createElement('div');
+                    interactiveCard.className = 'interactive-card';
+                    
+                    const categoryClass = `category-${interactive.category}`;
+                    const categoryNames = {
+                        'history': '🏛️ История',
+                        'style': '👗 Стиль',
+                        'art': '🎨 Искусство',
+                        'craft': '🧵 Ремесло'
+                    };
+                    
+                    const typeIcons = {
+                        'guess_era': '🎨',
+                        'style_match': '👗',
+                        'drawing_challenge': '✏️',
+                        'find_difference': '🔍',
+                        'puzzle': '🧩'
+                    };
+                    
+                    interactiveCard.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <h3 style="margin: 0 0 5px 0;">${typeIcons[interactive.type]} ${interactive.title}</h3>
+                                <div class="interactive-description">
+                                    ${interactive.description}
+                                </div>
+                                <div style="margin: 10px 0;">
+                                    <span class="category-badge ${categoryClass}">
+                                        ${categoryNames[interactive.category] || interactive.category}
+                                    </span>
+                                    <span class="spark-badge">+${interactive.sparks_reward}✨</span>
+                                </div>
+                            </div>
+                            ${interactive.completed ? 
+                                '<span class="status-badge status-approved">✅ Пройден</span>' : 
+                                '<span class="status-badge status-pending">🎯 Доступен</span>'
+                            }
+                        </div>
+                        <button class="btn ${interactive.completed ? 'btn-secondary' : 'btn-primary'}" 
+                                onclick="startInteractive(${interactive.id})"
+                                ${interactive.completed ? 'disabled' : ''}>
+                            ${interactive.completed ? '✅ Пройден' : '🎮 Начать'}
+                        </button>
+                    `;
+                    
+                    interactivesList.appendChild(interactiveCard);
+                });
+            } catch (error) {
+                document.getElementById('interactivesList').innerHTML = '<div class="error">Ошибка загрузки интерактивов</div>';
+            }
+        }
+
+        // Начать интерактив
+        async function startInteractive(interactiveId) {
+            try {
+                const response = await fetch(`/api/webapp/interactives?userId=${currentUserId}`);
+                const interactives = await response.json();
+                currentInteractive = interactives.find(i => i.id === interactiveId);
+                
+                if (!currentInteractive) {
+                    showMessage('❌ Интерактив не найден', 'error');
+                    return;
+                }
+                
+                document.getElementById('interactiveTitle').textContent = currentInteractive.title;
+                document.getElementById('interactiveDescription').textContent = currentInteractive.description;
+                
+                showScreen('interactiveScreen');
+                showInteractiveContent();
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки интерактива', 'error');
+            }
+        }
+
+        // Показать содержание интерактива
+        function showInteractiveContent() {
+            const interactiveContent = document.getElementById('interactiveContent');
+            
+            switch(currentInteractive.type) {
+                case 'guess_era':
+                case 'style_match':
+                case 'find_difference':
+                case 'puzzle':
+                    showQuizInteractive(interactiveContent);
+                    break;
+                case 'drawing_challenge':
+                    showDrawingInteractive(interactiveContent);
+                    break;
+                default:
+                    interactiveContent.innerHTML = '<div class="error">Неизвестный тип интерактива</div>';
+            }
+        }
+
+        // Показать тестовый интерактив
+        function showQuizInteractive(container) {
+            container.innerHTML = `
+                ${currentInteractive.image_url ? `
+                    <img src="${currentInteractive.image_url}" class="interactive-image">
+                ` : ''}
+                <div style="margin: 20px 0;">
+                    <h3 style="text-align: center; margin-bottom: 15px;">${currentInteractive.question}</h3>
+                    <div class="options">
+                        ${currentInteractive.options.map((option, index) => `
+                            <div class="option" onclick="submitInteractiveAnswer(${index})">
+                                ${option}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Показать рисовальный интерактив
+        function showDrawingInteractive(container) {
+            container.innerHTML = `
+                ${currentInteractive.image_url ? `
+                    <div id="drawingReference">
+                        <h4 style="text-align: center; margin-bottom: 10px;">🎨 Референс для вдохновения:</h4>
+                        <img src="${currentInteractive.image_url}" class="interactive-image">
+                    </div>
+                ` : ''}
+                <div style="text-align: center; margin: 20px 0;">
+                    <h3 style="margin-bottom: 10px;">${currentInteractive.question}</h3>
+                    <p style="color: #718096;">Создайте свою уникальную работу на основе предложенного контура</p>
+                </div>
+                <button class="btn btn-success" onclick="startDrawingChallenge()">
+                    ✏️ Начать рисование
+                </button>
+            `;
+        }
+
+        // Начать рисовальный челлендж
+        function startDrawingChallenge() {
+            document.getElementById('drawingTitle').textContent = currentInteractive.title;
+            document.getElementById('drawingDescription').textContent = currentInteractive.description;
+            
+            if (currentInteractive.image_url) {
+                document.getElementById('drawingReference').innerHTML = `
+                    <h4 style="text-align: center; margin-bottom: 10px;">🎨 Референс для вдохновения:</h4>
+                    <img src="${currentInteractive.image_url}" class="interactive-image">
+                `;
+            }
+            
+            showScreen('drawingChallengeScreen');
+            clearCanvas();
+        }
+
+        // Инициализация рисовального холста
+        function initDrawingCanvas() {
+            drawingCanvas = document.getElementById('drawingCanvas');
+            drawingContext = drawingCanvas.getContext('2d');
+            
+            // Устанавливаем размеры холста
+            drawingCanvas.width = drawingCanvas.offsetWidth;
+            drawingCanvas.height = 300;
+            
+            // Настройки рисования по умолчанию
+            drawingContext.lineWidth = 3;
+            drawingContext.lineCap = 'round';
+            drawingContext.strokeStyle = currentColor;
+            
+            // Обработчики событий для рисования
+            drawingCanvas.addEventListener('mousedown', startDrawing);
+            drawingCanvas.addEventListener('mousemove', draw);
+            drawingCanvas.addEventListener('mouseup', stopDrawing);
+            drawingCanvas.addEventListener('mouseout', stopDrawing);
+            
+            // Обработчики для сенсорных устройств
+            drawingCanvas.addEventListener('touchstart', handleTouch);
+            drawingCanvas.addEventListener('touchmove', handleTouch);
+            drawingCanvas.addEventListener('touchend', stopDrawing);
+            
+            // Обработчики для инструментов
+            document.querySelectorAll('.drawing-tool').forEach(tool => {
+                tool.addEventListener('click', function() {
+                    document.querySelectorAll('.drawing-tool').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentTool = this.dataset.tool;
+                    updateDrawingTool();
+                });
+            });
+            
+            // Обработчики для выбора цвета
+            document.querySelectorAll('.color-picker').forEach(picker => {
+                picker.addEventListener('click', function() {
+                    currentColor = this.dataset.color;
+                    updateDrawingTool();
+                });
+            });
+        }
+
+        // Обработка касаний для мобильных устройств
+        function handleTouch(event) {
+            event.preventDefault();
+            const touch = event.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            
+            if (event.type === 'touchstart') {
+                startDrawing(mouseEvent);
+            } else if (event.type === 'touchmove') {
+                const moveEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                draw(moveEvent);
+            }
+        }
+
+        // Начать рисование
+        function startDrawing(event) {
+            isDrawing = true;
+            const rect = drawingCanvas.getBoundingClientRect();
+            lastX = event.clientX - rect.left;
+            lastY = event.clientY - rect.top;
+        }
+
+        // Рисование
+        function draw(event) {
+            if (!isDrawing) return;
+            
+            const rect = drawingCanvas.getBoundingClientRect();
+            const currentX = event.clientX - rect.left;
+            const currentY = event.clientY - rect.top;
+            
+            drawingContext.beginPath();
+            drawingContext.moveTo(lastX, lastY);
+            drawingContext.lineTo(currentX, currentY);
+            drawingContext.stroke();
+            
+            lastX = currentX;
+            lastY = currentY;
+        }
+
+        // Остановить рисование
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        // Обновить инструмент рисования
+        function updateDrawingTool() {
+            if (currentTool === 'brush') {
+                drawingContext.globalCompositeOperation = 'source-over';
+                drawingContext.strokeStyle = currentColor;
+                drawingContext.lineWidth = 3;
+            } else if (currentTool === 'eraser') {
+                drawingContext.globalCompositeOperation = 'destination-out';
+                drawingContext.lineWidth = 10;
+            }
+        }
+
+        // Очистить холст
+        function clearCanvas() {
+            drawingContext.fillStyle = '#f7fafc';
+            drawingContext.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        }
+
+        // Отправить работу рисовального челленджа
+        async function submitDrawingWork() {
+            const title = document.getElementById('drawingWorkTitle').value.trim();
+            const description = document.getElementById('drawingWorkDescription').value.trim();
+            
+            if (!title) {
+                showMessage('❌ Введите название работы', 'error');
+                return;
+            }
+            
+            try {
+                // Конвертируем canvas в base64
+                const imageData = drawingCanvas.toDataURL('image/png');
+                
+                const response = await fetch(`/api/webapp/interactives/${currentInteractive.id}/upload-work`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        imageUrl: imageData,
+                        title: title,
+                        description: description
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    showInteractiveResult(true, 3, "Работа отправлена на модерацию!");
+                    loadUserData();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка отправки работы', 'error');
+            }
+        }
+
+        // Отправить ответ на интерактив
+        async function submitInteractiveAnswer(answerIndex) {
+            try {
+                const response = await fetch(`/api/webapp/interactives/${currentInteractive.id}/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        answer: answerIndex
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showInteractiveResult(result.correct, result.sparksEarned, result.message);
+                    loadUserData();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка отправки ответа', 'error');
+            }
+        }
+
+        // Показать результаты интерактива
+        function showInteractiveResult(isCorrect, sparksEarned, message) {
+            const resultContent = document.getElementById('interactiveResultContent');
+            
+            resultContent.innerHTML = `
+                <div class="interactive-result">
+                    <div class="result-icon">${isCorrect ? '🎉' : '😔'}</div>
+                    <h3 style="margin-bottom: 10px; color: ${isCorrect ? '#48bb78' : '#f56565'};">
+                        ${isCorrect ? 'Правильно!' : 'Попробуйте еще раз!'}
+                    </h3>
+                    ${sparksEarned > 0 ? `
+                        <div style="font-size: 24px; color: #d69e2e; margin-bottom: 15px;">
+                            +${sparksEarned}✨
+                        </div>
+                    ` : ''}
+                    <div style="color: #718096; margin-bottom: 20px;">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            
+            showScreen('interactiveResultScreen');
+        }
+
+        // Отправить комплимент
+        async function submitCompliment() {
+            const compliment = document.getElementById('complimentText').value.trim();
+            
+            if (!compliment) {
+                showMessage('❌ Напишите комплимент', 'error');
+                return;
+            }
+            
+            if (compliment.length < 5) {
+                showMessage('❌ Комплимент должен содержать хотя бы 5 символов', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/webapp/compliment-challenge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        compliment: compliment
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    document.getElementById('complimentText').value = '';
+                    loadUserData();
+                    showScreen('interactivesScreen');
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка отправки комплимента', 'error');
+            }
+        }
+
+        // Показать вкладку работ
+        function showWorksTab(tab) {
+            currentWorksTab = tab;
+            
+            document.querySelectorAll('.works-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.works-tab').forEach(t => {
+                if (t.textContent.includes(tab === 'view' ? 'Посмотреть' : 'Загрузить')) {
+                    t.classList.add('active');
+                }
+            });
+            
+            document.getElementById('viewWorksTab').style.display = tab === 'view' ? 'block' : 'none';
+            document.getElementById('uploadWorksTab').style.display = tab === 'upload' ? 'block' : 'none';
+            
+            if (tab === 'view') {
+                loadWorks();
+            }
+        }
+
+        // Загрузка работ
+        async function loadWorks() {
+            try {
+                const response = await fetch(`/api/webapp/users/${currentUserId}/works`);
+                const data = await response.json();
+                
+                const worksList = document.getElementById('worksList');
+                worksList.innerHTML = '';
+                
+                if (data.works.length === 0) {
+                    worksList.innerHTML = `
+                        <div class="info">
+                            <h4 style="margin-bottom: 10px;">🖼️ У вас пока нет работ</h4>
+                            <p>Загрузите свою первую работу и получите +5✨!</p>
+                            <button class="btn" onclick="showWorksTab('upload')" style="margin-top: 10px;">
+                                📤 Загрузить первую работу
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                data.works.forEach(work => {
+                    const workCard = document.createElement('div');
+                    workCard.className = `work-card ${work.status === 'pending' ? 'work-pending' : work.status === 'approved' ? 'work-approved' : 'work-rejected'}`;
+                    
+                    const statusTexts = {
+                        'pending': '⏳ На модерации',
+                        'approved': '✅ Одобрено',
+                        'rejected': '❌ Отклонено'
+                    };
+                    
+                    workCard.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <h3 style="margin: 0;">${work.title}</h3>
+                            <span class="status-badge status-${work.status}">
+                                ${statusTexts[work.status]}
+                            </span>
+                        </div>
+                        ${work.description ? `
+                            <p style="color: #718096; margin-bottom: 10px;">${work.description}</p>
+                        ` : ''}
+                        <img src="${work.image_url}" class="work-image">
+                        <div style="color: #718096; font-size: 14px; margin-top: 10px;">
+                            ${new Date(work.created_at).toLocaleString('ru-RU')}
+                            ${work.admin_comment ? ` • ${work.admin_comment}` : ''}
+                        </div>
+                    `;
+                    
+                    worksList.appendChild(workCard);
+                });
+            } catch (error) {
+                document.getElementById('worksList').innerHTML = '<div class="error">Ошибка загрузки работ</div>';
+            }
+        }
+
+        // Обработка загрузки изображения
+        function handleImageUpload(file) {
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                showMessage('❌ Пожалуйста, выберите изображение', 'error');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                showMessage('❌ Размер файла не должен превышать 5MB', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedImage = e.target.result;
+                document.getElementById('previewImage').src = uploadedImage;
+                document.getElementById('imagePreview').style.display = 'block';
+                document.getElementById('uploadArea').style.display = 'none';
+                checkUploadReady();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Очистить изображение
+        function clearImage() {
+            uploadedImage = null;
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('uploadArea').style.display = 'block';
+            document.getElementById('workImageInput').value = '';
+            checkUploadReady();
+        }
+
+        // Проверка готовности к загрузке
+        function checkUploadReady() {
+            const title = document.getElementById('workTitle').value.trim();
+            const btn = document.getElementById('uploadWorkBtn');
+            btn.disabled = !(uploadedImage && title);
+        }
+
+        // Загрузка работы
+        async function uploadWork() {
+            const title = document.getElementById('workTitle').value.trim();
+            const description = document.getElementById('workDescription').value.trim();
+            
+            if (!uploadedImage || !title) {
+                showMessage('❌ Заполните все обязательные поля', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/webapp/upload-work', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        title: title,
+                        description: description,
+                        imageUrl: uploadedImage,
+                        type: 'image'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    // Сбрасываем форму
+                    clearImage();
+                    document.getElementById('workTitle').value = '';
+                    document.getElementById('workDescription').value = '';
+                    document.getElementById('uploadWorkBtn').disabled = true;
+                    
+                    // Переключаемся на просмотр работ
+                    showWorksTab('view');
+                    loadUserData();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки работы', 'error');
+            }
+        }
+
+        // Показать вкладку магазина
         function showShopTab(tab) {
             currentShopTab = tab;
+            
             document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.shop-tab').forEach(t => {
                 if (t.textContent.includes(tab === 'items' ? 'Товары' : 'Купленное')) {
@@ -612,690 +1829,51 @@
             }
         }
 
-        // Загрузка купленных товаров
-        async function loadPurchasedItems() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/webapp/users/${currentUserId}/purchases`);
-                const data = await response.json();
-                
-                const purchasedList = document.getElementById('purchasedItemsList');
-                purchasedList.innerHTML = '';
-                
-                if (data.purchases && data.purchases.length > 0) {
-                    data.purchases.forEach(purchase => {
-                        const itemElement = document.createElement('div');
-                        itemElement.className = 'purchase-item';
-                        itemElement.innerHTML = `
-                            <div style="font-weight: 600; margin-bottom: 8px;">${purchase.title}</div>
-                            <div style="color: #718096; margin-bottom: 8px;">${purchase.description || 'Описание отсутствует'}</div>
-                            <div style="color: #48bb78; font-weight: 600; margin-bottom: 8px;">
-                                Куплено за: ${purchase.price_paid}✨
-                            </div>
-                            <div style="color: #718096; font-size: 14px;">
-                                ${new Date(purchase.purchased_at).toLocaleDateString('ru-RU')}
-                            </div>
-                            ${purchase.content_text ? `
-                                <div class="content-preview" style="margin-top: 10px;">
-                                    <strong>Содержание:</strong><br>
-                                    ${purchase.content_text}
-                                </div>
-                            ` : ''}
-                            ${purchase.file_url ? `
-                                <button class="btn btn-info" onclick="openContent('${purchase.file_url}')" style="margin-top: 10px;">
-                                    📥 Открыть контент
-                                </button>
-                            ` : ''}
-                        `;
-                        purchasedList.appendChild(itemElement);
-                    });
-                } else {
-                    purchasedList.innerHTML = '<div class="info">У вас пока нет купленных товаров</div>';
-                }
-            } catch (error) {
-                document.getElementById('purchasedItemsList').innerHTML = '<div class="error">Ошибка загрузки купленных товаров</div>';
-            }
-        }
-
-        function openContent(url) {
-            window.open(url, '_blank');
-        }
-
-        // Загрузка регистрации
-        async function loadRegistration() {
-            try {
-                // Устанавливаем имя из Telegram, если есть
-                if (tg?.initDataUnsafe?.user?.first_name) {
-                    document.getElementById('userFirstName').value = tg.initDataUnsafe.user.first_name;
-                }
-
-                const response = await fetch(`${API_BASE_URL}/api/webapp/roles`);
-                const roles = await response.json();
-                
-                const rolesList = document.getElementById('rolesList');
-                rolesList.innerHTML = '';
-                
-                roles.forEach(role => {
-                    const roleBtn = document.createElement('div');
-                    roleBtn.className = 'role-card';
-                    roleBtn.onclick = () => selectRole(role);
-                    roleBtn.innerHTML = `
-                        <div style="font-size: 24px; margin-bottom: 5px;">${role.icon}</div>
-                        <div style="font-weight: 600; margin-bottom: 5px;">${role.name}</div>
-                        <div style="color: #718096; font-size: 14px;">${role.description}</div>
-                    `;
-                    rolesList.appendChild(roleBtn);
-                });
-                
-            } catch (error) {
-                document.getElementById('rolesList').innerHTML = '<div class="error">Ошибка загрузки ролей</div>';
-            }
-        }
-
-        // Выбор роли
-        async function selectRole(role) {
-            selectedRole = role;
-            selectedCharacter = null;
-            document.getElementById('completeBtn').disabled = true;
-            
-            // Подсветка выбранной роли
-            document.querySelectorAll('.role-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            event.currentTarget.classList.add('selected');
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/webapp/characters/${role.id}`);
-                const characters = await response.json();
-                
-                const charactersList = document.getElementById('charactersList');
-                charactersList.innerHTML = '';
-                
-                if (characters.length > 0) {
-                    characters.forEach(character => {
-                        const card = document.createElement('div');
-                        card.className = 'character-card';
-                        card.onclick = () => selectCharacter(character);
-                        card.innerHTML = `
-                            <div style="font-weight: 600; margin-bottom: 5px;">${character.name}</div>
-                            <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
-                            <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
-                        `;
-                        charactersList.appendChild(card);
-                    });
-                } else {
-                    charactersList.innerHTML = '<div class="info">Персонажи для этой роли пока не добавлены</div>';
-                }
-                
-                document.getElementById('charactersSection').style.display = 'block';
-                
-            } catch (error) {
-                document.getElementById('charactersList').innerHTML = '<div class="error">Ошибка загрузки персонажей</div>';
-            }
-        }
-
-        // Описание бонусов
-        function getBonusDescription(character) {
-            const bonuses = {
-                'percent_bonus': `+${character.bonus_value}% к наградам`,
-                'forgiveness': `${character.bonus_value} право на ошибку`,
-                'random_gift': `Случайный подарок ${character.bonus_value} раз в день`,
-                'secret_advice': 'Секретные советы',
-                'series_bonus': 'Бонус за серию'
-            };
-            return bonuses[character.bonus_type] || character.bonus_type;
-        }
-
-        // Выбор персонажа
-        function selectCharacter(character) {
-            selectedCharacter = character;
-            
-            document.querySelectorAll('.character-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            event.currentTarget.classList.add('selected');
-            
-            document.getElementById('completeBtn').disabled = false;
-        }
-
-        // Завершение регистрации
-        async function completeRegistration() {
-            const firstName = document.getElementById('userFirstName').value.trim();
-            
-            if (!firstName) {
-                showMessage('Пожалуйста, введите ваше имя', 'error');
-                return;
-            }
-
-            if (!selectedRole || !selectedCharacter) {
-                showMessage('Пожалуйста, выберите роль и персонажа', 'error');
-                return;
-            }
-
-            try {
-                showMessage('⏳ Сохраняем данные...', 'loading');
-
-                const response = await fetch(`${API_BASE_URL}/api/users/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        firstName: firstName,
-                        roleId: selectedRole.id,
-                        characterId: selectedCharacter.id
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showMessage('🎉 ' + result.message, 'success');
-                    currentUser = result.user;
-                    showScreen('mainScreen');
-                    setTimeout(() => loadUserData(), 1000);
-                } else {
-                    showMessage(`Ошибка: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при сохранении данных', 'error');
-            }
-        }
-
-        // Загрузка квизов
-        async function loadQuizzes() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/webapp/quizzes?userId=${currentUserId}`);
-                const quizzes = await response.json();
-                
-                const quizzesList = document.getElementById('quizzesList');
-                quizzesList.innerHTML = '';
-                
-                if (quizzes.length > 0) {
-                    quizzes.forEach(quiz => {
-                        const quizElement = document.createElement('div');
-                        quizElement.className = 'quiz-card';
-                        quizElement.innerHTML = `
-                            <div style="font-weight: 600; margin-bottom: 8px;">${quiz.title}</div>
-                            <div style="color: #718096; margin-bottom: 8px;">${quiz.description || 'Описание отсутствует'}</div>
-                            <div style="color: #48bb78; margin-bottom: 12px;">
-                                Награда: ${quiz.questions.length} вопросов = до ${quiz.questions.length}✨ 
-                                ${quiz.sparks_reward > quiz.questions.length ? `+ бонус ${quiz.sparks_reward}✨ за идеальный результат` : ''}
-                            </div>
-                            <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
-                                ${quiz.completed ? '✅ Пройден' : '🆕 Новый'} 
-                                ${quiz.user_score !== undefined ? `• Результат: ${quiz.user_score}/${quiz.total_questions}` : ''}
-                                ${!quiz.can_retake ? '• 🔄 Доступен позже' : ''}
-                            </div>
-                            <button class="btn ${quiz.completed ? 'btn-warning' : 'btn-secondary'}" 
-                                    onclick="startQuiz(${quiz.id})" ${!quiz.can_retake ? 'disabled' : ''}>
-                                ${quiz.completed ? 'Пройти снова' : 'Начать квиз'}
-                            </button>
-                        `;
-                        quizzesList.appendChild(quizElement);
-                    });
-                } else {
-                    quizzesList.innerHTML = '<div class="info">Квизы пока не доступны</div>';
-                }
-            } catch (error) {
-                document.getElementById('quizzesList').innerHTML = '<div class="error">Ошибка загрузки квизов</div>';
-            }
-        }
-
-        // Начало квиза
-        async function startQuiz(quizId) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/webapp/quizzes?userId=${currentUserId}`);
-                const quizzes = await response.json();
-                
-                currentQuiz = quizzes.find(q => q.id === quizId);
-                if (!currentQuiz) {
-                    showMessage('Квиз не найден', 'error');
-                    return;
-                }
-                
-                currentAnswers = [];
-                currentQuestionIndex = 0;
-                
-                document.getElementById('quizTitle').textContent = currentQuiz.title;
-                document.getElementById('quizDescription').textContent = currentQuiz.description || '';
-                document.getElementById('totalQuestions').textContent = currentQuiz.questions.length;
-                
-                showScreen('quizScreen');
-                showQuestion(0);
-                
-            } catch (error) {
-                showMessage('Ошибка загрузки квиза', 'error');
-            }
-        }
-
-        // Показать вопрос
-        function showQuestion(index) {
-            if (!currentQuiz || index >= currentQuiz.questions.length) {
-                document.getElementById('submitQuizBtn').style.display = 'block';
-                return;
-            }
-            
-            const question = currentQuiz.questions[index];
-            currentQuestionIndex = index;
-            
-            document.getElementById('currentQuestion').textContent = index + 1;
-            document.getElementById('quizProgress').style.width = `${((index) / currentQuiz.questions.length) * 100}%`;
-            
-            const quizContent = document.getElementById('quizContent');
-            quizContent.innerHTML = `
-                <div class="question">
-                    <div style="font-weight: 600; margin-bottom: 15px; font-size: 18px;">${question.question}</div>
-                    <div class="options">
-                        ${question.options.map((option, optionIndex) => `
-                            <div class="option" onclick="selectAnswer(${optionIndex})">
-                                ${option}
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('submitQuizBtn').style.display = index === currentQuiz.questions.length - 1 ? 'block' : 'none';
-        }
-
-        // Выбор ответа
-        function selectAnswer(answerIndex) {
-            currentAnswers[currentQuestionIndex] = answerIndex;
-            
-            // Подсветка выбранного ответа
-            document.querySelectorAll('.option').forEach((option, index) => {
-                option.classList.toggle('selected', index === answerIndex);
-            });
-            
-            // Автопереход к следующему вопросу через 1 секунду
-            setTimeout(() => {
-                if (currentQuestionIndex < currentQuiz.questions.length - 1) {
-                    showQuestion(currentQuestionIndex + 1);
-                } else {
-                    document.getElementById('submitQuizBtn').style.display = 'block';
-                }
-            }, 1000);
-        }
-
-        // Отправка результатов квиза
-        async function submitQuiz() {
-            try {
-                showMessage('⏳ Проверяем ответы...', 'loading');
-                
-                const response = await fetch(`${API_BASE_URL}/api/webapp/quizzes/${currentQuiz.id}/submit`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        answers: currentAnswers
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showQuizResult(result);
-                } else {
-                    showMessage(result.error || 'Ошибка при отправке квиза', 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при отправке квиза', 'error');
-            }
-        }
-
-        // Показать результаты квиза
-        function showQuizResult(result) {
-            const resultContent = document.getElementById('quizResultContent');
-            const bonusText = result.perfectScore ? `<div class="success" style="margin: 10px 0;">🎉 Бонус за идеальный результат: +${result.sparksEarned - result.correctAnswers}✨</div>` : '';
-            
-            resultContent.innerHTML = `
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 48px; margin-bottom: 10px;">${result.perfectScore ? '🎉' : '✅'}</div>
-                    <div style="font-size: 24px; font-weight: 600; margin-bottom: 10px; color: #48bb78;">
-                        ${result.perfectScore ? 'Идеально!' : 'Отлично!'}
-                    </div>
-                    <div style="font-size: 18px; margin-bottom: 10px;">${result.message}</div>
-                    <div style="color: #718096; margin-bottom: 20px;">
-                        Правильных ответов: ${result.correctAnswers} из ${result.totalQuestions}
-                    </div>
-                    ${bonusText}
-                    <div class="sparks" style="font-size: 36px;">+${result.sparksEarned}✨</div>
-                    <div style="color: #718096; margin-top: 10px;">
-                        ${result.correctAnswers}✨ за правильные ответы
-                        ${result.perfectScore ? `+ ${result.sparksEarned - result.correctAnswers}✨ бонус` : ''}
-                    </div>
-                </div>
-            `;
-            
-            showScreen('quizResultScreen');
-            setTimeout(() => loadUserData(), 1000);
-        }
-
-        // Загрузка марафонов
-        async function loadMarathons() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/webapp/marathons?userId=${currentUserId}`);
-                const marathons = await response.json();
-                
-                const marathonsList = document.getElementById('marathonsList');
-                marathonsList.innerHTML = '';
-                
-                if (marathons.length > 0) {
-                    marathons.forEach(marathon => {
-                        const marathonElement = document.createElement('div');
-                        marathonElement.className = 'marathon-card';
-                        marathonElement.innerHTML = `
-                            <div style="font-weight: 600; margin-bottom: 8px;">${marathon.title}</div>
-                            <div style="color: #718096; margin-bottom: 8px;">${marathon.description || 'Описание отсутствует'}}</div>
-                            <div style="color: #48bb78; margin-bottom: 12px;">
-                                Награда: ${marathon.sparks_reward}✨ 
-                                <small style="color: #718096;">(${marathon.duration_days} дней)</small>
-                            </div>
-                            <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
-                                ${marathon.completed ? '✅ Завершен' : marathon.started_at ? '🔄 В процессе' : '🆕 Новый'}
-                                ${marathon.progress ? `• Прогресс: ${marathon.progress}%` : ''}
-                            </div>
-                            <button class="btn ${marathon.completed ? 'btn-warning' : 'btn-secondary'}" onclick="startMarathon(${marathon.id})">
-                                ${marathon.completed ? 'Посмотреть результат' : marathon.started_at ? 'Продолжить' : 'Начать марафон'}
-                            </button>
-                        `;
-                        marathonsList.appendChild(marathonElement);
-                    });
-                } else {
-                    marathonsList.innerHTML = '<div class="info">Марафоны пока не доступны</div>';
-                }
-            } catch (error) {
-                document.getElementById('marathonsList').innerHTML = '<div class="error">Ошибка загрузки марафонов</div>';
-            }
-        }
-
-        // Начало марафона
-        async function startMarathon(marathonId) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/webapp/marathons?userId=${currentUserId}`);
-                const marathons = await response.json();
-                
-                currentMarathon = marathons.find(m => m.id === marathonId);
-                if (!currentMarathon) {
-                    showMessage('Марафон не найден', 'error');
-                    return;
-                }
-                
-                document.getElementById('marathonTitle').textContent = currentMarathon.title;
-                document.getElementById('marathonDescription').textContent = currentMarathon.description || '';
-                document.getElementById('totalDays').textContent = currentMarathon.duration_days;
-                document.getElementById('currentDay').textContent = currentMarathon.current_day || 1;
-                document.getElementById('progressPercent').textContent = currentMarathon.progress || 0;
-                document.getElementById('marathonProgress').style.width = `${currentMarathon.progress || 0}%`;
-                
-                showScreen('marathonScreen');
-                showMarathonDay(currentMarathon.current_day || 1);
-                
-            } catch (error) {
-                showMessage('Ошибка загрузки марафона', 'error');
-            }
-        }
-
-        // Показать день марафона
-        function showMarathonDay(day) {
-            if (!currentMarathon || day > currentMarathon.duration_days) {
-                return;
-            }
-            
-            const task = currentMarathon.tasks.find(t => t.day === day);
-            if (!task) return;
-            
-            const marathonContent = document.getElementById('marathonContent');
-            marathonContent.innerHTML = `
-                <div class="marathon-day ${day < (currentMarathon.current_day || 1) ? 'completed' : ''}">
-                    <div style="font-weight: 600; margin-bottom: 8px;">День ${day}: ${task.title}</div>
-                    <div style="color: #718096; margin-bottom: 12px;">${task.description}</div>
-                    ${day === (currentMarathon.current_day || 1) ? `
-                        <button class="btn btn-success" onclick="completeMarathonDay(${day})">
-                            ✅ Завершить день <span class="spark-badge">+5✨</span>
-                        </button>
-                    ` : day < (currentMarathon.current_day || 1) ? `
-                        <div style="color: #48bb78; font-weight: 600;">✅ Завершено</div>
-                    ` : `
-                        <div style="color: #718096;">🔒 Доступно с ${day} дня</div>
-                    `}
-                </div>
-            `;
-        }
-
-        // Завершение дня марафона
-        async function completeMarathonDay(day) {
-            try {
-                showMessage('⏳ Отмечаем выполнение...', 'loading');
-                
-                const response = await fetch(`${API_BASE_URL}/api/webapp/marathons/${currentMarathon.id}/complete-day`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        day: day
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('🎉 ' + result.message, 'success');
-                    setTimeout(() => {
-                        loadUserData();
-                        startMarathon(currentMarathon.id); // Перезагружаем марафон
-                    }, 1000);
-                } else {
-                    showMessage(`Ошибка: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при завершении дня', 'error');
-            }
-        }
-
-        // Управление работами
-        function showWorksTab(tab) {
-            currentWorksTab = tab;
-            document.querySelectorAll('.works-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.works-tab').forEach(t => {
-                if (t.textContent.includes(tab === 'view' ? 'Посмотреть' : 'Загрузить')) {
-                    t.classList.add('active');
-                }
-            });
-            
-            document.getElementById('viewWorksTab').style.display = tab === 'view' ? 'block' : 'none';
-            document.getElementById('uploadWorksTab').style.display = tab === 'upload' ? 'block' : 'none';
-            
-            if (tab === 'view') {
-                loadMyWorks();
-            } else {
-                // Сброс формы загрузки
-                clearImage();
-                document.getElementById('workTitle').value = '';
-                document.getElementById('workDescription').value = '';
-            }
-        }
-
-        // Настройка области загрузки
-        function setupUploadArea() {
-            const uploadArea = document.getElementById('uploadArea');
-            
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
-            
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
-            
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    handleImageUpload(files[0]);
-                }
-            });
-        }
-
-        // Обработка загрузки изображения
-        function handleImageUpload(file) {
-            if (!file || !file.type.startsWith('image/')) {
-                showMessage('Пожалуйста, выберите изображение', 'error');
-                return;
-            }
-            
-            if (file.size > 5 * 1024 * 1024) {
-                showMessage('Размер файла не должен превышать 5MB', 'error');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                currentWorkImage = e.target.result;
-                document.getElementById('previewImage').src = currentWorkImage;
-                document.getElementById('imagePreview').style.display = 'block';
-                document.getElementById('uploadArea').style.display = 'none';
-                checkUploadReady();
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function clearImage() {
-            currentWorkImage = null;
-            document.getElementById('imagePreview').style.display = 'none';
-            document.getElementById('uploadArea').style.display = 'block';
-            document.getElementById('workImageInput').value = '';
-            checkUploadReady();
-        }
-
-        function checkUploadReady() {
-            const title = document.getElementById('workTitle').value.trim();
-            const btn = document.getElementById('uploadWorkBtn');
-            btn.disabled = !(currentWorkImage && title);
-        }
-
-        // Загрузка работы
-        async function uploadWork() {
-            const title = document.getElementById('workTitle').value.trim();
-            const description = document.getElementById('workDescription').value.trim();
-            
-            if (!currentWorkImage || !title) {
-                showMessage('Заполните все обязательные поля', 'error');
-                return;
-            }
-            
-            try {
-                showMessage('⏳ Загружаем работу...', 'loading');
-                
-                const response = await fetch(`${API_BASE_URL}/api/webapp/upload-work`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        title: title,
-                        description: description,
-                        imageUrl: currentWorkImage,
-                        type: 'image'
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('🎉 ' + result.message, 'success');
-                    // Переключаемся на просмотр работ
-                    showWorksTab('view');
-                } else {
-                    showMessage(`Ошибка: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('Ошибка при загрузке работы', 'error');
-            }
-        }
-
-        // Загрузка моих работ
-        async function loadMyWorks() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/webapp/users/${currentUserId}/works`);
-                const data = await response.json();
-                
-                const worksList = document.getElementById('worksList');
-                worksList.innerHTML = '';
-                
-                if (data.works && data.works.length > 0) {
-                    data.works.forEach(work => {
-                        const statusClass = `status-${work.status}`;
-                        const statusText = {
-                            'pending': '⏳ На модерации',
-                            'approved': '✅ Одобрено',
-                            'rejected': '❌ Отклонено'
-                        }[work.status] || work.status;
-                        
-                        const workElement = document.createElement('div');
-                        workElement.className = `work-card ${work.status}`;
-                        workElement.innerHTML = `
-                            <div style="font-weight: 600; margin-bottom: 8px;">
-                                ${work.title}
-                                <span class="status-badge ${statusClass}">${statusText}</span>
-                            </div>
-                            ${work.description ? `
-                                <div style="color: #718096; margin-bottom: 8px;">${work.description}</div>
-                            ` : ''}
-                            <img src="${work.image_url}" class="work-image">
-                            <div style="color: #718096; font-size: 14px; margin-top: 8px;">
-                                ${new Date(work.created_at).toLocaleDateString('ru-RU')}
-                                ${work.admin_comment ? `• Комментарий: ${work.admin_comment}` : ''}
-                            </div>
-                            ${work.status === 'approved' ? `
-                                <div style="color: #48bb78; font-weight: 600; margin-top: 8px;">
-                                    🎉 Получено +15✨ за одобренную работу!
-                                </div>
-                            ` : ''}
-                        `;
-                        worksList.appendChild(workElement);
-                    });
-                } else {
-                    worksList.innerHTML = '<div class="info">У вас пока нет загруженных работ</div>';
-                }
-            } catch (error) {
-                document.getElementById('worksList').innerHTML = '<div class="error">Ошибка загрузки работ</div>';
-            }
+        // Загрузка магазина
+        async function loadShop() {
+            document.getElementById('shopSparks').textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
+            loadShopItems();
         }
 
         // Загрузка товаров магазина
         async function loadShopItems() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/webapp/shop/items`);
-                const items = await response.json();
+                const response = await fetch('/api/webapp/shop/items');
+                const data = await response.json();
                 
-                const shopList = document.getElementById('shopItemsList');
-                shopList.innerHTML = '';
+                const shopItemsList = document.getElementById('shopItemsList');
+                shopItemsList.innerHTML = '';
                 
-                if (items.length > 0) {
-                    items.forEach(item => {
-                        const canAfford = currentUser.sparks >= item.price;
-                        const itemElement = document.createElement('div');
-                        itemElement.className = 'shop-item';
-                        itemElement.innerHTML = `
-                            <div style="font-weight: 600; margin-bottom: 8px;">${item.title}</div>
-                            <div style="color: #718096; margin-bottom: 8px;">${item.description || 'Описание отсутствует'}</div>
-                            ${item.preview_url ? `
-                                <img src="${item.preview_url}" class="media-preview">
-                            ` : ''}
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                                <div style="color: #48bb78; font-weight: 600;">${item.price}✨</div>
-                                <button class="btn ${canAfford ? 'btn-secondary' : 'btn'}" onclick="purchaseItem(${item.id})" 
-                                        ${!canAfford ? 'disabled' : ''}>
-                                    ${canAfford ? 'Купить' : 'Недостаточно искр'}
-                                </button>
+                data.forEach(item => {
+                    const itemCard = document.createElement('div');
+                    itemCard.className = 'shop-item';
+                    
+                    const canAfford = currentUser.sparks >= item.price;
+                    
+                    itemCard.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <h3 style="margin: 0;">${item.title}</h3>
+                            <div style="text-align: right;">
+                                <div class="spark-badge">${item.price}✨</div>
+                                ${!canAfford ? '<div style="color: #f56565; font-size: 12px; margin-top: 5px;">Недостаточно искр</div>' : ''}
                             </div>
-                        `;
-                        shopList.appendChild(itemElement);
-                    });
-                } else {
-                    shopList.innerHTML = '<div class="info">Товары пока не доступны</div>';
-                }
+                        </div>
+                        <p style="color: #718096; margin-bottom: 10px;">${item.description}</p>
+                        ${item.preview_url ? `
+                            <img src="${item.preview_url}" class="media-preview">
+                        ` : ''}
+                        <div class="content-preview">
+                            ${item.content_text || 'Описание содержимого...'}
+                        </div>
+                        <button class="btn ${canAfford ? 'btn-success' : 'btn-secondary'}" 
+                                onclick="purchaseItem(${item.id})" 
+                                ${!canAfford ? 'disabled' : ''}>
+                            ${canAfford ? '🛒 Купить' : '🔒 Недоступно'}
+                        </button>
+                    `;
+                    
+                    shopItemsList.appendChild(itemCard);
+                });
             } catch (error) {
                 document.getElementById('shopItemsList').innerHTML = '<div class="error">Ошибка загрузки товаров</div>';
             }
@@ -1303,10 +1881,10 @@
 
         // Покупка товара
         async function purchaseItem(itemId) {
+            if (!confirm('Вы уверены, что хотите купить этот товар?')) return;
+            
             try {
-                showMessage('⏳ Обрабатываем покупку...', 'loading');
-                
-                const response = await fetch(`${API_BASE_URL}/api/webapp/shop/purchase`, {
+                const response = await fetch('/api/webapp/shop/purchase', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1318,78 +1896,115 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showMessage('🎉 ' + result.message, 'success');
-                    setTimeout(() => {
-                        loadUserData();
-                        loadShopItems();
-                    }, 1000);
+                    showMessage(`✅ ${result.message}`, 'success');
+                    loadShop();
+                    loadUserData();
                 } else {
-                    showMessage(`Ошибка: ${result.error}`, 'error');
+                    showMessage(`❌ ${result.error}`, 'error');
                 }
             } catch (error) {
-                showMessage('Ошибка при покупке', 'error');
+                showMessage('❌ Ошибка покупки', 'error');
             }
         }
 
-        // Загрузка постов канала
-        async function loadChannelPosts() {
+        // Загрузка купленных товаров
+        async function loadPurchasedItems() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/webapp/channel-posts`);
+                const response = await fetch(`/api/webapp/users/${currentUserId}/purchases`);
+                const data = await response.json();
+                
+                const purchasedList = document.getElementById('purchasedItemsList');
+                purchasedList.innerHTML = '';
+                
+                if (data.purchases.length === 0) {
+                    purchasedList.innerHTML = '<div class="info">У вас пока нет купленных товаров</div>';
+                    return;
+                }
+                
+                data.purchases.forEach(purchase => {
+                    const purchaseCard = document.createElement('div');
+                    purchaseCard.className = 'purchase-item';
+                    
+                    purchaseCard.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <h3 style="margin: 0;">${purchase.title}</h3>
+                            <div style="color: #718096; font-size: 14px;">
+                                ${new Date(purchase.purchased_at).toLocaleDateString('ru-RU')}
+                            </div>
+                        </div>
+                        <p style="color: #718096; margin-bottom: 10px;">${purchase.description}</p>
+                        ${purchase.preview_url ? `
+                            <img src="${purchase.preview_url}" class="media-preview">
+                        ` : ''}
+                        <div class="content-preview">
+                            ${purchase.content_text || 'Содержимое товара...'}
+                        </div>
+                        ${purchase.file_url ? `
+                            <a href="${purchase.file_url}" target="_blank" class="btn" style="margin-top: 10px;">
+                                📥 Скачать
+                            </a>
+                        ` : ''}
+                    `;
+                    
+                    purchasedList.appendChild(purchaseCard);
+                });
+            } catch (error) {
+                document.getElementById('purchasedItemsList').innerHTML = '<div class="error">Ошибка загрузки покупок</div>';
+            }
+        }
+
+        // Загрузка постов
+        async function loadPosts() {
+            try {
+                const response = await fetch('/api/webapp/channel-posts');
                 const data = await response.json();
                 
                 const postsList = document.getElementById('postsList');
                 postsList.innerHTML = '';
                 
-                if (data.posts && data.posts.length > 0) {
-                    data.posts.forEach(post => {
-                        const postElement = document.createElement('div');
-                        postElement.className = 'post-card';
-                        postElement.innerHTML = `
-                            <div style="font-weight: 600; margin-bottom: 8px;">${post.title}</div>
-                            <div style="color: #718096; margin-bottom: 8px;">${post.content || 'Без описания'}</div>
-                            ${post.image_url ? `
-                                <div style="margin-bottom: 8px;">
-                                    <img src="${post.image_url}" class="media-preview">
-                                </div>
-                            ` : ''}
-                            ${post.video_url ? `
-                                <div style="margin-bottom: 8px;">
-                                    <video src="${post.video_url}" controls class="media-preview"></video>
-                                </div>
-                            ` : ''}
-                            <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
-                                Опубликовано: ${new Date(post.created_at).toLocaleDateString('ru-RU')}
-                                • Отзывов: ${post.reviews_count}
-                                ${post.average_rating > 0 ? `• Рейтинг: ${'⭐'.repeat(Math.round(post.average_rating))}` : ''}
-                            </div>
-                            <button class="btn btn-info" onclick="showReviewForm('${post.post_id}')">
-                                💬 Оставить отзыв
-                            </button>
-                        `;
-                        postsList.appendChild(postElement);
-                    });
-                } else {
-                    postsList.innerHTML = '<div class="info">Посты пока не доступны</div>';
-                }
+                data.posts.forEach(post => {
+                    const postCard = document.createElement('div');
+                    postCard.className = 'post-card';
+                    
+                    postCard.innerHTML = `
+                        <h3 style="margin-bottom: 10px;">${post.title}</h3>
+                        ${post.image_url ? `
+                            <img src="${post.image_url}" class="media-preview">
+                        ` : ''}
+                        ${post.video_url ? `
+                            <video src="${post.video_url}" controls class="media-preview"></video>
+                        ` : ''}
+                        <div style="color: #4a5568; margin-bottom: 15px; line-height: 1.5;">
+                            ${post.content}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; color: #718096; font-size: 14px;">
+                            <span>${post.reviews_count} отзывов • ★ ${post.average_rating?.toFixed(1) || '0.0'}</span>
+                            <span>${new Date(post.created_at).toLocaleDateString('ru-RU')}</span>
+                        </div>
+                        <button class="btn" onclick="showPostReview('${post.post_id}')" style="margin-top: 10px;">
+                            💬 Написать отзыв
+                        </button>
+                    `;
+                    
+                    postsList.appendChild(postCard);
+                });
             } catch (error) {
                 document.getElementById('postsList').innerHTML = '<div class="error">Ошибка загрузки постов</div>';
             }
         }
 
         // Показать форму отзыва
-        function showReviewForm(postId) {
-            const reviewText = prompt('Напишите ваш отзыв о посте:');
-            if (reviewText && reviewText.trim()) {
-                submitReview(postId, reviewText.trim());
+        function showPostReview(postId) {
+            const review = prompt('Напишите ваш отзыв о посте:');
+            if (review && review.trim()) {
+                submitPostReview(postId, review.trim());
             }
         }
 
-        // Отправить отзыв
-        async function submitReview(postId, reviewText) {
+        // Отправить отзыв о посте
+        async function submitPostReview(postId, reviewText) {
             try {
-                showMessage('⏳ Отправляем отзыв...', 'loading');
-                
-                const response = await fetch(`${API_BASE_URL}/api/webapp/posts/${postId}/review`, {
+                const response = await fetch(`/api/webapp/posts/${postId}/review`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1402,43 +2017,64 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showMessage('🎉 ' + result.message, 'success');
-                    loadChannelPosts();
+                    showMessage(`✅ ${result.message}`, 'success');
+                    loadUserData();
                 } else {
-                    showMessage(`Ошибка: ${result.error}`, 'error');
+                    showMessage(`❌ ${result.error}`, 'error');
                 }
             } catch (error) {
-                showMessage('Ошибка при отправке отзыва', 'error');
+                showMessage('❌ Ошибка отправки отзыва', 'error');
             }
         }
 
         // Загрузка активностей
         async function loadActivities() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/webapp/users/${currentUserId}/activities`);
+                const response = await fetch(`/api/webapp/users/${currentUserId}/activities`);
                 const data = await response.json();
                 
                 const activitiesList = document.getElementById('activitiesList');
                 activitiesList.innerHTML = '';
                 
-                if (data.activities && data.activities.length > 0) {
-                    data.activities.forEach(activity => {
-                        const activityElement = document.createElement('div');
-                        activityElement.className = 'character-card';
-                        activityElement.innerHTML = `
-                            <div style="font-weight: 600; margin-bottom: 5px;">${activity.description}</div>
-                            <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
-                                ${new Date(activity.created_at).toLocaleString('ru-RU')}
-                            </div>
-                            <div style="color: ${activity.sparks_earned >= 0 ? '#48bb78' : '#f56565'}; font-weight: 600;">
-                                ${activity.sparks_earned >= 0 ? '+' : ''}${activity.sparks_earned}✨
-                            </div>
-                        `;
-                        activitiesList.appendChild(activityElement);
-                    });
-                } else {
-                    activitiesList.innerHTML = '<div class="info">Активности не найдены</div>';
+                if (data.activities.length === 0) {
+                    activitiesList.innerHTML = '<div class="info">У вас пока нет активностей</div>';
+                    return;
                 }
+                
+                data.activities.forEach(activity => {
+                    const activityItem = document.createElement('div');
+                    activityItem.className = 'quiz-card';
+                    
+                    const date = new Date(activity.created_at);
+                    const now = new Date();
+                    const diffTime = Math.abs(now - date);
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    let timeAgo;
+                    if (diffDays === 0) {
+                        timeAgo = 'Сегодня';
+                    } else if (diffDays === 1) {
+                        timeAgo = 'Вчера';
+                    } else if (diffDays < 7) {
+                        timeAgo = `${diffDays} дней назад`;
+                    } else {
+                        timeAgo = date.toLocaleDateString('ru-RU');
+                    }
+                    
+                    activityItem.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 5px;">
+                            <div style="font-weight: 600;">${activity.description}</div>
+                            <div style="color: ${activity.sparks_earned > 0 ? '#48bb78' : '#f56565'}; font-weight: 600;">
+                                ${activity.sparks_earned > 0 ? '+' : ''}${activity.sparks_earned}✨
+                            </div>
+                        </div>
+                        <div style="color: #718096; font-size: 14px;">
+                            ${timeAgo} • ${date.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+                    `;
+                    
+                    activitiesList.appendChild(activityItem);
+                });
             } catch (error) {
                 document.getElementById('activitiesList').innerHTML = '<div class="error">Ошибка загрузки активностей</div>';
             }
@@ -1446,50 +2082,69 @@
 
         // Копирование ссылки приглашения
         function copyInviteLink() {
-            const inviteLink = `https://t.me/your_bot?start=ref_${currentUserId}`;
-            navigator.clipboard.writeText(inviteLink).then(() => {
-                showMessage('📋 Ссылка скопирована в буфер обмена!', 'success');
+            const link = `https://t.me/your_bot?start=ref_${currentUserId}`;
+            navigator.clipboard.writeText(link).then(() => {
+                showMessage('✅ Ссылка скопирована в буфер обмена!', 'success');
             }).catch(() => {
                 showMessage('❌ Не удалось скопировать ссылку', 'error');
             });
         }
 
-        // Вспомогательные функции
-        function showLoading(containerId) {
-            const container = document.getElementById(containerId);
-            const loading = container.querySelector('.loading');
-            if (loading) loading.style.display = 'block';
-        }
-
-        function hideLoading(containerId) {
-            const container = document.getElementById(containerId);
-            const loading = container.querySelector('.loading');
-            if (loading) loading.style.display = 'none';
-        }
-
-        function showError(containerId, message) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = `<div class="error">${message}</div>`;
-        }
-
-        function showMessage(message, type = 'info') {
+        // Показать сообщение
+        function showMessage(message, type) {
             const messageArea = document.getElementById('messageArea');
             const messageDiv = document.createElement('div');
-            messageDiv.className = type === 'error' ? 'error' : 
-                                 type === 'success' ? 'success' : 'info';
+            messageDiv.className = type;
             messageDiv.textContent = message;
             messageArea.appendChild(messageDiv);
             
-            setTimeout(() => messageDiv.remove(), 5000);
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 5000);
         }
 
-        function refreshData() {
-            loadUserData();
-            showMessage('✅ Данные обновлены!', 'success');
-        }
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', initApp);
 
-        // Инициализация при загрузке
-        document.addEventListener('DOMContentLoaded', initializeApp);
+        // Обработка перетаскивания файлов
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                uploadArea.classList.add('dragover');
+            }
+            
+            function unhighlight() {
+                uploadArea.classList.remove('dragover');
+            }
+            
+            uploadArea.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleImageUpload(files[0]);
+            }
+        });
     </script>
 </body>
 </html>
