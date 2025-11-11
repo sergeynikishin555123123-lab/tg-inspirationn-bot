@@ -6,192 +6,725 @@
     <title>Мастерская Вдохновения</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh; padding: 20px; color: #333; font-size: 16px;
+            min-height: 100vh; 
+            padding: 20px; 
+            color: #2d3748;
+            line-height: 1.6;
         }
-        .container { max-width: 400px; margin: 0 auto; }
+        
+        .container { 
+            max-width: 400px; 
+            margin: 0 auto; 
+        }
+        
         .card { 
-            background: rgba(255,255,255,0.95); border-radius: 20px; padding: 20px; 
-            margin-bottom: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95); 
+            border-radius: 20px; 
+            padding: 24px; 
+            margin-bottom: 16px; 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
+        
         .btn {
-            width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600;
-            cursor: pointer; margin-top: 10px; transition: all 0.3s ease;
+            width: 100%; 
+            padding: 16px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 16px; 
+            font-weight: 600;
+            cursor: pointer; 
+            margin-top: 12px; 
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        .btn-secondary { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
-        .btn-warning { background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); }
-        .btn-danger { background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%); }
-        .btn-info { background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); }
-        .btn-success { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
+        
+        .btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary { 
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+        
+        .btn-warning { 
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            box-shadow: 0 4px 15px rgba(237, 137, 54, 0.3);
+        }
+        
+        .btn-danger { 
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+            box-shadow: 0 4px 15px rgba(245, 101, 101, 0.3);
+        }
+        
+        .btn-info { 
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            box-shadow: 0 4px 15px rgba(66, 153, 225, 0.3);
+        }
+        
+        .btn-success { 
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+        
         .sparks { 
-            font-size: 42px; font-weight: bold; text-align: center; color: #ffd700; 
-            text-shadow: 0 2px 4px rgba(255,215,0,0.3); margin: 15px 0; padding: 10px;
+            font-size: 42px; 
+            font-weight: bold; 
+            text-align: center; 
+            color: #f6e05e; 
+            text-shadow: 0 2px 8px rgba(246, 224, 94, 0.4); 
+            margin: 20px 0; 
+            padding: 16px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border-radius: 16px;
+            border: 2px solid rgba(246, 224, 94, 0.3);
         }
-        .screen { display: none; }
-        .active { display: block; }
-        .back-btn { background: #718096; margin-bottom: 15px; }
+        
+        .screen { 
+            display: none; 
+        }
+        
+        .active { 
+            display: block; 
+        }
+        
+        .back-btn { 
+            background: #718096; 
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(113, 128, 150, 0.3);
+        }
+        
         .role-card, .character-card, .interactive-card {
-            background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 15px;
-            margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;
+            background: white; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 16px; 
+            padding: 20px;
+            margin-bottom: 12px; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
-        .role-card:hover, .character-card:hover, .interactive-card:hover { border-color: #667eea; transform: translateY(-2px); }
-        .role-card.selected, .character-card.selected { border-color: #667eea; background: rgba(102,126,234,0.1); }
+        
+        .role-card:hover, .character-card:hover, .interactive-card:hover { 
+            border-color: #667eea; 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
+        }
+        
+        .role-card.selected, .character-card.selected { 
+            border-color: #667eea; 
+            background: rgba(102, 126, 234, 0.05); 
+        }
+        
         .quiz-card, .marathon-card, .post-card, .shop-item, .work-card {
-            background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 15px;
-            margin-bottom: 10px;
+            background: white; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 16px; 
+            padding: 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
+        
         .purchase-item {
-            background: #f0fff4; border: 2px solid #9ae6b4; border-radius: 12px; padding: 15px;
-            margin-bottom: 10px;
+            background: #f0fff4; 
+            border: 2px solid #9ae6b4; 
+            border-radius: 16px; 
+            padding: 20px;
+            margin-bottom: 12px;
         }
-        .work-pending { background: #feebc8; border-color: #fbd38d; }
-        .work-approved { background: #f0fff4; border-color: #9ae6b4; }
-        .work-rejected { background: #fed7d7; border-color: #feb2b2; }
-        .loading { text-align: center; color: #718096; padding: 20px; }
-        .error { background: #fed7d7; color: #c53030; padding: 10px; border-radius: 8px; margin: 10px 0; text-align: center; }
-        .success { background: #c6f6d5; color: #276749; padding: 10px; border-radius: 8px; margin: 10px 0; text-align: center; }
-        .info { background: #bee3f8; color: #2c5aa0; padding: 10px; border-radius: 8px; margin: 10px 0; text-align: center; }
-        .question { margin-bottom: 20px; }
-        .options { margin-top: 10px; }
+        
+        .work-pending { 
+            background: #feebc8; 
+            border-color: #fbd38d; 
+        }
+        
+        .work-approved { 
+            background: #f0fff4; 
+            border-color: #9ae6b4; 
+        }
+        
+        .work-rejected { 
+            background: #fed7d7; 
+            border-color: #feb2b2; 
+        }
+        
+        .loading { 
+            text-align: center; 
+            color: #718096; 
+            padding: 40px 20px; 
+            font-size: 16px;
+        }
+        
+        .error { 
+            background: #fed7d7; 
+            color: #c53030; 
+            padding: 16px; 
+            border-radius: 12px; 
+            margin: 12px 0; 
+            text-align: center;
+            border: 1px solid #feb2b2;
+        }
+        
+        .success { 
+            background: #c6f6d5; 
+            color: #276749; 
+            padding: 16px; 
+            border-radius: 12px; 
+            margin: 12px 0; 
+            text-align: center;
+            border: 1px solid #9ae6b4;
+        }
+        
+        .info { 
+            background: #bee3f8; 
+            color: #2c5aa0; 
+            padding: 16px; 
+            border-radius: 12px; 
+            margin: 12px 0; 
+            text-align: center;
+            border: 1px solid #90cdf4;
+        }
+        
+        .question { 
+            margin-bottom: 24px; 
+        }
+        
+        .options { 
+            margin-top: 16px; 
+        }
+        
         .option { 
-            background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 8px; padding: 12px;
-            margin-bottom: 8px; cursor: pointer; transition: all 0.3s ease;
+            background: #f7fafc; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 12px; 
+            padding: 16px;
+            margin-bottom: 10px; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
         }
-        .option:hover { border-color: #667eea; background: #edf2f7; }
-        .option.selected { border-color: #48bb78; background: #f0fff4; }
+        
+        .option:hover { 
+            border-color: #667eea; 
+            background: #edf2f7; 
+        }
+        
+        .option.selected { 
+            border-color: #48bb78; 
+            background: #f0fff4; 
+        }
+        
         .progress-bar { 
-            background: #e2e8f0; border-radius: 10px; height: 8px; margin: 10px 0;
+            background: #e2e8f0; 
+            border-radius: 10px; 
+            height: 8px; 
+            margin: 16px 0;
             overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
         }
+        
         .progress-fill {
-            background: linear-gradient(135deg, #48bb78, #38a169); height: 100%;
-            transition: width 0.3s ease;
+            background: linear-gradient(135deg, #48bb78, #38a169); 
+            height: 100%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
         }
+        
         .marathon-day {
-            background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 8px; padding: 15px;
-            margin-bottom: 10px;
+            background: #f7fafc; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 12px; 
+            padding: 20px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
         }
-        .marathon-day.completed { background: #f0fff4; border-color: #9ae6b4; }
+        
+        .marathon-day.completed { 
+            background: #f0fff4; 
+            border-color: #9ae6b4; 
+        }
+        
         .spark-badge {
             background: linear-gradient(135deg, #f6e05e, #d69e2e);
-            color: #744210; padding: 4px 8px; border-radius: 12px;
-            font-size: 12px; font-weight: bold; margin-left: 8px;
+            color: #744210; 
+            padding: 6px 12px; 
+            border-radius: 20px;
+            font-size: 12px; 
+            font-weight: bold; 
+            margin-left: 8px;
+            box-shadow: 0 2px 4px rgba(214, 158, 46, 0.3);
         }
+        
         .upload-area {
-            border: 2px dashed #667eea; border-radius: 12px; padding: 30px;
-            text-align: center; margin: 15px 0; cursor: pointer;
+            border: 2px dashed #667eea; 
+            border-radius: 16px; 
+            padding: 40px 20px;
+            text-align: center; 
+            margin: 20px 0; 
+            cursor: pointer;
             transition: all 0.3s ease;
+            background: rgba(102, 126, 234, 0.05);
         }
-        .upload-area:hover { background: rgba(102,126,234,0.1); }
-        .upload-area.dragover { background: rgba(102,126,234,0.2); border-color: #4a5568; }
+        
+        .upload-area:hover { 
+            background: rgba(102, 126, 234, 0.1); 
+            border-color: #5a67d8;
+        }
+        
+        .upload-area.dragover { 
+            background: rgba(102, 126, 234, 0.2); 
+            border-color: #4a5568; 
+        }
+        
         .work-image {
-            max-width: 100%; border-radius: 8px; margin: 10px 0;
+            max-width: 100%; 
+            border-radius: 12px; 
+            margin: 12px 0;
             border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
+        
         .status-badge {
-            padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 600;
-            margin-left: 10px;
+            padding: 6px 12px; 
+            border-radius: 12px; 
+            font-size: 12px; 
+            font-weight: 600;
+            margin-left: 12px;
         }
-        .status-pending { background: #feebc8; color: #dd6b20; }
-        .status-approved { background: #c6f6d5; color: #276749; }
-        .status-rejected { background: #fed7d7; color: #c53030; }
+        
+        .status-pending { 
+            background: #feebc8; 
+            color: #dd6b20; 
+        }
+        
+        .status-approved { 
+            background: #c6f6d5; 
+            color: #276749; 
+        }
+        
+        .status-rejected { 
+            background: #fed7d7; 
+            color: #c53030; 
+        }
+        
         .form-control {
-            width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px;
-            font-size: 16px; margin-top: 5px; transition: border-color 0.3s ease;
+            width: 100%; 
+            padding: 16px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 12px;
+            font-size: 16px; 
+            margin-top: 8px; 
+            transition: border-color 0.3s ease;
+            background: white;
         }
-        .form-control:focus { border-color: #667eea; outline: none; }
-        .stats-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;
-        }
-        .stat-item {
-            background: #f7fafc; padding: 10px; border-radius: 8px; text-align: center;
-        }
-        .stat-number { font-size: 18px; font-weight: bold; color: #667eea; }
-        .stat-label { font-size: 12px; color: #718096; }
-        .works-tabs {
-            display: flex; background: #f7fafc; border-radius: 12px; padding: 5px; margin-bottom: 15px;
-        }
-        .works-tab {
-            flex: 1; padding: 10px; text-align: center; cursor: pointer; border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-        .works-tab.active { background: #667eea; color: white; }
-        .shop-tabs {
-            display: flex; background: #f7fafc; border-radius: 12px; padding: 5px; margin-bottom: 15px;
-        }
-        .shop-tab {
-            flex: 1; padding: 10px; text-align: center; cursor: pointer; border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-        .shop-tab.active { background: #667eea; color: white; }
-        .content-preview {
-            background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px;
-            padding: 15px; margin-top: 10px; max-height: 200px; overflow-y: auto;
-        }
-        .media-preview {
-            max-width: 100%; border-radius: 8px; margin: 10px 0;
-            border: 2px solid #e2e8f0;
-        }
-        .interactive-tabs {
-            display: flex; background: #f7fafc; border-radius: 12px; padding: 5px; margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        .interactive-tab {
-            flex: 1; min-width: 80px; padding: 10px; text-align: center; cursor: pointer; 
-            border-radius: 8px; transition: all 0.3s ease; margin: 2px;
-        }
-        .interactive-tab.active { background: #667eea; color: white; }
-        .interactive-image {
-            max-width: 100%; border-radius: 12px; margin: 15px 0;
-            border: 3px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .category-badge {
-            display: inline-block; padding: 6px 12px; border-radius: 20px;
-            font-size: 12px; font-weight: 600; margin: 5px 5px 5px 0;
-        }
-        .category-history { background: #fed7d7; color: #c53030; }
-        .category-style { background: #c6f6d5; color: #276749; }
-        .category-art { background: #bee3f8; color: #2c5aa0; }
-        .category-craft { background: #feebc8; color: #dd6b20; }
-        .compliment-input {
-            width: 100%; padding: 15px; border: 2px solid #e2e8f0; border-radius: 12px;
-            font-size: 16px; margin: 10px 0; resize: vertical; min-height: 100px;
-        }
-        .compliment-input:focus {
-            border-color: #667eea; outline: none;
+        
+        .form-control:focus { 
+            border-color: #667eea; 
+            outline: none;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
+        
+        .stats-grid {
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 12px; 
+            margin: 20px 0;
+        }
+        
+        .stat-item {
+            background: #f7fafc; 
+            padding: 16px; 
+            border-radius: 12px; 
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .stat-number { 
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #667eea; 
+            margin-bottom: 4px;
+        }
+        
+        .stat-label { 
+            font-size: 12px; 
+            color: #718096; 
+        }
+        
+        .works-tabs {
+            display: flex; 
+            background: #f7fafc; 
+            border-radius: 12px; 
+            padding: 6px; 
+            margin-bottom: 20px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .works-tab {
+            flex: 1; 
+            padding: 12px; 
+            text-align: center; 
+            cursor: pointer; 
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .works-tab.active { 
+            background: #667eea; 
+            color: white; 
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .shop-tabs {
+            display: flex; 
+            background: #f7fafc; 
+            border-radius: 12px; 
+            padding: 6px; 
+            margin-bottom: 20px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .shop-tab {
+            flex: 1; 
+            padding: 12px; 
+            text-align: center; 
+            cursor: pointer; 
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .shop-tab.active { 
+            background: #667eea; 
+            color: white; 
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .content-preview {
+            background: #f7fafc; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 12px;
+            padding: 16px; 
+            margin-top: 12px; 
+            max-height: 200px; 
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .media-preview {
+            max-width: 100%; 
+            border-radius: 12px; 
+            margin: 12px 0;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .interactive-tabs {
+            display: flex; 
+            background: #f7fafc; 
+            border-radius: 12px; 
+            padding: 6px; 
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .interactive-tab {
+            flex: 1; 
+            min-width: 80px; 
+            padding: 12px; 
+            text-align: center; 
+            cursor: pointer; 
+            border-radius: 8px; 
+            transition: all 0.3s ease; 
+            margin: 2px;
+            font-weight: 500;
+        }
+        
+        .interactive-tab.active { 
+            background: #667eea; 
+            color: white; 
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .interactive-image {
+            max-width: 100%; 
+            border-radius: 16px; 
+            margin: 20px 0;
+            border: 3px solid #e2e8f0; 
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .category-badge {
+            display: inline-block; 
+            padding: 8px 16px; 
+            border-radius: 20px;
+            font-size: 12px; 
+            font-weight: 600; 
+            margin: 6px 6px 6px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .category-history { 
+            background: #fed7d7; 
+            color: #c53030; 
+        }
+        
+        .category-style { 
+            background: #c6f6d5; 
+            color: #276749; 
+        }
+        
+        .category-art { 
+            background: #bee3f8; 
+            color: #2c5aa0; 
+        }
+        
+        .category-craft { 
+            background: #feebc8; 
+            color: #dd6b20; 
+        }
+        
+        .compliment-input {
+            width: 100%; 
+            padding: 20px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 16px;
+            font-size: 16px; 
+            margin: 12px 0; 
+            resize: vertical; 
+            min-height: 120px;
+            background: white;
+            font-family: inherit;
+        }
+        
+        .compliment-input:focus {
+            border-color: #667eea; 
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
         .interactive-result {
-            text-align: center; padding: 20px;
+            text-align: center; 
+            padding: 40px 20px;
         }
+        
         .result-icon {
-            font-size: 64px; margin-bottom: 15px;
+            font-size: 80px; 
+            margin-bottom: 20px;
         }
+        
         .drawing-canvas {
-            width: 100%; height: 300px; border: 2px dashed #667eea; border-radius: 12px;
-            margin: 15px 0; background: #f7fafc; cursor: crosshair;
+            width: 100%; 
+            height: 300px; 
+            border: 2px dashed #667eea; 
+            border-radius: 16px;
+            margin: 20px 0; 
+            background: #f7fafc; 
+            cursor: crosshair;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
         }
+        
         .drawing-tools {
-            display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap;
+            display: flex; 
+            gap: 12px; 
+            margin: 16px 0; 
+            flex-wrap: wrap;
+            align-items: center;
         }
+        
         .drawing-tool {
-            padding: 8px 15px; border: 2px solid #e2e8f0; border-radius: 8px;
-            background: white; cursor: pointer; transition: all 0.3s ease;
+            padding: 12px 20px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 12px;
+            background: white; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
+        
         .drawing-tool.active {
-            border-color: #667eea; background: #edf2f7;
+            border-color: #667eea; 
+            background: #edf2f7;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
         }
+        
         .color-picker {
-            width: 40px; height: 40px; border: 2px solid #e2e8f0; border-radius: 8px;
-            cursor: pointer; margin: 5px;
+            width: 44px; 
+            height: 44px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 12px;
+            cursor: pointer; 
+            margin: 4px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+        
+        .color-picker:hover {
+            transform: scale(1.1);
+        }
+        
+        .color-picker.active {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+        }
+        
         .interactive-description {
-            color: #718096; font-size: 14px; margin: 10px 0; line-height: 1.5;
+            color: #718096; 
+            font-size: 14px; 
+            margin: 12px 0; 
+            line-height: 1.5;
+        }
+        
+        .header-title {
+            text-align: center; 
+            margin-bottom: 12px; 
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header-subtitle {
+            text-align: center; 
+            color: #718096; 
+            margin-bottom: 24px;
+            font-size: 16px;
+        }
+        
+        .user-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .user-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .user-info-label {
+            color: #718096;
+            font-weight: 500;
+        }
+        
+        .user-info-value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+        
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+        
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2d3748;
+        }
+        
+        .feature-description {
+            color: #718096;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        /* Анимации */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .screen.active {
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 8px;
+            }
+            
+            .card {
+                padding: 20px;
+                margin-bottom: 12px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            
+            .user-info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Специальные стили для кнопки смены роли */
+        .change-role-btn {
+            background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
+            box-shadow: 0 4px 15px rgba(159, 122, 234, 0.3);
+        }
+        
+        .change-role-btn:hover {
+            background: linear-gradient(135deg, #805ad5 0%, #6b46c1 100%);
+            box-shadow: 0 6px 20px rgba(159, 122, 234, 0.4);
         }
     </style>
 </head>
@@ -200,31 +733,37 @@
         <!-- Главный экран -->
         <div id="mainScreen" class="screen active">
             <div class="card">
-                <h1 style="text-align: center; margin-bottom: 10px;">🎨 Мастерская Вдохновения</h1>
-                <p style="text-align: center; color: #718096; margin-bottom: 20px;">Ваш личный кабинет</p>
+                <h1 class="header-title">🎨 Мастерская Вдохновения</h1>
+                <p class="header-subtitle">Ваше творческое пространство</p>
                 
                 <div id="userData">
-                    <div class="loading">⏳ Загрузка данных...</div>
+                    <div class="loading">
+                        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                        Загрузка данных...
+                    </div>
                     <div id="userContent" style="display: none;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                            <span style="color: #718096;">Имя:</span>
-                            <span id="userName" style="font-weight: 600;">-</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                            <span style="color: #718096;">Уровень:</span>
-                            <span id="userLevel" style="font-weight: 600;">-</span>
-                        </div>
-                        <div class="sparks" id="sparksCount">✨ 0</div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                            <span style="color: #718096;">Роль:</span>
-                            <span id="userRole" style="font-weight: 600;">-</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #718096;">Персонаж:</span>
-                            <span id="userCharacter" style="font-weight: 600;">-</span>
+                        <div class="user-info-grid">
+                            <div class="user-info-item">
+                                <span class="user-info-label">Имя:</span>
+                                <span id="userName" class="user-info-value">-</span>
+                            </div>
+                            <div class="user-info-item">
+                                <span class="user-info-label">Уровень:</span>
+                                <span id="userLevel" class="user-info-value">-</span>
+                            </div>
+                            <div class="user-info-item">
+                                <span class="user-info-label">Роль:</span>
+                                <span id="userRole" class="user-info-value">-</span>
+                            </div>
+                            <div class="user-info-item">
+                                <span class="user-info-label">Персонаж:</span>
+                                <span id="userCharacter" class="user-info-value">-</span>
+                            </div>
                         </div>
                         
-                        <div id="userStats" style="display: none; margin-top: 15px;">
+                        <div class="sparks pulse" id="sparksCount">✨ 0</div>
+                        
+                        <div id="userStats" style="display: none;">
                             <div class="stats-grid">
                                 <div class="stat-item">
                                     <div class="stat-number" id="statQuizzes">0</div>
@@ -249,17 +788,51 @@
             </div>
 
             <div id="welcomeBlock" class="card" style="display: none;">
-                <h3 style="text-align: center; margin-bottom: 15px;">🎯 Добро пожаловать!</h3>
-                <p style="text-align: center; color: #718096; margin-bottom: 20px;">
-                    Для начала работы пройдите регистрацию и выберите свою роль
+                <h3 style="text-align: center; margin-bottom: 20px;">🎯 Добро пожаловать в мир творчества!</h3>
+                <p style="text-align: center; color: #718096; margin-bottom: 24px; line-height: 1.6;">
+                    Присоединяйтесь к сообществу творческих людей. Выберите свою роль и начните путь к мастерству!
                 </p>
-                <button class="btn" onclick="showScreen('registrationScreen')">Начать регистрацию</button>
+                <button class="btn pulse" onclick="showScreen('registrationScreen')">
+                    Начать путешествие
+                </button>
             </div>
 
             <div id="actionsBlock" class="card" style="display: none;">
-                <h3 style="margin-bottom: 15px;">🚀 Быстрые действия</h3>
-                <div id="actionButtons">
+                <h3 style="margin-bottom: 20px; text-align: center;">🚀 Ваши возможности</h3>
+                <div class="action-grid" id="actionButtons">
                     <!-- Кнопки загружаются динамически -->
+                </div>
+                
+                <!-- Кнопка смены роли -->
+                <button class="btn change-role-btn" onclick="showScreen('changeRoleScreen')" style="margin-top: 16px;">
+                    🔄 Сменить роль
+                </button>
+            </div>
+        </div>
+
+        <!-- Экран смены роли -->
+        <div id="changeRoleScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
+                <h2 style="text-align: center; margin-bottom: 24px;">🔄 Смена роли</h2>
+                
+                <div class="info">
+                    <p>Вы можете сменить роль в любое время без потери прогресса и искр.</p>
+                </div>
+
+                <h3 style="margin-bottom: 16px;">🎭 Выберите новую роль:</h3>
+                <div id="changeRoleList" class="loading">
+                    Загрузка ролей...
+                </div>
+
+                <div id="changeCharactersSection" style="display: none;">
+                    <h3 style="margin-bottom: 16px;">👥 Выберите персонажа:</h3>
+                    <div id="changeCharactersList">
+                        <!-- Персонажи загружаются здесь -->
+                    </div>
+                    <button class="btn change-role-btn" onclick="completeRoleChange()" id="completeRoleChangeBtn" disabled>
+                        ✅ Подтвердить смену роли
+                    </button>
                 </div>
             </div>
         </div>
@@ -268,20 +841,20 @@
         <div id="registrationScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
-                <h2 style="text-align: center; margin-bottom: 20px;">📝 Регистрация</h2>
+                <h2 style="text-align: center; margin-bottom: 24px;">📝 Регистрация</h2>
                 
                 <div class="form-group">
                     <label style="font-weight: 600; display: block; margin-bottom: 8px;">Ваше имя:</label>
                     <input type="text" id="userFirstName" class="form-control" placeholder="Введите ваше имя" value="">
                 </div>
 
-                <h3 style="margin-bottom: 15px;">🎭 Выберите роль:</h3>
+                <h3 style="margin-bottom: 16px;">🎭 Выберите роль:</h3>
                 <div id="rolesList" class="loading">
                     Загрузка ролей...
                 </div>
 
                 <div id="charactersSection" style="display: none;">
-                    <h3 style="margin-bottom: 15px;">👥 Выберите персонажа:</h3>
+                    <h3 style="margin-bottom: 16px;">👥 Выберите персонажа:</h3>
                     <div id="charactersList">
                         <!-- Персонажи загружаются здесь -->
                     </div>
@@ -296,7 +869,7 @@
         <div id="quizzesScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
-                <h2 style="text-align: center; margin-bottom: 20px;">🎯 Доступные квизы</h2>
+                <h2 style="text-align: center; margin-bottom: 24px;">🎯 Квизы и тесты</h2>
                 <div id="quizzesList" class="loading">
                     Загрузка квизов...
                 </div>
@@ -307,7 +880,7 @@
         <div id="quizScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('quizzesScreen')">← Назад</button>
-                <h2 id="quizTitle" style="text-align: center; margin-bottom: 10px;"></h2>
+                <h2 id="quizTitle" style="text-align: center; margin-bottom: 12px;"></h2>
                 <p id="quizDescription" style="text-align: center; color: #718096; margin-bottom: 20px;"></p>
                 
                 <div class="progress-bar">
@@ -330,7 +903,7 @@
         <!-- Экран результатов квиза -->
         <div id="quizResultScreen" class="screen">
             <div class="card">
-                <h2 style="text-align: center; margin-bottom: 20px;">📊 Результаты квиза</h2>
+                <h2 style="text-align: center; margin-bottom: 24px;">📊 Результаты квиза</h2>
                 <div id="quizResultContent">
                     <!-- Результаты загружаются здесь -->
                 </div>
@@ -343,7 +916,7 @@
         <div id="marathonsScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
-                <h2 style="text-align: center; margin-bottom: 20px;">🏃‍♂️ Марафоны</h2>
+                <h2 style="text-align: center; margin-bottom: 24px;">🏃‍♂️ Творческие марафоны</h2>
                 <div id="marathonsList" class="loading">
                     Загрузка марафонов...
                 </div>
@@ -354,7 +927,7 @@
         <div id="marathonScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('marathonsScreen')">← Назад</button>
-                <h2 id="marathonTitle" style="text-align: center; margin-bottom: 10px;"></h2>
+                <h2 id="marathonTitle" style="text-align: center; margin-bottom: 12px;"></h2>
                 <p id="marathonDescription" style="text-align: center; color: #718096; margin-bottom: 20px;"></p>
                 
                 <div class="progress-bar">
@@ -371,11 +944,45 @@
             </div>
         </div>
 
+        <!-- Экран отправки работы в марафоне -->
+        <div id="marathonSubmissionScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('marathonScreen')">← Назад</button>
+                <h2 id="marathonSubmissionTitle" style="text-align: center; margin-bottom: 12px;"></h2>
+                <p id="marathonSubmissionDescription" style="text-align: center; color: #718096; margin-bottom: 20px;"></p>
+                
+                <div id="textSubmissionSection" style="display: none;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 8px;">Опишите вашу работу:</label>
+                    <textarea id="marathonSubmissionText" class="form-control" rows="4" placeholder="Расскажите о вашей работе, трудностях и достижениях..."></textarea>
+                </div>
+                
+                <div id="imageSubmissionSection" style="display: none;">
+                    <div class="upload-area" id="marathonUploadArea" onclick="document.getElementById('marathonImageInput').click()">
+                        <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
+                        <div style="font-weight: 600; margin-bottom: 8px;">Загрузите фото работы</div>
+                        <div style="color: #718096; font-size: 14px;">Нажмите или перетащите файл сюда</div>
+                    </div>
+                    <input type="file" id="marathonImageInput" accept="image/*" style="display: none;" onchange="handleMarathonImageUpload(this.files[0])">
+                    
+                    <div id="marathonImagePreview" style="display: none;">
+                        <img id="marathonPreviewImage" class="work-image">
+                        <button class="btn btn-danger" onclick="clearMarathonImage()" style="margin-top: 12px;">
+                            🗑️ Удалить изображение
+                        </button>
+                    </div>
+                </div>
+                
+                <button class="btn btn-success" onclick="submitMarathonDay()" id="submitMarathonBtn" style="margin-top: 20px;">
+                    📤 Отправить работу
+                </button>
+            </div>
+        </div>
+
         <!-- Экран интерактивов -->
         <div id="interactivesScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
-                <h2 style="text-align: center; margin-bottom: 20px;">🎮 Интерактивные задания</h2>
+                <h2 style="text-align: center; margin-bottom: 24px;">🎮 Интерактивные задания</h2>
                 
                 <div class="interactive-tabs">
                     <div class="interactive-tab active" data-category="all">Все</div>
@@ -395,7 +1002,7 @@
         <div id="interactiveScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('interactivesScreen')">← Назад</button>
-                <h2 id="interactiveTitle" style="text-align: center; margin-bottom: 10px;"></h2>
+                <h2 id="interactiveTitle" style="text-align: center; margin-bottom: 12px;"></h2>
                 <p id="interactiveDescription" style="text-align: center; color: #718096; margin-bottom: 20px;"></p>
                 
                 <div id="interactiveContent">
@@ -407,7 +1014,7 @@
         <!-- Экран результатов интерактива -->
         <div id="interactiveResultScreen" class="screen">
             <div class="card">
-                <h2 style="text-align: center; margin-bottom: 20px;">🎯 Результаты</h2>
+                <h2 style="text-align: center; margin-bottom: 24px;">🎯 Результаты</h2>
                 <div id="interactiveResultContent">
                     <!-- Результаты загружаются здесь -->
                 </div>
@@ -420,7 +1027,7 @@
         <div id="drawingChallengeScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('interactiveScreen')">← Назад</button>
-                <h2 id="drawingTitle" style="text-align: center; margin-bottom: 10px;"></h2>
+                <h2 id="drawingTitle" style="text-align: center; margin-bottom: 12px;"></h2>
                 <p id="drawingDescription" style="text-align: center; color: #718096; margin-bottom: 20px;"></p>
                 
                 <div id="drawingReference">
@@ -433,24 +1040,24 @@
                     <div class="drawing-tool active" data-tool="brush">🖌️ Кисть</div>
                     <div class="drawing-tool" data-tool="eraser">🧽 Ластик</div>
                     <div style="display: flex; align-items: center; margin-left: auto;">
-                        <div class="color-picker" style="background: #000000;" data-color="#000000"></div>
+                        <div class="color-picker active" style="background: #000000;" data-color="#000000"></div>
                         <div class="color-picker" style="background: #ff0000;" data-color="#ff0000"></div>
                         <div class="color-picker" style="background: #0000ff;" data-color="#0000ff"></div>
                         <div class="color-picker" style="background: #00ff00;" data-color="#00ff00"></div>
                     </div>
                 </div>
                 
-                <div style="margin-top: 15px;">
+                <div style="margin-top: 20px;">
                     <label style="font-weight: 600; display: block; margin-bottom: 8px;">Название работы:</label>
                     <input type="text" id="drawingWorkTitle" class="form-control" placeholder="Введите название вашей работы">
                 </div>
                 
-                <div style="margin-top: 15px;">
+                <div style="margin-top: 16px;">
                     <label style="font-weight: 600; display: block; margin-bottom: 8px;">Описание (опционально):</label>
                     <textarea id="drawingWorkDescription" class="form-control" rows="3" placeholder="Опишите вашу работу..."></textarea>
                 </div>
                 
-                <button class="btn btn-success" onclick="submitDrawingWork()" style="margin-top: 20px;">
+                <button class="btn btn-success" onclick="submitDrawingWork()" style="margin-top: 24px;">
                     📤 Отправить работу
                 </button>
             </div>
@@ -460,15 +1067,15 @@
         <div id="complimentChallengeScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('interactivesScreen')">← Назад</button>
-                <h2 style="text-align: center; margin-bottom: 10px;">💝 День уверенности</h2>
+                <h2 style="text-align: center; margin-bottom: 12px;">💝 День уверенности</h2>
                 <p style="text-align: center; color: #718096; margin-bottom: 20px;">
                     Сделайте комплимент себе и получите +0.5✨ за участие в челлендже!
                 </p>
                 
                 <div class="info">
-                    <h4 style="margin-bottom: 10px;">💡 Как это работает:</h4>
-                    <p style="margin-bottom: 10px;">Напишите комплимент себе в комментарии ниже. Это может быть что угодно - ваши достижения, качества, или просто приятные слова себе.</p>
-                    <p>Каждый день можно участвовать один раз. Будьте добрее к себе! 💖</p>
+                    <h4 style="margin-bottom: 12px;">💡 Как это работает:</h4>
+                    <p style="margin-bottom: 12px; line-height: 1.5;">Напишите комплимент себе в комментарии ниже. Это может быть что угодно - ваши достижения, качества, или просто приятные слова себе.</p>
+                    <p style="line-height: 1.5;">Каждый день можно участвовать один раз. Будьте добрее к себе! 💖</p>
                 </div>
                 
                 <textarea id="complimentText" class="compliment-input" placeholder="Напишите здесь ваш комплимент себе..."></textarea>
@@ -483,10 +1090,10 @@
         <div id="worksScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
-                <h2 style="text-align: center; margin-bottom: 20px;">🖼️ Мои работы</h2>
+                <h2 style="text-align: center; margin-bottom: 24px;">🖼️ Мои работы</h2>
                 
                 <div class="works-tabs">
-                    <div class="works-tab active" onclick="showWorksTab('view')">👀 Посмотреть работы</div>
+                    <div class="works-tab active" onclick="showWorksTab('view')">👀 Мои работы</div>
                     <div class="works-tab" onclick="showWorksTab('upload')">📤 Загрузить работу</div>
                 </div>
 
@@ -498,10 +1105,10 @@
 
                 <div id="uploadWorksTab" style="display: none;">
                     <div class="upload-area" id="uploadArea" onclick="document.getElementById('workImageInput').click()">
-                        <div style="font-size: 48px; margin-bottom: 10px;">📁</div>
-                        <div style="font-weight: 600; margin-bottom: 5px;">Нажмите для загрузки изображения</div>
+                        <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
+                        <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки изображения</div>
                         <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
-                        <div style="color: #667eea; margin-top: 10px; font-size: 12px;">
+                        <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
                             Поддерживаются: JPG, PNG, GIF (макс. 5MB)
                         </div>
                     </div>
@@ -509,7 +1116,9 @@
                     
                     <div id="imagePreview" style="display: none;">
                         <img id="previewImage" class="work-image">
-                        <button class="btn btn-danger" onclick="clearImage()" style="margin-top: 10px;">🗑️ Удалить изображение</button>
+                        <button class="btn btn-danger" onclick="clearImage()" style="margin-top: 12px;">
+                            🗑️ Удалить изображение
+                        </button>
                     </div>
 
                     <div style="margin-top: 20px;">
@@ -517,17 +1126,17 @@
                         <input type="text" id="workTitle" class="form-control" placeholder="Введите название вашей работы" oninput="checkUploadReady()">
                     </div>
 
-                    <div style="margin-top: 15px;">
+                    <div style="margin-top: 16px;">
                         <label style="font-weight: 600; display: block; margin-bottom: 8px;">Описание (опционально):</label>
                         <textarea id="workDescription" class="form-control" rows="3" placeholder="Опишите вашу работу..."></textarea>
                     </div>
 
-                    <button class="btn btn-success" onclick="uploadWork()" id="uploadWorkBtn" disabled style="margin-top: 20px;">
+                    <button class="btn btn-success" onclick="uploadWork()" id="uploadWorkBtn" disabled style="margin-top: 24px;">
                         📤 Загрузить работу
                     </button>
 
-                    <div class="info" style="margin-top: 15px;">
-                        💡 После модерации работы вы получите <strong>+15✨</strong>
+                    <div class="info" style="margin-top: 20px;">
+                        <strong>💡 Важно:</strong> После модерации работы вы получите <strong>+15✨</strong>
                     </div>
                 </div>
             </div>
@@ -537,15 +1146,15 @@
         <div id="shopScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
-                <h2 style="text-align: center; margin-bottom: 20px;">🛒 Магазин</h2>
-                <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="text-align: center; margin-bottom: 24px;">🛒 Магазин знаний</h2>
+                <div style="text-align: center; margin-bottom: 24px;">
                     <div class="sparks" id="shopSparks">✨ 0</div>
-                    <div style="color: #718096;">Ваш баланс</div>
+                    <div style="color: #718096;">Ваш баланс искр</div>
                 </div>
                 
                 <div class="shop-tabs">
                     <div class="shop-tab active" onclick="showShopTab('items')">🛍️ Товары</div>
-                    <div class="shop-tab" onclick="showShopTab('purchased')">📦 Купленное</div>
+                    <div class="shop-tab" onclick="showShopTab('purchased')">📦 Мои покупки</div>
                 </div>
 
                 <div id="shopItemsTab">
@@ -566,7 +1175,7 @@
         <div id="postsScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
-                <h2 style="text-align: center; margin-bottom: 20px;">📰 Посты канала</h2>
+                <h2 style="text-align: center; margin-bottom: 24px;">📰 Полезные материалы</h2>
                 <div id="postsList" class="loading">
                     Загрузка постов...
                 </div>
@@ -577,7 +1186,7 @@
         <div id="activitiesScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
-                <h2 style="text-align: center; margin-bottom: 20px;">📊 История активностей</h2>
+                <h2 style="text-align: center; margin-bottom: 24px;">📊 История активностей</h2>
                 <div id="activitiesList" class="loading">
                     Загрузка активностей...
                 </div>
@@ -588,15 +1197,15 @@
         <div id="inviteScreen" class="screen">
             <div class="card">
                 <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
-                <h2 style="text-align: center; margin-bottom: 20px;">👥 Пригласить друга</h2>
+                <h2 style="text-align: center; margin-bottom: 24px;">👥 Пригласить друга</h2>
                 
                 <div class="info">
-                    <h3 style="margin-bottom: 10px;">🎁 Пригласите друга и получите +10✨</h3>
-                    <p style="margin-bottom: 15px;">
+                    <h3 style="margin-bottom: 12px;">🎁 Пригласите друга и получите +10✨</h3>
+                    <p style="margin-bottom: 16px; line-height: 1.5;">
                         Поделитесь ссылкой с другом. Когда он зарегистрируется, вы оба получите бонус!
                     </p>
                     
-                    <div style="background: white; padding: 10px; border-radius: 8px; margin: 10px 0; word-break: break-all; font-family: monospace;">
+                    <div style="background: white; padding: 16px; border-radius: 12px; margin: 16px 0; word-break: break-all; font-family: monospace; border: 1px solid #e2e8f0;">
                         https://t.me/your_bot?start=ref_<span id="inviteUserId">12345</span>
                     </div>
                     
@@ -611,6 +1220,7 @@
     <div id="messageArea"></div>
 
     <script>
+        // Глобальные переменные
         let tg = null;
         let currentUser = null;
         let currentUserId = null;
@@ -619,7 +1229,7 @@
         let currentQuiz = null;
         let currentAnswers = [];
         let currentQuestionIndex = 0;
-                let currentMarathon = null;
+        let currentMarathon = null;
         let currentMarathonDay = 1;
         let currentInteractive = null;
         let currentWorksTab = 'view';
@@ -633,6 +1243,7 @@
         let currentColor = '#000000';
         let currentTool = 'brush';
         let uploadedImage = null;
+        let marathonUploadedImage = null;
 
         // Инициализация приложения
         async function initApp() {
@@ -660,6 +1271,16 @@
                         this.classList.add('active');
                         currentInteractiveCategory = this.dataset.category;
                         loadInteractives();
+                    });
+                });
+                
+                // Обработчики для выбора цвета
+                document.querySelectorAll('.color-picker').forEach(picker => {
+                    picker.addEventListener('click', function() {
+                        document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
+                        this.classList.add('active');
+                        currentColor = this.dataset.color;
+                        updateDrawingTool();
                     });
                 });
                 
@@ -726,35 +1347,42 @@
             const availableButtons = currentUser.available_buttons || [];
             
             const buttons = {
-                'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary' },
-                'marathon': { text: '🏃‍♂️ Участвовать в марафоне', screen: 'marathonsScreen', color: 'btn-warning' },
-                'works': { text: '🖼️ Мои работы', screen: 'worksScreen', color: 'btn-info' },
-                'activities': { text: '📊 История активностей', screen: 'activitiesScreen', color: 'btn' },
-                'posts': { text: '📰 Посты канала', screen: 'postsScreen', color: 'btn-success' },
-                'shop': { text: '🛒 Магазин', screen: 'shopScreen', color: 'btn-danger' },
-                'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info' },
-                'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success' }
+                'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary', icon: '🎯' },
+                'marathon': { text: '🏃‍♂️ Участвовать в марафоне', screen: 'marathonsScreen', color: 'btn-warning', icon: '🏃‍♂️' },
+                'works': { text: '🖼️ Мои работы', screen: 'worksScreen', color: 'btn-info', icon: '🖼️' },
+                'activities': { text: '📊 История активностей', screen: 'activitiesScreen', color: 'btn', icon: '📊' },
+                'posts': { text: '📰 Полезные материалы', screen: 'postsScreen', color: 'btn-success', icon: '📰' },
+                'shop': { text: '🛒 Магазин знаний', screen: 'shopScreen', color: 'btn-danger', icon: '🛒' },
+                'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info', icon: '👥' },
+                'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success', icon: '🎮' }
             };
             
             buttonsContainer.innerHTML = '';
             
             availableButtons.forEach(buttonKey => {
                 if (buttons[buttonKey]) {
-                    const button = document.createElement('button');
-                    button.className = `btn ${buttons[buttonKey].color}`;
-                    button.textContent = buttons[buttonKey].text;
-                    button.onclick = () => showScreen(buttons[buttonKey].screen);
-                    buttonsContainer.appendChild(button);
+                    const buttonInfo = buttons[buttonKey];
+                    const featureCard = document.createElement('div');
+                    featureCard.className = 'feature-card';
+                    featureCard.innerHTML = `
+                        <div class="feature-icon">${buttonInfo.icon}</div>
+                        <div class="feature-title">${buttonInfo.text}</div>
+                    `;
+                    featureCard.onclick = () => showScreen(buttonInfo.screen);
+                    buttonsContainer.appendChild(featureCard);
                 }
             });
             
             // Всегда показываем кнопку интерактивов
             if (!availableButtons.includes('interactives')) {
-                const interactiveButton = document.createElement('button');
-                interactiveButton.className = 'btn btn-success';
-                interactiveButton.textContent = '🎮 Интерактивные задания';
-                interactiveButton.onclick = () => showScreen('interactivesScreen');
-                buttonsContainer.appendChild(interactiveButton);
+                const featureCard = document.createElement('div');
+                featureCard.className = 'feature-card';
+                featureCard.innerHTML = `
+                    <div class="feature-icon">🎮</div>
+                    <div class="feature-title">Интерактивные задания</div>
+                `;
+                featureCard.onclick = () => showScreen('interactivesScreen');
+                buttonsContainer.appendChild(featureCard);
             }
         }
 
@@ -791,8 +1419,132 @@
                 case 'inviteScreen':
                     document.getElementById('inviteUserId').textContent = currentUserId;
                     break;
+                case 'changeRoleScreen':
+                    loadRolesForChange();
+                    break;
             }
         }
+
+        // ==================== СИСТЕМА СМЕНЫ РОЛИ ====================
+
+        // Загрузка ролей для смены
+        async function loadRolesForChange() {
+            try {
+                const response = await fetch('/api/webapp/roles');
+                const roles = await response.json();
+                
+                const rolesList = document.getElementById('changeRoleList');
+                rolesList.innerHTML = '';
+                
+                roles.forEach(role => {
+                    const roleCard = document.createElement('div');
+                    roleCard.className = 'role-card';
+                    roleCard.innerHTML = `
+                        <div style="font-size: 24px; margin-bottom: 8px;">${role.icon}</div>
+                        <div style="font-weight: 600; margin-bottom: 5px;">${role.name}</div>
+                        <div style="color: #718096; font-size: 14px;">${role.description}</div>
+                    `;
+                    roleCard.onclick = () => selectRoleForChange(role);
+                    rolesList.appendChild(roleCard);
+                });
+            } catch (error) {
+                document.getElementById('changeRoleList').innerHTML = '<div class="error">Ошибка загрузки ролей</div>';
+            }
+        }
+
+        // Выбор роли для смены
+        function selectRoleForChange(role) {
+            selectedRole = role;
+            
+            // Снимаем выделение со всех карточек
+            document.querySelectorAll('.role-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Выделяем выбранную карточку
+            event.currentTarget.classList.add('selected');
+            
+            // Загружаем персонажей для выбранной роли
+            loadCharactersForChange(role.id);
+        }
+
+        // Загрузка персонажей для смены роли
+        async function loadCharactersForChange(roleId) {
+            try {
+                const response = await fetch(`/api/webapp/characters/${roleId}`);
+                const characters = await response.json();
+                
+                const charactersSection = document.getElementById('changeCharactersSection');
+                const charactersList = document.getElementById('changeCharactersList');
+                
+                charactersSection.style.display = 'block';
+                charactersList.innerHTML = '';
+                
+                characters.forEach(character => {
+                    const characterCard = document.createElement('div');
+                    characterCard.className = 'character-card';
+                    characterCard.innerHTML = `
+                        <div style="font-weight: 600; margin-bottom: 5px;">${character.name}</div>
+                        <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
+                        <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
+                    `;
+                    characterCard.onclick = () => selectCharacterForChange(character);
+                    charactersList.appendChild(characterCard);
+                });
+            } catch (error) {
+                document.getElementById('changeCharactersList').innerHTML = '<div class="error">Ошибка загрузки персонажей</div>';
+            }
+        }
+
+        // Выбор персонажа для смены роли
+        function selectCharacterForChange(character) {
+            selectedCharacter = character;
+            
+            // Снимаем выделение со всех карточек
+            document.querySelectorAll('.character-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Выделяем выбранную карточку
+            event.currentTarget.classList.add('selected');
+            
+            // Активируем кнопку завершения смены роли
+            document.getElementById('completeRoleChangeBtn').disabled = false;
+        }
+
+        // Завершение смены роли
+        async function completeRoleChange() {
+            if (!selectedRole || !selectedCharacter) {
+                showMessage('❌ Выберите роль и персонажа', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/users/change-role', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        roleId: selectedRole.id,
+                        characterId: selectedCharacter.id
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    await loadUserData();
+                    showScreen('mainScreen');
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка смены роли', 'error');
+            }
+        }
+
+        // ==================== РЕГИСТРАЦИЯ ====================
 
         // Регистрация - загрузка ролей
         async function loadRoles() {
@@ -930,6 +1682,8 @@
             }
         }
 
+        // ==================== КВИЗЫ ====================
+
         // Загрузка квизов
         async function loadQuizzes() {
             try {
@@ -938,6 +1692,11 @@
                 
                 const quizzesList = document.getElementById('quizzesList');
                 quizzesList.innerHTML = '';
+                
+                if (quizzes.length === 0) {
+                    quizzesList.innerHTML = '<div class="info">Пока нет доступных квизов</div>';
+                    return;
+                }
                 
                 quizzes.forEach(quiz => {
                     const quizCard = document.createElement('div');
@@ -954,15 +1713,15 @@
                     }
                     
                     quizCard.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                             <h3 style="margin: 0;">${quiz.title}</h3>
                             ${statusBadge}
                         </div>
-                        <p style="color: #718096; margin-bottom: 10px;">${quiz.description}</p>
-                        <div style="color: #4a5568; font-size: 14px; margin-bottom: 10px;">
-                            Вопросов: ${quiz.total_questions} 
-                            • ${quiz.sparks_per_correct}✨ за правильный ответ
-                            ${quiz.sparks_perfect_bonus ? `• ${quiz.sparks_perfect_bonus}✨ бонус за идеал` : ''}
+                        <p style="color: #718096; margin-bottom: 12px;">${quiz.description}</p>
+                        <div style="color: #4a5568; font-size: 14px; margin-bottom: 12px;">
+                            📝 Вопросов: ${quiz.total_questions} 
+                            • ✨ ${quiz.sparks_per_correct} за правильный ответ
+                            ${quiz.sparks_perfect_bonus ? `• 🎉 ${quiz.sparks_perfect_bonus} бонус за идеал` : ''}
                             ${quiz.user_score ? `• Ваш результат: ${quiz.user_score}/${quiz.total_questions}` : ''}
                         </div>
                         <button class="btn ${quiz.completed || !quiz.can_retake ? 'btn-secondary' : 'btn-primary'}" 
@@ -1017,7 +1776,7 @@
             
             quizContent.innerHTML = `
                 <div class="question">
-                    <h3 style="margin-bottom: 15px;">${question.question}</h3>
+                    <h3 style="margin-bottom: 16px;">${question.question}</h3>
                     <div class="options">
                         ${question.options.map((option, index) => `
                             <div class="option" onclick="selectAnswer(${index})">
@@ -1082,18 +1841,18 @@
             const resultContent = document.getElementById('quizResultContent');
             
             resultContent.innerHTML = `
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 48px; margin-bottom: 15px;">${result.perfectScore ? '🎉' : '📊'}</div>
-                    <h3 style="margin-bottom: 10px; color: ${result.perfectScore ? '#48bb78' : '#667eea'};">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <div style="font-size: 64px; margin-bottom: 20px;">${result.perfectScore ? '🎉' : '📊'}</div>
+                    <h3 style="margin-bottom: 12px; color: ${result.perfectScore ? '#48bb78' : '#667eea'};">
                         ${result.perfectScore ? 'Идеальный результат!' : 'Квиз завершен!'}
                     </h3>
-                    <div style="font-size: 18px; margin-bottom: 10px;">
+                    <div style="font-size: 18px; margin-bottom: 12px;">
                         Правильных ответов: <strong>${result.correctAnswers}/${result.totalQuestions}</strong>
                     </div>
-                    <div style="font-size: 24px; color: #d69e2e; margin-bottom: 15px;">
+                    <div style="font-size: 28px; color: #d69e2e; margin-bottom: 20px;">
                         +${result.sparksEarned}✨
                     </div>
-                    <div style="color: #718096; margin-bottom: 20px;">
+                    <div style="color: #718096; margin-bottom: 24px; line-height: 1.5;">
                         ${result.message}
                     </div>
                 </div>
@@ -1102,6 +1861,8 @@
             showScreen('quizResultScreen');
             loadUserData(); // Обновляем данные пользователя
         }
+
+        // ==================== МАРАФОНЫ ====================
 
         // Загрузка марафонов
         async function loadMarathons() {
@@ -1112,6 +1873,11 @@
                 const marathonsList = document.getElementById('marathonsList');
                 marathonsList.innerHTML = '';
                 
+                if (marathons.length === 0) {
+                    marathonsList.innerHTML = '<div class="info">Пока нет доступных марафонов</div>';
+                    return;
+                }
+                
                 marathons.forEach(marathon => {
                     const marathonCard = document.createElement('div');
                     marathonCard.className = 'marathon-card';
@@ -1121,20 +1887,20 @@
                     const canContinue = !isCompleted && marathon.current_day <= marathon.duration_days;
                     
                     marathonCard.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                             <h3 style="margin: 0;">${marathon.title}</h3>
                             <span class="status-badge ${isCompleted ? 'status-approved' : 'status-pending'}">
                                 ${isCompleted ? '✅ Завершен' : `День ${marathon.current_day}/${marathon.duration_days}`}
                             </span>
                         </div>
-                        <p style="color: #718096; margin-bottom: 10px;">${marathon.description}</p>
+                        <p style="color: #718096; margin-bottom: 12px;">${marathon.description}</p>
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: ${progressPercent}%"></div>
                         </div>
-                        <div style="color: #4a5568; font-size: 14px; margin-bottom: 10px;">
-                            Длительность: ${marathon.duration_days} дней
-                            • ${marathon.sparks_per_day}✨ за день
-                            • Прогресс: ${progressPercent}%
+                        <div style="color: #4a5568; font-size: 14px; margin-bottom: 12px;">
+                            📅 Длительность: ${marathon.duration_days} дней
+                            • ✨ ${marathon.sparks_per_day} за день
+                            • 📊 Прогресс: ${progressPercent}%
                         </div>
                         <button class="btn ${isCompleted ? 'btn-secondary' : 'btn-primary'}" 
                                 onclick="startMarathon(${marathon.id})" 
@@ -1188,10 +1954,10 @@
             const marathonContent = document.getElementById('marathonContent');
             marathonContent.innerHTML = `
                 <div class="marathon-day ${currentMarathonDay <= currentMarathon.current_day ? 'completed' : ''}">
-                    <h3 style="margin-bottom: 10px;">День ${day.day}: ${day.title}</h3>
-                    <p style="color: #718096; margin-bottom: 15px;">${day.description}</p>
+                    <h3 style="margin-bottom: 12px;">День ${day.day}: ${day.title}</h3>
+                    <p style="color: #718096; margin-bottom: 16px; line-height: 1.5;">${day.description}</p>
                     ${currentMarathonDay === currentMarathon.current_day ? `
-                        <button class="btn btn-success" onclick="completeMarathonDay(${currentMarathonDay})">
+                        <button class="btn btn-success" onclick="startMarathonSubmission(${currentMarathonDay})">
                             ✅ Завершить день ${currentMarathonDay}
                         </button>
                     ` : currentMarathonDay < currentMarathon.current_day ? `
@@ -1207,15 +1973,89 @@
             `;
         }
 
-        // Завершить день марафона
-        async function completeMarathonDay(day) {
+        // Начать отправку работы в марафоне
+        function startMarathonSubmission(day) {
+            const task = currentMarathon.tasks.find(t => t.day === day);
+            if (!task) return;
+            
+            document.getElementById('marathonSubmissionTitle').textContent = `День ${day}: ${task.title}`;
+            document.getElementById('marathonSubmissionDescription').textContent = task.description;
+            
+            // Показываем соответствующую секцию для типа отправки
+            if (task.submission_type === 'text') {
+                document.getElementById('textSubmissionSection').style.display = 'block';
+                document.getElementById('imageSubmissionSection').style.display = 'none';
+            } else if (task.submission_type === 'image') {
+                document.getElementById('textSubmissionSection').style.display = 'none';
+                document.getElementById('imageSubmissionSection').style.display = 'block';
+            }
+            
+            showScreen('marathonSubmissionScreen');
+        }
+
+        // Обработка загрузки изображения для марафона
+        function handleMarathonImageUpload(file) {
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                showMessage('❌ Пожалуйста, выберите изображение', 'error');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                showMessage('❌ Размер файла не должен превышать 5MB', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                marathonUploadedImage = e.target.result;
+                document.getElementById('marathonPreviewImage').src = marathonUploadedImage;
+                document.getElementById('marathonImagePreview').style.display = 'block';
+                document.getElementById('marathonUploadArea').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Очистить изображение марафона
+        function clearMarathonImage() {
+            marathonUploadedImage = null;
+            document.getElementById('marathonImagePreview').style.display = 'none';
+            document.getElementById('marathonUploadArea').style.display = 'block';
+            document.getElementById('marathonImageInput').value = '';
+        }
+
+        // Отправить работу в марафоне
+        async function submitMarathonDay() {
+            const task = currentMarathon.tasks.find(t => t.day === currentMarathonDay);
+            if (!task) return;
+            
+            let submission_text = '';
+            let submission_image = '';
+            
+            if (task.submission_type === 'text') {
+                submission_text = document.getElementById('marathonSubmissionText').value.trim();
+                if (!submission_text) {
+                    showMessage('❌ Заполните описание работы', 'error');
+                    return;
+                }
+            } else if (task.submission_type === 'image') {
+                if (!marathonUploadedImage) {
+                    showMessage('❌ Загрузите изображение работы', 'error');
+                    return;
+                }
+                submission_image = marathonUploadedImage;
+            }
+            
             try {
-                const response = await fetch(`/api/webapp/marathons/${currentMarathon.id}/complete-day`, {
+                const response = await fetch(`/api/webapp/marathons/${currentMarathon.id}/submit-day`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         userId: currentUserId,
-                        day: day
+                        day: currentMarathonDay,
+                        submission_text: submission_text,
+                        submission_image: submission_image
                     })
                 });
                 
@@ -1230,17 +2070,20 @@
                         showScreen('marathonsScreen');
                     } else {
                         showMarathonDay();
+                        showScreen('marathonScreen');
                     }
                     
-                    loadUserData(); // Обновляем данные пользователя
-                    loadMarathons(); // Обновляем список марафонов
+                    loadUserData();
+                    loadMarathons();
                 } else {
                     showMessage(`❌ ${result.error}`, 'error');
                 }
             } catch (error) {
-                showMessage('❌ Ошибка завершения дня', 'error');
+                showMessage('❌ Ошибка отправки работы', 'error');
             }
         }
+
+        // ==================== ИНТЕРАКТИВЫ ====================
 
         // Загрузка интерактивов
         async function loadInteractives() {
@@ -1281,13 +2124,13 @@
                     };
                     
                     interactiveCard.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                             <div style="flex: 1;">
-                                <h3 style="margin: 0 0 5px 0;">${typeIcons[interactive.type]} ${interactive.title}</h3>
+                                <h3 style="margin: 0 0 8px 0;">${typeIcons[interactive.type]} ${interactive.title}</h3>
                                 <div class="interactive-description">
                                     ${interactive.description}
                                 </div>
-                                <div style="margin: 10px 0;">
+                                <div style="margin: 12px 0;">
                                     <span class="category-badge ${categoryClass}">
                                         ${categoryNames[interactive.category] || interactive.category}
                                     </span>
@@ -1299,10 +2142,12 @@
                                 '<span class="status-badge status-pending">🎯 Доступен</span>'
                             }
                         </div>
-                        <button class="btn ${interactive.completed ? 'btn-secondary' : 'btn-primary'}" 
+                        <button class="btn ${interactive.completed && !interactive.can_retake ? 'btn-secondary' : 'btn-primary'}" 
                                 onclick="startInteractive(${interactive.id})"
-                                ${interactive.completed ? 'disabled' : ''}>
-                            ${interactive.completed ? '✅ Пройден' : '🎮 Начать'}
+                                ${interactive.completed && !interactive.can_retake ? 'disabled' : ''}>
+                            ${interactive.completed ? 
+                                (interactive.can_retake ? '🔄 Пройти снова' : '✅ Пройден') : 
+                                '🎮 Начать'}
                         </button>
                     `;
                     
@@ -1361,8 +2206,8 @@
                 ${currentInteractive.image_url ? `
                     <img src="${currentInteractive.image_url}" class="interactive-image">
                 ` : ''}
-                <div style="margin: 20px 0;">
-                    <h3 style="text-align: center; margin-bottom: 15px;">${currentInteractive.question}</h3>
+                <div style="margin: 24px 0;">
+                    <h3 style="text-align: center; margin-bottom: 16px;">${currentInteractive.question}</h3>
                     <div class="options">
                         ${currentInteractive.options.map((option, index) => `
                             <div class="option" onclick="submitInteractiveAnswer(${index})">
@@ -1379,13 +2224,13 @@
             container.innerHTML = `
                 ${currentInteractive.image_url ? `
                     <div id="drawingReference">
-                        <h4 style="text-align: center; margin-bottom: 10px;">🎨 Референс для вдохновения:</h4>
+                        <h4 style="text-align: center; margin-bottom: 12px;">🎨 Референс для вдохновения:</h4>
                         <img src="${currentInteractive.image_url}" class="interactive-image">
                     </div>
                 ` : ''}
-                <div style="text-align: center; margin: 20px 0;">
-                    <h3 style="margin-bottom: 10px;">${currentInteractive.question}</h3>
-                    <p style="color: #718096;">Создайте свою уникальную работу на основе предложенного контура</p>
+                <div style="text-align: center; margin: 24px 0;">
+                    <h3 style="margin-bottom: 12px;">${currentInteractive.question}</h3>
+                    <p style="color: #718096; line-height: 1.5;">Создайте свою уникальную работу на основе предложенного контура</p>
                 </div>
                 <button class="btn btn-success" onclick="startDrawingChallenge()">
                     ✏️ Начать рисование
@@ -1400,7 +2245,7 @@
             
             if (currentInteractive.image_url) {
                 document.getElementById('drawingReference').innerHTML = `
-                    <h4 style="text-align: center; margin-bottom: 10px;">🎨 Референс для вдохновения:</h4>
+                    <h4 style="text-align: center; margin-bottom: 12px;">🎨 Референс для вдохновения:</h4>
                     <img src="${currentInteractive.image_url}" class="interactive-image">
                 `;
             }
@@ -1440,14 +2285,6 @@
                     document.querySelectorAll('.drawing-tool').forEach(t => t.classList.remove('active'));
                     this.classList.add('active');
                     currentTool = this.dataset.tool;
-                    updateDrawingTool();
-                });
-            });
-            
-            // Обработчики для выбора цвета
-            document.querySelectorAll('.color-picker').forEach(picker => {
-                picker.addEventListener('click', function() {
-                    currentColor = this.dataset.color;
                     updateDrawingTool();
                 });
             });
@@ -1550,7 +2387,7 @@
                 
                 if (result.success) {
                     showMessage(`✅ ${result.message}`, 'success');
-                    showInteractiveResult(true, 3, "Работа отправлена на модерацию!");
+                    showInteractiveResult(true, 5, "Работа отправлена на модерацию!");
                     loadUserData();
                 } else {
                     showMessage(`❌ ${result.error}`, 'error');
@@ -1592,15 +2429,15 @@
             resultContent.innerHTML = `
                 <div class="interactive-result">
                     <div class="result-icon">${isCorrect ? '🎉' : '😔'}</div>
-                    <h3 style="margin-bottom: 10px; color: ${isCorrect ? '#48bb78' : '#f56565'};">
+                    <h3 style="margin-bottom: 12px; color: ${isCorrect ? '#48bb78' : '#f56565'};">
                         ${isCorrect ? 'Правильно!' : 'Попробуйте еще раз!'}
                     </h3>
                     ${sparksEarned > 0 ? `
-                        <div style="font-size: 24px; color: #d69e2e; margin-bottom: 15px;">
+                        <div style="font-size: 28px; color: #d69e2e; margin-bottom: 20px;">
                             +${sparksEarned}✨
                         </div>
                     ` : ''}
-                    <div style="color: #718096; margin-bottom: 20px;">
+                    <div style="color: #718096; margin-bottom: 24px; line-height: 1.5;">
                         ${message}
                     </div>
                 </div>
@@ -1648,13 +2485,15 @@
             }
         }
 
+        // ==================== РАБОТЫ ====================
+
         // Показать вкладку работ
         function showWorksTab(tab) {
             currentWorksTab = tab;
             
             document.querySelectorAll('.works-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.works-tab').forEach(t => {
-                if (t.textContent.includes(tab === 'view' ? 'Посмотреть' : 'Загрузить')) {
+                if (t.textContent.includes(tab === 'view' ? 'Мои работы' : 'Загрузить работу')) {
                     t.classList.add('active');
                 }
             });
@@ -1679,9 +2518,9 @@
                 if (data.works.length === 0) {
                     worksList.innerHTML = `
                         <div class="info">
-                            <h4 style="margin-bottom: 10px;">🖼️ У вас пока нет работ</h4>
-                            <p>Загрузите свою первую работу и получите +5✨!</p>
-                            <button class="btn" onclick="showWorksTab('upload')" style="margin-top: 10px;">
+                            <h4 style="margin-bottom: 12px;">🖼️ У вас пока нет работ</h4>
+                            <p style="margin-bottom: 16px;">Загрузите свою первую работу и получите +5✨!</p>
+                            <button class="btn" onclick="showWorksTab('upload')" style="margin-top: 12px;">
                                 📤 Загрузить первую работу
                             </button>
                         </div>
@@ -1700,19 +2539,19 @@
                     };
                     
                     workCard.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                             <h3 style="margin: 0;">${work.title}</h3>
                             <span class="status-badge status-${work.status}">
                                 ${statusTexts[work.status]}
                             </span>
                         </div>
                         ${work.description ? `
-                            <p style="color: #718096; margin-bottom: 10px;">${work.description}</p>
+                            <p style="color: #718096; margin-bottom: 12px; line-height: 1.5;">${work.description}</p>
                         ` : ''}
                         <img src="${work.image_url}" class="work-image">
-                        <div style="color: #718096; font-size: 14px; margin-top: 10px;">
-                            ${new Date(work.created_at).toLocaleString('ru-RU')}
-                            ${work.admin_comment ? ` • ${work.admin_comment}` : ''}
+                        <div style="color: #718096; font-size: 14px; margin-top: 12px;">
+                            📅 ${new Date(work.created_at).toLocaleString('ru-RU')}
+                            ${work.admin_comment ? ` • 💬 ${work.admin_comment}` : ''}
                         </div>
                     `;
                     
@@ -1808,13 +2647,15 @@
             }
         }
 
+        // ==================== МАГАЗИН ====================
+
         // Показать вкладку магазина
         function showShopTab(tab) {
             currentShopTab = tab;
             
             document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.shop-tab').forEach(t => {
-                if (t.textContent.includes(tab === 'items' ? 'Товары' : 'Купленное')) {
+                if (t.textContent.includes(tab === 'items' ? 'Товары' : 'Мои покупки')) {
                     t.classList.add('active');
                 }
             });
@@ -1844,31 +2685,38 @@
                 const shopItemsList = document.getElementById('shopItemsList');
                 shopItemsList.innerHTML = '';
                 
+                if (data.length === 0) {
+                    shopItemsList.innerHTML = '<div class="info">Пока нет доступных товаров</div>';
+                    return;
+                }
+                
                 data.forEach(item => {
                     const itemCard = document.createElement('div');
                     itemCard.className = 'shop-item';
                     
                     const canAfford = currentUser.sparks >= item.price;
+                    const hasPurchased = false; // Можно добавить проверку покупки
                     
                     itemCard.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                             <h3 style="margin: 0;">${item.title}</h3>
                             <div style="text-align: right;">
                                 <div class="spark-badge">${item.price}✨</div>
-                                ${!canAfford ? '<div style="color: #f56565; font-size: 12px; margin-top: 5px;">Недостаточно искр</div>' : ''}
+                                                                ${!canAfford ? '<div style="color: #f56565; font-size: 12px; margin-top: 5px;">Недостаточно искр</div>' : ''}
+                                ${hasPurchased ? '<div style="color: #48bb78; font-size: 12px; margin-top: 5px;">✅ Куплено</div>' : ''}
                             </div>
                         </div>
-                        <p style="color: #718096; margin-bottom: 10px;">${item.description}</p>
+                        <p style="color: #718096; margin-bottom: 12px;">${item.description}</p>
                         ${item.preview_url ? `
                             <img src="${item.preview_url}" class="media-preview">
                         ` : ''}
                         <div class="content-preview">
                             ${item.content_text || 'Описание содержимого...'}
                         </div>
-                        <button class="btn ${canAfford ? 'btn-success' : 'btn-secondary'}" 
+                        <button class="btn ${canAfford && !hasPurchased ? 'btn-success' : 'btn-secondary'}" 
                                 onclick="purchaseItem(${item.id})" 
-                                ${!canAfford ? 'disabled' : ''}>
-                            ${canAfford ? '🛒 Купить' : '🔒 Недоступно'}
+                                ${!canAfford || hasPurchased ? 'disabled' : ''}>
+                            ${hasPurchased ? '✅ Куплено' : canAfford ? '🛒 Купить' : '🔒 Недоступно'}
                         </button>
                     `;
                     
@@ -1926,13 +2774,13 @@
                     purchaseCard.className = 'purchase-item';
                     
                     purchaseCard.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                             <h3 style="margin: 0;">${purchase.title}</h3>
                             <div style="color: #718096; font-size: 14px;">
-                                ${new Date(purchase.purchased_at).toLocaleDateString('ru-RU')}
+                                📅 ${new Date(purchase.purchased_at).toLocaleDateString('ru-RU')}
                             </div>
                         </div>
-                        <p style="color: #718096; margin-bottom: 10px;">${purchase.description}</p>
+                        <p style="color: #718096; margin-bottom: 12px;">${purchase.description}</p>
                         ${purchase.preview_url ? `
                             <img src="${purchase.preview_url}" class="media-preview">
                         ` : ''}
@@ -1940,7 +2788,7 @@
                             ${purchase.content_text || 'Содержимое товара...'}
                         </div>
                         ${purchase.file_url ? `
-                            <a href="${purchase.file_url}" target="_blank" class="btn" style="margin-top: 10px;">
+                            <a href="${purchase.file_url}" target="_blank" class="btn" style="margin-top: 12px;">
                                 📥 Скачать
                             </a>
                         ` : ''}
@@ -1953,6 +2801,8 @@
             }
         }
 
+        // ==================== ПОСТЫ ====================
+
         // Загрузка постов
         async function loadPosts() {
             try {
@@ -1962,26 +2812,31 @@
                 const postsList = document.getElementById('postsList');
                 postsList.innerHTML = '';
                 
+                if (data.posts.length === 0) {
+                    postsList.innerHTML = '<div class="info">Пока нет постов</div>';
+                    return;
+                }
+                
                 data.posts.forEach(post => {
                     const postCard = document.createElement('div');
                     postCard.className = 'post-card';
                     
                     postCard.innerHTML = `
-                        <h3 style="margin-bottom: 10px;">${post.title}</h3>
+                        <h3 style="margin-bottom: 12px;">${post.title}</h3>
                         ${post.image_url ? `
                             <img src="${post.image_url}" class="media-preview">
                         ` : ''}
                         ${post.video_url ? `
                             <video src="${post.video_url}" controls class="media-preview"></video>
                         ` : ''}
-                        <div style="color: #4a5568; margin-bottom: 15px; line-height: 1.5;">
+                        <div style="color: #4a5568; margin-bottom: 16px; line-height: 1.5;">
                             ${post.content}
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; color: #718096; font-size: 14px;">
-                            <span>${post.reviews_count} отзывов • ★ ${post.average_rating?.toFixed(1) || '0.0'}</span>
-                            <span>${new Date(post.created_at).toLocaleDateString('ru-RU')}</span>
+                            <span>💬 ${post.reviews_count} отзывов • ★ ${post.average_rating?.toFixed(1) || '0.0'}</span>
+                            <span>📅 ${new Date(post.created_at).toLocaleDateString('ru-RU')}</span>
                         </div>
-                        <button class="btn" onclick="showPostReview('${post.post_id}')" style="margin-top: 10px;">
+                        <button class="btn" onclick="showPostReview('${post.post_id}')" style="margin-top: 12px;">
                             💬 Написать отзыв
                         </button>
                     `;
@@ -2027,6 +2882,8 @@
             }
         }
 
+        // ==================== АКТИВНОСТИ ====================
+
         // Загрузка активностей
         async function loadActivities() {
             try {
@@ -2062,14 +2919,14 @@
                     }
                     
                     activityItem.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 5px;">
-                            <div style="font-weight: 600;">${activity.description}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                            <div style="font-weight: 600; line-height: 1.4;">${activity.description}</div>
                             <div style="color: ${activity.sparks_earned > 0 ? '#48bb78' : '#f56565'}; font-weight: 600;">
                                 ${activity.sparks_earned > 0 ? '+' : ''}${activity.sparks_earned}✨
                             </div>
                         </div>
                         <div style="color: #718096; font-size: 14px;">
-                            ${timeAgo} • ${date.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}
+                            📅 ${timeAgo} • ${date.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}
                         </div>
                     `;
                     
@@ -2080,6 +2937,8 @@
             }
         }
 
+        // ==================== ПРИГЛАШЕНИЯ ====================
+
         // Копирование ссылки приглашения
         function copyInviteLink() {
             const link = `https://t.me/your_bot?start=ref_${currentUserId}`;
@@ -2089,6 +2948,8 @@
                 showMessage('❌ Не удалось скопировать ссылку', 'error');
             });
         }
+
+        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 
         // Показать сообщение
         function showMessage(message, type) {
@@ -2111,40 +2972,64 @@
         // Обработка перетаскивания файлов
         document.addEventListener('DOMContentLoaded', function() {
             const uploadArea = document.getElementById('uploadArea');
+            const marathonUploadArea = document.getElementById('marathonUploadArea');
             
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                uploadArea.addEventListener(eventName, preventDefaults, false);
-            });
-            
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
+            function setupDragAndDrop(uploadArea, callback) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, unhighlight, false);
+                });
+                
+                function highlight() {
+                    uploadArea.classList.add('dragover');
+                }
+                
+                function unhighlight() {
+                    uploadArea.classList.remove('dragover');
+                }
+                
+                uploadArea.addEventListener('drop', handleDrop, false);
+                
+                function handleDrop(e) {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    callback(files[0]);
+                }
             }
             
-            ['dragenter', 'dragover'].forEach(eventName => {
-                uploadArea.addEventListener(eventName, highlight, false);
-            });
-            
-            ['dragleave', 'drop'].forEach(eventName => {
-                uploadArea.addEventListener(eventName, unhighlight, false);
-            });
-            
-            function highlight() {
-                uploadArea.classList.add('dragover');
-            }
-            
-            function unhighlight() {
-                uploadArea.classList.remove('dragover');
-            }
-            
-            uploadArea.addEventListener('drop', handleDrop, false);
-            
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                handleImageUpload(files[0]);
-            }
+            setupDragAndDrop(uploadArea, handleImageUpload);
+            setupDragAndDrop(marathonUploadArea, handleMarathonImageUpload);
         });
+
+        // Анимация появления элементов
+        function animateElements() {
+            const elements = document.querySelectorAll('.card, .btn, .feature-card');
+            elements.forEach((element, index) => {
+                element.style.opacity = '0';
+                element.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    element.style.transition = 'all 0.5s ease';
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        }
+
+        // Вызов анимации при загрузке
+        setTimeout(animateElements, 500);
     </script>
 </body>
 </html>
