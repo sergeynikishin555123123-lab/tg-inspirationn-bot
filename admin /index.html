@@ -10,7 +10,7 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f5f6fa; color: #2d3748; line-height: 1.6; padding: 20px;
         }
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container { max-width: 1400px; margin: 0 auto; }
         .header { 
             background: white; padding: 20px; border-radius: 10px; 
             box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px;
@@ -62,12 +62,14 @@
         .stat-card:hover { transform: translateY(-2px); }
         .stat-number { font-size: 2em; font-weight: bold; color: #667eea; margin-bottom: 5px; }
         .stat-label { color: #718096; font-size: 14px; }
-        .role-card, .character-card, .quiz-card, .marathon-card, .admin-card, .shop-item-card, .post-card, .review-card, .work-card {
+        .role-card, .character-card, .quiz-card, .marathon-card, .admin-card, 
+        .shop-item-card, .post-card, .review-card, .work-card, .interactive-card {
             background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px;
             padding: 15px; margin-bottom: 15px; transition: all 0.3s ease;
         }
-        .role-card:hover, .character-card:hover, .quiz-card:hover, .marathon-card:hover, .admin-card:hover, 
-        .shop-item-card:hover, .post-card:hover, .review-card:hover, .work-card:hover {
+        .role-card:hover, .character-card:hover, .quiz-card:hover, .marathon-card:hover, 
+        .admin-card:hover, .shop-item-card:hover, .post-card:hover, .review-card:hover, 
+        .work-card:hover, .interactive-card:hover {
             border-color: #667eea; transform: translateY(-1px);
         }
         .message {
@@ -138,6 +140,82 @@
         .post-actions {
             display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;
         }
+        .users-table {
+            width: 100%; border-collapse: collapse; margin-top: 15px;
+            background: white; border-radius: 8px; overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .users-table th, .users-table td {
+            padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0;
+        }
+        .users-table th {
+            background: #f7fafc; font-weight: 600; color: #4a5568;
+            position: sticky; top: 0;
+        }
+        .users-table tr:hover {
+            background: #f7fafc;
+        }
+        .interactive-image {
+            max-width: 200px; max-height: 150px; border-radius: 8px;
+            margin: 10px 0; border: 2px solid #e2e8f0;
+        }
+        .category-badge {
+            display: inline-block; padding: 4px 8px; border-radius: 8px;
+            font-size: 12px; font-weight: 600; margin-right: 5px;
+        }
+        .category-history { background: #fed7d7; color: #c53030; }
+        .category-style { background: #c6f6d5; color: #276749; }
+        .category-art { background: #bee3f8; color: #2c5aa0; }
+        .category-craft { background: #feebc8; color: #dd6b20; }
+        .type-badge {
+            display: inline-block; padding: 4px 8px; border-radius: 8px;
+            font-size: 12px; font-weight: 600; margin-right: 5px;
+            background: #e2e8f0; color: #4a5568;
+        }
+        .search-box {
+            margin-bottom: 20px;
+        }
+        .search-input {
+            width: 300px; max-width: 100%; padding: 10px 15px;
+            border: 2px solid #e2e8f0; border-radius: 25px;
+            font-size: 14px; transition: all 0.3s ease;
+        }
+        .search-input:focus {
+            border-color: #667eea; outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .filters {
+            display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-select {
+            padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 5px;
+            background: white; font-size: 14px; min-width: 150px;
+        }
+        .user-stats {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px; margin: 10px 0;
+        }
+        .user-stat-item {
+            text-align: center; padding: 10px; background: #f7fafc;
+            border-radius: 8px; border: 1px solid #e2e8f0;
+        }
+        .user-stat-number {
+            font-size: 18px; font-weight: bold; color: #667eea;
+            margin-bottom: 5px;
+        }
+        .user-stat-label {
+            font-size: 12px; color: #718096;
+        }
+        .export-btn {
+            background: #48bb78; color: white; border: none; padding: 8px 15px;
+            border-radius: 5px; cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .export-btn:hover { background: #38a169; }
+        .action-buttons {
+            display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
@@ -150,6 +228,8 @@
 
         <div class="nav-tabs">
             <div class="nav-tab active" data-tab="dashboard">📊 Дашборд</div>
+            <div class="nav-tab" data-tab="users-report">👥 Отчет по пользователям</div>
+            <div class="nav-tab" data-tab="interactives">🎮 Интерактивы</div>
             <div class="nav-tab" data-tab="roles">🎭 Роли</div>
             <div class="nav-tab" data-tab="characters">👥 Персонажи</div>
             <div class="nav-tab" data-tab="quizzes">🎯 Квизы</div>
@@ -179,11 +259,11 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-number">0</div>
-                    <div class="stat-label">Товаров в магазине</div>
+                    <div class="stat-label">Интерактивов</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number">0</div>
-                    <div class="stat-label">Всего искр</div>
+                    <div class="stat-label">Товаров в магазине</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number">0</div>
@@ -193,15 +273,123 @@
 
             <div class="card">
                 <h3>📈 Быстрые действия</h3>
-                <button class="btn btn-success" onclick="showTab('roles')">🎭 Добавить роль</button>
-                <button class="btn btn-success" onclick="showTab('characters')">👥 Добавить персонажа</button>
-                <button class="btn btn-success" onclick="showTab('quizzes')">🎯 Создать квиз</button>
-                <button class="btn btn-success" onclick="showTab('marathons')">🏃‍♂️ Создать марафон</button>
-                <button class="btn btn-success" onclick="showTab('shop')">🛒 Добавить товар</button>
-                <button class="btn btn-warning" onclick="showTab('user-works')">🖼️ Модерировать работы</button>
-                <button class="btn btn-warning" onclick="showTab('reviews')">💬 Модерировать отзывы</button>
-                <button class="btn btn-success" onclick="showTab('posts')">📰 Создать пост</button>
-                <button class="btn" onclick="showTab('admins')">🔧 Управление админами</button>
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="showTab('interactives')">🎮 Создать интерактив</button>
+                    <button class="btn btn-success" onclick="showTab('roles')">🎭 Добавить роль</button>
+                    <button class="btn btn-success" onclick="showTab('characters')">👥 Добавить персонажа</button>
+                    <button class="btn btn-success" onclick="showTab('quizzes')">🎯 Создать квиз</button>
+                    <button class="btn btn-success" onclick="showTab('marathons')">🏃‍♂️ Создать марафон</button>
+                    <button class="btn btn-success" onclick="showTab('shop')">🛒 Добавить товар</button>
+                    <button class="btn btn-warning" onclick="showTab('user-works')">🖼️ Модерировать работы</button>
+                    <button class="btn btn-warning" onclick="showTab('reviews')">💬 Модерировать отзывы</button>
+                    <button class="btn btn-success" onclick="showTab('posts')">📰 Создать пост</button>
+                    <button class="btn" onclick="showTab('admins')">🔧 Управление админами</button>
+                    <button class="btn btn-info" onclick="showTab('users-report')">👥 Отчет по пользователям</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Отчет по пользователям -->
+        <div id="users-report" class="tab-content">
+            <div class="card">
+                <h3>👥 Отчет по пользователям</h3>
+                <p>Пользователи отсортированы по количеству активностей (от большего к меньшему)</p>
+                
+                <div class="filters">
+                    <div class="search-box">
+                        <input type="text" id="userSearch" class="search-input" placeholder="🔍 Поиск по имени или username..." onkeyup="filterUsers()">
+                    </div>
+                    <select id="roleFilter" class="filter-select" onchange="filterUsers()">
+                        <option value="">Все роли</option>
+                        <option value="Художники">Художники</option>
+                        <option value="Стилисты">Стилисты</option>
+                        <option value="Мастера">Мастера</option>
+                        <option value="Историки">Историки</option>
+                    </select>
+                    <select id="activityFilter" class="filter-select" onchange="filterUsers()">
+                        <option value="">Все уровни активности</option>
+                        <option value="high">Высокая (50+ активностей)</option>
+                        <option value="medium">Средняя (10-49 активностей)</option>
+                        <option value="low">Низкая (0-9 активностей)</option>
+                    </select>
+                    <button class="export-btn" onclick="exportUsersReport()">
+                        📊 Экспорт в CSV
+                    </button>
+                </div>
+                
+                <div id="usersReportList">
+                    <div class="loading">Загрузка отчета...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Интерактивы -->
+        <div id="interactives" class="tab-content">
+            <div class="card">
+                <h3>🎮 Создать интерактив</h3>
+                <form id="createInteractiveForm">
+                    <div class="form-group">
+                        <label class="form-label">Название интерактива:</label>
+                        <input type="text" id="interactiveTitle" class="form-control" required placeholder="Введите название интерактива">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание:</label>
+                        <textarea id="interactiveDescription" class="form-control" rows="3" placeholder="Описание интерактива"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Тип интерактива:</label>
+                        <select id="interactiveType" class="form-control" required>
+                            <option value="">Выберите тип</option>
+                            <option value="guess_era">🎨 Угадай эпоху</option>
+                            <option value="style_match">👗 Подбери образ</option>
+                            <option value="drawing_challenge">✏️ Рисовальный челлендж</option>
+                            <option value="find_difference">🔍 Найди отличия</option>
+                            <option value="puzzle">🧩 Пазл</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Категория:</label>
+                        <select id="interactiveCategory" class="form-control" required>
+                            <option value="">Выберите категорию</option>
+                            <option value="history">🏛️ История искусства</option>
+                            <option value="style">👗 Красота и стиль</option>
+                            <option value="art">🎨 Рисование</option>
+                            <option value="craft">🧵 Прикладное творчество</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Изображение (Base64 или URL):</label>
+                        <textarea id="interactiveImage" class="form-control" rows="4" placeholder="Вставьте Base64 изображение или URL"></textarea>
+                        <small style="color: #718096;">Для загрузки изображения используйте конвертер в Base64 или укажите прямую ссылку</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Вопрос:</label>
+                        <input type="text" id="interactiveQuestion" class="form-control" placeholder="Введите вопрос (для тестовых интерактивов)">
+                    </div>
+                    <div id="interactiveOptionsContainer" style="display: none;">
+                        <h4>Варианты ответов:</h4>
+                        <div id="interactiveOptionsList"></div>
+                        <button type="button" class="btn" onclick="addInteractiveOption()">➕ Добавить вариант</button>
+                    </div>
+                    <div class="form-group" id="correctAnswerContainer" style="display: none;">
+                        <label class="form-label">Правильный ответ:</label>
+                        <select id="interactiveCorrectAnswer" class="form-control">
+                            <option value="0">Вариант 1</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Награда (искры):</label>
+                        <input type="number" id="interactiveSparksReward" class="form-control" value="2" min="1" step="1" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">✅ Создать интерактив</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>📋 Список интерактивов</h3>
+                <div id="interactivesList">
+                    <div class="loading">Загрузка интерактивов...</div>
+                </div>
             </div>
         </div>
 
@@ -252,6 +440,10 @@
                             <label class="button-checkbox">
                                 <input type="checkbox" name="available_buttons" value="invite" checked>
                                 👥 Пригласить
+                            </label>
+                            <label class="button-checkbox">
+                                <input type="checkbox" name="available_buttons" value="interactives" checked>
+                                🎮 Интерактивы
                             </label>
                         </div>
                     </div>
@@ -502,6 +694,7 @@
                             <option value="">Без действия</option>
                             <option value="quiz">Прикрепить квиз</option>
                             <option value="marathon">Прикрепить марафон</option>
+                            <option value="interactive">Прикрепить интерактив</option>
                         </select>
                     </div>
                     <div class="form-group" id="actionTargetContainer" style="display: none;">
@@ -593,6 +786,8 @@
         let currentTasks = [];
         let currentReviewStatus = 'pending';
         let currentWorkStatus = 'pending';
+        let currentInteractiveOptions = ['', '', '', ''];
+        let allUsers = [];
 
         // Инициализация админ панели
         async function initializeAdmin() {
@@ -635,14 +830,21 @@
                     });
                 });
 
-                // Формы
-                document.getElementById('createRoleForm').addEventListener('submit', createRole);
-                document.getElementById('createCharacterForm').addEventListener('submit', createCharacter);
-                document.getElementById('createQuizForm').addEventListener('submit', createQuiz);
-                document.getElementById('createMarathonForm').addEventListener('submit', createMarathon);
-                document.getElementById('createShopItemForm').addEventListener('submit', createShopItem);
-                document.getElementById('createPostForm').addEventListener('submit', createPost);
-                document.getElementById('addAdminForm').addEventListener('submit', addAdmin);
+                // Обработчики для интерактивов
+                document.getElementById('interactiveType').addEventListener('change', function() {
+                    const needsOptions = ['guess_era', 'style_match', 'find_difference', 'puzzle'].includes(this.value);
+                    const optionsContainer = document.getElementById('interactiveOptionsContainer');
+                    const correctAnswerContainer = document.getElementById('correctAnswerContainer');
+                    
+                    if (needsOptions) {
+                        optionsContainer.style.display = 'block';
+                        correctAnswerContainer.style.display = 'block';
+                        renderInteractiveOptions();
+                    } else {
+                        optionsContainer.style.display = 'none';
+                        correctAnswerContainer.style.display = 'none';
+                    }
+                });
 
                 // Обработчики для выбора действия в посте
                 document.getElementById('postActionType').addEventListener('change', function() {
@@ -677,7 +879,19 @@
                 // Инициализация чекбоксов кнопок
                 initButtonCheckboxes();
 
+                // Формы
+                document.getElementById('createInteractiveForm').addEventListener('submit', createInteractive);
+                document.getElementById('createRoleForm').addEventListener('submit', createRole);
+                document.getElementById('createCharacterForm').addEventListener('submit', createCharacter);
+                document.getElementById('createQuizForm').addEventListener('submit', createQuiz);
+                document.getElementById('createMarathonForm').addEventListener('submit', createMarathon);
+                document.getElementById('createShopItemForm').addEventListener('submit', createShopItem);
+                document.getElementById('createPostForm').addEventListener('submit', createPost);
+                document.getElementById('addAdminForm').addEventListener('submit', addAdmin);
+
                 // Загружаем начальные данные
+                loadUsersReport();
+                loadInteractives();
                 loadRoles();
                 loadCharacters();
                 loadQuizzes();
@@ -689,14 +903,321 @@
                 loadAdmins();
                 loadFullStats();
 
-                // Добавляем первый вопрос и задание
+                // Добавляем первый вопрос, задание и опцию
                 addQuestion();
                 addTask();
+                renderInteractiveOptions();
 
             } catch (error) {
                 showMessage('❌ Ошибка доступа к админ панели', 'error');
                 console.error('Admin init error:', error);
             }
+        }
+
+        // Функции для интерактивов
+        function addInteractiveOption() {
+            if (currentInteractiveOptions.length < 6) {
+                currentInteractiveOptions.push('');
+                renderInteractiveOptions();
+            }
+        }
+
+        function removeInteractiveOption(index) {
+            if (currentInteractiveOptions.length > 2) {
+                currentInteractiveOptions.splice(index, 1);
+                renderInteractiveOptions();
+            }
+        }
+
+        function updateInteractiveOption(index, value) {
+            currentInteractiveOptions[index] = value;
+            updateCorrectAnswerOptions();
+        }
+
+        function renderInteractiveOptions() {
+            const container = document.getElementById('interactiveOptionsList');
+            container.innerHTML = currentInteractiveOptions.map((option, index) => `
+                <div class="option-item">
+                    <button type="button" class="btn btn-danger" onclick="removeInteractiveOption(${index})" ${currentInteractiveOptions.length <= 2 ? 'disabled' : ''}>🗑️</button>
+                    <input type="text" placeholder="Вариант ${index + 1}" value="${option}"
+                           onchange="updateInteractiveOption(${index}, this.value)"
+                           class="form-control" style="margin-left: 10px;">
+                </div>
+            `).join('');
+            updateCorrectAnswerOptions();
+        }
+
+        function updateCorrectAnswerOptions() {
+            const select = document.getElementById('interactiveCorrectAnswer');
+            select.innerHTML = currentInteractiveOptions.map((option, index) => 
+                `<option value="${index}">${option || `Вариант ${index + 1}`}</option>`
+            ).join('');
+        }
+
+        async function createInteractive(e) {
+            e.preventDefault();
+            
+            const formData = {
+                title: document.getElementById('interactiveTitle').value,
+                description: document.getElementById('interactiveDescription').value,
+                type: document.getElementById('interactiveType').value,
+                category: document.getElementById('interactiveCategory').value,
+                image_url: document.getElementById('interactiveImage').value,
+                question: document.getElementById('interactiveQuestion').value,
+                options: currentInteractiveOptions.filter(opt => opt.trim()),
+                correct_answer: parseInt(document.getElementById('interactiveCorrectAnswer').value),
+                sparks_reward: parseInt(document.getElementById('interactiveSparksReward').value)
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/interactives?userId=${currentAdminId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Интерактив успешно создан!', 'success');
+                    document.getElementById('createInteractiveForm').reset();
+                    currentInteractiveOptions = ['', '', '', ''];
+                    renderInteractiveOptions();
+                    loadInteractives();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при создании интерактива', 'error');
+            }
+        }
+
+        async function loadInteractives() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/interactives?userId=${currentAdminId}`);
+                const interactives = await response.json();
+                
+                const list = document.getElementById('interactivesList');
+                list.innerHTML = interactives.map(interactive => {
+                    const categoryClass = `category-${interactive.category}`;
+                    const categoryNames = {
+                        'history': '🏛️ История',
+                        'style': '👗 Стиль',
+                        'art': '🎨 Искусство',
+                        'craft': '🧵 Ремесло'
+                    };
+                    
+                    const typeNames = {
+                        'guess_era': 'Угадай эпоху',
+                        'style_match': 'Подбери образ',
+                        'drawing_challenge': 'Рисовальный челлендж',
+                        'find_difference': 'Найди отличия',
+                        'puzzle': 'Пазл'
+                    };
+                    
+                    return `
+                        <div class="interactive-card">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <div style="flex: 1;">
+                                    <h4 style="margin: 0 0 5px 0;">${interactive.title}</h4>
+                                    <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">
+                                        ${interactive.description || 'Без описания'}
+                                    </div>
+                                    <div style="margin-bottom: 5px;">
+                                        <span class="category-badge ${categoryClass}">
+                                            ${categoryNames[interactive.category] || interactive.category}
+                                        </span>
+                                        <span class="type-badge">${typeNames[interactive.type] || interactive.type}</span>
+                                    </div>
+                                    ${interactive.image_url ? `
+                                        <img src="${interactive.image_url}" class="interactive-image">
+                                    ` : ''}
+                                    <div style="color: #4a5568; font-size: 14px;">
+                                        ${interactive.question ? `Вопрос: ${interactive.question}<br>` : ''}
+                                        Награда: ${interactive.sparks_reward}✨
+                                        • Прохождений: ${interactive.completions_count || 0}
+                                        ${interactive.average_score ? `• Средний балл: ${interactive.average_score.toFixed(1)}` : ''}
+                                    </div>
+                                </div>
+                                <span class="badge ${interactive.is_active ? 'badge-success' : 'badge-warning'}">
+                                    ${interactive.is_active ? 'Активен' : 'Неактивен'}
+                                </span>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <button class="btn btn-warning" onclick="editInteractive(${interactive.id})">✏️ Редактировать</button>
+                                <button class="btn btn-danger" onclick="deleteInteractive(${interactive.id})">🗑️ Удалить</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                document.getElementById('interactivesList').innerHTML = '<div class="message error">Ошибка загрузки интерактивов</div>';
+            }
+        }
+
+        async function deleteInteractive(interactiveId) {
+            if (!confirm('Вы уверены, что хотите удалить этот интерактив?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/interactives/${interactiveId}?userId=${currentAdminId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Интерактив успешно удален!', 'success');
+                    loadInteractives();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при удалении интерактива', 'error');
+            }
+        }
+
+        // Функции для отчета по пользователям
+        async function loadUsersReport() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/users-report?userId=${currentAdminId}`);
+                const data = await response.json();
+                
+                allUsers = data.users;
+                renderUsersReport(allUsers);
+                
+            } catch (error) {
+                document.getElementById('usersReportList').innerHTML = '<div class="message error">Ошибка загрузки отчета</div>';
+            }
+        }
+
+        function renderUsersReport(users) {
+            const container = document.getElementById('usersReportList');
+            
+            if (users.length === 0) {
+                container.innerHTML = '<div class="message info">Пользователи не найдены</div>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Имя</th>
+                            <th>Роль</th>
+                            <th>Искры</th>
+                            <th>Квизы</th>
+                            <th>Марафоны</th>
+                            <th>Интерактивы</th>
+                            <th>Работы</th>
+                            <th>Всего активностей</th>
+                            <th>Последняя активность</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(user => `
+                            <tr>
+                                <td>${user.id}</td>
+                                <td>
+                                    <strong>${user.name}</strong>
+                                    ${user.username ? `<br><small style="color: #718096;">@${user.username}</small>` : ''}
+                                </td>
+                                <td>
+                                    ${user.role}<br>
+                                    <small style="color: #718096;">${user.character}</small>
+                                </td>
+                                <td>
+                                    <strong style="color: #d69e2e;">${user.sparks.toFixed(1)}✨</strong><br>
+                                    <small style="color: #718096;">${user.level}</small>
+                                </td>
+                                <td>${user.total_quizzes}</td>
+                                <td>${user.total_marathons}</td>
+                                <td>${user.total_interactives}</td>
+                                <td>
+                                    ${user.total_works}<br>
+                                    <small style="color: #718096;">${user.approved_works} одобрено</small>
+                                </td>
+                                <td>
+                                    <strong style="color: #${user.total_activities >= 50 ? '48bb78' : user.total_activities >= 10 ? 'ed8936' : 'f56565'}">
+                                        ${user.total_activities}
+                                    </strong>
+                                </td>
+                                <td>
+                                    ${new Date(user.last_active).toLocaleDateString('ru-RU')}<br>
+                                    <small style="color: #718096;">
+                                        ${new Date(user.last_active).toLocaleTimeString('ru-RU')}
+                                    </small>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div style="margin-top: 15px; color: #718096; font-size: 14px;">
+                    Всего пользователей: ${users.length}
+                </div>
+            `;
+        }
+
+        function filterUsers() {
+            const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+            const roleFilter = document.getElementById('roleFilter').value;
+            const activityFilter = document.getElementById('activityFilter').value;
+            
+            let filteredUsers = allUsers.filter(user => {
+                const matchesSearch = user.name.toLowerCase().includes(searchTerm) || 
+                                    (user.username && user.username.toLowerCase().includes(searchTerm));
+                const matchesRole = !roleFilter || user.role === roleFilter;
+                const matchesActivity = !activityFilter || 
+                    (activityFilter === 'high' && user.total_activities >= 50) ||
+                    (activityFilter === 'medium' && user.total_activities >= 10 && user.total_activities < 50) ||
+                    (activityFilter === 'low' && user.total_activities < 10);
+                
+                return matchesSearch && matchesRole && matchesActivity;
+            });
+            
+            renderUsersReport(filteredUsers);
+        }
+
+        function exportUsersReport() {
+            const headers = ['ID', 'Имя', 'Username', 'Роль', 'Персонаж', 'Искры', 'Уровень', 'Квизы', 'Марафоны', 'Интерактивы', 'Работы', 'Одобрено работ', 'Всего активностей', 'Дата регистрации', 'Последняя активность'];
+            
+            const csvData = allUsers.map(user => [
+                user.id,
+                user.name,
+                user.username || '',
+                user.role,
+                user.character,
+                user.sparks.toFixed(1),
+                user.level,
+                user.total_quizzes,
+                user.total_marathons,
+                user.total_interactives,
+                user.total_works,
+                user.approved_works,
+                user.total_activities,
+                new Date(user.registration_date).toLocaleDateString('ru-RU'),
+                new Date(user.last_active).toLocaleDateString('ru-RU')
+            ]);
+            
+            const csvContent = [headers, ...csvData]
+                .map(row => row.map(field => `"${field}"`).join(','))
+                .join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `users_report_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showMessage('📊 Отчет успешно экспортирован в CSV', 'success');
         }
 
         // Загрузка целей для действий
@@ -722,6 +1243,15 @@
                         option.textContent = marathon.title;
                         selectElement.appendChild(option);
                     });
+                } else if (actionType === 'interactive') {
+                    const response = await fetch(`${API_BASE}/api/admin/interactives?userId=${currentAdminId}`);
+                    const interactives = await response.json();
+                    interactives.forEach(interactive => {
+                        const option = document.createElement('option');
+                        option.value = interactive.id;
+                        option.textContent = interactive.title;
+                        selectElement.appendChild(option);
+                    });
                 }
             } catch (error) {
                 console.error('Error loading action targets:', error);
@@ -737,6 +1267,8 @@
             document.getElementById(tabName).classList.add('active');
             
             // Загружаем данные вкладки если нужно
+            if (tabName === 'users-report') loadUsersReport();
+            if (tabName === 'interactives') loadInteractives();
             if (tabName === 'roles') loadRoles();
             if (tabName === 'characters') loadCharacters();
             if (tabName === 'quizzes') loadQuizzes();
@@ -781,12 +1313,12 @@
                         <div class="stat-label">Активных марафонов</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">${data.shopItems}</div>
-                        <div class="stat-label">Товаров в магазине</div>
+                        <div class="stat-number">${data.interactives || 0}</div>
+                        <div class="stat-label">Интерактивов</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">${data.totalSparks.toFixed(1)}</div>
-                        <div class="stat-label">Всего искр</div>
+                        <div class="stat-number">${data.shopItems}</div>
+                        <div class="stat-label">Товаров в магазине</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-number">${data.pendingWorks}</div>
@@ -826,7 +1358,8 @@
                                     Доступные кнопки: ${role.available_buttons.map(btn => {
                                         const buttons = {
                                             'quiz': '🎯', 'marathon': '🏃‍♂️', 'works': '🖼️',
-                                            'activities': '📊', 'posts': '📰', 'shop': '🛒', 'invite': '👥'
+                                            'activities': '📊', 'posts': '📰', 'shop': '🛒', 
+                                            'invite': '👥', 'interactives': '🎮'
                                         };
                                         return buttons[btn] || btn;
                                     }).join(' ')}
@@ -1833,6 +2366,10 @@
                                 <div class="stat-number">${stats.content.posts}</div>
                                 <div class="stat-label">Постов</div>
                             </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.content.interactives}</div>
+                                <div class="stat-label">Интерактивов</div>
+                            </div>
                         </div>
                     </div>
 
@@ -1854,6 +2391,10 @@
                             <div class="stat-item">
                                 <div class="stat-number">${stats.completions.marathons}</div>
                                 <div class="stat-label">Завершенных марафонов</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.completions.interactives}</div>
+                                <div class="stat-label">Завершенных интерактивов</div>
                             </div>
                         </div>
                     </div>
@@ -1886,6 +2427,35 @@
             messageArea.appendChild(messageDiv);
             
             setTimeout(() => messageDiv.remove(), 5000);
+        }
+
+        // Заглушки для редактирования (можно реализовать позже)
+        function editInteractive(id) {
+            showMessage('✏️ Функция редактирования интерактива в разработке', 'info');
+        }
+
+        function editRole(id) {
+            showMessage('✏️ Функция редактирования роли в разработке', 'info');
+        }
+
+        function editCharacter(id) {
+            showMessage('✏️ Функция редактирования персонажа в разработке', 'info');
+        }
+
+        function editQuiz(id) {
+            showMessage('✏️ Функция редактирования квиза в разработке', 'info');
+        }
+
+        function editMarathon(id) {
+            showMessage('✏️ Функция редактирования марафона в разработке', 'info');
+        }
+
+        function editShopItem(id) {
+            showMessage('✏️ Функция редактирования товара в разработке', 'info');
+        }
+
+        function editPost(id) {
+            showMessage('✏️ Функция редактирования поста в разработке', 'info');
         }
 
         // Инициализация
