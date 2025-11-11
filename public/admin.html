@@ -135,6 +135,9 @@
         }
         .button-checkbox.checked { border-color: #667eea; background: #edf2f7; }
         .button-checkbox input { margin-right: 8px; }
+        .post-actions {
+            display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
@@ -324,6 +327,16 @@
                         <textarea id="quizDescription" class="form-control" rows="3" placeholder="Описание квиза"></textarea>
                     </div>
                     <div class="form-group">
+                        <label class="form-label">Искры за правильный ответ:</label>
+                        <input type="number" id="quizSparksPerCorrect" class="form-control" value="1" min="1" step="1" required>
+                        <small style="color: #718096;">Количество искр за каждый правильный ответ</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Бонус за идеальный результат:</label>
+                        <input type="number" id="quizSparksPerfectBonus" class="form-control" value="5" min="0" step="1" required>
+                        <small style="color: #718096;">Дополнительные искры за все правильные ответы</small>
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">Кулдаун (часы):</label>
                         <input type="number" id="quizCooldown" class="form-control" value="24" min="0" step="1" placeholder="0 = без кулдауна">
                         <small style="color: #718096;">Через сколько часов можно пройти квиз повторно (0 - всегда доступен)</small>
@@ -332,11 +345,6 @@
                         <h4>Вопросы:</h4>
                     </div>
                     <button type="button" class="btn" onclick="addQuestion()">➕ Добавить вопрос</button>
-                    <div class="form-group" style="margin-top: 20px;">
-                        <label class="form-label">Награда за идеальный результат (искры):</label>
-                        <input type="number" id="quizSparksReward" class="form-control" value="5" min="1" step="1">
-                        <small style="color: #718096;">Награда за все правильные ответы. За каждый правильный ответ начисляется 1 искра.</small>
-                    </div>
                     <button type="submit" class="btn btn-success" style="margin-top: 20px;">✅ Создать квиз</button>
                 </form>
             </div>
@@ -366,14 +374,15 @@
                         <label class="form-label">Продолжительность (дней):</label>
                         <input type="number" id="marathonDuration" class="form-control" value="7" min="1" max="30" required>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Искры за день марафона:</label>
+                        <input type="number" id="marathonSparksPerDay" class="form-control" value="7" min="1" step="1" required>
+                        <small style="color: #718096;">Количество искр за каждый завершенный день марафона</small>
+                    </div>
                     <div id="tasksContainer">
                         <h4>Задания по дням:</h4>
                     </div>
                     <button type="button" class="btn" onclick="addTask()">➕ Добавить задание</button>
-                    <div class="form-group" style="margin-top: 20px;">
-                        <label class="form-label">Награда за марафон (искры):</label>
-                        <input type="number" id="marathonSparksReward" class="form-control" value="50" min="10" step="10">
-                    </div>
                     <button type="submit" class="btn btn-success" style="margin-top: 20px;">✅ Создать марафон</button>
                 </form>
             </div>
@@ -472,20 +481,20 @@
                         <textarea id="postContent" class="form-control" rows="4" placeholder="Текст поста"></textarea>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Ссылка на изображение:</label>
-                        <input type="url" id="postImageUrl" class="form-control" placeholder="https://example.com/image.jpg">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Ссылка на видео:</label>
-                        <input type="url" id="postVideoUrl" class="form-control" placeholder="https://example.com/video.mp4">
-                    </div>
-                    <div class="form-group">
                         <label class="form-label">Тип медиа:</label>
                         <select id="postMediaType" class="form-control">
                             <option value="text">Текст</option>
                             <option value="image">Изображение</option>
                             <option value="video">Видео</option>
                         </select>
+                    </div>
+                    <div class="form-group" id="postImageUrlGroup" style="display: none;">
+                        <label class="form-label">Ссылка на изображение:</label>
+                        <input type="url" id="postImageUrl" class="form-control" placeholder="https://example.com/image.jpg">
+                    </div>
+                    <div class="form-group" id="postVideoUrlGroup" style="display: none;">
+                        <label class="form-label">Ссылка на видео:</label>
+                        <input type="url" id="postVideoUrl" class="form-control" placeholder="https://example.com/video.mp4">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Действие кнопки:</label>
@@ -650,18 +659,18 @@
 
                 // Обработчик для типа медиа
                 document.getElementById('postMediaType').addEventListener('change', function() {
-                    const imageUrlField = document.getElementById('postImageUrl');
-                    const videoUrlField = document.getElementById('postVideoUrl');
+                    const imageUrlGroup = document.getElementById('postImageUrlGroup');
+                    const videoUrlGroup = document.getElementById('postVideoUrlGroup');
                     
                     if (this.value === 'image') {
-                        imageUrlField.style.display = 'block';
-                        videoUrlField.style.display = 'none';
+                        imageUrlGroup.style.display = 'block';
+                        videoUrlGroup.style.display = 'none';
                     } else if (this.value === 'video') {
-                        imageUrlField.style.display = 'none';
-                        videoUrlField.style.display = 'block';
+                        imageUrlGroup.style.display = 'none';
+                        videoUrlGroup.style.display = 'block';
                     } else {
-                        imageUrlField.style.display = 'none';
-                        videoUrlField.style.display = 'none';
+                        imageUrlGroup.style.display = 'none';
+                        videoUrlGroup.style.display = 'none';
                     }
                 });
 
@@ -1075,7 +1084,8 @@
                 title: document.getElementById('quizTitle').value,
                 description: document.getElementById('quizDescription').value,
                 questions: currentQuestions,
-                sparks_reward: parseInt(document.getElementById('quizSparksReward').value) || 5,
+                sparks_per_correct: parseInt(document.getElementById('quizSparksPerCorrect').value) || 1,
+                sparks_perfect_bonus: parseInt(document.getElementById('quizSparksPerfectBonus').value) || 5,
                 cooldown_hours: parseInt(document.getElementById('quizCooldown').value) || 24
             };
 
@@ -1119,7 +1129,8 @@
                                 </div>
                                 <div style="color: #4a5568; font-size: 14px;">
                                     Вопросов: ${quiz.questions.length} 
-                                    • Награда: ${quiz.sparks_reward}✨
+                                    • ${quiz.sparks_per_correct}✨ за правильный ответ
+                                    • ${quiz.sparks_perfect_bonus}✨ бонус за идеал
                                     • Кулдаун: ${quiz.cooldown_hours || 0}ч
                                     • Прохождений: ${quiz.completions_count || 0}
                                     ${quiz.average_score ? `• Средний балл: ${quiz.average_score.toFixed(1)}` : ''}
@@ -1227,7 +1238,7 @@
                 description: document.getElementById('marathonDescription').value,
                 duration_days: parseInt(document.getElementById('marathonDuration').value),
                 tasks: currentTasks,
-                sparks_reward: parseInt(document.getElementById('marathonSparksReward').value) || 50
+                sparks_per_day: parseInt(document.getElementById('marathonSparksPerDay').value) || 7
             };
 
             try {
@@ -1270,7 +1281,7 @@
                                 </div>
                                 <div style="color: #4a5568; font-size: 14px;">
                                     Длительность: ${marathon.duration_days} дней
-                                    • Награда: ${marathon.sparks_reward}✨
+                                    • ${marathon.sparks_per_day}✨ за день
                                     • Прохождений: ${marathon.completions_count || 0}
                                     • Активных: ${marathon.active_users || 0}
                                 </div>
@@ -1506,21 +1517,45 @@
                                 <div style="color: #718096; font-size: 14px;">
                                     ${new Date(post.created_at).toLocaleString('ru-RU')}
                                     • Отзывов: ${post.reviews_count}
-                                    ${post.telegram_message_id ? `• Опубликован в Telegram` : ''}
+                                    ${post.telegram_message_id ? `• Опубликован в Telegram (ID: ${post.telegram_message_id})` : '• Не опубликован'}
                                 </div>
                             </div>
                             <span class="badge ${post.is_active ? 'badge-success' : 'badge-warning'}">
                                 ${post.is_active ? 'Активен' : 'Неактивен'}
                             </span>
                         </div>
-                        <div style="margin-top: 10px;">
+                        <div class="post-actions">
                             <button class="btn btn-warning" onclick="editPost(${post.id})">✏️ Редактировать</button>
+                            ${!post.telegram_message_id ? `
+                                <button class="btn btn-success" onclick="publishPost(${post.id})">📢 Опубликовать в Telegram</button>
+                            ` : ''}
                             <button class="btn btn-danger" onclick="deletePost(${post.id})">🗑️ Удалить</button>
                         </div>
                     </div>
                 `).join('');
             } catch (error) {
                 document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов</div>';
+            }
+        }
+
+        async function publishPost(postId) {
+            if (!confirm('Опубликовать этот пост в Telegram?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/channel-posts/${postId}/publish?userId=${currentAdminId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Пост успешно опубликован в Telegram!', 'success');
+                    loadPosts();
+                } else {
+                    showMessage(`❌ Ошибка публикации: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при публикации поста', 'error');
             }
         }
 
@@ -1551,6 +1586,8 @@
                     showMessage('✅ Пост успешно создан!', 'success');
                     document.getElementById('createPostForm').reset();
                     document.getElementById('actionTargetContainer').style.display = 'none';
+                    document.getElementById('postImageUrlGroup').style.display = 'none';
+                    document.getElementById('postVideoUrlGroup').style.display = 'none';
                     loadPosts();
                     loadDashboard();
                 } else {
