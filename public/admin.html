@@ -2571,45 +2571,45 @@
             addQuestion(); // Добавить первый вопрос по умолчанию
         }
 
-        // Добавить вопрос
-        function addQuestion() {
-            const questionsContainer = document.getElementById('quizQuestions');
-            const questionIndex = questionsContainer.children.length;
-            
-            const questionHtml = `
-                <div class="question-item" data-index="${questionIndex}">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h4 style="margin: 0;">Вопрос ${questionIndex + 1}</h4>
-                        <button class="btn btn-danger" onclick="removeQuestion(${questionIndex})">🗑️ Удалить</button>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Текст вопроса:</label>
-                        <input type="text" class="form-control question-text" placeholder="Введите вопрос">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Варианты ответов:</label>
-                        <div class="option-item">
-                            <input type="radio" name="correct_${questionIndex}" value="0" checked>
-                            <input type="text" class="form-control option-text" placeholder="Вариант ответа 1">
-                        </div>
-                        <div class="option-item">
-                            <input type="radio" name="correct_${questionIndex}" value="1">
-                            <input type="text" class="form-control option-text" placeholder="Вариант ответа 2">
-                        </div>
-                        <div class="option-item">
-                            <input type="radio" name="correct_${questionIndex}" value="2">
-                            <input type="text" class="form-control option-text" placeholder="Вариант ответа 3">
-                        </div>
-                        <div class="option-item">
-                            <input type="radio" name="correct_${questionIndex}" value="3">
-                            <input type="text" class="form-control option-text" placeholder="Вариант ответа 4">
-                        </div>
-                    </div>
+// Добавить вопрос
+function addQuestion() {
+    const questionsContainer = document.getElementById('quizQuestions');
+    const questionIndex = questionsContainer.children.length;
+    
+    const questionHtml = `
+        <div class="question-item" data-index="${questionIndex}">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="margin: 0;">Вопрос ${questionIndex + 1}</h4>
+                <button class="btn btn-danger" onclick="removeQuestion(${questionIndex})">🗑️ Удалить</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Текст вопроса:</label>
+                <input type="text" class="form-control question-text" placeholder="Введите вопрос">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Варианты ответов:</label>
+                <div class="option-item">
+                    <input type="radio" name="correct_${questionIndex}" value="0" checked>
+                    <input type="text" class="form-control option-text" placeholder="Вариант ответа 1">
                 </div>
-            `;
-            
-            questionsContainer.innerHTML += questionHtml;
-        }
+                <div class="option-item">
+                    <input type="radio" name="correct_${questionIndex}" value="1">
+                    <input type="text" class="form-control option-text" placeholder="Вариант ответа 2">
+                </div>
+                <div class="option-item">
+                    <input type="radio" name="correct_${questionIndex}" value="2">
+                    <input type="text" class="form-control option-text" placeholder="Вариант ответа 3">
+                </div>
+                <div class="option-item">
+                    <input type="radio" name="correct_${questionIndex}" value="3">
+                    <input type="text" class="form-control option-text" placeholder="Вариант ответа 4">
+                </div>
+            </div>
+        </div>
+    `;
+    
+    questionsContainer.innerHTML += questionHtml;
+}
 
         // Удалить вопрос
         function removeQuestion(index) {
@@ -2748,33 +2748,33 @@
                 document.getElementById('quizActive').checked = quiz.is_active;
                 
                 // Заполнить вопросы
-                const questionsContainer = document.getElementById('quizQuestions');
-                questionsContainer.innerHTML = '';
-                
-                quiz.questions.forEach((question, index) => {
-                    const questionHtml = `
-                        <div class="question-item" data-index="${index}">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <h4 style="margin: 0;">Вопрос ${index + 1}</h4>
-                                <button class="btn btn-danger" onclick="removeQuestion(${index})">🗑️ Удалить</button>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Текст вопроса:</label>
-                                <input type="text" class="form-control question-text" value="${question.question}" placeholder="Введите вопрос">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Варианты ответов:</label>
-                                ${question.options.map((option, optIndex) => `
-                                    <div class="option-item">
-                                        <input type="radio" name="correct_${index}" value="${optIndex}" ${optIndex === question.correctAnswer ? 'checked' : ''}>
-                                        <input type="text" class="form-control option-text" value="${option}" placeholder="Вариант ответа ${optIndex + 1}">
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `;
-                    questionsContainer.innerHTML += questionHtml;
-                });
+const questionsContainer = document.getElementById('quizQuestions');
+questionsContainer.innerHTML = '';
+
+quiz.questions.forEach((question, index) => {
+    const questionHtml = `
+        <div class="question-item" data-index="${index}">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="margin: 0;">Вопрос ${index + 1}</h4>
+                <button class="btn btn-danger" onclick="removeQuestion(${index})">🗑️ Удалить</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Текст вопроса:</label>
+                <input type="text" class="form-control question-text" value="${question.question}" placeholder="Введите вопрос">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Варианты ответов:</label>
+                ${question.options.map((option, optIndex) => `
+                    <div class="option-item">
+                        <input type="radio" name="correct_${index}" value="${optIndex}" ${optIndex === question.correctAnswer ? 'checked' : ''}>
+                        <input type="text" class="form-control option-text" value="${option}" placeholder="Вариант ответа ${optIndex + 1}">
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    questionsContainer.innerHTML += questionHtml;
+});
                 
             } catch (error) {
                 showMessage('❌ Ошибка загрузки квиза', 'error');
