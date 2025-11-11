@@ -216,6 +216,27 @@
         .action-buttons {
             display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
         }
+        .upload-area {
+            border: 2px dashed #667eea; border-radius: 8px; padding: 20px;
+            text-align: center; margin: 10px 0; cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            background: #f7fafc; border-color: #5a67d8;
+        }
+        .upload-area.dragover {
+            background: #edf2f7; border-color: #4a5568;
+        }
+        .image-preview-container {
+            margin: 15px 0;
+        }
+        .edit-form {
+            background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 8px;
+            padding: 20px; margin: 15px 0;
+        }
+        .form-actions {
+            display: flex; gap: 10px; margin-top: 15px;
+        }
     </style>
 </head>
 <body>
@@ -357,11 +378,27 @@
                             <option value="craft">🧵 Прикладное творчество</option>
                         </select>
                     </div>
+                    
+                    <!-- НОВЫЙ БЛОК ДЛЯ ЗАГРУЗКИ ИЗОБРАЖЕНИЙ -->
                     <div class="form-group">
-                        <label class="form-label">Изображение (Base64 или URL):</label>
-                        <textarea id="interactiveImage" class="form-control" rows="4" placeholder="Вставьте Base64 изображение или URL"></textarea>
-                        <small style="color: #718096;">Для загрузки изображения используйте конвертер в Base64 или укажите прямую ссылку</small>
+                        <label class="form-label">Изображение:</label>
+                        <div class="upload-area" id="interactiveUploadArea" onclick="document.getElementById('interactiveImageInput').click()">
+                            <div style="font-size: 32px; margin-bottom: 10px;">📁</div>
+                            <div style="font-weight: 600; margin-bottom: 5px;">Нажмите для загрузки изображения</div>
+                            <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
+                            <div style="color: #667eea; margin-top: 10px; font-size: 12px;">
+                                Поддерживаются: JPG, PNG, GIF (макс. 10MB)
+                            </div>
+                        </div>
+                        <input type="file" id="interactiveImageInput" accept="image/*" style="display: none;" onchange="handleInteractiveImageUpload(this.files[0])">
+                        
+                        <div id="interactiveImagePreview" class="image-preview-container" style="display: none;">
+                            <img id="previewInteractiveImage" class="interactive-image">
+                            <button type="button" class="btn btn-danger" onclick="clearInteractiveImage()" style="margin-top: 10px;">🗑️ Удалить изображение</button>
+                        </div>
+                        <input type="hidden" id="interactiveImageUrl">
                     </div>
+
                     <div class="form-group">
                         <label class="form-label">Вопрос:</label>
                         <input type="text" id="interactiveQuestion" class="form-control" placeholder="Введите вопрос (для тестовых интерактивов)">
@@ -788,6 +825,13 @@
         let currentWorkStatus = 'pending';
         let currentInteractiveOptions = ['', '', '', ''];
         let allUsers = [];
+        let editingInteractiveId = null;
+        let editingRoleId = null;
+        let editingCharacterId = null;
+        let editingQuizId = null;
+        let editingMarathonId = null;
+        let editingShopItemId = null;
+        let editingPostId = null;
 
         // Инициализация админ панели
         async function initializeAdmin() {
@@ -889,6 +933,9 @@
                 document.getElementById('createPostForm').addEventListener('submit', createPost);
                 document.getElementById('addAdminForm').addEventListener('submit', addAdmin);
 
+                // Drag and drop для загрузки изображений
+                initImageUpload();
+
                 // Загружаем начальные данные
                 loadUsersReport();
                 loadInteractives();
@@ -912,6 +959,91 @@
                 showMessage('❌ Ошибка доступа к админ панели', 'error');
                 console.error('Admin init error:', error);
             }
+        }
+
+        // Инициализация загрузки изображений
+        function initImageUpload() {
+            const uploadArea = document.getElementById('interactiveUploadArea');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                uploadArea.classList.add('dragover');
+            }
+            
+            function unhighlight() {
+                uploadArea.classList.remove('dragover');
+            }
+            
+            uploadArea.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleInteractiveImageUpload(files[0]);
+            }
+        }
+
+        // Обработка загрузки изображения для интерактива
+        async function handleInteractiveImageUpload(file) {
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                showMessage('❌ Пожалуйста, выберите изображение', 'error');
+                return;
+            }
+            
+            if (file.size > 10 * 1024 * 1024) {
+                showMessage('❌ Размер файла не должен превышать 10MB', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/interactives/upload-image?userId=${currentAdminId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('interactiveImageUrl').value = result.imageUrl;
+                    document.getElementById('previewInteractiveImage').src = result.imageUrl;
+                    document.getElementById('interactiveImagePreview').style.display = 'block';
+                    document.getElementById('interactiveUploadArea').style.display = 'none';
+                    showMessage('✅ Изображение успешно загружено', 'success');
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки изображения', 'error');
+            }
+        }
+
+        // Очистить изображение интерактива
+        function clearInteractiveImage() {
+            document.getElementById('interactiveImageUrl').value = '';
+            document.getElementById('interactiveImagePreview').style.display = 'none';
+            document.getElementById('interactiveUploadArea').style.display = 'block';
+            document.getElementById('interactiveImageInput').value = '';
         }
 
         // Функции для интерактивов
@@ -962,16 +1094,27 @@
                 description: document.getElementById('interactiveDescription').value,
                 type: document.getElementById('interactiveType').value,
                 category: document.getElementById('interactiveCategory').value,
-                image_url: document.getElementById('interactiveImage').value,
+                image_url: document.getElementById('interactiveImageUrl').value,
                 question: document.getElementById('interactiveQuestion').value,
                 options: currentInteractiveOptions.filter(opt => opt.trim()),
                 correct_answer: parseInt(document.getElementById('interactiveCorrectAnswer').value),
                 sparks_reward: parseInt(document.getElementById('interactiveSparksReward').value)
             };
 
+            if (!formData.image_url) {
+                showMessage('❌ Загрузите изображение для интерактива', 'error');
+                return;
+            }
+
             try {
-                const response = await fetch(`${API_BASE}/api/admin/interactives?userId=${currentAdminId}`, {
-                    method: 'POST',
+                const url = editingInteractiveId ? 
+                    `${API_BASE}/api/admin/interactives/${editingInteractiveId}?userId=${currentAdminId}` :
+                    `${API_BASE}/api/admin/interactives?userId=${currentAdminId}`;
+                
+                const method = editingInteractiveId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
@@ -979,10 +1122,8 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showMessage('✅ Интерактив успешно создан!', 'success');
-                    document.getElementById('createInteractiveForm').reset();
-                    currentInteractiveOptions = ['', '', '', ''];
-                    renderInteractiveOptions();
+                    showMessage(`✅ Интерактив успешно ${editingInteractiveId ? 'обновлен' : 'создан'}!`, 'success');
+                    resetInteractiveForm();
                     loadInteractives();
                     loadDashboard();
                 } else {
@@ -991,6 +1132,15 @@
             } catch (error) {
                 showMessage('Ошибка при создании интерактива', 'error');
             }
+        }
+
+        function resetInteractiveForm() {
+            document.getElementById('createInteractiveForm').reset();
+            currentInteractiveOptions = ['', '', '', ''];
+            renderInteractiveOptions();
+            clearInteractiveImage();
+            editingInteractiveId = null;
+            document.querySelector('button[type="submit"]').textContent = '✅ Создать интерактив';
         }
 
         async function loadInteractives() {
@@ -1053,6 +1203,57 @@
                 }).join('');
             } catch (error) {
                 document.getElementById('interactivesList').innerHTML = '<div class="message error">Ошибка загрузки интерактивов</div>';
+            }
+        }
+
+        // АКТИВНАЯ ФУНКЦИЯ РЕДАКТИРОВАНИЯ ИНТЕРАКТИВА
+        async function editInteractive(interactiveId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/interactives/${interactiveId}?userId=${currentAdminId}`);
+                const interactive = await response.json();
+                
+                editingInteractiveId = interactiveId;
+                
+                // Заполняем форму данными
+                document.getElementById('interactiveTitle').value = interactive.title;
+                document.getElementById('interactiveDescription').value = interactive.description || '';
+                document.getElementById('interactiveType').value = interactive.type;
+                document.getElementById('interactiveCategory').value = interactive.category;
+                document.getElementById('interactiveQuestion').value = interactive.question || '';
+                document.getElementById('interactiveSparksReward').value = interactive.sparks_reward;
+                
+                // Устанавливаем изображение
+                if (interactive.image_url) {
+                    document.getElementById('interactiveImageUrl').value = interactive.image_url;
+                    document.getElementById('previewInteractiveImage').src = interactive.image_url;
+                    document.getElementById('interactiveImagePreview').style.display = 'block';
+                    document.getElementById('interactiveUploadArea').style.display = 'none';
+                }
+                
+                // Устанавливаем опции
+                if (interactive.options && interactive.options.length > 0) {
+                    currentInteractiveOptions = [...interactive.options];
+                    renderInteractiveOptions();
+                }
+                
+                // Устанавливаем правильный ответ
+                document.getElementById('interactiveCorrectAnswer').value = interactive.correct_answer;
+                
+                // Показываем/скрываем опции в зависимости от типа
+                const needsOptions = ['guess_era', 'style_match', 'find_difference', 'puzzle'].includes(interactive.type);
+                document.getElementById('interactiveOptionsContainer').style.display = needsOptions ? 'block' : 'none';
+                document.getElementById('correctAnswerContainer').style.display = needsOptions ? 'block' : 'none';
+                
+                // Меняем текст кнопки
+                document.querySelector('button[type="submit"]').textContent = '✅ Обновить интерактив';
+                
+                // Прокручиваем к форме
+                document.getElementById('createInteractiveForm').scrollIntoView({ behavior: 'smooth' });
+                
+                showMessage('✏️ Редактирование интерактива', 'info');
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки данных интерактива', 'error');
             }
         }
 
@@ -1380,6 +1581,38 @@
             }
         }
 
+        // АКТИВНАЯ ФУНКЦИЯ РЕДАКТИРОВАНИЯ РОЛИ
+        async function editRole(roleId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/roles/${roleId}?userId=${currentAdminId}`);
+                const role = await response.json();
+                
+                editingRoleId = roleId;
+                
+                // Заполняем форму данными
+                document.getElementById('roleName').value = role.name;
+                document.getElementById('roleDescription').value = role.description;
+                document.getElementById('roleIcon').value = role.icon;
+                
+                // Устанавливаем чекбоксы
+                document.querySelectorAll('.button-checkbox input').forEach(checkbox => {
+                    checkbox.checked = role.available_buttons.includes(checkbox.value);
+                    checkbox.parentElement.classList.toggle('checked', checkbox.checked);
+                });
+                
+                // Меняем текст кнопки
+                document.querySelector('#createRoleForm button[type="submit"]').textContent = '✅ Обновить роль';
+                
+                // Прокручиваем к форме
+                document.getElementById('createRoleForm').scrollIntoView({ behavior: 'smooth' });
+                
+                showMessage('✏️ Редактирование роли', 'info');
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки данных роли', 'error');
+            }
+        }
+
         async function createRole(e) {
             e.preventDefault();
             
@@ -1394,8 +1627,14 @@
             };
 
             try {
-                const response = await fetch(`${API_BASE}/api/admin/roles?userId=${currentAdminId}`, {
-                    method: 'POST',
+                const url = editingRoleId ? 
+                    `${API_BASE}/api/admin/roles/${editingRoleId}?userId=${currentAdminId}` :
+                    `${API_BASE}/api/admin/roles?userId=${currentAdminId}`;
+                
+                const method = editingRoleId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
@@ -1403,8 +1642,10 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showMessage('✅ Роль успешно создана!', 'success');
+                    showMessage(`✅ Роль успешно ${editingRoleId ? 'обновлена' : 'создана'}!`, 'success');
                     document.getElementById('createRoleForm').reset();
+                    editingRoleId = null;
+                    document.querySelector('#createRoleForm button[type="submit"]').textContent = '✅ Создать роль';
                     loadRoles();
                     loadDashboard();
                 } else {
@@ -1477,6 +1718,38 @@
             }
         }
 
+        // АКТИВНАЯ ФУНКЦИЯ РЕДАКТИРОВАНИЯ ПЕРСОНАЖА
+        async function editCharacter(characterId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/characters/${characterId}?userId=${currentAdminId}`);
+                const character = await response.json();
+                
+                editingCharacterId = characterId;
+                
+                // Заполняем форму данными
+                document.getElementById('characterName').value = character.name;
+                document.getElementById('characterDescription').value = character.description || '';
+                document.getElementById('characterBonusType').value = character.bonus_type;
+                document.getElementById('characterBonusValue').value = character.bonus_value;
+                
+                // Устанавливаем роль
+                setTimeout(() => {
+                    document.getElementById('characterRole').value = character.role_id;
+                }, 100);
+                
+                // Меняем текст кнопки
+                document.querySelector('#createCharacterForm button[type="submit"]').textContent = '✅ Обновить персонажа';
+                
+                // Прокручиваем к форме
+                document.getElementById('createCharacterForm').scrollIntoView({ behavior: 'smooth' });
+                
+                showMessage('✏️ Редактирование персонажа', 'info');
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки данных персонажа', 'error');
+            }
+        }
+
         async function createCharacter(e) {
             e.preventDefault();
             
@@ -1489,8 +1762,14 @@
             };
 
             try {
-                const response = await fetch(`${API_BASE}/api/admin/characters?userId=${currentAdminId}`, {
-                    method: 'POST',
+                const url = editingCharacterId ? 
+                    `${API_BASE}/api/admin/characters/${editingCharacterId}?userId=${currentAdminId}` :
+                    `${API_BASE}/api/admin/characters?userId=${currentAdminId}`;
+                
+                const method = editingCharacterId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
@@ -1498,8 +1777,10 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showMessage('✅ Персонаж успешно создан!', 'success');
+                    showMessage(`✅ Персонаж успешно ${editingCharacterId ? 'обновлен' : 'создан'}!`, 'success');
                     document.getElementById('createCharacterForm').reset();
+                    editingCharacterId = null;
+                    document.querySelector('#createCharacterForm button[type="submit"]').textContent = '✅ Создать персонажа';
                     loadCharacters();
                     loadDashboard();
                 } else {
@@ -1591,6 +1872,43 @@
             if (question) question.correctAnswer = answerIndex;
         }
 
+        // АКТИВНАЯ ФУНКЦИЯ РЕДАКТИРОВАНИЯ КВИЗА
+        async function editQuiz(quizId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/quizzes/${quizId}?userId=${currentAdminId}`);
+                const quiz = await response.json();
+                
+                editingQuizId = quizId;
+                
+                // Заполняем форму данными
+                document.getElementById('quizTitle').value = quiz.title;
+                document.getElementById('quizDescription').value = quiz.description || '';
+                document.getElementById('quizSparksPerCorrect').value = quiz.sparks_per_correct;
+                document.getElementById('quizSparksPerfectBonus').value = quiz.sparks_perfect_bonus;
+                document.getElementById('quizCooldown').value = quiz.cooldown_hours;
+                
+                // Устанавливаем вопросы
+                currentQuestions = quiz.questions.map((q, index) => ({
+                    id: Date.now() + index,
+                    question: q.question,
+                    options: [...q.options],
+                    correctAnswer: q.correctAnswer
+                }));
+                renderQuestions();
+                
+                // Меняем текст кнопки
+                document.querySelector('#createQuizForm button[type="submit"]').textContent = '✅ Обновить квиз';
+                
+                // Прокручиваем к форме
+                document.getElementById('createQuizForm').scrollIntoView({ behavior: 'smooth' });
+                
+                showMessage('✏️ Редактирование квиза', 'info');
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки данных квиза', 'error');
+            }
+        }
+
         async function createQuiz(e) {
             e.preventDefault();
             
@@ -1623,8 +1941,14 @@
             };
 
             try {
-                const response = await fetch(`${API_BASE}/api/admin/quizzes?userId=${currentAdminId}`, {
-                    method: 'POST',
+                const url = editingQuizId ? 
+                    `${API_BASE}/api/admin/quizzes/${editingQuizId}?userId=${currentAdminId}` :
+                    `${API_BASE}/api/admin/quizzes?userId=${currentAdminId}`;
+                
+                const method = editingQuizId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(quizData)
                 });
@@ -1632,9 +1956,11 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showMessage('✅ Квиз успешно создан!', 'success');
+                    showMessage(`✅ Квиз успешно ${editingQuizId ? 'обновлен' : 'создан'}!`, 'success');
                     document.getElementById('createQuizForm').reset();
                     currentQuestions = [];
+                    editingQuizId = null;
+                    document.querySelector('#createQuizForm button[type="submit"]').textContent = '✅ Создать квиз';
                     renderQuestions();
                     loadQuizzes();
                     loadDashboard();
@@ -1750,6 +2076,42 @@
             if (task) task[field] = value;
         }
 
+        // АКТИВНАЯ ФУНКЦИЯ РЕДАКТИРОВАНИЯ МАРАФОНА
+        async function editMarathon(marathonId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/marathons/${marathonId}?userId=${currentAdminId}`);
+                const marathon = await response.json();
+                
+                editingMarathonId = marathonId;
+                
+                // Заполняем форму данными
+                document.getElementById('marathonTitle').value = marathon.title;
+                document.getElementById('marathonDescription').value = marathon.description || '';
+                document.getElementById('marathonDuration').value = marathon.duration_days;
+                document.getElementById('marathonSparksPerDay').value = marathon.sparks_per_day;
+                
+                // Устанавливаем задания
+                currentTasks = marathon.tasks.map((t, index) => ({
+                    id: Date.now() + index,
+                    day: t.day,
+                    title: t.title,
+                    description: t.description || ''
+                }));
+                renderTasks();
+                
+                // Меняем текст кнопки
+                document.querySelector('#createMarathonForm button[type="submit"]').textContent = '✅ Обновить марафон';
+                
+                // Прокручиваем к форме
+                document.getElementById('createMarathonForm').scrollIntoView({ behavior: 'smooth' });
+                
+                showMessage('✏️ Редактирование марафона', 'info');
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки данных марафона', 'error');
+            }
+        }
+
         async function createMarathon(e) {
             e.preventDefault();
             
@@ -1775,8 +2137,14 @@
             };
 
             try {
-                const response = await fetch(`${API_BASE}/api/admin/marathons?userId=${currentAdminId}`, {
-                    method: 'POST',
+                const url = editingMarathonId ? 
+                    `${API_BASE}/api/admin/marathons/${editingMarathonId}?userId=${currentAdminId}` :
+                    `${API_BASE}/api/admin/marathons?userId=${currentAdminId}`;
+                
+                const method = editingMarathonId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(marathonData)
                 });
@@ -1784,9 +2152,11 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showMessage('✅ Марафон успешно создан!', 'success');
+                    showMessage(`✅ Марафон успешно ${editingMarathonId ? 'обновлен' : 'создан'}!`, 'success');
                     document.getElementById('createMarathonForm').reset();
                     currentTasks = [];
+                    editingMarathonId = null;
+                    document.querySelector('#createMarathonForm button[type="submit"]').textContent = '✅ Создать марафон';
                     renderTasks();
                     loadMarathons();
                     loadDashboard();
@@ -1890,6 +2260,36 @@
             }
         }
 
+        // АКТИВНАЯ ФУНКЦИЯ РЕДАКТИРОВАНИЯ ТОВАРА
+        async function editShopItem(itemId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/shop/items/${itemId}?userId=${currentAdminId}`);
+                const item = await response.json();
+                
+                editingShopItemId = itemId;
+                
+                // Заполняем форму данными
+                document.getElementById('itemTitle').value = item.title;
+                document.getElementById('itemDescription').value = item.description || '';
+                document.getElementById('itemType').value = item.type;
+                document.getElementById('itemFileUrl').value = item.file_url || '';
+                document.getElementById('itemPreviewUrl').value = item.preview_url || '';
+                document.getElementById('itemContentText').value = item.content_text || '';
+                document.getElementById('itemPrice').value = item.price;
+                
+                // Меняем текст кнопки
+                document.querySelector('#createShopItemForm button[type="submit"]').textContent = '✅ Обновить товар';
+                
+                // Прокручиваем к форме
+                document.getElementById('createShopItemForm').scrollIntoView({ behavior: 'smooth' });
+                
+                showMessage('✏️ Редактирование товара', 'info');
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки данных товара', 'error');
+            }
+        }
+
         async function createShopItem(e) {
             e.preventDefault();
             
@@ -1904,8 +2304,14 @@
             };
 
             try {
-                const response = await fetch(`${API_BASE}/api/admin/shop/items?userId=${currentAdminId}`, {
-                    method: 'POST',
+                const url = editingShopItemId ? 
+                    `${API_BASE}/api/admin/shop/items/${editingShopItemId}?userId=${currentAdminId}` :
+                    `${API_BASE}/api/admin/shop/items?userId=${currentAdminId}`;
+                
+                const method = editingShopItemId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
@@ -1913,8 +2319,10 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showMessage('✅ Товар успешно создан!', 'success');
+                    showMessage(`✅ Товар успешно ${editingShopItemId ? 'обновлен' : 'создан'}!`, 'success');
                     document.getElementById('createShopItemForm').reset();
+                    editingShopItemId = null;
+                    document.querySelector('#createShopItemForm button[type="submit"]').textContent = '✅ Добавить товар';
                     loadShopItems();
                     loadDashboard();
                 } else {
@@ -2071,6 +2479,52 @@
             }
         }
 
+        // АКТИВНАЯ ФУНКЦИЯ РЕДАКТИРОВАНИЯ ПОСТА
+        async function editPost(postId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/channel-posts/${postId}?userId=${currentAdminId}`);
+                const post = await response.json();
+                
+                editingPostId = postId;
+                
+                // Заполняем форму данными
+                document.getElementById('postId').value = post.post_id;
+                document.getElementById('postTitle').value = post.title;
+                document.getElementById('postContent').value = post.content || '';
+                document.getElementById('postMediaType').value = post.media_type;
+                document.getElementById('postImageUrl').value = post.image_url || '';
+                document.getElementById('postVideoUrl').value = post.video_url || '';
+                document.getElementById('postActionType').value = post.action_type || '';
+                document.getElementById('postActionTarget').value = post.action_target || '';
+                
+                // Показываем/скрываем соответствующие поля
+                if (post.media_type === 'image') {
+                    document.getElementById('postImageUrlGroup').style.display = 'block';
+                } else if (post.media_type === 'video') {
+                    document.getElementById('postVideoUrlGroup').style.display = 'block';
+                }
+                
+                if (post.action_type) {
+                    document.getElementById('actionTargetContainer').style.display = 'block';
+                    // Загружаем цели для выбранного типа действия
+                    setTimeout(() => {
+                        loadActionTargets(post.action_type, document.getElementById('postActionTarget'));
+                    }, 100);
+                }
+                
+                // Меняем текст кнопки
+                document.querySelector('#createPostForm button[type="submit"]').textContent = '✅ Обновить пост';
+                
+                // Прокручиваем к форме
+                document.getElementById('createPostForm').scrollIntoView({ behavior: 'smooth' });
+                
+                showMessage('✏️ Редактирование поста', 'info');
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки данных поста', 'error');
+            }
+        }
+
         async function publishPost(postId) {
             if (!confirm('Опубликовать этот пост в Telegram?')) return;
             
@@ -2107,8 +2561,14 @@
             };
 
             try {
-                const response = await fetch(`${API_BASE}/api/admin/channel-posts?userId=${currentAdminId}`, {
-                    method: 'POST',
+                const url = editingPostId ? 
+                    `${API_BASE}/api/admin/channel-posts/${editingPostId}?userId=${currentAdminId}` :
+                    `${API_BASE}/api/admin/channel-posts?userId=${currentAdminId}`;
+                
+                const method = editingPostId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
@@ -2116,11 +2576,13 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showMessage('✅ Пост успешно создан!', 'success');
+                    showMessage(`✅ Пост успешно ${editingPostId ? 'обновлен' : 'создан'}!`, 'success');
                     document.getElementById('createPostForm').reset();
                     document.getElementById('actionTargetContainer').style.display = 'none';
                     document.getElementById('postImageUrlGroup').style.display = 'none';
                     document.getElementById('postVideoUrlGroup').style.display = 'none';
+                    editingPostId = null;
+                    document.querySelector('#createPostForm button[type="submit"]').textContent = '✅ Создать пост';
                     loadPosts();
                     loadDashboard();
                 } else {
@@ -2427,35 +2889,6 @@
             messageArea.appendChild(messageDiv);
             
             setTimeout(() => messageDiv.remove(), 5000);
-        }
-
-        // Заглушки для редактирования (можно реализовать позже)
-        function editInteractive(id) {
-            showMessage('✏️ Функция редактирования интерактива в разработке', 'info');
-        }
-
-        function editRole(id) {
-            showMessage('✏️ Функция редактирования роли в разработке', 'info');
-        }
-
-        function editCharacter(id) {
-            showMessage('✏️ Функция редактирования персонажа в разработке', 'info');
-        }
-
-        function editQuiz(id) {
-            showMessage('✏️ Функция редактирования квиза в разработке', 'info');
-        }
-
-        function editMarathon(id) {
-            showMessage('✏️ Функция редактирования марафона в разработке', 'info');
-        }
-
-        function editShopItem(id) {
-            showMessage('✏️ Функция редактирования товара в разработке', 'info');
-        }
-
-        function editPost(id) {
-            showMessage('✏️ Функция редактирования поста в разработке', 'info');
         }
 
         // Инициализация
