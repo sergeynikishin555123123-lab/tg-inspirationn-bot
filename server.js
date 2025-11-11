@@ -2171,31 +2171,32 @@ if (process.env.BOT_TOKEN) {
         });
 
         bot.onText(/\/admin/, (msg) => {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
-            
-            const admin = db.admins.find(a => a.user_id == userId);
-            if (!admin) {
-                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
-                return;
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    
+    const admin = db.admins.find(a => a.user_id == userId);
+    if (!admin) {
+        bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+        return;
+    }
+    
+    // ФИКСИРОВАННАЯ ССЫЛКА С .html
+    const adminUrl = `https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net/admin.html?userId=${userId}`;
+    
+    const keyboard = {
+        inline_keyboard: [[
+            {
+                text: "🔧 Открыть Админ Панель",
+                url: adminUrl
             }
-            
-            const adminUrl = `${process.env.APP_URL || 'https://your-domain.timeweb.cloud'}/admin?userId=${userId}`;
-            
-            const keyboard = {
-                inline_keyboard: [[
-                    {
-                        text: "🔧 Открыть Админ Панель",
-                        url: adminUrl
-                    }
-                ]]
-            };
-            
-            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            });
-        });
+        ]]
+    };
+    
+    bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
+        parse_mode: 'Markdown',
+        reply_markup: keyboard
+    });
+});
 
         bot.onText(/\/stats/, (msg) => {
             const chatId = msg.chat.id;
