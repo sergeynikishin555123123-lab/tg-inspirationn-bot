@@ -4,8 +4,10 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readdirSync, existsSync } from 'fs';
+import { readdirSync, existsSync, writeFileSync, mkdirSync } from 'fs';
 import dotenv from 'dotenv';
+import multer from 'multer';
+import path from 'path';
 
 dotenv.config();
 
@@ -19,6 +21,16 @@ const APP_ROOT = process.cwd();
 
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 console.log('📁 Содержимое корневой папки:', readdirSync(APP_ROOT));
+
+// === ВСТАВЛЯЕМ ЗДЕСЬ ===
+// Создаем папку uploads при запуске
+const uploadsDir = join(APP_ROOT, 'public', 'uploads');
+if (!existsSync(uploadsDir)) {
+    mkdirSync(uploadsDir, { recursive: true });
+    console.log('📁 Создана папка uploads:', uploadsDir);
+} else {
+    console.log('📁 Папка uploads уже существует:', uploadsDir);
+}
 
 // In-memory база данных с новой структурой
 let db = {
