@@ -34,7 +34,22 @@ let db = {
             class: 'Художники',
             character_id: 1,
             character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite'],
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
+            registration_date: new Date().toISOString(),
+            last_active: new Date().toISOString()
+        },
+        {
+            id: 2,
+            user_id: 898508164,
+            tg_first_name: 'Администратор',
+            tg_username: 'admin',
+            sparks: 100.0,
+            level: 'Мастер',
+            is_registered: true,
+            class: 'Художники',
+            character_id: 1,
+            character_name: 'Лука Цветной',
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
             registration_date: new Date().toISOString(),
             last_active: new Date().toISOString()
         }
@@ -45,41 +60,99 @@ let db = {
             name: 'Художники',
             description: 'Творцы изобразительного искусства',
             icon: '🎨',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite'],
-            is_active: true
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
+            is_active: true,
+            created_at: new Date().toISOString()
         },
         {
             id: 2,
             name: 'Стилисты',
             description: 'Мастера создания образов',
             icon: '👗',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite'],
-            is_active: true
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
+            is_active: true,
+            created_at: new Date().toISOString()
         },
         {
             id: 3,
             name: 'Мастера',
             description: 'Ремесленники прикладного искусства',
             icon: '🧵',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite'],
-            is_active: true
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
+            is_active: true,
+            created_at: new Date().toISOString()
         },
         {
             id: 4,
             name: 'Историки',
             description: 'Знатоки истории искусств',
             icon: '🏛️',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite'],
-            is_active: true
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
+            is_active: true,
+            created_at: new Date().toISOString()
         }
     ],
     characters: [
-        { id: 1, role_id: 1, name: 'Лука Цветной', description: 'Рисует с детства, любит эксперименты с цветом', bonus_type: 'percent_bonus', bonus_value: '10', is_active: true },
-        { id: 2, role_id: 1, name: 'Марина Кисть', description: 'Строгая преподавательница академической живописи', bonus_type: 'forgiveness', bonus_value: '1', is_active: true },
-        { id: 3, role_id: 1, name: 'Феликс Штрих', description: 'Экспериментатор, мастер зарисовок', bonus_type: 'random_gift', bonus_value: '1-3', is_active: true },
-        { id: 4, role_id: 2, name: 'Эстелла Моде', description: 'Бывший стилист, обучает восприятию образа', bonus_type: 'percent_bonus', bonus_value: '5', is_active: true },
-        { id: 5, role_id: 2, name: 'Роза Ателье', description: 'Мастер практического шитья', bonus_type: 'secret_advice', bonus_value: '2weeks', is_active: true },
-        { id: 6, role_id: 2, name: 'Гертруда Линия', description: 'Ценит детали и аксессуары', bonus_type: 'series_bonus', bonus_value: '1', is_active: true }
+        { 
+            id: 1, 
+            role_id: 1, 
+            name: 'Лука Цветной', 
+            description: 'Рисует с детства, любит эксперименты с цветом', 
+            bonus_type: 'percent_bonus', 
+            bonus_value: '10', 
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        { 
+            id: 2, 
+            role_id: 1, 
+            name: 'Марина Кисть', 
+            description: 'Строгая преподавательница академической живописи', 
+            bonus_type: 'forgiveness', 
+            bonus_value: '1', 
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        { 
+            id: 3, 
+            role_id: 1, 
+            name: 'Феликс Штрих', 
+            description: 'Экспериментатор, мастер зарисовок', 
+            bonus_type: 'random_gift', 
+            bonus_value: '1-3', 
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        { 
+            id: 4, 
+            role_id: 2, 
+            name: 'Эстелла Моде', 
+            description: 'Бывший стилист, обучает восприятию образа', 
+            bonus_type: 'percent_bonus', 
+            bonus_value: '5', 
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        { 
+            id: 5, 
+            role_id: 2, 
+            name: 'Роза Ателье', 
+            description: 'Мастер практического шитья', 
+            bonus_type: 'secret_advice', 
+            bonus_value: '2weeks', 
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        { 
+            id: 6, 
+            role_id: 2, 
+            name: 'Гертруда Линия', 
+            description: 'Ценит детали и аксессуары', 
+            bonus_type: 'series_bonus', 
+            bonus_value: '1', 
+            is_active: true,
+            created_at: new Date().toISOString()
+        }
     ],
     quizzes: [
         {
@@ -96,10 +169,37 @@ let db = {
                     question: "Какие цвета являются основными?",
                     options: ["Красный, синий, зеленый", "Красный, желтый, синий", "Фиолетовый, оранжевый, зеленый", "Черный, белый, серый"],
                     correctAnswer: 1
+                },
+                {
+                    question: "Что такое акварель?",
+                    options: ["Масляная краска", "Водорастворимая краска", "Акриловая краска", "Темпера"],
+                    correctAnswer: 1
                 }
             ],
-            sparks_per_correct: 1, // 1 искра за правильный ответ
-            sparks_perfect_bonus: 5, // 5 искр за идеальный результат
+            sparks_per_correct: 1,
+            sparks_perfect_bonus: 5,
+            cooldown_hours: 24,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            title: "🏛️ История искусства",
+            description: "Тест по истории мирового искусства",
+            questions: [
+                {
+                    question: "В какой стране возникло искусство эпохи Возрождения?",
+                    options: ["Франция", "Италия", "Испания", "Германия"],
+                    correctAnswer: 1
+                },
+                {
+                    question: "Кто является автором фрески 'Тайная вечеря'?",
+                    options: ["Микеланджело", "Рафаэль", "Леонардо да Винчи", "Боттичелли"],
+                    correctAnswer: 2
+                }
+            ],
+            sparks_per_correct: 1,
+            sparks_perfect_bonus: 5,
             cooldown_hours: 24,
             is_active: true,
             created_at: new Date().toISOString()
@@ -113,9 +213,30 @@ let db = {
             duration_days: 7,
             tasks: [
                 { day: 1, title: "Основные техники", description: "Изучите основные техники работы с акварелью" },
-                { day: 2, title: "Смешивание цветов", description: "Практикуйтесь в смешивании цветов" }
+                { day: 2, title: "Смешивание цветов", description: "Практикуйтесь в смешивании цветов" },
+                { day: 3, title: "Работа с светом", description: "Научитесь передавать свет и тень" },
+                { day: 4, title: "Пейзаж акварелью", description: "Нарисуйте свой первый пейзаж" },
+                { day: 5, title: "Портрет акварелью", description: "Освойте технику портрета" },
+                { day: 6, title: "Натюрморт", description: "Создайте композицию с натуры" },
+                { day: 7, title: "Финальная работа", description: "Завершите марафон итоговой работой" }
             ],
-            sparks_per_day: 7, // 7 искр за каждый день марафона
+            sparks_per_day: 7,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            title: "👗 Марафон стиля",
+            description: "5-дневный марафон по созданию гармоничного образа",
+            duration_days: 5,
+            tasks: [
+                { day: 1, title: "Анализ цветотипа", description: "Определите свой цветотип" },
+                { day: 2, title: "Базовая капсула", description: "Создайте базовый гардероб" },
+                { day: 3, title: "Акценты и аксессуары", description: "Научитесь дополнять образ" },
+                { day: 4, title: "Стилизация", description: "Создайте несколько образов" },
+                { day: 5, title: "Итоговый образ", description: "Подберите идеальный образ для мероприятия" }
+            ],
+            sparks_per_day: 5,
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -129,7 +250,7 @@ let db = {
             file_url: "https://example.com/watercolor-course.mp4",
             preview_url: "https://via.placeholder.com/300x200/667eea/ffffff?text=Акварель",
             price: 15,
-            content_text: "В этом уроке вы научитесь основам работы с акварелью, смешиванию цветов и созданию первых работ.",
+            content_text: "В этом уроке вы научитесь основам работы с акварелью, смешиванию цветов и созданию первых работ. Материал подойдет для начинающих художников.",
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -141,14 +262,32 @@ let db = {
             file_url: "https://example.com/composition-guide.pdf",
             preview_url: "https://via.placeholder.com/300x200/764ba2/ffffff?text=Композиция",
             price: 10,
-            content_text: "Подробное руководство по построению композиции в художественных работах.",
+            content_text: "Подробное руководство по построению композиции в художественных работах. Золотое сечение, правило третей, баланс и ритм.",
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 3,
+            title: "👗 Гид по стилю",
+            description: "Полное руководство по созданию гармоничного образа",
+            type: "text",
+            file_url: "",
+            preview_url: "https://via.placeholder.com/300x200/48bb78/ffffff?text=Стиль",
+            price: 12,
+            content_text: "Как определить свой цветотип, подобрать базовый гардероб, сочетать цвета и аксессуары. Практические советы от стилиста.",
             is_active: true,
             created_at: new Date().toISOString()
         }
     ],
     activities: [],
     admins: [
-        { id: 1, user_id: 898508164, username: 'admin', role: 'superadmin', created_at: new Date().toISOString() }
+        { 
+            id: 1, 
+            user_id: 898508164, 
+            username: 'admin', 
+            role: 'superadmin', 
+            created_at: new Date().toISOString() 
+        }
     ],
     purchases: [],
     channel_posts: [
@@ -156,8 +295,23 @@ let db = {
             id: 1,
             post_id: "post_art_basics",
             title: "🎨 Основы композиции в живописи",
-            content: "Сегодня поговорим о фундаментальных принципах построения композиции. Золотое сечение, правило третей и многое другое!",
-            image_url: "https://via.placeholder.com/400x300/764ba2/ffffff?text=Композиция",
+            content: "Сегодня поговорим о фундаментальных принципах построения композиции. Золотое сечение, правило третей и многое другое! Композиция - это основа любого художественного произведения, которая помогает направлять взгляд зрителя и создавать гармоничное изображение.",
+            image_url: "https://via.placeholder.com/400x300/764ba2/ffffff?text=Композиция+в+живописи",
+            video_url: null,
+            media_type: 'image',
+            admin_id: 898508164,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            telegram_message_id: null,
+            action_type: null,
+            action_target: null
+        },
+        {
+            id: 2,
+            post_id: "post_style_tips",
+            title: "👗 5 советов по созданию стильного образа",
+            content: "1. Определите свой цветотип\n2. Создайте базовую капсулу\n3. Не бойтесь аксессуаров\n4. Учитывайте мероприятие\n5. Будьте уверены в себе!",
+            image_url: "https://via.placeholder.com/400x300/48bb78/ffffff?text=Стиль+и+образ",
             video_url: null,
             media_type: 'image',
             admin_id: 898508164,
@@ -173,7 +327,82 @@ let db = {
     work_reviews: [],
     marathon_completions: [],
     quiz_completions: [],
-    daily_reviews: [] // Для отслеживания ежедневных отзывов
+    daily_reviews: [],
+    // НОВЫЕ ТАБЛИЦЫ ДЛЯ ИНТЕРАКТИВОВ
+    interactives: [
+        {
+            id: 1,
+            title: "🎨 Угадай эпоху картины",
+            description: "Определите эпоху по фрагменту картины",
+            type: "guess_era",
+            category: "history",
+            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjNjY3ZWVhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7Qp9C10YDQvdC+0YHRjCDQtNC10L3QvtC6INC60LDRgNGC0LjQu9GMPC90ZXh0Pjwvc3ZnPg==",
+            question: "Какой эпохе принадлежит этот фрагмент?",
+            options: ["Ренессанс", "Барокко", "Импрессионизм", "Кубизм"],
+            correct_answer: 0,
+            sparks_reward: 2,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            title: "👗 Подбери образ для мероприятия",
+            description: "Создай гармоничный образ для конкретного события",
+            type: "style_match",
+            category: "style",
+            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjNzY0YmEyIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7Qn9C+0LTQutC70Y7Rh9C10L3QuNGPINC+0YHRgtCw0LvRjNC90YvQuTwvdGV4dD48L3N2Zz4=",
+            question: "Какое сочетание цветов подойдет для деловой встречи?",
+            options: ["Черный + белый + красный акцент", "Ярко-красный + зеленый", "Фиолетовый + оранжевый", "Розовый + голубой"],
+            correct_answer: 0,
+            sparks_reward: 1,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 3,
+            title: "✏️ Продолжи рисунок",
+            description: "Дорисуйте предложенный контур и создайте свою работу",
+            type: "drawing_challenge",
+            category: "art",
+            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZTY5NTIyIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7Qn9C+0LTQutC70Y7Rh9C10L3QuNGPINC+0YHRgtCw0LvRjNC90YvQuTwvdGV4dD48L3N2Zz4=",
+            question: "Дорисуйте этот контур и создайте свою уникальную работу",
+            options: [],
+            correct_answer: null,
+            sparks_reward: 3,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 4,
+            title: "🔍 Найди отличия",
+            description: "Найдите все отличия между двумя изображениями",
+            type: "find_difference",
+            category: "art",
+            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjNDI5OWUxIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7QndCw0LnQtSDQt9C90LDRh9C10L3QuNC1PC90ZXh0Pjwvc3ZnPg==",
+            question: "Сколько отличий вы нашли между изображениями?",
+            options: ["2 отличия", "3 отличия", "4 отличия", "5 отличий"],
+            correct_answer: 2,
+            sparks_reward: 2,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 5,
+            title: "🧩 Исторический пазл",
+            description: "Соберите пазл из фрагментов известной картины",
+            type: "puzzle",
+            category: "history",
+            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWR4OTM2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7Qn9Cw0LfQttC1INC/0LDRgdC/0YvRgjwvdGV4dD48L3N2Zz4=",
+            question: "Из скольких фрагментов состоит этот пазл?",
+            options: ["6 фрагментов", "9 фрагментов", "12 фрагментов", "16 фрагментов"],
+            correct_answer: 1,
+            sparks_reward: 2,
+            is_active: true,
+            created_at: new Date().toISOString()
+        }
+    ],
+    interactive_completions: [],
+    interactive_submissions: []
 };
 
 app.use(express.json({ limit: '50mb' }));
@@ -196,16 +425,19 @@ console.log('🎨 Мастерская Вдохновения - Запуск...'
 
 // НОВАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР (исправленная)
 const SPARKS_SYSTEM = {
-    QUIZ_PER_CORRECT_ANSWER: 1, // 1 искра за правильный ответ
-    QUIZ_PERFECT_BONUS: 5, // 5 искр за идеальный результат
-    MARATHON_DAY_COMPLETION: 7, // 7 искр за день марафона
-    INVITE_FRIEND: 10, // 10 искр за приглашение друга
-    WRITE_REVIEW: 3, // 3 искры за отзыв о занятии
-    DAILY_COMMENT: 1, // 1 искра за комментарий под постом (1 раз в день)
-    UPLOAD_WORK: 5, // 5 искр за загрузку работы
-    WORK_APPROVED: 15, // 15 искр за одобренную работу
-    REGISTRATION_BONUS: 10, // 10 искр за регистрацию
-    PARTICIPATE_POLL: 2 // 2 искры за участие в опросе
+    QUIZ_PER_CORRECT_ANSWER: 1,
+    QUIZ_PERFECT_BONUS: 5,
+    MARATHON_DAY_COMPLETION: 7,
+    INVITE_FRIEND: 10,
+    WRITE_REVIEW: 3,
+    DAILY_COMMENT: 1,
+    UPLOAD_WORK: 5,
+    WORK_APPROVED: 15,
+    REGISTRATION_BONUS: 10,
+    PARTICIPATE_POLL: 2,
+    INTERACTIVE_COMPLETION: 2,
+    INTERACTIVE_SUBMISSION: 3,
+    COMPLIMENT_CHALLENGE: 0.5
 };
 
 // Вспомогательные функции
@@ -248,6 +480,7 @@ function getUserStats(userId) {
     const works = db.user_works.filter(w => w.user_id == userId);
     const quizCompletions = db.quiz_completions.filter(q => q.user_id == userId);
     const marathonCompletions = db.marathon_completions.filter(m => m.user_id == userId);
+    const interactiveCompletions = db.interactive_completions.filter(i => i.user_id == userId);
     
     return {
         totalActivities: activities.length,
@@ -256,6 +489,7 @@ function getUserStats(userId) {
         approvedWorks: works.filter(w => w.status === 'approved').length,
         totalQuizzesCompleted: quizCompletions.length,
         totalMarathonsCompleted: marathonCompletions.filter(m => m.completed).length,
+        totalInteractivesCompleted: interactiveCompletions.length,
         totalSparksEarned: activities.reduce((sum, a) => sum + a.sparks_earned, 0)
     };
 }
@@ -287,7 +521,8 @@ app.get('/health', (req, res) => {
         users: db.users.length,
         quizzes: db.quizzes.length,
         marathons: db.marathons.length,
-        shop_items: db.shop_items.length
+        shop_items: db.shop_items.length,
+        interactives: db.interactives.length
     });
 });
 
@@ -793,6 +1028,140 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
     });
 });
 
+// НОВЫЕ API ДЛЯ ИНТЕРАКТИВОВ
+app.get('/api/webapp/interactives', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const interactives = db.interactives.filter(i => i.is_active);
+    
+    const interactivesWithStatus = interactives.map(interactive => {
+        const completion = db.interactive_completions.find(
+            ic => ic.user_id === userId && ic.interactive_id === interactive.id
+        );
+        
+        return {
+            ...interactive,
+            completed: !!completion,
+            user_score: completion ? completion.score : 0
+        };
+    });
+    
+    res.json(interactivesWithStatus);
+});
+
+app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const { userId, answer, submission_data } = req.body;
+    
+    if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    const interactive = db.interactives.find(i => i.id === interactiveId);
+    if (!interactive) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    const existingCompletion = db.interactive_completions.find(
+        ic => ic.user_id === userId && ic.interactive_id === interactiveId
+    );
+    
+    if (existingCompletion) {
+        return res.status(400).json({ error: 'Вы уже прошли этот интерактив' });
+    }
+    
+    let isCorrect = false;
+    let score = 0;
+    let sparksEarned = 0;
+    
+    // Проверка ответа для тестовых интерактивов
+    if (interactive.type === 'guess_era' || interactive.type === 'style_match' || 
+        interactive.type === 'find_difference' || interactive.type === 'puzzle') {
+        isCorrect = answer === interactive.correct_answer;
+        score = isCorrect ? 1 : 0;
+        sparksEarned = isCorrect ? interactive.sparks_reward : 0;
+    } else if (interactive.type === 'drawing_challenge') {
+        // Для творческих заданий начисляем искры за участие
+        score = 1;
+        sparksEarned = SPARKS_SYSTEM.INTERACTIVE_SUBMISSION;
+        
+        // Сохраняем работу пользователя
+        if (submission_data) {
+            db.interactive_submissions.push({
+                id: Date.now(),
+                user_id: userId,
+                interactive_id: interactiveId,
+                submission_data: submission_data,
+                created_at: new Date().toISOString()
+            });
+        }
+    }
+    
+    // Сохраняем завершение
+    db.interactive_completions.push({
+        id: Date.now(),
+        user_id: userId,
+        interactive_id: interactiveId,
+        completed_at: new Date().toISOString(),
+        score: score,
+        sparks_earned: sparksEarned,
+        answer: answer
+    });
+    
+    // Начисляем искры
+    if (sparksEarned > 0) {
+        addSparks(userId, sparksEarned, 'interactive', `Интерактив: ${interactive.title}`);
+    }
+    
+    res.json({
+        success: true,
+        correct: isCorrect,
+        score: score,
+        sparksEarned: sparksEarned,
+        message: isCorrect ? 
+            `Правильно! +${sparksEarned}✨` : 
+            'Попробуйте еще раз!'
+    });
+});
+
+app.post('/api/webapp/interactives/:interactiveId/upload-work', (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const { userId, imageUrl, title, description } = req.body;
+    
+    if (!userId || !imageUrl) {
+        return res.status(400).json({ error: 'User ID and image URL are required' });
+    }
+    
+    const interactive = db.interactives.find(i => i.id === interactiveId);
+    if (!interactive) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    // Сохраняем работу
+    const submission = {
+        id: Date.now(),
+        user_id: userId,
+        interactive_id: interactiveId,
+        submission_data: {
+            image_url: imageUrl,
+            title: title,
+            description: description,
+            type: 'drawing'
+        },
+        created_at: new Date().toISOString()
+    };
+    
+    db.interactive_submissions.push(submission);
+    
+    // Начисляем искры за участие
+    addSparks(userId, SPARKS_SYSTEM.INTERACTIVE_SUBMISSION, 'interactive_submission', `Работа для интерактива: ${interactive.title}`);
+    
+    res.json({
+        success: true,
+        message: `Работа загружена! +${SPARKS_SYSTEM.INTERACTIVE_SUBMISSION}✨`,
+        submissionId: submission.id
+    });
+});
+
 // Новый метод для приглашения друзей
 app.post('/api/webapp/invite-friend', (req, res) => {
     const { userId, friendId } = req.body;
@@ -860,6 +1229,39 @@ app.post('/api/webapp/participate-poll', (req, res) => {
     });
 });
 
+// Новый метод для челленджа комплиментов
+app.post('/api/webapp/compliment-challenge', (req, res) => {
+    const { userId, compliment } = req.body;
+    
+    if (!userId || !compliment) {
+        return res.status(400).json({ error: 'User ID and compliment are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    // Проверяем, не участвовал ли уже сегодня
+    const today = new Date().toDateString();
+    const todayCompliments = db.activities.filter(
+        a => a.user_id === userId && 
+        a.activity_type === 'compliment_challenge' &&
+        new Date(a.created_at).toDateString() === today
+    );
+    
+    if (todayCompliments.length > 0) {
+        return res.status(400).json({ error: 'Вы уже участвовали в челлендже сегодня' });
+    }
+    
+    // Начисляем искры за участие
+    addSparks(userId, SPARKS_SYSTEM.COMPLIMENT_CHALLENGE, 'compliment_challenge', `Челлендж комплиментов: ${compliment}`);
+    
+    res.json({
+        success: true,
+        message: `Комплимент принят! +${SPARKS_SYSTEM.COMPLIMENT_CHALLENGE}✨`,
+        sparksEarned: SPARKS_SYSTEM.COMPLIMENT_CHALLENGE
+    });
+});
+
 // Admin API
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
     const stats = {
@@ -874,9 +1276,51 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
         pendingWorks: db.user_works.filter(w => w.status === 'pending').length,
         totalPosts: db.channel_posts.filter(p => p.is_active).length,
         totalPurchases: db.purchases.length,
-        totalActivities: db.activities.length
+        totalActivities: db.activities.length,
+        interactives: db.interactives.filter(i => i.is_active).length
     };
     res.json(stats);
+});
+
+// НОВЫЙ API ДЛЯ ОТЧЕТА ПО ПОЛЬЗОВАТЕЛЯМ
+app.get('/api/admin/users-report', requireAdmin, (req, res) => {
+    const users = db.users
+        .filter(u => u.is_registered)
+        .map(user => {
+            const stats = getUserStats(user.user_id);
+            const works = db.user_works.filter(w => w.user_id === user.user_id);
+            const quizCompletions = db.quiz_completions.filter(q => q.user_id === user.user_id);
+            const marathonCompletions = db.marathon_completions.filter(m => m.user_id === user.user_id);
+            const interactiveCompletions = db.interactive_completions.filter(i => i.user_id === user.user_id);
+            
+            // Считаем общее количество активностей
+            const totalActivities = 
+                quizCompletions.length + 
+                marathonCompletions.filter(m => m.completed).length + 
+                interactiveCompletions.length + 
+                works.length;
+            
+            return {
+                id: user.user_id,
+                name: user.tg_first_name,
+                username: user.tg_username,
+                role: user.class,
+                character: user.character_name,
+                sparks: user.sparks,
+                level: user.level,
+                total_quizzes: quizCompletions.length,
+                total_marathons: marathonCompletions.filter(m => m.completed).length,
+                total_interactives: interactiveCompletions.length,
+                total_works: works.length,
+                approved_works: works.filter(w => w.status === 'approved').length,
+                total_activities: totalActivities,
+                registration_date: user.registration_date,
+                last_active: user.last_active
+            };
+        })
+        .sort((a, b) => b.total_activities - a.total_activities); // Сортировка по активности
+    
+    res.json({ users });
 });
 
 // Управление ролями
@@ -896,7 +1340,7 @@ app.post('/api/admin/roles', requireAdmin, (req, res) => {
         name,
         description,
         icon: icon || '🎨',
-        available_buttons: available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite'],
+        available_buttons: available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
         is_active: true,
         created_at: new Date().toISOString()
     };
@@ -1369,6 +1813,10 @@ async function publishToTelegram(post) {
                 const marathon = db.marathons.find(m => m.id == post.action_target);
                 buttonText = `🏃‍♂️ Начать марафон: ${marathon?.title || 'Марафон'}`;
                 webAppUrl = `${process.env.APP_URL}?startapp=marathon_${post.action_target}`;
+            } else if (post.action_type === 'interactive') {
+                const interactive = db.interactives.find(i => i.id == post.action_target);
+                buttonText = `🎮 Пройти интерактив: ${interactive?.title || 'Интерактив'}`;
+                webAppUrl = `${process.env.APP_URL}?startapp=interactive_${post.action_target}`;
             }
             
             if (buttonText && webAppUrl) {
@@ -1652,6 +2100,94 @@ app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Админ удален' });
 });
 
+// Admin API для интерактивов
+app.get('/api/admin/interactives', requireAdmin, (req, res) => {
+    const interactives = db.interactives.map(interactive => {
+        const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
+        const submissions = db.interactive_submissions.filter(is => is.interactive_id === interactive.id);
+        
+        return {
+            ...interactive,
+            completions_count: completions.length,
+            submissions_count: submissions.length,
+            average_score: completions.length > 0 ? 
+                completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length : 0
+        };
+    });
+    res.json(interactives);
+});
+
+app.post('/api/admin/interactives', requireAdmin, (req, res) => {
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward } = req.body;
+    
+    if (!title || !type || !category) {
+        return res.status(400).json({ error: 'Title, type and category are required' });
+    }
+    
+    const newInteractive = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        type,
+        category,
+        image_url: image_url || '',
+        question: question || '',
+        options: options || [],
+        correct_answer: correct_answer || 0,
+        sparks_reward: sparks_reward || SPARKS_SYSTEM.INTERACTIVE_COMPLETION,
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.interactives.push(newInteractive);
+    
+    res.json({ 
+        success: true, 
+        message: 'Интерактив успешно создан', 
+        interactiveId: newInteractive.id,
+        interactive: newInteractive
+    });
+});
+
+app.put('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, is_active } = req.body;
+    
+    const interactive = db.interactives.find(i => i.id === interactiveId);
+    if (!interactive) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    if (title) interactive.title = title;
+    if (description) interactive.description = description;
+    if (type) interactive.type = type;
+    if (category) interactive.category = category;
+    if (image_url) interactive.image_url = image_url;
+    if (question) interactive.question = question;
+    if (options) interactive.options = options;
+    if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
+    if (sparks_reward !== undefined) interactive.sparks_reward = sparks_reward;
+    if (is_active !== undefined) interactive.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Интерактив успешно обновлен',
+        interactive: interactive
+    });
+});
+
+app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const interactiveIndex = db.interactives.findIndex(i => i.id === interactiveId);
+    
+    if (interactiveIndex === -1) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    db.interactives.splice(interactiveIndex, 1);
+    res.json({ success: true, message: 'Интерактив удален' });
+});
+
 // Полная статистика
 app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     const stats = {
@@ -1672,7 +2208,8 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
             quizzes: db.quizzes.length,
             marathons: db.marathons.length,
             shop_items: db.shop_items.length,
-            posts: db.channel_posts.length
+            posts: db.channel_posts.length,
+            interactives: db.interactives.length
         },
         activities: {
             total_sparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
@@ -1685,7 +2222,8 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
         },
         completions: {
             quizzes: db.quiz_completions.length,
-            marathons: db.marathon_completions.filter(m => m.completed).length
+            marathons: db.marathon_completions.filter(m => m.completed).length,
+            interactives: db.interactive_completions.length
         }
     };
     
@@ -1809,6 +2347,7 @@ if (process.env.BOT_TOKEN) {
 • 🎯 Проходить квизы и получать искры
 • 🏃‍♂️ Участвовать в марафонах
 • 🖼️ Загружать свои работы
+• 🎮 Выполнять интерактивные задания
 • 📊 Отслеживать свой прогресс
 • 🛒 Покупать обучающие материалы
 
@@ -1900,6 +2439,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
     console.log(`🎯 Квизов: ${db.quizzes.length}`);
     console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
+    console.log(`🎮 Интерактивов: ${db.interactives.length}`);
     console.log(`🛒 Товаров: ${db.shop_items.length}`);
     console.log(`👥 Пользователей: ${db.users.length}`);
     console.log('✅ Все системы работают!');
