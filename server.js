@@ -17,10 +17,10 @@ const app = express();
 // Автоматическое определение пути для TimeWeb
 const APP_ROOT = process.cwd();
 
+console.log('🎨 Мастерская Вдохновения - Запуск системы...');
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
-console.log('📁 Содержимое корневой папки:', readdirSync(APP_ROOT));
 
-// In-memory база данных с новой структурой
+// In-memory база данных с улучшенной структурой
 let db = {
     users: [
         {
@@ -28,13 +28,13 @@ let db = {
             user_id: 12345,
             tg_first_name: 'Тестовый Пользователь',
             tg_username: 'test_user',
-            sparks: 25.5,
-            level: 'Ученик',
+            sparks: 45.5,
+            level: 'Искатель',
             is_registered: true,
             class: 'Художники',
             character_id: 1,
             character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             registration_date: new Date().toISOString(),
             last_active: new Date().toISOString()
         },
@@ -43,13 +43,13 @@ let db = {
             user_id: 898508164,
             tg_first_name: 'Администратор',
             tg_username: 'admin',
-            sparks: 100.0,
+            sparks: 250.0,
             level: 'Мастер',
             is_registered: true,
             class: 'Художники',
             character_id: 1,
             character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             registration_date: new Date().toISOString(),
             last_active: new Date().toISOString()
         }
@@ -60,7 +60,7 @@ let db = {
             name: 'Художники',
             description: 'Творцы изобразительного искусства',
             icon: '🎨',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -69,7 +69,7 @@ let db = {
             name: 'Стилисты',
             description: 'Мастера создания образов',
             icon: '👗',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -78,7 +78,7 @@ let db = {
             name: 'Мастера',
             description: 'Ремесленники прикладного искусства',
             icon: '🧵',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -87,7 +87,7 @@ let db = {
             name: 'Историки',
             description: 'Знатоки истории искусств',
             icon: '🏛️',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -115,16 +115,6 @@ let db = {
         },
         { 
             id: 3, 
-            role_id: 1, 
-            name: 'Феликс Штрих', 
-            description: 'Экспериментатор, мастер зарисовок', 
-            bonus_type: 'random_gift', 
-            bonus_value: '1-3', 
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        { 
-            id: 4, 
             role_id: 2, 
             name: 'Эстелла Моде', 
             description: 'Бывший стилист, обучает восприятию образа', 
@@ -134,22 +124,22 @@ let db = {
             created_at: new Date().toISOString()
         },
         { 
-            id: 5, 
-            role_id: 2, 
-            name: 'Роза Ателье', 
-            description: 'Мастер практического шитья', 
-            bonus_type: 'secret_advice', 
-            bonus_value: '2weeks', 
+            id: 4, 
+            role_id: 3, 
+            name: 'Артем Резчик', 
+            description: 'Мастер по дереву и керамике', 
+            bonus_type: 'random_gift', 
+            bonus_value: '1-3', 
             is_active: true,
             created_at: new Date().toISOString()
         },
         { 
-            id: 6, 
-            role_id: 2, 
-            name: 'Гертруда Линия', 
-            description: 'Ценит детали и аксессуары', 
-            bonus_type: 'series_bonus', 
-            bonus_value: '1', 
+            id: 5, 
+            role_id: 4, 
+            name: 'София Хроник', 
+            description: 'Искусствовед и историк культуры', 
+            bonus_type: 'secret_advice', 
+            bonus_value: '2weeks', 
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -174,11 +164,22 @@ let db = {
                     question: "Что такое акварель?",
                     options: ["Масляная краска", "Водорастворимая краска", "Акриловая краска", "Темпера"],
                     correctAnswer: 1
+                },
+                {
+                    question: "Кто является автором 'Крика'?",
+                    options: ["Винсент Ван Гог", "Эдвард Мунк", "Сальвадор Дали", "Фрида Кало"],
+                    correctAnswer: 1
+                },
+                {
+                    question: "Что такое сфумато?",
+                    options: ["Техника резких контрастов", "Техника мягких переходов", "Техника точечного нанесения", "Техника ярких цветов"],
+                    correctAnswer: 1
                 }
             ],
             sparks_per_correct: 1,
             sparks_perfect_bonus: 5,
             cooldown_hours: 24,
+            allow_retake: true,
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -196,11 +197,17 @@ let db = {
                     question: "Кто является автором фрески 'Тайная вечеря'?",
                     options: ["Микеланджело", "Рафаэль", "Леонардо да Винчи", "Боттичелли"],
                     correctAnswer: 2
+                },
+                {
+                    question: "Какой стиль характеризуется асимметрией и изогнутыми линиями?",
+                    options: ["Ренессанс", "Барокко", "Готика", "Классицизм"],
+                    correctAnswer: 1
                 }
             ],
             sparks_per_correct: 1,
             sparks_perfect_bonus: 5,
             cooldown_hours: 24,
+            allow_retake: true,
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -212,13 +219,55 @@ let db = {
             description: "7-дневный марафон по основам акварельной живописи",
             duration_days: 7,
             tasks: [
-                { day: 1, title: "Основные техники", description: "Изучите основные техники работы с акварелью" },
-                { day: 2, title: "Смешивание цветов", description: "Практикуйтесь в смешивании цветов" },
-                { day: 3, title: "Работа с светом", description: "Научитесь передавать свет и тень" },
-                { day: 4, title: "Пейзаж акварелью", description: "Нарисуйте свой первый пейзаж" },
-                { day: 5, title: "Портрет акварелью", description: "Освойте технику портрета" },
-                { day: 6, title: "Натюрморт", description: "Создайте композицию с натуры" },
-                { day: 7, title: "Финальная работа", description: "Завершите марафон итоговой работой" }
+                { 
+                    day: 1, 
+                    title: "Основные техники", 
+                    description: "Изучите основные техники работы с акварелью и напишите о своих впечатлениях",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 2, 
+                    title: "Смешивание цветов", 
+                    description: "Практикуйтесь в смешивании цветов и загрузите фото своей палитры",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 3, 
+                    title: "Работа с светом", 
+                    description: "Научитесь передавать свет и тень в акварели",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 4, 
+                    title: "Пейзаж акварелью", 
+                    description: "Нарисуйте свой первый пейзаж и загрузите фото работы",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 5, 
+                    title: "Портрет акварелью", 
+                    description: "Освойте технику портрета акварелью",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 6, 
+                    title: "Натюрморт", 
+                    description: "Создайте композицию с натуры и загрузите фото",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 7, 
+                    title: "Финальная работа", 
+                    description: "Завершите марафон итоговой работой и поделитесь впечатлениями",
+                    requires_submission: true,
+                    submission_type: "text"
+                }
             ],
             sparks_per_day: 7,
             is_active: true,
@@ -230,11 +279,41 @@ let db = {
             description: "5-дневный марафон по созданию гармоничного образа",
             duration_days: 5,
             tasks: [
-                { day: 1, title: "Анализ цветотипа", description: "Определите свой цветотип" },
-                { day: 2, title: "Базовая капсула", description: "Создайте базовый гардероб" },
-                { day: 3, title: "Акценты и аксессуары", description: "Научитесь дополнять образ" },
-                { day: 4, title: "Стилизация", description: "Создайте несколько образов" },
-                { day: 5, title: "Итоговый образ", description: "Подберите идеальный образ для мероприятия" }
+                { 
+                    day: 1, 
+                    title: "Анализ цветотипа", 
+                    description: "Определите свой цветотип и опишите результаты",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 2, 
+                    title: "Базовая капсула", 
+                    description: "Создайте базовый гардероб и загрузите фото своих вещей",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 3, 
+                    title: "Акценты и аксессуары", 
+                    description: "Научитесь дополнять образ аксессуарами",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 4, 
+                    title: "Стилизация", 
+                    description: "Создайте несколько образов и загрузите фото",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 5, 
+                    title: "Итоговый образ", 
+                    description: "Подберите идеальный образ для мероприятия и опишите его",
+                    requires_submission: true,
+                    submission_type: "text"
+                }
             ],
             sparks_per_day: 5,
             is_active: true,
@@ -248,9 +327,9 @@ let db = {
             description: "Полный видеоурок по основам акварельной живописи",
             type: "video",
             file_url: "https://example.com/watercolor-course.mp4",
-            preview_url: "https://via.placeholder.com/300x200/667eea/ffffff?text=Акварель",
+            preview_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=300&h=200&fit=crop",
             price: 15,
-            content_text: "В этом уроке вы научитесь основам работы с акварелью, смешиванию цветов и созданию первых работ. Материал подойдет для начинающих художников.",
+            content_text: "В этом уроке вы научитесь основам работы с акварелью, смешиванию цветов и созданию первых работ. Материал подойдет для начинающих художников.\n\nСодержание:\n- Подготовка материалов\n- Основные техники\n- Смешивание цветов\n- Создание простых работ\n- Советы по улучшению",
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -260,9 +339,9 @@ let db = {
             description: "PDF руководство по основам композиции в живописи",
             type: "pdf",
             file_url: "https://example.com/composition-guide.pdf",
-            preview_url: "https://via.placeholder.com/300x200/764ba2/ffffff?text=Композиция",
+            preview_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=200&fit=crop",
             price: 10,
-            content_text: "Подробное руководство по построению композиции в художественных работах. Золотое сечение, правило третей, баланс и ритм.",
+            content_text: "Подробное руководство по построению композиции в художественных работах. Золотое сечение, правило третей, баланс и ритм.\n\nТемы:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с цветом",
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -272,9 +351,21 @@ let db = {
             description: "Полное руководство по созданию гармоничного образа",
             type: "text",
             file_url: "",
-            preview_url: "https://via.placeholder.com/300x200/48bb78/ffffff?text=Стиль",
+            preview_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=300&h=200&fit=crop",
             price: 12,
-            content_text: "Как определить свой цветотип, подобрать базовый гардероб, сочетать цвета и аксессуары. Практические советы от стилиста.",
+            content_text: "Как определить свой цветотип, подобрать базовый гардероб, сочетать цвета и аксессуары. Практические советы от стилиста.\n\nРазделы:\n- Определение цветотипа\n- Базовый гардероб\n- Сочетание цветов\n- Выбор аксессуаров\n- Создание образов",
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 4,
+            title: "🧵 Основы вышивки",
+            description: "Видеокурс по основам вышивки для начинающих",
+            type: "video",
+            file_url: "https://example.com/embroidery-course.mp4",
+            preview_url: "https://images.unsplash.com/photo-1576588676125-c6d68cf48b5c?w=300&h=200&fit=crop",
+            price: 18,
+            content_text: "Полный курс по основам вышивки. От простых стежков до сложных техник.\n\nСодержание:\n- Необходимые материалы\n- Основные стежки\n- Техники вышивки\n- Создание узоров\n- Завершение работы",
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -295,8 +386,8 @@ let db = {
             id: 1,
             post_id: "post_art_basics",
             title: "🎨 Основы композиции в живописи",
-            content: "Сегодня поговорим о фундаментальных принципах построения композиции. Золотое сечение, правило третей и многое другое! Композиция - это основа любого художественного произведения, которая помогает направлять взгляд зрителя и создавать гармоничное изображение.",
-            image_url: "https://via.placeholder.com/400x300/764ba2/ffffff?text=Композиция+в+живописи",
+            content: "Сегодня поговорим о фундаментальных принципах построения композиции. Золотое сечение, правило третей и многое другое! Композиция - это основа любого художественного произведения, которая помогает направлять взгляд зрителя и создавать гармоничное изображение.\n\n💡 Практический совет: Попробуйте использовать правило третей в своей следующей работе - разделите холст на 9 равных частей и размещайте ключевые элементы на пересечениях линий.",
+            image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
             video_url: null,
             media_type: 'image',
             admin_id: 898508164,
@@ -310,8 +401,23 @@ let db = {
             id: 2,
             post_id: "post_style_tips",
             title: "👗 5 советов по созданию стильного образа",
-            content: "1. Определите свой цветотип\n2. Создайте базовую капсулу\n3. Не бойтесь аксессуаров\n4. Учитывайте мероприятие\n5. Будьте уверены в себе!",
-            image_url: "https://via.placeholder.com/400x300/48bb78/ffffff?text=Стиль+и+образ",
+            content: "1. Определите свой цветотип\n2. Создайте базовую капсулу\n3. Не бойтесь аксессуаров\n4. Учитывайте мероприятие\n5. Будьте уверены в себе!\n\n✨ Помните: Стиль - это не следование трендам, а умение выражать свою индивидуальность через одежду.",
+            image_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop",
+            video_url: null,
+            media_type: 'image',
+            admin_id: 898508164,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            telegram_message_id: null,
+            action_type: null,
+            action_target: null
+        },
+        {
+            id: 3,
+            post_id: "post_history_art",
+            title: "🏛️ Интересные факты о Ренессансе",
+            content: "Эпоха Возрождения подарила миру множество шедевров. Знаете ли вы, что:\n\n• Леонардо да Винчи был вегетарианцем\n• Микеланджело считал себя в первую очередь скульптором\n• Рафаэль умер в день своего рождения\n• Боттичелли сжег многие свои работы\n\n🎯 Интересный факт: Картины того времени часто содержали скрытые символы и послания.",
+            image_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
             video_url: null,
             media_type: 'image',
             admin_id: 898508164,
@@ -328,7 +434,6 @@ let db = {
     marathon_completions: [],
     quiz_completions: [],
     daily_reviews: [],
-    // НОВЫЕ ТАБЛИЦЫ ДЛЯ ИНТЕРАКТИВОВ
     interactives: [
         {
             id: 1,
@@ -336,11 +441,12 @@ let db = {
             description: "Определите эпоху по фрагменту картины",
             type: "guess_era",
             category: "history",
-            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjNjY3ZWVhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7Qp9C10YDQvdC+0YHRjCDQtNC10L3QvtC6INC60LDRgNGC0LjQu9GMPC90ZXh0Pjwvc3ZnPg==",
+            image_url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=300&fit=crop",
             question: "Какой эпохе принадлежит этот фрагмент?",
             options: ["Ренессанс", "Барокко", "Импрессионизм", "Кубизм"],
             correct_answer: 0,
-            sparks_reward: 2,
+            sparks_reward: 3,
+            allow_retake: false,
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -350,11 +456,12 @@ let db = {
             description: "Создай гармоничный образ для конкретного события",
             type: "style_match",
             category: "style",
-            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjNzY0YmEyIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7Qn9C+0LTQutC70Y7Rh9C10L3QuNGPINC+0YHRgtCw0LvRjNC90YvQuTwvdGV4dD48L3N2Zz4=",
+            image_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop",
             question: "Какое сочетание цветов подойдет для деловой встречи?",
             options: ["Черный + белый + красный акцент", "Ярко-красный + зеленый", "Фиолетовый + оранжевый", "Розовый + голубой"],
             correct_answer: 0,
-            sparks_reward: 1,
+            sparks_reward: 2,
+            allow_retake: true,
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -364,11 +471,12 @@ let db = {
             description: "Дорисуйте предложенный контур и создайте свою работу",
             type: "drawing_challenge",
             category: "art",
-            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZTY5NTIyIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7Qn9C+0LTQutC70Y7Rh9C10L3QuNGPINC+0YHRgtCw0LvRjNC90YvQuTwvdGV4dD48L3N2Zz4=",
+            image_url: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop",
             question: "Дорисуйте этот контур и создайте свою уникальную работу",
             options: [],
             correct_answer: null,
-            sparks_reward: 3,
+            sparks_reward: 5,
+            allow_retake: true,
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -378,11 +486,12 @@ let db = {
             description: "Найдите все отличия между двумя изображениями",
             type: "find_difference",
             category: "art",
-            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjNDI5OWUxIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7QndCw0LnQtSDQt9C90LDRh9C10L3QuNC1PC90ZXh0Pjwvc3ZnPg==",
+            image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
             question: "Сколько отличий вы нашли между изображениями?",
             options: ["2 отличия", "3 отличия", "4 отличия", "5 отличий"],
             correct_answer: 2,
-            sparks_reward: 2,
+            sparks_reward: 3,
+            allow_retake: false,
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -392,24 +501,41 @@ let db = {
             description: "Соберите пазл из фрагментов известной картины",
             type: "puzzle",
             category: "history",
-            image_url: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWR4OTM2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7Qn9Cw0LfQttC1INC/0LDRgdC/0YvRgjwvdGV4dD48L3N2Zz4=",
+            image_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
             question: "Из скольких фрагментов состоит этот пазл?",
             options: ["6 фрагментов", "9 фрагментов", "12 фрагментов", "16 фрагментов"],
             correct_answer: 1,
             sparks_reward: 2,
+            allow_retake: true,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 6,
+            title: "🎭 Определи стиль художника",
+            description: "По фрагменту картины определите авторский стиль",
+            type: "guess_era",
+            category: "history",
+            image_url: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=400&h=300&fit=crop",
+            question: "Какому художнику принадлежит этот стиль?",
+            options: ["Ван Гог", "Моне", "Пикассо", "Дали"],
+            correct_answer: 0,
+            sparks_reward: 4,
+            allow_retake: false,
             is_active: true,
             created_at: new Date().toISOString()
         }
     ],
     interactive_completions: [],
-    interactive_submissions: []
+    interactive_submissions: [],
+    marathon_submissions: []
 };
 
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ С ПРАВИЛЬНЫМИ ПУТЯМИ ====================
+// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
 app.use(express.static(join(APP_ROOT, 'public')));
 app.use('/admin', express.static(join(APP_ROOT, 'admin')));
 
@@ -421,9 +547,9 @@ app.get('/admin/*', (req, res) => {
     res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
 });
 
-console.log('🎨 Мастерская Вдохновения - Запуск...');
+console.log('🎨 Система инициализирована успешно!');
 
-// НОВАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР (исправленная)
+// УЛУЧШЕННАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР
 const SPARKS_SYSTEM = {
     QUIZ_PER_CORRECT_ANSWER: 1,
     QUIZ_PERFECT_BONUS: 5,
@@ -435,9 +561,11 @@ const SPARKS_SYSTEM = {
     WORK_APPROVED: 15,
     REGISTRATION_BONUS: 10,
     PARTICIPATE_POLL: 2,
-    INTERACTIVE_COMPLETION: 2,
-    INTERACTIVE_SUBMISSION: 3,
-    COMPLIMENT_CHALLENGE: 0.5
+    INTERACTIVE_COMPLETION: 3,
+    INTERACTIVE_SUBMISSION: 2,
+    COMPLIMENT_CHALLENGE: 0.5,
+    MARATHON_SUBMISSION: 5,
+    ROLE_CHANGE: 0
 };
 
 // Вспомогательные функции
@@ -452,7 +580,7 @@ function calculateLevel(sparks) {
 function addSparks(userId, sparks, activityType, description) {
     const user = db.users.find(u => u.user_id == userId);
     if (user) {
-        user.sparks += sparks;
+        user.sparks = Math.max(0, user.sparks + sparks); // Защита от отрицательных значений
         user.level = calculateLevel(user.sparks);
         user.last_active = new Date().toISOString();
         
@@ -516,7 +644,7 @@ app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
-        version: '1.0.0',
+        version: '7.0.0',
         database: 'In-Memory',
         users: db.users.length,
         quizzes: db.quizzes.length,
@@ -561,6 +689,45 @@ app.get('/api/users/:userId', (req, res) => {
             user: newUser 
         });
     }
+});
+
+// НОВЫЙ МЕТОД ДЛЯ СМЕНЫ РОЛИ
+app.post('/api/users/change-role', (req, res) => {
+    const { userId, roleId, characterId } = req.body;
+    
+    if (!userId || !roleId) {
+        return res.status(400).json({ error: 'User ID and role are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    const role = db.roles.find(r => r.id == roleId);
+    const character = db.characters.find(c => c.id == characterId);
+    
+    if (!user || !role) {
+        return res.status(404).json({ error: 'User or role not found' });
+    }
+    
+    if (!user.is_registered) {
+        return res.status(400).json({ error: 'User not registered' });
+    }
+    
+    // Сохраняем старую роль для лога
+    const oldRole = user.class;
+    
+    user.class = role.name;
+    user.character_id = characterId;
+    user.character_name = character ? character.name : null;
+    user.available_buttons = role.available_buttons;
+    user.last_active = new Date().toISOString();
+    
+    // Логируем смену роли (0 искр)
+    addSparks(userId, SPARKS_SYSTEM.ROLE_CHANGE, 'role_change', `Смена роли: ${oldRole} → ${role.name}`);
+    
+    res.json({ 
+        success: true, 
+        message: 'Роль успешно изменена!',
+        user: user
+    });
 });
 
 app.post('/api/users/register', (req, res) => {
@@ -625,7 +792,7 @@ app.get('/api/webapp/quizzes', (req, res) => {
             qc => qc.user_id === userId && qc.quiz_id === quiz.id
         );
         
-        let canRetake = true;
+        let canRetake = quiz.allow_retake;
         if (completion && quiz.cooldown_hours > 0) {
             const lastCompletion = new Date(completion.completed_at);
             const now = new Date();
@@ -638,7 +805,7 @@ app.get('/api/webapp/quizzes', (req, res) => {
             completed: !!completion,
             user_score: completion ? completion.score : 0,
             total_questions: quiz.questions.length,
-            can_retake: canRetake,
+            can_retake: canRetake && quiz.allow_retake,
             last_completion: completion ? completion.completed_at : null
         };
     });
@@ -646,6 +813,7 @@ app.get('/api/webapp/quizzes', (req, res) => {
     res.json(quizzesWithStatus);
 });
 
+// ИСПРАВЛЕННОЕ ОТПРАВЛЕНИЕ РЕЗУЛЬТАТОВ КВИЗА
 app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
     const quizId = parseInt(req.params.quizId);
     const { userId, answers } = req.body;
@@ -662,6 +830,10 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
     const existingCompletion = db.quiz_completions.find(
         qc => qc.user_id === userId && qc.quiz_id === quizId
     );
+    
+    if (existingCompletion && !quiz.allow_retake) {
+        return res.status(400).json({ error: 'Этот квиз нельзя пройти повторно' });
+    }
     
     if (existingCompletion && quiz.cooldown_hours > 0) {
         const lastCompletion = new Date(existingCompletion.completed_at);
@@ -683,20 +855,16 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
         }
     });
     
-    // ИСПРАВЛЕННОЕ НАЧИСЛЕНИЕ ИСКР ДЛЯ КВИЗОВ
+    // ИСПРАВЛЕННОЕ НАЧИСЛЕНИЕ ИСКР
     let sparksEarned = 0;
     const perfectScore = correctAnswers === quiz.questions.length;
     
-    // Используем настройки из квиза или значения по умолчанию
-    const sparksPerCorrect = quiz.sparks_per_correct || SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER;
-    const perfectBonus = quiz.sparks_perfect_bonus || SPARKS_SYSTEM.QUIZ_PERFECT_BONUS;
-    
     // Начисляем искры за правильные ответы
-    sparksEarned = correctAnswers * sparksPerCorrect;
+    sparksEarned = correctAnswers * quiz.sparks_per_correct;
     
     // Добавляем бонус за идеальный результат
     if (perfectScore) {
-        sparksEarned += perfectBonus;
+        sparksEarned += quiz.sparks_perfect_bonus;
     }
     
     if (existingCompletion) {
@@ -728,8 +896,8 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
         perfectScore,
         scorePercentage: Math.round((correctAnswers / quiz.questions.length) * 100),
         message: perfectScore ? 
-            `Идеально! 🎉 +${sparksEarned}✨ (${correctAnswers}×${sparksPerCorrect} + ${perfectBonus} бонус)` : 
-            `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨ (${correctAnswers}×${sparksPerCorrect})`
+            `Идеально! 🎉 +${sparksEarned}✨ (${correctAnswers}×${quiz.sparks_per_correct} + ${quiz.sparks_perfect_bonus} бонус)` : 
+            `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨ (${correctAnswers}×${quiz.sparks_per_correct})`
     });
 });
 
@@ -742,21 +910,25 @@ app.get('/api/webapp/marathons', (req, res) => {
             mc => mc.user_id === userId && mc.marathon_id === marathon.id
         );
         
+        const currentTask = completion ? marathon.tasks[completion.current_day - 1] : marathon.tasks[0];
+        
         return {
             ...marathon,
             completed: completion ? completion.completed : false,
             current_day: completion ? completion.current_day : 1,
             progress: completion ? completion.progress : 0,
-            started_at: completion ? completion.started_at : null
+            started_at: completion ? completion.started_at : null,
+            current_task: currentTask
         };
     });
     
     res.json(marathonsWithStatus);
 });
 
-app.post('/api/webapp/marathons/:marathonId/complete-day', (req, res) => {
+// НОВЫЙ МЕТОД ДЛЯ ОТПРАВКИ РАБОТЫ В МАРАФОНЕ
+app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
     const marathonId = parseInt(req.params.marathonId);
-    const { userId, day } = req.body;
+    const { userId, day, submission_text, submission_image } = req.body;
     
     if (!userId || !day) {
         return res.status(400).json({ error: 'User ID and day are required' });
@@ -765,6 +937,16 @@ app.post('/api/webapp/marathons/:marathonId/complete-day', (req, res) => {
     const marathon = db.marathons.find(m => m.id === marathonId);
     if (!marathon) {
         return res.status(404).json({ error: 'Marathon not found' });
+    }
+    
+    const task = marathon.tasks.find(t => t.day === day);
+    if (!task) {
+        return res.status(404).json({ error: 'Task not found' });
+    }
+    
+    // Проверяем требования к заданию
+    if (task.requires_submission && !submission_text && !submission_image) {
+        return res.status(400).json({ error: 'Это задание требует отправки работы' });
     }
     
     let completion = db.marathon_completions.find(
@@ -784,27 +966,38 @@ app.post('/api/webapp/marathons/:marathonId/complete-day', (req, res) => {
         db.marathon_completions.push(completion);
     }
     
-    if (completion.current_day > day) {
-        return res.status(400).json({ error: 'Этот день уже завершен' });
+    if (completion.current_day !== day) {
+        return res.status(400).json({ error: 'Неверный день марафона' });
     }
     
-    let sparksEarned = 0;
-    if (completion.current_day === day) {
-        // Используем настройки из марафона или значение по умолчанию
-        sparksEarned = marathon.sparks_per_day || SPARKS_SYSTEM.MARATHON_DAY_COMPLETION;
-        addSparks(userId, sparksEarned, 'marathon_day', `Марафон: ${marathon.title} - день ${day}`);
-        
-        completion.current_day = day + 1;
-        completion.progress = Math.round((day / marathon.duration_days) * 100);
+    // Сохраняем работу пользователя
+    if (submission_text || submission_image) {
+        db.marathon_submissions.push({
+            id: Date.now(),
+            user_id: userId,
+            marathon_id: marathonId,
+            day: day,
+            submission_text: submission_text,
+            submission_image: submission_image,
+            submitted_at: new Date().toISOString(),
+            status: 'pending'
+        });
     }
+    
+    // Начисляем искры только после отправки работы
+    const sparksEarned = marathon.sparks_per_day;
+    addSparks(userId, sparksEarned, 'marathon_day', `Марафон: ${marathon.title} - день ${day}`);
+    
+    completion.current_day = day + 1;
+    completion.progress = Math.round((day / marathon.duration_days) * 100);
     
     if (day >= marathon.duration_days) {
         completion.completed = true;
         completion.progress = 100;
         
-        // Награда за завершение марафона (сумма за все дни)
-        const marathonSparks = marathon.sparks_per_day * marathon.duration_days;
-        addSparks(userId, marathonSparks, 'marathon_completion', `Завершение марафона: ${marathon.title}`);
+        // Дополнительная награда за завершение марафона
+        const marathonBonus = marathon.sparks_per_day * 2;
+        addSparks(userId, marathonBonus, 'marathon_completion', `Завершение марафона: ${marathon.title}`);
     }
     
     res.json({
@@ -814,7 +1007,7 @@ app.post('/api/webapp/marathons/:marathonId/complete-day', (req, res) => {
         progress: completion.progress,
         completed: completion.completed,
         message: completion.completed ? 
-            `🎉 Марафон завершен! +${marathon.sparks_per_day * marathon.duration_days}✨` : 
+            `🎉 Марафон завершен! +${sparksEarned}✨ (день) + ${marathon.sparks_per_day * 2}✨ (бонус)` : 
             `День ${day} завершен! +${sparksEarned}✨`
     });
 });
@@ -824,6 +1017,7 @@ app.get('/api/webapp/shop/items', (req, res) => {
     res.json(items);
 });
 
+// ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА
 app.post('/api/webapp/shop/purchase', (req, res) => {
     const { userId, itemId } = req.body;
     
@@ -836,8 +1030,21 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
     
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (!item) return res.status(404).json({ error: 'Item not found' });
-    if (user.sparks < item.price) return res.status(400).json({ error: 'Недостаточно искр' });
     
+    // Проверяем, не куплен ли уже товар
+    const existingPurchase = db.purchases.find(
+        p => p.user_id === userId && p.item_id === itemId
+    );
+    
+    if (existingPurchase) {
+        return res.status(400).json({ error: 'Вы уже купили этот товар' });
+    }
+    
+    if (user.sparks < item.price) {
+        return res.status(400).json({ error: 'Недостаточно искр' });
+    }
+    
+    // Списание искр
     user.sparks -= item.price;
     
     const purchase = {
@@ -917,7 +1124,6 @@ app.post('/api/webapp/upload-work', (req, res) => {
     
     db.user_works.push(newWork);
     
-    // Начисляем искры за загрузку работы
     addSparks(userId, SPARKS_SYSTEM.UPLOAD_WORK, 'upload_work', `Загрузка работы: ${title}`);
     
     res.json({
@@ -954,7 +1160,6 @@ app.get('/api/webapp/channel-posts', (req, res) => {
     res.json({ posts: posts });
 });
 
-// ИСПРАВЛЕННЫЙ МЕТОД ДЛЯ ОТЗЫВОВ С ПРОВЕРКОЙ ЕЖЕДНЕВНОГО ЛИМИТА
 app.post('/api/webapp/posts/:postId/review', (req, res) => {
     const postId = req.params.postId;
     const { userId, reviewText, rating } = req.body;
@@ -968,7 +1173,6 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
         return res.status(404).json({ error: 'Post not found' });
     }
     
-    // Проверяем, не оставлял ли пользователь уже отзыв на этот пост
     const existingReview = db.post_reviews.find(
         r => r.user_id === userId && r.post_id === postId
     );
@@ -977,19 +1181,16 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
         return res.status(400).json({ error: 'Вы уже оставляли отзыв на этот пост' });
     }
     
-    // Проверяем ежедневный лимит комментариев (1 в день)
     const today = new Date().toDateString();
     const todayReviews = db.daily_reviews.filter(
         dr => dr.user_id === userId && new Date(dr.date).toDateString() === today
     );
     
-    let sparksEarned = SPARKS_SYSTEM.WRITE_REVIEW; // 3 искры за отзыв о занятии
+    let sparksEarned = SPARKS_SYSTEM.WRITE_REVIEW;
     
     if (todayReviews.length === 0) {
-        // Первый комментарий сегодня - начисляем дополнительно 1 искру
         sparksEarned += SPARKS_SYSTEM.DAILY_COMMENT;
         
-        // Сохраняем информацию о ежедневном комментарии
         db.daily_reviews.push({
             id: Date.now(),
             user_id: userId,
@@ -1013,7 +1214,6 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
     
     db.post_reviews.push(newReview);
     
-    // Начисляем искры сразу за отзыв
     addSparks(userId, sparksEarned, 'post_review', `Отзыв к посту: ${post.title}`);
     
     const message = todayReviews.length === 0 
@@ -1028,7 +1228,7 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
     });
 });
 
-// НОВЫЕ API ДЛЯ ИНТЕРАКТИВОВ
+// API ДЛЯ ИНТЕРАКТИВОВ
 app.get('/api/webapp/interactives', (req, res) => {
     const userId = parseInt(req.query.userId);
     const interactives = db.interactives.filter(i => i.is_active);
@@ -1041,7 +1241,8 @@ app.get('/api/webapp/interactives', (req, res) => {
         return {
             ...interactive,
             completed: !!completion,
-            user_score: completion ? completion.score : 0
+            user_score: completion ? completion.score : 0,
+            can_retake: interactive.allow_retake && !completion
         };
     });
     
@@ -1050,7 +1251,7 @@ app.get('/api/webapp/interactives', (req, res) => {
 
 app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
     const interactiveId = parseInt(req.params.interactiveId);
-    const { userId, answer, submission_data } = req.body;
+    const { userId, answer } = req.body;
     
     if (!userId) {
         return res.status(400).json({ error: 'User ID is required' });
@@ -1065,49 +1266,30 @@ app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
         ic => ic.user_id === userId && ic.interactive_id === interactiveId
     );
     
-    if (existingCompletion) {
+    if (existingCompletion && !interactive.allow_retake) {
         return res.status(400).json({ error: 'Вы уже прошли этот интерактив' });
     }
     
-    let isCorrect = false;
-    let score = 0;
-    let sparksEarned = 0;
+    const isCorrect = answer === interactive.correct_answer;
+    const sparksEarned = isCorrect ? interactive.sparks_reward : 0;
     
-    // Проверка ответа для тестовых интерактивов
-    if (interactive.type === 'guess_era' || interactive.type === 'style_match' || 
-        interactive.type === 'find_difference' || interactive.type === 'puzzle') {
-        isCorrect = answer === interactive.correct_answer;
-        score = isCorrect ? 1 : 0;
-        sparksEarned = isCorrect ? interactive.sparks_reward : 0;
-    } else if (interactive.type === 'drawing_challenge') {
-        // Для творческих заданий начисляем искры за участие
-        score = 1;
-        sparksEarned = SPARKS_SYSTEM.INTERACTIVE_SUBMISSION;
-        
-        // Сохраняем работу пользователя
-        if (submission_data) {
-            db.interactive_submissions.push({
-                id: Date.now(),
-                user_id: userId,
-                interactive_id: interactiveId,
-                submission_data: submission_data,
-                created_at: new Date().toISOString()
-            });
-        }
+    if (existingCompletion) {
+        existingCompletion.score = isCorrect ? 1 : 0;
+        existingCompletion.sparks_earned = sparksEarned;
+        existingCompletion.completed_at = new Date().toISOString();
+        existingCompletion.answer = answer;
+    } else {
+        db.interactive_completions.push({
+            id: Date.now(),
+            user_id: userId,
+            interactive_id: interactiveId,
+            completed_at: new Date().toISOString(),
+            score: isCorrect ? 1 : 0,
+            sparks_earned: sparksEarned,
+            answer: answer
+        });
     }
     
-    // Сохраняем завершение
-    db.interactive_completions.push({
-        id: Date.now(),
-        user_id: userId,
-        interactive_id: interactiveId,
-        completed_at: new Date().toISOString(),
-        score: score,
-        sparks_earned: sparksEarned,
-        answer: answer
-    });
-    
-    // Начисляем искры
     if (sparksEarned > 0) {
         addSparks(userId, sparksEarned, 'interactive', `Интерактив: ${interactive.title}`);
     }
@@ -1115,150 +1297,11 @@ app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
     res.json({
         success: true,
         correct: isCorrect,
-        score: score,
+        score: isCorrect ? 1 : 0,
         sparksEarned: sparksEarned,
         message: isCorrect ? 
             `Правильно! +${sparksEarned}✨` : 
             'Попробуйте еще раз!'
-    });
-});
-
-app.post('/api/webapp/interactives/:interactiveId/upload-work', (req, res) => {
-    const interactiveId = parseInt(req.params.interactiveId);
-    const { userId, imageUrl, title, description } = req.body;
-    
-    if (!userId || !imageUrl) {
-        return res.status(400).json({ error: 'User ID and image URL are required' });
-    }
-    
-    const interactive = db.interactives.find(i => i.id === interactiveId);
-    if (!interactive) {
-        return res.status(404).json({ error: 'Interactive not found' });
-    }
-    
-    // Сохраняем работу
-    const submission = {
-        id: Date.now(),
-        user_id: userId,
-        interactive_id: interactiveId,
-        submission_data: {
-            image_url: imageUrl,
-            title: title,
-            description: description,
-            type: 'drawing'
-        },
-        created_at: new Date().toISOString()
-    };
-    
-    db.interactive_submissions.push(submission);
-    
-    // Начисляем искры за участие
-    addSparks(userId, SPARKS_SYSTEM.INTERACTIVE_SUBMISSION, 'interactive_submission', `Работа для интерактива: ${interactive.title}`);
-    
-    res.json({
-        success: true,
-        message: `Работа загружена! +${SPARKS_SYSTEM.INTERACTIVE_SUBMISSION}✨`,
-        submissionId: submission.id
-    });
-});
-
-// Новый метод для приглашения друзей
-app.post('/api/webapp/invite-friend', (req, res) => {
-    const { userId, friendId } = req.body;
-    
-    if (!userId || !friendId) {
-        return res.status(400).json({ error: 'User ID and friend ID are required' });
-    }
-    
-    const user = db.users.find(u => u.user_id == userId);
-    const friend = db.users.find(u => u.user_id == friendId);
-    
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    if (!friend) return res.status(404).json({ error: 'Friend not found' });
-    
-    // Проверяем, не приглашал ли уже этого друга
-    const existingInvite = db.activities.find(
-        a => a.user_id === userId && 
-        a.activity_type === 'invite_friend' && 
-        a.description.includes(`Приглашен друг: ${friendId}`)
-    );
-    
-    if (existingInvite) {
-        return res.status(400).json({ error: 'Вы уже приглашали этого друга' });
-    }
-    
-    // Начисляем искры за приглашение
-    addSparks(userId, SPARKS_SYSTEM.INVITE_FRIEND, 'invite_friend', `Приглашен друг: ${friendId}`);
-    
-    res.json({
-        success: true,
-        message: `Друг приглашен! +${SPARKS_SYSTEM.INVITE_FRIEND}✨`,
-        sparksEarned: SPARKS_SYSTEM.INVITE_FRIEND
-    });
-});
-
-// Новый метод для участия в опросе
-app.post('/api/webapp/participate-poll', (req, res) => {
-    const { userId, pollId } = req.body;
-    
-    if (!userId || !pollId) {
-        return res.status(400).json({ error: 'User ID and poll ID are required' });
-    }
-    
-    const user = db.users.find(u => u.user_id == userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    
-    // Проверяем, не участвовал ли уже в этом опросе
-    const existingParticipation = db.activities.find(
-        a => a.user_id === userId && 
-        a.activity_type === 'participate_poll' && 
-        a.description.includes(`Опрос: ${pollId}`)
-    );
-    
-    if (existingParticipation) {
-        return res.status(400).json({ error: 'Вы уже участвовали в этом опросе' });
-    }
-    
-    // Начисляем искры за участие в опросе
-    addSparks(userId, SPARKS_SYSTEM.PARTICIPATE_POLL, 'participate_poll', `Участие в опросе: ${pollId}`);
-    
-    res.json({
-        success: true,
-        message: `Участие в опросе засчитано! +${SPARKS_SYSTEM.PARTICIPATE_POLL}✨`,
-        sparksEarned: SPARKS_SYSTEM.PARTICIPATE_POLL
-    });
-});
-
-// Новый метод для челленджа комплиментов
-app.post('/api/webapp/compliment-challenge', (req, res) => {
-    const { userId, compliment } = req.body;
-    
-    if (!userId || !compliment) {
-        return res.status(400).json({ error: 'User ID and compliment are required' });
-    }
-    
-    const user = db.users.find(u => u.user_id == userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    
-    // Проверяем, не участвовал ли уже сегодня
-    const today = new Date().toDateString();
-    const todayCompliments = db.activities.filter(
-        a => a.user_id === userId && 
-        a.activity_type === 'compliment_challenge' &&
-        new Date(a.created_at).toDateString() === today
-    );
-    
-    if (todayCompliments.length > 0) {
-        return res.status(400).json({ error: 'Вы уже участвовали в челлендже сегодня' });
-    }
-    
-    // Начисляем искры за участие
-    addSparks(userId, SPARKS_SYSTEM.COMPLIMENT_CHALLENGE, 'compliment_challenge', `Челлендж комплиментов: ${compliment}`);
-    
-    res.json({
-        success: true,
-        message: `Комплимент принят! +${SPARKS_SYSTEM.COMPLIMENT_CHALLENGE}✨`,
-        sparksEarned: SPARKS_SYSTEM.COMPLIMENT_CHALLENGE
     });
 });
 
@@ -1282,45 +1325,92 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
     res.json(stats);
 });
 
-// НОВЫЙ API ДЛЯ ОТЧЕТА ПО ПОЛЬЗОВАТЕЛЯМ
-app.get('/api/admin/users-report', requireAdmin, (req, res) => {
-    const users = db.users
-        .filter(u => u.is_registered)
-        .map(user => {
-            const stats = getUserStats(user.user_id);
-            const works = db.user_works.filter(w => w.user_id === user.user_id);
-            const quizCompletions = db.quiz_completions.filter(q => q.user_id === user.user_id);
-            const marathonCompletions = db.marathon_completions.filter(m => m.user_id === user.user_id);
-            const interactiveCompletions = db.interactive_completions.filter(i => i.user_id === user.user_id);
-            
-            // Считаем общее количество активностей
-            const totalActivities = 
-                quizCompletions.length + 
-                marathonCompletions.filter(m => m.completed).length + 
-                interactiveCompletions.length + 
-                works.length;
-            
-            return {
-                id: user.user_id,
-                name: user.tg_first_name,
-                username: user.tg_username,
-                role: user.class,
-                character: user.character_name,
-                sparks: user.sparks,
-                level: user.level,
-                total_quizzes: quizCompletions.length,
-                total_marathons: marathonCompletions.filter(m => m.completed).length,
-                total_interactives: interactiveCompletions.length,
-                total_works: works.length,
-                approved_works: works.filter(w => w.status === 'approved').length,
-                total_activities: totalActivities,
-                registration_date: user.registration_date,
-                last_active: user.last_active
-            };
-        })
-        .sort((a, b) => b.total_activities - a.total_activities); // Сортировка по активности
+// Управление интерактивами
+app.get('/api/admin/interactives', requireAdmin, (req, res) => {
+    const interactives = db.interactives.map(interactive => {
+        const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
+        
+        return {
+            ...interactive,
+            completions_count: completions.length,
+            average_score: completions.length > 0 ? 
+                completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length : 0
+        };
+    });
+    res.json(interactives);
+});
+
+app.post('/api/admin/interactives', requireAdmin, (req, res) => {
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake } = req.body;
     
-    res.json({ users });
+    if (!title || !type || !category) {
+        return res.status(400).json({ error: 'Title, type and category are required' });
+    }
+    
+    const newInteractive = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        type,
+        category,
+        image_url: image_url || '',
+        question: question || '',
+        options: options || [],
+        correct_answer: correct_answer || 0,
+        sparks_reward: sparks_reward || SPARKS_SYSTEM.INTERACTIVE_COMPLETION,
+        allow_retake: allow_retake || false,
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.interactives.push(newInteractive);
+    
+    res.json({ 
+        success: true, 
+        message: 'Интерактив успешно создан', 
+        interactiveId: newInteractive.id,
+        interactive: newInteractive
+    });
+});
+
+app.put('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
+    
+    const interactive = db.interactives.find(i => i.id === interactiveId);
+    if (!interactive) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    if (title) interactive.title = title;
+    if (description) interactive.description = description;
+    if (type) interactive.type = type;
+    if (category) interactive.category = category;
+    if (image_url) interactive.image_url = image_url;
+    if (question) interactive.question = question;
+    if (options) interactive.options = options;
+    if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
+    if (sparks_reward !== undefined) interactive.sparks_reward = sparks_reward;
+    if (allow_retake !== undefined) interactive.allow_retake = allow_retake;
+    if (is_active !== undefined) interactive.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Интерактив успешно обновлен',
+        interactive: interactive
+    });
+});
+
+app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const interactiveIndex = db.interactives.findIndex(i => i.id === interactiveId);
+    
+    if (interactiveIndex === -1) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    db.interactives.splice(interactiveIndex, 1);
+    res.json({ success: true, message: 'Интерактив удален' });
 });
 
 // Управление ролями
@@ -1340,7 +1430,7 @@ app.post('/api/admin/roles', requireAdmin, (req, res) => {
         name,
         description,
         icon: icon || '🎨',
-        available_buttons: available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives'],
+        available_buttons: available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
         is_active: true,
         created_at: new Date().toISOString()
     };
@@ -1558,7 +1648,7 @@ app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
 });
 
 app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
-    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours } = req.body;
+    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake } = req.body;
     
     if (!title || !questions || !Array.isArray(questions)) {
         return res.status(400).json({ error: 'Title and questions array are required' });
@@ -1572,6 +1662,7 @@ app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
         sparks_per_correct: sparks_per_correct || SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER,
         sparks_perfect_bonus: sparks_perfect_bonus || SPARKS_SYSTEM.QUIZ_PERFECT_BONUS,
         cooldown_hours: cooldown_hours || 24,
+        allow_retake: allow_retake || true,
         is_active: true,
         created_at: new Date().toISOString()
     };
@@ -1588,7 +1679,7 @@ app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
 
 app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
     const quizId = parseInt(req.params.quizId);
-    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, is_active } = req.body;
+    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake, is_active } = req.body;
     
     const quiz = db.quizzes.find(q => q.id === quizId);
     if (!quiz) {
@@ -1601,6 +1692,7 @@ app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
     if (sparks_per_correct !== undefined) quiz.sparks_per_correct = sparks_per_correct;
     if (sparks_perfect_bonus !== undefined) quiz.sparks_perfect_bonus = sparks_perfect_bonus;
     if (cooldown_hours !== undefined) quiz.cooldown_hours = cooldown_hours;
+    if (allow_retake !== undefined) quiz.allow_retake = allow_retake;
     if (is_active !== undefined) quiz.is_active = is_active;
     
     res.json({ 
@@ -1758,177 +1850,6 @@ app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     res.json({ posts });
 });
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ ПУБЛИКАЦИИ В TELEGRAM
-async function publishToTelegram(post) {
-    const channelId = process.env.CHANNEL_ID;
-    const groupId = process.env.GROUP_ID;
-    
-    console.log('=== ПОПЫТКА ПУБЛИКАЦИИ В TELEGRAM ===');
-    console.log('ID канала:', channelId);
-    console.log('ID группы:', groupId);
-    console.log('Заголовок поста:', post.title);
-    console.log('Тип медиа:', post.media_type);
-    console.log('URL изображения:', post.image_url);
-    console.log('URL видео:', post.video_url);
-    
-    if (!channelId && !groupId) {
-        console.log('❌ CHANNEL_ID или GROUP_ID не настроены');
-        return { success: false, error: 'CHANNEL_ID или GROUP_ID не настроены' };
-    }
-    
-    try {
-        const targetChatId = channelId || groupId;
-        console.log('ID целевого чата:', targetChatId);
-        
-        // Проверяем права бота
-        try {
-            const chat = await bot.getChat(targetChatId);
-            console.log('Информация о чате:', chat.title || chat.username);
-            
-            const chatMember = await bot.getChatMember(targetChatId, bot.options.polling ? bot.options.polling.params.id : bot.options.id);
-            console.log('Статус бота в чате:', chatMember.status);
-            
-            if (!['administrator', 'creator'].includes(chatMember.status)) {
-                console.log('❌ Бот не является администратором в чате');
-                return { success: false, error: 'Бот не является администратором в чате' };
-            }
-        } catch (error) {
-            console.log('❌ Ошибка проверки прав:', error.message);
-            return { success: false, error: `Ошибка проверки прав: ${error.message}` };
-        }
-        
-        const caption = `*${post.title}*\n\n${post.content}\n\n💬 *Оставляйте отзывы в комментариях и получайте искры!*`;
-        
-        console.log('Создаем клавиатуру...');
-        let replyMarkup = null;
-        if (post.action_type && post.action_target) {
-            let buttonText = '';
-            let webAppUrl = '';
-            
-            if (post.action_type === 'quiz') {
-                const quiz = db.quizzes.find(q => q.id == post.action_target);
-                buttonText = `🎯 Пройти квиз: ${quiz?.title || 'Квиз'}`;
-                webAppUrl = `${process.env.APP_URL}?startapp=quiz_${post.action_target}`;
-            } else if (post.action_type === 'marathon') {
-                const marathon = db.marathons.find(m => m.id == post.action_target);
-                buttonText = `🏃‍♂️ Начать марафон: ${marathon?.title || 'Марафон'}`;
-                webAppUrl = `${process.env.APP_URL}?startapp=marathon_${post.action_target}`;
-            } else if (post.action_type === 'interactive') {
-                const interactive = db.interactives.find(i => i.id == post.action_target);
-                buttonText = `🎮 Пройти интерактив: ${interactive?.title || 'Интерактив'}`;
-                webAppUrl = `${process.env.APP_URL}?startapp=interactive_${post.action_target}`;
-            }
-            
-            if (buttonText && webAppUrl) {
-                replyMarkup = {
-                    inline_keyboard: [[
-                        {
-                            text: buttonText,
-                            web_app: { url: webAppUrl }
-                        }
-                    ]]
-                };
-                console.log('Кнопка создана:', buttonText);
-            }
-        }
-        
-        const options = {
-            caption: caption,
-            parse_mode: 'Markdown',
-            reply_markup: replyMarkup
-        };
-        
-        let message;
-        
-        try {
-            if (post.media_type === 'image' && post.image_url) {
-                console.log('Отправляем изображение...');
-                message = await bot.sendPhoto(targetChatId, post.image_url, options);
-                console.log('✅ Изображение отправлено успешно');
-            } else if (post.media_type === 'video' && post.video_url) {
-                console.log('Отправляем видео...');
-                message = await bot.sendVideo(targetChatId, post.video_url, options);
-                console.log('✅ Видео отправлено успешно');
-            } else {
-                console.log('Отправляем текстовое сообщение...');
-                message = await bot.sendMessage(targetChatId, caption, options);
-            }
-            
-            // Сохраняем ID сообщения в базе
-            if (message && message.message_id) {
-                post.telegram_message_id = message.message_id;
-                console.log(`✅ Пост опубликован в ${channelId ? 'канале' : 'группе'}: ${post.title}`);
-                console.log('ID сообщения:', message.message_id);
-                return { success: true, message_id: message.message_id };
-            } else {
-                console.log('❌ Не удалось получить ID сообщения');
-                return { success: false, error: 'Не удалось получить ID сообщения' };
-            }
-            
-        } catch (sendError) {
-            console.error('❌ Ошибка отправки сообщения:', sendError);
-            // Пробуем отправить как текстовое сообщение с ссылкой
-            try {
-                let fallbackText = `*${post.title}*\n\n${post.content}\n\n`;
-                if (post.image_url) fallbackText += `📷 [Изображение](${post.image_url})\n\n`;
-                if (post.video_url) fallbackText += `🎥 [Видео](${post.video_url})\n\n`;
-                fallbackText += '💬 *Оставляйте отзывы в комментариях и получайте искры!*';
-                
-                message = await bot.sendMessage(targetChatId, fallbackText, {
-                    parse_mode: 'Markdown',
-                    reply_markup: replyMarkup
-                });
-                
-                if (message && message.message_id) {
-                    post.telegram_message_id = message.message_id;
-                    console.log(`✅ Пост опубликован (fallback): ${post.title}`);
-                    return { success: true, message_id: message.message_id, fallback: true };
-                }
-            } catch (fallbackError) {
-                console.error('❌ Ошибка fallback отправки:', fallbackError);
-                return { success: false, error: fallbackError.message };
-            }
-        }
-        
-    } catch (error) {
-        console.error('❌ Ошибка публикации поста:', error);
-        console.error('Детали ошибки:', error.response?.body || error.message);
-        return { success: false, error: error.message };
-    }
-}
-
-// Новый метод для публикации поста в Telegram
-app.post('/api/admin/channel-posts/:postId/publish', requireAdmin, async (req, res) => {
-    const postId = parseInt(req.params.postId);
-    
-    const post = db.channel_posts.find(p => p.id === postId);
-    if (!post) {
-        return res.status(404).json({ error: 'Post not found' });
-    }
-    
-    try {
-        const result = await publishToTelegram(post);
-        
-        if (result.success) {
-            res.json({ 
-                success: true, 
-                message: 'Пост успешно опубликован в Telegram!',
-                message_id: result.message_id
-            });
-        } else {
-            res.status(500).json({ 
-                success: false, 
-                error: result.error || 'Неизвестная ошибка публикации'
-            });
-        }
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
-
 app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
     const { post_id, title, content, image_url, video_url, media_type, action_type, action_target } = req.body;
     
@@ -2041,8 +1962,6 @@ app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     review.moderator_id = req.admin.user_id;
     review.admin_comment = admin_comment || null;
     
-    // Искры начисляются сразу при отправке отзыва, поэтому здесь не начисляем повторно
-    
     res.json({ 
         success: true, 
         message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`,
@@ -2100,92 +2019,44 @@ app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Админ удален' });
 });
 
-// Admin API для интерактивов
-app.get('/api/admin/interactives', requireAdmin, (req, res) => {
-    const interactives = db.interactives.map(interactive => {
-        const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
-        const submissions = db.interactive_submissions.filter(is => is.interactive_id === interactive.id);
-        
-        return {
-            ...interactive,
-            completions_count: completions.length,
-            submissions_count: submissions.length,
-            average_score: completions.length > 0 ? 
-                completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length : 0
-        };
-    });
-    res.json(interactives);
-});
-
-app.post('/api/admin/interactives', requireAdmin, (req, res) => {
-    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward } = req.body;
+// Отчет по пользователям
+app.get('/api/admin/users-report', requireAdmin, (req, res) => {
+    const users = db.users
+        .filter(u => u.is_registered)
+        .map(user => {
+            const stats = getUserStats(user.user_id);
+            const works = db.user_works.filter(w => w.user_id === user.user_id);
+            const quizCompletions = db.quiz_completions.filter(q => q.user_id === user.user_id);
+            const marathonCompletions = db.marathon_completions.filter(m => m.user_id === user.user_id);
+            const interactiveCompletions = db.interactive_completions.filter(i => i.user_id === user.user_id);
+            
+            const totalActivities = 
+                quizCompletions.length + 
+                marathonCompletions.filter(m => m.completed).length + 
+                interactiveCompletions.length + 
+                works.length;
+            
+            return {
+                id: user.user_id,
+                name: user.tg_first_name,
+                username: user.tg_username,
+                role: user.class,
+                character: user.character_name,
+                sparks: user.sparks,
+                level: user.level,
+                total_quizzes: quizCompletions.length,
+                total_marathons: marathonCompletions.filter(m => m.completed).length,
+                total_interactives: interactiveCompletions.length,
+                total_works: works.length,
+                approved_works: works.filter(w => w.status === 'approved').length,
+                total_activities: totalActivities,
+                registration_date: user.registration_date,
+                last_active: user.last_active
+            };
+        })
+        .sort((a, b) => b.total_activities - a.total_activities);
     
-    if (!title || !type || !category) {
-        return res.status(400).json({ error: 'Title, type and category are required' });
-    }
-    
-    const newInteractive = {
-        id: Date.now(),
-        title,
-        description: description || '',
-        type,
-        category,
-        image_url: image_url || '',
-        question: question || '',
-        options: options || [],
-        correct_answer: correct_answer || 0,
-        sparks_reward: sparks_reward || SPARKS_SYSTEM.INTERACTIVE_COMPLETION,
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.interactives.push(newInteractive);
-    
-    res.json({ 
-        success: true, 
-        message: 'Интерактив успешно создан', 
-        interactiveId: newInteractive.id,
-        interactive: newInteractive
-    });
-});
-
-app.put('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
-    const interactiveId = parseInt(req.params.interactiveId);
-    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, is_active } = req.body;
-    
-    const interactive = db.interactives.find(i => i.id === interactiveId);
-    if (!interactive) {
-        return res.status(404).json({ error: 'Interactive not found' });
-    }
-    
-    if (title) interactive.title = title;
-    if (description) interactive.description = description;
-    if (type) interactive.type = type;
-    if (category) interactive.category = category;
-    if (image_url) interactive.image_url = image_url;
-    if (question) interactive.question = question;
-    if (options) interactive.options = options;
-    if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
-    if (sparks_reward !== undefined) interactive.sparks_reward = sparks_reward;
-    if (is_active !== undefined) interactive.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Интерактив успешно обновлен',
-        interactive: interactive
-    });
-});
-
-app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
-    const interactiveId = parseInt(req.params.interactiveId);
-    const interactiveIndex = db.interactives.findIndex(i => i.id === interactiveId);
-    
-    if (interactiveIndex === -1) {
-        return res.status(404).json({ error: 'Interactive not found' });
-    }
-    
-    db.interactives.splice(interactiveIndex, 1);
-    res.json({ success: true, message: 'Интерактив удален' });
+    res.json({ users });
 });
 
 // Полная статистика
@@ -2242,76 +2113,6 @@ if (process.env.BOT_TOKEN) {
         console.log('GROUP_ID:', process.env.GROUP_ID);
         console.log('====================');
         
-        // Обработка комментариев в канале/группе
-        bot.on('message', async (msg) => {
-            // Если сообщение является ответом на пост бота в канале/группе
-            if (msg.reply_to_message && (process.env.CHANNEL_ID || process.env.GROUP_ID)) {
-                const channelPostId = msg.reply_to_message.message_id;
-                const post = db.channel_posts.find(p => p.telegram_message_id === channelPostId);
-                
-                if (post && msg.from) {
-                    const userId = msg.from.id;
-                    const reviewText = msg.text;
-                    
-                    // Проверяем, не оставлял ли пользователь уже отзыв
-                    const existingReview = db.post_reviews.find(
-                        r => r.user_id === userId && r.post_id === post.post_id
-                    );
-                    
-                    if (!existingReview && reviewText) {
-                        // Проверяем ежедневный лимит комментариев (1 в день)
-                        const today = new Date().toDateString();
-                        const todayReviews = db.daily_reviews.filter(
-                            dr => dr.user_id === userId && new Date(dr.date).toDateString() === today
-                        );
-                        
-                        let sparksEarned = SPARKS_SYSTEM.WRITE_REVIEW; // 3 искры за отзыв о занятии
-                        
-                        if (todayReviews.length === 0) {
-                            // Первый комментарий сегодня - начисляем дополнительно 1 искру
-                            sparksEarned += SPARKS_SYSTEM.DAILY_COMMENT;
-                            
-                            // Сохраняем информацию о ежедневном комментарии
-                            db.daily_reviews.push({
-                                id: Date.now(),
-                                user_id: userId,
-                                date: new Date().toISOString(),
-                                type: 'daily_comment'
-                            });
-                        }
-                        
-                        const newReview = {
-                            id: Date.now(),
-                            user_id: userId,
-                            post_id: post.post_id,
-                            review_text: reviewText,
-                            rating: 5, // По умолчанию 5 звезд
-                            status: 'approved', // Автоматически одобряем комментарии из Telegram
-                            created_at: new Date().toISOString(),
-                            moderated_at: new Date().toISOString(),
-                            moderator_id: null,
-                            admin_comment: 'Автоматически одобрен из Telegram'
-                        };
-                        
-                        db.post_reviews.push(newReview);
-                        
-                        // Начисляем искры
-                        addSparks(userId, sparksEarned, 'telegram_comment', `Комментарий к посту: ${post.title}`);
-                        
-                        // Уведомляем пользователя
-                        try {
-                            await bot.sendMessage(userId, 
-                                `📝 Ваш комментарий получен! +${sparksEarned}✨\n\n` +
-                                `Комментарий: "${reviewText}"`
-                            );
-                        } catch (error) {
-                            console.log('Пользователь не начал диалог с ботом');
-                        }
-                    }
-                }
-            }
-        });
-
         bot.onText(/\/start/, (msg) => {
             const chatId = msg.chat.id;
             const name = msg.from.first_name || 'Друг';
@@ -2345,10 +2146,11 @@ if (process.env.BOT_TOKEN) {
 
 ✨ Откройте личный кабинет чтобы:
 • 🎯 Проходить квизы и получать искры
-• 🏃‍♂️ Участвовать в марафонах
+• 🏃‍♂️ Участвовать в марафонах  
 • 🖼️ Загружать свои работы
 • 🎮 Выполнять интерактивные задания
-• 📊 Отслеживать свой прогресс
+• 🔄 Менять роль и персонажа
+• 📊 Отслеживать прогресс
 • 🛒 Покупать обучающие материалы
 
 Нажмите кнопку ниже чтобы начать!`;
@@ -2378,8 +2180,7 @@ if (process.env.BOT_TOKEN) {
                 return;
             }
             
-            // Исправленная ссылка на админку
-            const adminUrl = `${process.env.APP_URL}/admin.html?userId=${userId}`;
+            const adminUrl = `${process.env.APP_URL || 'https://your-domain.timeweb.cloud'}/admin?userId=${userId}`;
             
             const keyboard = {
                 inline_keyboard: [[
