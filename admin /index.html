@@ -476,6 +476,10 @@
                         <input type="url" id="postImageUrl" class="form-control" placeholder="https://example.com/image.jpg">
                     </div>
                     <div class="form-group">
+                        <label class="form-label">Ссылка на видео:</label>
+                        <input type="url" id="postVideoUrl" class="form-control" placeholder="https://example.com/video.mp4">
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">Тип медиа:</label>
                         <select id="postMediaType" class="form-control">
                             <option value="text">Текст</option>
@@ -641,6 +645,23 @@
                         loadActionTargets(this.value, postActionTarget);
                     } else {
                         actionTargetContainer.style.display = 'none';
+                    }
+                });
+
+                // Обработчик для типа медиа
+                document.getElementById('postMediaType').addEventListener('change', function() {
+                    const imageUrlField = document.getElementById('postImageUrl');
+                    const videoUrlField = document.getElementById('postVideoUrl');
+                    
+                    if (this.value === 'image') {
+                        imageUrlField.style.display = 'block';
+                        videoUrlField.style.display = 'none';
+                    } else if (this.value === 'video') {
+                        imageUrlField.style.display = 'none';
+                        videoUrlField.style.display = 'block';
+                    } else {
+                        imageUrlField.style.display = 'none';
+                        videoUrlField.style.display = 'none';
                     }
                 });
 
@@ -852,6 +873,28 @@
             }
         }
 
+        async function deleteRole(roleId) {
+            if (!confirm('Вы уверены, что хотите удалить эту роль?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/roles/${roleId}?userId=${currentAdminId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Роль успешно удалена!', 'success');
+                    loadRoles();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при удалении роли', 'error');
+            }
+        }
+
         // Управление персонажами
         async function loadCharacters() {
             try {
@@ -922,6 +965,28 @@
                 }
             } catch (error) {
                 showMessage('Ошибка при создании персонажа', 'error');
+            }
+        }
+
+        async function deleteCharacter(characterId) {
+            if (!confirm('Вы уверены, что хотите удалить этого персонажа?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/characters/${characterId}?userId=${currentAdminId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Персонаж успешно удален!', 'success');
+                    loadCharacters();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при удалении персонажа', 'error');
             }
         }
 
@@ -1075,6 +1140,28 @@
             }
         }
 
+        async function deleteQuiz(quizId) {
+            if (!confirm('Вы уверены, что хотите удалить этот квиз?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/quizzes/${quizId}?userId=${currentAdminId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Квиз успешно удален!', 'success');
+                    loadQuizzes();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при удалении квиза', 'error');
+            }
+        }
+
         // Управление марафонами
         function addTask() {
             const taskId = Date.now();
@@ -1203,6 +1290,28 @@
             }
         }
 
+        async function deleteMarathon(marathonId) {
+            if (!confirm('Вы уверены, что хотите удалить этот марафон?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/marathons/${marathonId}?userId=${currentAdminId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Марафон успешно удален!', 'success');
+                    loadMarathons();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при удалении марафона', 'error');
+            }
+        }
+
         // Управление магазином
         async function loadShopItems() {
             try {
@@ -1269,6 +1378,28 @@
                 }
             } catch (error) {
                 showMessage('Ошибка при создании товара', 'error');
+            }
+        }
+
+        async function deleteShopItem(itemId) {
+            if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/shop/items/${itemId}?userId=${currentAdminId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Товар успешно удален!', 'success');
+                    loadShopItems();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при удалении товара', 'error');
             }
         }
 
@@ -1367,6 +1498,11 @@
                                 ${post.image_url ? `
                                     <img src="${post.image_url}" class="file-preview">
                                 ` : ''}
+                                ${post.video_url ? `
+                                    <div style="margin-bottom: 8px;">
+                                        <video src="${post.video_url}" controls class="file-preview"></video>
+                                    </div>
+                                ` : ''}
                                 <div style="color: #718096; font-size: 14px;">
                                     ${new Date(post.created_at).toLocaleString('ru-RU')}
                                     • Отзывов: ${post.reviews_count}
@@ -1396,6 +1532,7 @@
                 title: document.getElementById('postTitle').value,
                 content: document.getElementById('postContent').value,
                 image_url: document.getElementById('postImageUrl').value,
+                video_url: document.getElementById('postVideoUrl').value,
                 media_type: document.getElementById('postMediaType').value,
                 action_type: document.getElementById('postActionType').value || null,
                 action_target: document.getElementById('postActionTarget').value || null
@@ -1421,6 +1558,28 @@
                 }
             } catch (error) {
                 showMessage('Ошибка при создании поста', 'error');
+            }
+        }
+
+        async function deletePost(postId) {
+            if (!confirm('Вы уверены, что хотите удалить этот пост?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/channel-posts/${postId}?userId=${currentAdminId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Пост успешно удален!', 'success');
+                    loadPosts();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при удалении поста', 'error');
             }
         }
 
@@ -1556,6 +1715,28 @@
                 }
             } catch (error) {
                 showMessage('Ошибка при добавлении админа', 'error');
+            }
+        }
+
+        async function deleteAdmin(userId) {
+            if (!confirm('Вы уверены, что хотите удалить этого админа?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/admins/${userId}?userId=${currentAdminId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Админ успешно удален!', 'success');
+                    loadAdmins();
+                    loadDashboard();
+                } else {
+                    showMessage(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка при удалении админа', 'error');
             }
         }
 
