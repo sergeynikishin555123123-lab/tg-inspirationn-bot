@@ -2170,7 +2170,7 @@ if (process.env.BOT_TOKEN) {
             });
         });
 
-        bot.onText(/\/admin/, (msg) => {
+       bot.onText(/\/admin/, (msg) => {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
     
@@ -2180,8 +2180,9 @@ if (process.env.BOT_TOKEN) {
         return;
     }
     
-    // ФИКСИРОВАННАЯ ССЫЛКА С .html
-    const adminUrl = `https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net/admin.html?userId=${userId}`;
+    // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
+    const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
+    const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
     
     const keyboard = {
         inline_keyboard: [[
