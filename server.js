@@ -1199,7 +1199,7 @@ app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     res.json({ posts });
 });
 
-// Функция публикации в Telegram (ДОБАВЛЕНА!)
+// Функция публикации в Telegram (ИСПРАВЛЕННАЯ!)
 async function publishToTelegram(post) {
     const channelId = process.env.CHANNEL_ID;
     const groupId = process.env.GROUP_ID;
@@ -1210,6 +1210,7 @@ async function publishToTelegram(post) {
     console.log('Заголовок поста:', post.title);
     console.log('Тип медиа:', post.media_type);
     console.log('URL изображения:', post.image_url);
+    console.log('URL видео:', post.video_url);
     
     if (!channelId && !groupId) {
         console.log('❌ CHANNEL_ID или GROUP_ID не настроены');
@@ -1222,7 +1223,7 @@ async function publishToTelegram(post) {
         
         // Проверяем права бота
         try {
-            const chatMember = await bot.getChatMember(targetChatId, bot.options.id);
+            const chatMember = await bot.getChatMember(targetChatId, bot.options.polling ? bot.options.polling.params.id : bot.options.id);
             console.log('Статус бота в чате:', chatMember.status);
         } catch (error) {
             console.log('❌ Ошибка проверки прав:', error.message);
@@ -1269,19 +1270,43 @@ async function publishToTelegram(post) {
         
         if (post.media_type === 'image' && post.image_url) {
             console.log('Отправляем изображение...');
-            message = await bot.sendPhoto(targetChatId, post.image_url, options);
+            try {
+                message = await bot.sendPhoto(targetChatId, post.image_url, options);
+                console.log('✅ Изображение отправлено успешно');
+            } catch (error) {
+                console.error('❌ Ошибка отправки изображения:', error);
+                // Пробуем отправить как текстовое сообщение с ссылкой
+                message = await bot.sendMessage(targetChatId, `${caption}\n\n📷 [Изображение](${post.image_url})`, {
+                    parse_mode: 'Markdown',
+                    reply_markup: replyMarkup
+                });
+            }
         } else if (post.media_type === 'video' && post.video_url) {
             console.log('Отправляем видео...');
-            message = await bot.sendVideo(targetChatId, post.video_url, options);
+            try {
+                message = await bot.sendVideo(targetChatId, post.video_url, options);
+                console.log('✅ Видео отправлено успешно');
+            } catch (error) {
+                console.error('❌ Ошибка отправки видео:', error);
+                // Пробуем отправить как текстовое сообщение с ссылкой
+                message = await bot.sendMessage(targetChatId, `${caption}\n\n🎥 [Видео](${post.video_url})`, {
+                    parse_mode: 'Markdown',
+                    reply_markup: replyMarkup
+                });
+            }
         } else {
             console.log('Отправляем текстовое сообщение...');
             message = await bot.sendMessage(targetChatId, caption, options);
         }
         
         // Сохраняем ID сообщения в базе
-        post.telegram_message_id = message.message_id;
-        console.log(`✅ Пост опубликован в ${channelId ? 'канале' : 'группе'}: ${post.title}`);
-        console.log('ID сообщения:', message.message_id);
+        if (message && message.message_id) {
+            post.telegram_message_id = message.message_id;
+            console.log(`✅ Пост опубликован в ${channelId ? 'канале' : 'группе'}: ${post.title}`);
+            console.log('ID сообщения:', message.message_id);
+        } else {
+            console.log('❌ Не удалось получить ID сообщения');
+        }
         
     } catch (error) {
         console.error('❌ Ошибка публикации поста:', error);
@@ -1519,8 +1544,6 @@ if (process.env.BOT_TOKEN) {
         console.log('GROUP_ID:', process.env.GROUP_ID);
         console.log('====================');
         
-        // Функция публикации в Telegram (уже определена выше)
-        
         // Обработка комментариев в канале/группе
         bot.on('message', (msg) => {
             // Если сообщение является ответом на пост бота в канале/группе
@@ -1629,7 +1652,7 @@ if (process.env.BOT_TOKEN) {
             }
             
             // Исправленная ссылка на админку
-            const adminUrl = `https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net/admin.html?userId=${userId}`;
+            const adminUrl = `${process.env.APP_URL}/admin.html?userId=${userId}`;
             
             const keyboard = {
                 inline_keyboard: [[
