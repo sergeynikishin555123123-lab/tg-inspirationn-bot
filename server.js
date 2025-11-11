@@ -413,6 +413,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(join(APP_ROOT, 'public')));
 app.use('/admin', express.static(join(APP_ROOT, 'admin')));
 
+// ДОБАВИТЬ ЭТУ СТРОКУ ДЛЯ ДОСТУПА К ЗАГРУЖЕННЫМ ФАЙЛАМ
+app.use('/uploads', express.static(join(APP_ROOT, 'public', 'uploads')));
+
 app.get('/admin', (req, res) => {
     res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
 });
