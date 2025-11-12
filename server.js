@@ -1776,7 +1776,7 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
 
 app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     const itemId = parseInt(req.params.itemId);
-    const { title, description, type, file_url, preview_url, price, content_text, is_active } = req.body;
+    const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data } = req.body;
     
     const item = db.shop_items.find(i => i.id === itemId);
     if (!item) {
@@ -1786,10 +1786,12 @@ app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     if (title) item.title = title;
     if (description) item.description = description;
     if (type) item.type = type;
-    if (file_url) item.file_url = file_url;
-    if (preview_url) item.preview_url = preview_url;
-    if (price) item.price = price;
-    if (content_text) item.content_text = content_text;
+    if (file_url !== undefined) item.file_url = file_url;
+    if (preview_url !== undefined) item.preview_url = preview_url;
+    if (file_data !== undefined) item.file_url = file_data; // Приоритет для base64 данных
+    if (preview_data !== undefined) item.preview_url = preview_data; // Приоритет для base64 данных
+    if (price !== undefined) item.price = parseFloat(price);
+    if (content_text !== undefined) item.content_text = content_text;
     if (is_active !== undefined) item.is_active = is_active;
     
     res.json({ 
@@ -1805,6 +1807,11 @@ app.delete('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     
     if (itemIndex === -1) {
         return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    const purchases = db.purchases.filter(p => p.item_id === itemId);
+    if (purchases.length > 0) {
+        return res.status(400).json({ error: 'Нельзя удалить товар, у которого есть покупки' });
     }
     
     db.shop_items.splice(itemIndex, 1);
@@ -1831,15 +1838,20 @@ app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
 app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
     const { post_id, title, content, image_url, video_url, media_type, action_type, action_target } = req.body;
     
-    if (!post_id || !title) {
-        return res.status(400).json({ error: 'Post ID and title are required' });
+    if (!post_id || !title || !content) {
+        return res.status(400).json({ error: 'Post ID, title and content are required' });
+    }
+    
+    const existingPost = db.channel_posts.find(p => p.post_id === post_id);
+    if (existingPost) {
+        return res.status(400).json({ error: 'Post with this ID already exists' });
     }
     
     const newPost = {
         id: Date.now(),
         post_id,
         title,
-        content: content || '',
+        content,
         image_url: image_url || '',
         video_url: video_url || '',
         media_type: media_type || 'text',
@@ -1872,11 +1884,11 @@ app.put('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
     
     if (title) post.title = title;
     if (content) post.content = content;
-    if (image_url) post.image_url = image_url;
-    if (video_url) post.video_url = video_url;
+    if (image_url !== undefined) post.image_url = image_url;
+    if (video_url !== undefined) post.video_url = video_url;
     if (media_type) post.media_type = media_type;
-    if (action_type) post.action_type = action_type;
-    if (action_target) post.action_target = action_target;
+    if (action_type !== undefined) post.action_type = action_type;
+    if (action_target !== undefined) post.action_target = action_target;
     if (is_active !== undefined) post.is_active = is_active;
     
     res.json({ 
@@ -1912,7 +1924,7 @@ app.post('/api/admin/admins', requireAdmin, (req, res) => {
     
     const existingAdmin = db.admins.find(a => a.user_id == user_id);
     if (existingAdmin) {
-        return res.status(400).json({ error: 'Этот пользователь уже является администратором' });
+        return res.status(400).json({ error: 'Admin with this user ID already exists' });
     }
     
     const newAdmin = {
@@ -1934,14 +1946,15 @@ app.post('/api/admin/admins', requireAdmin, (req, res) => {
 
 app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
     const userId = parseInt(req.params.userId);
+    
+    if (userId === req.admin.user_id) {
+        return res.status(400).json({ error: 'Нельзя удалить свою учетную запись' });
+    }
+    
     const adminIndex = db.admins.findIndex(a => a.user_id === userId);
     
     if (adminIndex === -1) {
         return res.status(404).json({ error: 'Admin not found' });
-    }
-    
-    if (db.admins[adminIndex].user_id === req.admin.user_id) {
-        return res.status(400).json({ error: 'Нельзя удалить свою учетную запись' });
     }
     
     db.admins.splice(adminIndex, 1);
@@ -1951,17 +1964,22 @@ app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
 // Модерация работ
 app.get('/api/admin/user-works', requireAdmin, (req, res) => {
     const status = req.query.status || 'pending';
-    const works = db.user_works
-        .filter(w => w.status === status)
-        .map(work => {
-            const user = db.users.find(u => u.user_id === work.user_id);
-            return {
-                ...work,
-                user_name: user?.tg_first_name,
-                user_username: user?.tg_username
-            };
-        });
-    res.json({ works: works });
+    let works = db.user_works;
+    
+    if (status !== 'all') {
+        works = works.filter(w => w.status === status);
+    }
+    
+    const worksWithUsers = works.map(work => {
+        const user = db.users.find(u => u.user_id === work.user_id);
+        return {
+            ...work,
+            user_name: user?.tg_first_name,
+            user_username: user?.tg_username
+        };
+    });
+    
+    res.json({ works: worksWithUsers });
 });
 
 app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
@@ -1996,19 +2014,24 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
 // Модерация отзывов
 app.get('/api/admin/reviews', requireAdmin, (req, res) => {
     const status = req.query.status || 'pending';
-    const reviews = db.post_reviews
-        .filter(r => r.status === status)
-        .map(review => {
-            const user = db.users.find(u => u.user_id === review.user_id);
-            const post = db.channel_posts.find(p => p.post_id === review.post_id);
-            
-            return {
-                ...review,
-                tg_first_name: user?.tg_first_name,
-                post_title: post?.title
-            };
-        });
-    res.json({ reviews: reviews });
+    let reviews = db.post_reviews;
+    
+    if (status !== 'all') {
+        reviews = reviews.filter(r => r.status === status);
+    }
+    
+    const reviewsWithDetails = reviews.map(review => {
+        const user = db.users.find(u => u.user_id === review.user_id);
+        const post = db.channel_posts.find(p => p.post_id === review.post_id);
+        
+        return {
+            ...review,
+            tg_first_name: user?.tg_first_name,
+            post_title: post?.title
+        };
+    });
+    
+    res.json({ reviews: reviewsWithDetails });
 });
 
 app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
@@ -2046,11 +2069,10 @@ app.get('/api/admin/users-report', requireAdmin, (req, res) => {
             username: user.tg_username,
             role: user.class,
             character: user.character_name,
-            level: user.level,
             sparks: user.sparks,
+            level: user.level,
             registration_date: user.registration_date,
             last_active: user.last_active,
-            is_registered: user.is_registered,
             total_quizzes: stats.totalQuizzesCompleted,
             total_works: stats.totalWorks,
             total_activities: stats.totalActivities,
@@ -2073,7 +2095,7 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
                 count: db.users.filter(u => u.class === role.name).length
             })),
             by_level: ['Ученик', 'Искатель', 'Знаток', 'Мастер', 'Наставник'].map(level => ({
-                level: level,
+                level,
                 count: db.users.filter(u => u.level === level).length
             }))
         },
@@ -2093,24 +2115,24 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
                 item: item.title,
                 count: db.purchases.filter(p => p.item_id === item.id).length,
                 revenue: db.purchases.filter(p => p.item_id === item.id).reduce((sum, p) => sum + p.price_paid, 0)
-            }))
+            })).filter(item => item.count > 0)
         },
         quizzes: {
             total: db.quizzes.length,
             completions: db.quiz_completions.length,
             average_score: db.quiz_completions.length > 0 ? 
-                db.quiz_completions.reduce((sum, q) => sum + q.score, 0) / db.quiz_completions.length : 0
+                db.quiz_completions.reduce((sum, qc) => sum + qc.score, 0) / db.quiz_completions.length : 0
         },
         marathons: {
             total: db.marathons.length,
-            completions: db.marathon_completions.filter(m => m.completed).length,
-            active_participants: db.marathon_completions.filter(m => !m.completed).length
+            completions: db.marathon_completions.filter(mc => mc.completed).length,
+            active_participants: db.marathon_completions.filter(mc => !mc.completed).length
         },
         interactives: {
             total: db.interactives.length,
             completions: db.interactive_completions.length,
             average_score: db.interactive_completions.length > 0 ? 
-                db.interactive_completions.reduce((sum, i) => sum + i.score, 0) / db.interactive_completions.length : 0
+                db.interactive_completions.reduce((sum, ic) => sum + ic.score, 0) / db.interactive_completions.length : 0
         }
     };
     
@@ -2135,7 +2157,7 @@ app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
 app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
     const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake } = req.body;
     
-    if (!title || !questions || !questions.length) {
+    if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
         return res.status(400).json({ error: 'Title and questions are required' });
     }
     
@@ -2143,7 +2165,11 @@ app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
         id: Date.now(),
         title,
         description: description || '',
-        questions: questions,
+        questions: questions.map((q, index) => ({
+            question: q.question,
+            options: q.options,
+            correctAnswer: q.correctAnswer || 0
+        })),
         sparks_per_correct: sparks_per_correct || SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER,
         sparks_perfect_bonus: sparks_perfect_bonus || SPARKS_SYSTEM.QUIZ_PERFECT_BONUS,
         cooldown_hours: cooldown_hours || 24,
@@ -2195,6 +2221,11 @@ app.delete('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
         return res.status(404).json({ error: 'Quiz not found' });
     }
     
+    const completions = db.quiz_completions.filter(qc => qc.quiz_id === quizId);
+    if (completions.length > 0) {
+        return res.status(400).json({ error: 'Нельзя удалить квиз, у которого есть прохождения' });
+    }
+    
     db.quizzes.splice(quizIndex, 1);
     res.json({ success: true, message: 'Квиз удален' });
 });
@@ -2218,7 +2249,7 @@ app.get('/api/admin/marathons', requireAdmin, (req, res) => {
 app.post('/api/admin/marathons', requireAdmin, (req, res) => {
     const { title, description, duration_days, tasks, sparks_per_day } = req.body;
     
-    if (!title || !duration_days || !tasks || !tasks.length) {
+    if (!title || !duration_days || !tasks || !Array.isArray(tasks) || tasks.length === 0) {
         return res.status(400).json({ error: 'Title, duration and tasks are required' });
     }
     
@@ -2227,7 +2258,13 @@ app.post('/api/admin/marathons', requireAdmin, (req, res) => {
         title,
         description: description || '',
         duration_days: parseInt(duration_days),
-        tasks: tasks,
+        tasks: tasks.map((task, index) => ({
+            day: index + 1,
+            title: task.title,
+            description: task.description,
+            requires_submission: task.requires_submission !== undefined ? task.requires_submission : true,
+            submission_type: task.submission_type || 'text'
+        })),
         sparks_per_day: sparks_per_day || SPARKS_SYSTEM.MARATHON_DAY_COMPLETION,
         is_active: true,
         created_at: new Date().toISOString()
@@ -2256,7 +2293,7 @@ app.put('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
     if (description) marathon.description = description;
     if (duration_days) marathon.duration_days = parseInt(duration_days);
     if (tasks) marathon.tasks = tasks;
-    if (sparks_per_day) marathon.sparks_per_day = sparks_per_day;
+    if (sparks_per_day !== undefined) marathon.sparks_per_day = sparks_per_day;
     if (is_active !== undefined) marathon.is_active = is_active;
     
     res.json({ 
@@ -2272,6 +2309,11 @@ app.delete('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
     
     if (marathonIndex === -1) {
         return res.status(404).json({ error: 'Marathon not found' });
+    }
+    
+    const completions = db.marathon_completions.filter(mc => mc.marathon_id === marathonId);
+    if (completions.length > 0) {
+        return res.status(400).json({ error: 'Нельзя удалить марафон, у которого есть участники' });
     }
     
     db.marathons.splice(marathonIndex, 1);
