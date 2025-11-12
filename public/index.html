@@ -2037,140 +2037,141 @@ function loadAvailableButtons() {
         // ==================== РЕГИСТРАЦИЯ ====================
 
         // Регистрация - загрузка ролей
-        async function loadRoles() {
-            try {
-                const response = await fetch('/api/webapp/roles');
-                const roles = await response.json();
-                
-                const rolesList = document.getElementById('rolesList');
-                rolesList.innerHTML = '';
-                
-                roles.forEach(role => {
-                    const roleCard = document.createElement('div');
-                    roleCard.className = 'role-card';
-                    roleCard.innerHTML = `
-                        <div style="font-size: 24px; margin-bottom: 8px;">${role.icon}</div>
-                        <div style="font-weight: 600; margin-bottom: 5px;">${role.name}</div>
-                        <div style="color: #718096; font-size: 14px;">${role.description}</div>
-                    `;
-                    roleCard.onclick = () => selectRole(role);
-                    rolesList.appendChild(roleCard);
-                });
-            } catch (error) {
-                document.getElementById('rolesList').innerHTML = '<div class="error">Ошибка загрузки ролей</div>';
-            }
-        }
+        // Регистрация - загрузка ролей
+async function loadRoles() {
+    try {
+        const response = await fetch('/api/webapp/roles');
+        const roles = await response.json();
+        
+        const rolesList = document.getElementById('rolesList');
+        rolesList.innerHTML = '';
+        
+        roles.forEach(role => {
+            const roleCard = document.createElement('div');
+            roleCard.className = 'role-card';
+            roleCard.innerHTML = `
+                <div style="font-size: 24px; margin-bottom: 8px;">${role.icon}</div>
+                <div style="font-weight: 600; margin-bottom: 5px;">${role.name}</div>
+                <div style="color: #718096; font-size: 14px;">${role.description}</div>
+            `;
+            roleCard.onclick = () => selectRole(role);
+            rolesList.appendChild(roleCard);
+        });
+    } catch (error) {
+        document.getElementById('rolesList').innerHTML = '<div class="error">Ошибка загрузки ролей</div>';
+    }
+}
 
         // Выбор роли
-        function selectRole(role) {
-            selectedRole = role;
-            
-            // Снимаем выделение со всех карточек
-            document.querySelectorAll('.role-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            
-            // Выделяем выбранную карточку
-            event.currentTarget.classList.add('selected');
-            
-            // Загружаем персонажей для выбранной роли
-            loadCharacters(role.id);
-        }
+function selectRole(role) {
+    selectedRole = role;
+    
+    // Снимаем выделение со всех карточек
+    document.querySelectorAll('.role-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Выделяем выбранную карточку
+    event.currentTarget.classList.add('selected');
+    
+    // Загружаем персонажей для выбранной роли
+    loadCharacters(role.id);
+}
 
-        // Загрузка персонажей
-        async function loadCharacters(roleId) {
-            try {
-                const response = await fetch(`/api/webapp/characters/${roleId}`);
-                const characters = await response.json();
-                
-                const charactersSection = document.getElementById('charactersSection');
-                const charactersList = document.getElementById('charactersList');
-                
-                charactersSection.style.display = 'block';
-                charactersList.innerHTML = '';
-                
-                characters.forEach(character => {
-                    const characterCard = document.createElement('div');
-                    characterCard.className = 'character-card';
-                    characterCard.innerHTML = `
-                        <div style="font-weight: 600; margin-bottom: 5px;">${character.name}</div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
-                        <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
-                    `;
-                    characterCard.onclick = () => selectCharacter(character);
-                    charactersList.appendChild(characterCard);
-                });
-            } catch (error) {
-                document.getElementById('charactersList').innerHTML = '<div class="error">Ошибка загрузки персонажей</div>';
-            }
-        }
+       // Загрузка персонажей
+async function loadCharacters(roleId) {
+    try {
+        const response = await fetch(`/api/webapp/characters/${roleId}`);
+        const characters = await response.json();
+        
+        const charactersSection = document.getElementById('charactersSection');
+        const charactersList = document.getElementById('charactersList');
+        
+        charactersSection.style.display = 'block';
+        charactersList.innerHTML = '';
+        
+        characters.forEach(character => {
+            const characterCard = document.createElement('div');
+            characterCard.className = 'character-card';
+            characterCard.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 5px;">${character.name}</div>
+                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
+                <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
+            `;
+            characterCard.onclick = () => selectCharacter(character);
+            charactersList.appendChild(characterCard);
+        });
+    } catch (error) {
+        document.getElementById('charactersList').innerHTML = '<div class="error">Ошибка загрузки персонажей</div>';
+    }
+}
 
         // Получить описание бонуса
-        function getBonusDescription(character) {
-            const bonuses = {
-                'percent_bonus': `+${character.bonus_value}% к наградам`,
-                'forgiveness': `${character.bonus_value} право на ошибку`,
-                'random_gift': `Случайный подарок ${character.bonus_value} раз в день`,
-                'secret_advice': `Секретные советы на ${character.bonus_value}`,
-                'series_bonus': `+${character.bonus_value} к серийным наградам`
-            };
-            return bonuses[character.bonus_type] || 'Особый бонус';
-        }
+function getBonusDescription(character) {
+    const bonuses = {
+        'percent_bonus': `+${character.bonus_value}% к наградам`,
+        'forgiveness': `${character.bonus_value} право на ошибку`,
+        'random_gift': `Случайный подарок ${character.bonus_value} раз в день`,
+        'secret_advice': `Секретные советы на ${character.bonus_value}`,
+        'series_bonus': `+${character.bonus_value} к серийным наградам`
+    };
+    return bonuses[character.bonus_type] || 'Особый бонус';
+}
 
         // Выбор персонажа
-        function selectCharacter(character) {
-            selectedCharacter = character;
-            
-            // Снимаем выделение со всех карточек
-            document.querySelectorAll('.character-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            
-            // Выделяем выбранную карточку
-            event.currentTarget.classList.add('selected');
-            
-            // Активируем кнопку завершения регистрации
-            document.getElementById('completeBtn').disabled = false;
-        }
+function selectCharacter(character) {
+    selectedCharacter = character;
+    
+    // Снимаем выделение со всех карточек
+    document.querySelectorAll('.character-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Выделяем выбранную карточку
+    event.currentTarget.classList.add('selected');
+    
+    // Активируем кнопку завершения регистрации
+    document.getElementById('completeBtn').disabled = false;
+}
 
         // Завершение регистрации
-        async function completeRegistration() {
-            if (!selectedRole || !selectedCharacter) {
-                showMessage('❌ Выберите роль и персонажа', 'error');
-                return;
-            }
-            
-            const firstName = document.getElementById('userFirstName').value.trim();
-            if (!firstName) {
-                showMessage('❌ Введите ваше имя', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/users/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        firstName: firstName,
-                        roleId: selectedRole.id,
-                        characterId: selectedCharacter.id
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage(`✅ ${result.message}`, 'success');
-                    await loadUserData();
-                    showScreen('mainScreen');
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('❌ Ошибка регистрации', 'error');
-            }
+async function completeRegistration() {
+    if (!selectedRole || !selectedCharacter) {
+        showMessage('❌ Выберите роль и персонажа', 'error');
+        return;
+    }
+    
+    const firstName = document.getElementById('userFirstName').value.trim();
+    if (!firstName) {
+        showMessage('❌ Введите ваше имя', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/users/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentUserId,
+                firstName: firstName,
+                roleId: selectedRole.id,
+                characterId: selectedCharacter.id
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage(`✅ ${result.message}`, 'success');
+            await loadUserData();
+            showScreen('mainScreen');
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
         }
+    } catch (error) {
+        showMessage('❌ Ошибка регистрации', 'error');
+    }
+}
 
 // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПОКУПОК ====================
 
