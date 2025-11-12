@@ -1195,8 +1195,10 @@
                 <p class="header-subtitle">Ваше творческое пространство</p>
                 
                 <div id="userData">
-                <div id="userData">
-    <div id="userContent">
+    <div class="loading">
+        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+        Загрузка данных...
+    </div>
         <div class="user-info-grid">
             <div class="user-info-item">
                 <span class="user-info-label">Имя:</span>
@@ -1218,7 +1220,6 @@
         
         <div class="sparks pulse" id="sparksCount">✨ 0</div>
         
-        <div id="userStats">
             <div class="stats-grid">
                 <div class="stat-item">
                     <div class="stat-number" id="statQuizzes">0</div>
@@ -1267,7 +1268,7 @@
                 </div>
             </div>
 
-            <div id="welcomeBlock" class="card" style="display: none;">
+            <div id="welcomeBlock" class="card">
     <h3 style="text-align: center; margin-bottom: 20px;">🎯 Добро пожаловать в мир творчества!</h3>
     <p style="text-align: center; color: #718096; margin-bottom: 24px; line-height: 1.6;">
         Присоединяйтесь к сообществу творческих людей. Выберите свою роль и начните путь к мастерству!
@@ -1276,7 +1277,7 @@
         Начать путешествие
     </button>
 </div>
-           <div id="actionsBlock" class="card" style="display: none;">
+           <div id="actionsBlock" class="card">
     <h3 style="margin-bottom: 20px; text-align: center;">🚀 Ваши возможности</h3>
     <div class="action-grid" id="actionButtons">
         <!-- Кнопки загружаются динамически -->
@@ -1773,7 +1774,6 @@
         }
 
         // Загрузка данных пользователя
-        // Загрузка данных пользователя
 async function loadUserData() {
     try {
         const response = await fetch(`/api/users/${currentUserId}`);
@@ -1784,44 +1784,19 @@ async function loadUserData() {
             showUserData();
             loadAvailableButtons();
         } else {
-            // Для нового пользователя создаем базовые данные
-            currentUser = {
-                tg_first_name: tg.initDataUnsafe.user?.first_name || 'Гость',
-                sparks: 0,
-                level: 'Ученик',
-                is_registered: false,
-                class: null,
-                character_name: null,
-                stats: {
-                    totalQuizzesCompleted: 0,
-                    totalWorks: 0,
-                    totalMarathonsCompleted: 0,
-                    totalInteractivesCompleted: 0
-                }
-            };
             showWelcomeScreen();
         }
     } catch (error) {
         console.error('Ошибка загрузки пользователя:', error);
-        // При ошибке показываем welcome экран с данными по умолчанию
-        currentUser = {
-            tg_first_name: 'Гость',
-            sparks: 0,
-            level: 'Ученик',
-            is_registered: false,
-            class: null,
-            character_name: null
-        };
-        showWelcomeScreen();
+        showMessage('❌ Ошибка загрузки данных', 'error');
     }
 }
 
        function showUserData() {
-    // Скрываем welcome блок и показываем контент пользователя
+    document.getElementById('userContent').style.display = 'block';
     document.getElementById('welcomeBlock').style.display = 'none';
     document.getElementById('actionsBlock').style.display = 'block';
     
-    // Заполняем данные пользователя
     document.getElementById('userName').textContent = currentUser.tg_first_name;
     document.getElementById('userLevel').textContent = currentUser.level;
     document.getElementById('sparksCount').textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
@@ -1830,6 +1805,7 @@ async function loadUserData() {
     
     // Обновляем статистику если есть
     if (currentUser.stats) {
+        document.getElementById('userStats').style.display = 'block';
         document.getElementById('statQuizzes').textContent = currentUser.stats.totalQuizzesCompleted;
         document.getElementById('statWorks').textContent = currentUser.stats.totalWorks;
         document.getElementById('statMarathons').textContent = currentUser.stats.totalMarathonsCompleted;
@@ -1843,25 +1819,10 @@ async function loadUserData() {
 
         // Показать экран приветствия
        function showWelcomeScreen() {
-    // Показываем welcome блок и скрываем контент пользователя
+    document.getElementById('userContent').style.display = 'none';
     document.getElementById('welcomeBlock').style.display = 'block';
     document.getElementById('actionsBlock').style.display = 'none';
-    
-    // Сбрасываем данные пользователя до значений по умолчанию
-    document.getElementById('userName').textContent = 'Гость';
-    document.getElementById('userLevel').textContent = 'Ученик';
-    document.getElementById('sparksCount').textContent = '✨ 0';
-    document.getElementById('userRole').textContent = 'Не выбрана';
-    document.getElementById('userCharacter').textContent = 'Не выбран';
-    
-    // Сбрасываем статистику
-    document.getElementById('statQuizzes').textContent = '0';
-    document.getElementById('statWorks').textContent = '0';
-    document.getElementById('statMarathons').textContent = '0';
-    document.getElementById('statInteractives').textContent = '0';
 }
-
-        // Загрузка доступных кнопок
         // Загрузка доступных кнопок
 function loadAvailableButtons() {
     const buttonsContainer = document.getElementById('actionButtons');
