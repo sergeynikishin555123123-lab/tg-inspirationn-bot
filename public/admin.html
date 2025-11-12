@@ -3725,63 +3725,71 @@ function displayShopItems(items) {
             document.getElementById('shopItemActive').checked = true;
         }
 
-        // Сохранение товара
-        async function saveShopItem() {
-            const title = document.getElementById('shopItemTitle').value.trim();
-            const description = document.getElementById('shopItemDescription').value.trim();
-            const type = document.getElementById('shopItemType').value;
-            const file_url = document.getElementById('shopItemFileUrl').value.trim();
-            const preview_url = document.getElementById('shopItemPreviewUrl').value.trim();
-            const price = parseFloat(document.getElementById('shopItemPrice').value);
-            const content_text = document.getElementById('shopItemContent').value.trim();
-            const is_active = document.getElementById('shopItemActive').checked;
-            
-            if (!title || !price) {
-                alert('Заполните название и цену');
-                return;
-            }
-            
-            try {
-                const itemData = {
-                    title,
-                    description,
-                    type,
-                    file_url,
-                    preview_url,
-                    price,
-                    content_text,
-                    is_active
-                };
-                
-                let response;
-                if (currentEditingId) {
-                    response = await fetch(`/api/admin/shop/items/${currentEditingId}?userId=${currentUserId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(itemData)
-                    });
-                } else {
-                    response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(itemData)
-                    });
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Товар успешно сохранен', 'success');
-                    hideShopItemForm();
-                    loadShopItems();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка сохранения товара', 'error');
-            }
+// Сохранение товара (в админке)
+async function saveShopItem() {
+    const title = document.getElementById('shopItemTitle').value.trim();
+    const description = document.getElementById('shopItemDescription').value.trim();
+    const type = document.getElementById('shopItemType').value;
+    const file_url = document.getElementById('shopItemFileUrl').value.trim();
+    const preview_url = document.getElementById('shopItemPreviewUrl').value.trim();
+    const price = parseFloat(document.getElementById('shopItemPrice').value);
+    const content_text = document.getElementById('shopItemContent').value.trim();
+    const is_active = document.getElementById('shopItemActive').checked;
+    
+    if (!title || !price) {
+        alert('Заполните название и цену');
+        return;
+    }
+    
+    try {
+        const itemData = {
+            title,
+            description,
+            type,
+            // ПРИОРИТЕТ: base64 данные над URL
+            file_url: shopItemFileData || file_url,
+            preview_url: shopItemPreviewData || preview_url,
+            price,
+            content_text,
+            is_active
+        };
+        
+        console.log('Отправляемые данные товара:', {
+            ...itemData,
+            file_url: itemData.file_url ? `[base64 data: ${itemData.file_url.length} chars]` : 'empty',
+            preview_url: itemData.preview_url ? `[base64 data: ${itemData.preview_url.length} chars]` : 'empty'
+        });
+        
+        let response;
+        if (currentEditingId) {
+            response = await fetch(`/api/admin/shop/items/${currentEditingId}?userId=${currentUserId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(itemData)
+            });
+        } else {
+            response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(itemData)
+            });
         }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Товар успешно сохранен', 'success');
+            hideShopItemForm();
+            loadShopItems();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка сохранения товара:', error);
+        showMessage('❌ Ошибка сохранения товара', 'error');
+    }
+}
 
         // Редактирование товара
         async function editShopItem(itemId) {
