@@ -3930,17 +3930,17 @@ function hideShopItemForm() {
         // ==================== ПОСТЫ ====================
 
         // Загрузка постов
-        async function loadPosts() {
-            try {
-                const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
-                const data = await response.json();
-                
-                displayPosts(data.posts);
-                
-            } catch (error) {
-                document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов</div>';
-            }
-        }
+async function loadPosts() {
+    try {
+        const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
+        const data = await response.json();
+        
+        displayPosts(data.posts);
+        
+    } catch (error) {
+        document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов</div>';
+    }
+}
 
         // Отображение постов
         function displayPosts(posts) {
@@ -4170,19 +4170,19 @@ function hideShopItemForm() {
             }
         }
 
-        // Загрузка работ для модерации
-        async function loadWorksForModeration() {
-            try {
-                const status = document.getElementById('workStatusFilter').value;
-                const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
-                const data = await response.json();
-                
-                displayWorksForModeration(data.works);
-                
-            } catch (error) {
-                document.getElementById('worksModerationList').innerHTML = '<div class="message error">Ошибка загрузки работ</div>';
-            }
-        }
+   // Загрузка работ для модерации
+async function loadWorksForModeration() {
+    try {
+        const status = document.getElementById('workStatusFilter').value;
+        const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
+        const data = await response.json();
+        
+        displayWorksForModeration(data.works);
+        
+    } catch (error) {
+        document.getElementById('worksModerationList').innerHTML = '<div class="message error">Ошибка загрузки работ</div>';
+    }
+}
 
         // Отображение работ для модерации
         function displayWorksForModeration(works) {
@@ -4279,18 +4279,18 @@ function hideShopItemForm() {
         }
 
         // Загрузка отзывов для модерации
-        async function loadReviewsForModeration() {
-            try {
-                const status = document.getElementById('reviewStatusFilter').value;
-                const response = await fetch(`/api/admin/reviews?userId=${currentUserId}&status=${status}`);
-                const data = await response.json();
-                
-                displayReviewsForModeration(data.reviews);
-                
-            } catch (error) {
-                document.getElementById('reviewsModerationList').innerHTML = '<div class="message error">Ошибка загрузки отзывов</div>';
-            }
-        }
+async function loadReviewsForModeration() {
+    try {
+        const status = document.getElementById('reviewStatusFilter').value;
+        const response = await fetch(`/api/admin/reviews?userId=${currentUserId}&status=${status}`);
+        const data = await response.json();
+        
+        displayReviewsForModeration(data.reviews);
+        
+    } catch (error) {
+        document.getElementById('reviewsModerationList').innerHTML = '<div class="message error">Ошибка загрузки отзывов</div>';
+    }
+}
 
         // Отображение отзывов для модерации
         function displayReviewsForModeration(reviews) {
@@ -4414,17 +4414,17 @@ function hideShopItemForm() {
         // ==================== АДМИНЫ ====================
 
         // Загрузка администраторов
-        async function loadAdmins() {
-            try {
-                const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
-                const admins = await response.json();
-                
-                displayAdmins(admins);
-                
-            } catch (error) {
-                document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов</div>';
-            }
-        }
+async function loadAdmins() {
+    try {
+        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
+        const admins = await response.json();
+        
+        displayAdmins(admins);
+        
+    } catch (error) {
+        document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов</div>';
+    }
+}
 
         // Отображение администраторов
         function displayAdmins(admins) {
