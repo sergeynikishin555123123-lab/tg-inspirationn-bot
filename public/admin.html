@@ -1700,29 +1700,38 @@ audio {
 
         // Инициализация админ панели
         async function initAdminPanel() {
-            // Получаем ID пользователя из URL параметров
-            const urlParams = new URLSearchParams(window.location.search);
-            currentUserId = urlParams.get('userId');
-            
-            if (!currentUserId) {
-                showLoginForm();
-                return;
-            }
-            
-            // Проверяем права доступа
-            try {
-                const response = await fetch(`/api/admin/stats?userId=${currentUserId}`);
-                if (response.ok) {
-                    currentAdmin = { user_id: currentUserId };
-                    document.getElementById('adminId').textContent = currentUserId;
-                    loadAllData();
-                } else {
-                    showLoginForm();
-                }
-            } catch (error) {
-                showLoginForm();
-            }
+    const urlParams = new URLSearchParams(window.location.search);
+    currentUserId = urlParams.get('userId');
+    
+    if (!currentUserId) {
+        showLoginForm();
+        return;
+    }
+    
+    try {
+        // ДОБАВИТЬ ЭТУ ПРОВЕРКУ ПРАВ АДМИНА:
+        const adminsResponse = await fetch(`/api/admin/admins?userId=${currentUserId}`);
+        if (!adminsResponse.ok) {
+            showLoginForm();
+            return;
         }
+        
+        const admins = await adminsResponse.json();
+        const isAdmin = admins.some(admin => admin.user_id == currentUserId);
+        
+        if (!isAdmin) {
+            showLoginForm();
+            return;
+        }
+        
+        currentAdmin = { user_id: currentUserId };
+        document.getElementById('adminId').textContent = currentUserId;
+        loadAllData();
+        
+    } catch (error) {
+        showLoginForm();
+    }
+}
 
         // Показать форму логина
         function showLoginForm() {
