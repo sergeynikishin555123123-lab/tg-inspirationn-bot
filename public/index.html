@@ -2147,8 +2147,8 @@
 
 // Генерация содержимого покупки в зависимости от типа
 function generatePurchaseContent(purchase) {
-    const fileUrl = purchase.file_data || purchase.file_url;
-    const previewUrl = purchase.preview_data || purchase.preview_url;
+    const fileUrl = purchase.file_data || purchase.file_url; // ← ВАЖНО: сначала base64
+    const previewUrl = purchase.preview_data || purchase.preview_url; // ← ВАЖНО: сначала base64
     
     // Функция для проверки base64
     const isBase64 = (str) => {
@@ -2156,62 +2156,31 @@ function generatePurchaseContent(purchase) {
         return str.startsWith('data:') && str.includes('base64,');
     };
     
-    // Функция для получения MIME типа из base64
-    const getMimeTypeFromBase64 = (base64) => {
-        const match = base64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,/);
-        return match ? match[1] : null;
-    };
-    
     switch(purchase.type) {
         case 'video':
-            const videoMimeType = isBase64(fileUrl) ? getMimeTypeFromBase64(fileUrl) : 'video/mp4';
             return `
                 <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🎥 Видео содержание
-                    </h4>
+                    <h4 style="margin-bottom: 12px;">🎥 Видео содержание</h4>
                     ${previewUrl ? `
-                        <img src="${previewUrl}" class="media-preview" style="margin-bottom: 12px; cursor: pointer; max-height: 200px; object-fit: cover;" 
-                             onclick="openMediaModal('${fileUrl}', 'video')"
-                             title="Нажмите для просмотра в полном размере">
+                        <img src="${previewUrl}" class="media-preview" 
+                             onclick="openMediaModal('${fileUrl}', 'video')">
                     ` : ''}
                     <div style="background: #000; border-radius: 12px; overflow: hidden;">
-                        <video controls class="media-preview" style="max-height: 400px; width: 100%;">
-                            <source src="${fileUrl}" type="${videoMimeType}">
+                        <video controls class="media-preview" style="width: 100%;">
+                            <source src="${fileUrl}">
                             Ваш браузер не поддерживает видео.
                         </video>
-                    </div>
-                    <div style="display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;">
-                        <button class="btn" onclick="openMediaModal('${fileUrl}', 'video')">
-                            🔍 Полный экран
-                        </button>
-                        <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}.mp4')">
-                            📥 Скачать видео
-                        </button>
                     </div>
                 </div>
             `;
             
         case 'image':
-            const images = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
             return `
                 <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🖼️ Изображение${images.length > 1 ? ` (${images.length} фото)` : ''}
-                    </h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                        ${images.map((imgUrl, index) => `
-                            <img src="${imgUrl}" class="media-preview" 
-                                 style="cursor: pointer; height: 200px; object-fit: cover;"
-                                 onclick="openMediaModal('${imgUrl}', 'image')"
-                                 title="Нажмите для просмотра в полном размере">
-                        `).join('')}
-                    </div>
-                    <div style="margin-top: 12px;">
-                        <button class="btn" onclick="openMediaModal('${images[0]}', 'image')">
-                            🔍 Открыть в полном размере
-                        </button>
-                    </div>
+                    <h4 style="margin-bottom: 12px;">🖼️ Изображение</h4>
+                    <img src="${fileUrl}" class="media-preview" 
+                         onclick="openMediaModal('${fileUrl}', 'image')"
+                         style="cursor: pointer;">
                 </div>
             `;
             
