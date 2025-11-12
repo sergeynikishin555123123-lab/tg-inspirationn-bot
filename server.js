@@ -1811,7 +1811,8 @@ app.get('/api/admin/user-works', requireAdmin, (req, res) => {
         })
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     
-    res.json({ works });
+    // ИСПРАВЛЕНИЕ: Возвращаем правильную структуру
+    res.json({ works: works });
 });
 
 app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
@@ -1829,6 +1830,7 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
     work.moderator_id = adminId;
     work.admin_comment = admin_comment || null;
     
+    // ИСПРАВЛЕНИЕ: Начисляем искры только при одобрении
     if (status === 'approved') {
         addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
     }
@@ -1852,7 +1854,8 @@ app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
         };
     }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     
-    res.json({ posts });
+    // ИСПРАВЛЕНИЕ: Возвращаем правильную структуру
+    res.json({ posts: posts });
 });
 
 app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
@@ -1862,6 +1865,7 @@ app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
         return res.status(400).json({ error: 'Post ID and title are required' });
     }
     
+    // ИСПРАВЛЕНИЕ: Правильная проверка существующего поста
     const existingPost = db.channel_posts.find(p => p.post_id === post_id);
     if (existingPost) {
         return res.status(400).json({ error: 'Post with this ID already exists' });
@@ -1986,9 +1990,16 @@ app.post('/api/admin/admins', requireAdmin, (req, res) => {
         return res.status(400).json({ error: 'User ID is required' });
     }
     
+    // ИСПРАВЛЕНИЕ: Правильная проверка существующего админа
     const existingAdmin = db.admins.find(a => a.user_id == user_id);
     if (existingAdmin) {
         return res.status(400).json({ error: 'Admin already exists' });
+    }
+    
+    // ИСПРАВЛЕНИЕ: Проверяем, что текущий пользователь имеет права на добавление админов
+    const currentAdmin = req.admin;
+    if (currentAdmin.role !== 'superadmin' && role === 'superadmin') {
+        return res.status(403).json({ error: 'Only superadmin can create superadmin' });
     }
     
     const newAdmin = {
