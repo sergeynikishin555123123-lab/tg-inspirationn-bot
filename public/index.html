@@ -2310,6 +2310,25 @@ function generatePurchaseContent(purchase) {
     }
 }
 
+        // Скачать base64 файл
+function downloadBase64File(base64Data, filename) {
+    try {
+        // Создаем временную ссылку для скачивания
+        const link = document.createElement('a');
+        link.href = base64Data;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showMessage('✅ Файл скачивается', 'success');
+    } catch (error) {
+        console.error('Ошибка скачивания base64 файла:', error);
+        showMessage('❌ Ошибка скачивания файла', 'error');
+    }
+}
+        
+
 // Получить название типа товара на русском
 function getPurchaseTypeName(type) {
     const typeNames = {
@@ -2426,10 +2445,23 @@ function openMediaModal(mediaUrl, mediaType) {
         mediaElement.autoplay = true;
         mediaElement.style.cssText = 'max-width: 100%; max-height: 90vh; border-radius: 8px;';
         mediaElement.src = mediaUrl;
+        
+        // Добавляем обработчик ошибок для видео
+        mediaElement.addEventListener('error', function(e) {
+            console.error('Ошибка загрузки видео:', e);
+            showMessage('❌ Ошибка воспроизведения видео', 'error');
+        });
+        
     } else if (mediaType === 'image') {
         mediaElement = document.createElement('img');
         mediaElement.style.cssText = 'max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px;';
         mediaElement.src = mediaUrl;
+        
+        // Добавляем обработчик ошибок для изображений
+        mediaElement.addEventListener('error', function(e) {
+            console.error('Ошибка загрузки изображения:', e);
+            showMessage('❌ Ошибка загрузки изображения', 'error');
+        });
     }
     
     const closeBtn = document.createElement('button');
@@ -2466,11 +2498,20 @@ function openMediaModal(mediaUrl, mediaType) {
         cursor: pointer;
         z-index: 10001;
     `;
+    
+    // Обновляем логику скачивания для base64
     downloadBtn.onclick = () => {
-        const link = document.createElement('a');
-        link.href = mediaUrl;
-        link.download = mediaUrl.split('/').pop() || 'download';
-        link.click();
+        if (mediaUrl.startsWith('data:')) {
+            // Для base64 данных
+            const filename = `download.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
+            downloadBase64File(mediaUrl, filename);
+        } else {
+            // Для обычных URL
+            const link = document.createElement('a');
+            link.href = mediaUrl;
+            link.download = mediaUrl.split('/').pop() || 'download';
+            link.click();
+        }
     };
     
     content.appendChild(mediaElement);
