@@ -1328,18 +1328,6 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
     res.json(stats);
 });
 
-app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
-    const postId = parseInt(req.params.postId);
-    const postIndex = db.channel_posts.findIndex(p => p.id === postId);
-    
-    if (postIndex === -1) {
-        return res.status(404).json({ error: 'Post not found' });
-    }
-    
-    db.channel_posts.splice(postIndex, 1);
-    res.json({ success: true, message: 'Пост удален' });
-});
-
 // Управление интерактивами
 app.get('/api/admin/interactives', requireAdmin, (req, res) => {
     const interactives = db.interactives.map(interactive => {
