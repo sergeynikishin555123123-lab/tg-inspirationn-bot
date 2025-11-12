@@ -630,7 +630,7 @@ const requireAdmin = (req, res, next) => {
         return res.status(401).json({ error: 'User ID required' });
     }
     
-    const admin = db.admins.find(a => a.user_id == userId);
+    const admin = db.admins.find(a => a.user_id == userId); // 🔴 ВАЖНО: == вместо ===
     if (!admin) {
         return res.status(403).json({ error: 'Admin access required' });
     }
@@ -1956,6 +1956,7 @@ app.get('/api/admin/reviews', requireAdmin, (req, res) => {
 app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     const reviewId = parseInt(req.params.reviewId);
     const { status, admin_comment } = req.body;
+    const adminId = req.admin.user_id;
     
     const review = db.post_reviews.find(r => r.id === reviewId);
     if (!review) {
@@ -1964,7 +1965,7 @@ app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     
     review.status = status;
     review.moderated_at = new Date().toISOString();
-    review.moderator_id = req.admin.user_id;
+    review.moderator_id = adminId;
     review.admin_comment = admin_comment || null;
     
     res.json({ 
@@ -1986,6 +1987,7 @@ app.post('/api/admin/admins', requireAdmin, (req, res) => {
         return res.status(400).json({ error: 'User ID is required' });
     }
     
+    // 🔴 ПРОБЛЕМА: Неправильная проверка существующего админа
     const existingAdmin = db.admins.find(a => a.user_id == user_id);
     if (existingAdmin) {
         return res.status(400).json({ error: 'Admin already exists' });
