@@ -412,8 +412,6 @@
             font-weight: 500;
         }
         
-/* ==================== СТИЛИ ДЛЯ СИСТЕМЫ ПОКУПОК ==================== */
-
 /* Стили для медиа контента в покупках */
 .media-preview {
     max-width: 100%;
@@ -421,60 +419,40 @@
     margin: 12px 0;
     border: 2px solid #e2e8f0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-}
-
-.media-preview:hover {
-    border-color: #667eea;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
-    transform: scale(1.01);
 }
 
 /* Стили для видео в покупках */
-.purchase-video {
+video {
     width: 100%;
-    max-height: 500px;
+    max-height: 400px;
     border-radius: 12px;
     background: #000;
     margin: 12px 0;
 }
 
 /* Стили для аудио в покупках */
-.purchase-audio {
+audio {
     width: 100%;
     margin: 12px 0;
     border-radius: 25px;
     background: #f7fafc;
     padding: 10px;
-    border: 2px solid #e2e8f0;
 }
 
 /* Улучшенные стили для карточек покупок */
 .purchase-item {
-    background: #ffffff;
+    background: #f8fafc;
     border: 2px solid #e2e8f0;
     border-radius: 16px;
     padding: 24px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     transition: all 0.3s ease;
-    position: relative;
 }
 
 .purchase-item:hover {
     border-color: #667eea;
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
-}
-
-.purchase-item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px 16px 0 0;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
 }
 
 /* Стили для контента покупок */
@@ -486,388 +464,25 @@
     margin: 16px 0;
     line-height: 1.6;
     white-space: pre-line;
-    font-size: 14px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.content-preview::-webkit-scrollbar {
-    width: 6px;
-}
-
-.content-preview::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-}
-
-.content-preview::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
-}
-
-.content-preview::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
 }
 
 /* Бейджи для типов товаров */
 .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+    display: inline-block;
     padding: 6px 12px;
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
-    line-height: 1;
 }
 
 .badge-info {
     background: #bee3f8;
     color: #2c5aa0;
-    border: 1px solid #90cdf4;
 }
 
 .badge-success {
     background: #c6f6d5;
     color: #276749;
-    border: 1px solid #9ae6b4;
-}
-
-.badge-warning {
-    background: #feebc8;
-    color: #dd6b20;
-    border: 1px solid #fbd38d;
-}
-
-.badge-danger {
-    background: #fed7d7;
-    color: #c53030;
-    border: 1px solid #feb2b2;
-}
-
-.badge-purple {
-    background: #e9d8fd;
-    color: #6b46c1;
-    border: 1px solid #d6bcfa;
-}
-
-/* Кнопки действий для покупок */
-.purchase-actions {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid #e2e8f0;
-}
-
-.purchase-btn {
-    flex: 1;
-    min-width: 120px;
-    padding: 12px 16px;
-    border: none;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: center;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-.purchase-btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.purchase-btn-success {
-    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
-}
-
-.purchase-btn-danger {
-    background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(245, 101, 101, 0.3);
-}
-
-.purchase-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
-
-.purchase-btn:active {
-    transform: translateY(0);
-}
-
-/* Сетка для изображений в покупках */
-.purchase-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
-    margin: 16px 0;
-}
-
-.purchase-grid-item {
-    border-radius: 8px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid #e2e8f0;
-}
-
-.purchase-grid-item:hover {
-    transform: scale(1.05);
-    border-color: #667eea;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-}
-
-.purchase-grid-item img {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-}
-
-/* Модальное окно для медиа */
-.media-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
-    padding: 20px;
-}
-
-.media-modal-content {
-    position: relative;
-    max-width: 95%;
-    max-height: 95%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.media-modal-video {
-    max-width: 100%;
-    max-height: 90vh;
-    border-radius: 8px;
-}
-
-.media-modal-image {
-    max-width: 100%;
-    max-height: 90vh;
-    object-fit: contain;
-    border-radius: 8px;
-}
-
-.media-modal-btn {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.9);
-    color: #2d3748;
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
-    cursor: pointer;
-    z-index: 10001;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-}
-
-.media-modal-btn:hover {
-    background: white;
-    transform: scale(1.1);
-}
-
-.media-modal-close {
-    top: -50px;
-    right: 0;
-    background: #f56565;
-    color: white;
-}
-
-.media-modal-download {
-    top: -50px;
-    right: 50px;
-    background: #48bb78;
-    color: white;
-}
-
-/* Поиск и фильтры для покупок */
-.purchases-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 16px;
-    background: white;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-}
-
-.purchases-filters {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.purchases-search {
-    width: 250px;
-    padding: 10px 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-.purchases-search:focus {
-    border-color: #667eea;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.purchases-filter {
-    padding: 10px 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    font-size: 14px;
-    background: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.purchases-filter:focus {
-    border-color: #667eea;
-    outline: none;
-}
-
-/* Адаптивность для мобильных */
-@media (max-width: 768px) {
-    .purchase-item {
-        padding: 16px;
-        margin-bottom: 16px;
-    }
-    
-    .purchases-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .purchases-filters {
-        width: 100%;
-    }
-    
-    .purchases-search {
-        width: 100%;
-    }
-    
-    .purchase-actions {
-        flex-direction: column;
-    }
-    
-    .purchase-btn {
-        width: 100%;
-    }
-    
-    .purchase-grid {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    }
-    
-    .media-modal {
-        padding: 10px;
-    }
-    
-    .media-modal-btn {
-        width: 35px;
-        height: 35px;
-        font-size: 16px;
-    }
-    
-    .media-modal-close {
-        top: -40px;
-    }
-    
-    .media-modal-download {
-        top: -40px;
-        right: 40px;
-    }
-}
-
-@media (max-width: 480px) {
-    .purchase-item {
-        padding: 12px;
-    }
-    
-    .content-preview {
-        padding: 16px;
-        font-size: 13px;
-    }
-    
-    .purchase-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .badge {
-        padding: 4px 8px;
-        font-size: 11px;
-    }
-}
-
-/* Анимации для покупок */
-@keyframes purchaseAppear {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.purchase-item {
-    animation: purchaseAppear 0.5s ease;
-}
-
-/* Стили для expired покупок */
-.purchase-item.expired {
-    opacity: 0.7;
-    background: #f7fafc;
-}
-
-.purchase-item.expired::before {
-    background: linear-gradient(135deg, #a0aec0 0%, #718096 100%);
-}
-
-.purchase-item.expired .purchase-btn {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* Стили для избранных покупок */
-.purchase-item.favorite {
-    border-color: #fbb6ce;
-    background: #fff5f5;
-}
-
-.purchase-item.favorite::before {
-    background: linear-gradient(135deg, #fed7d7 0%, #fbb6ce 100%);
 }
         
         .shop-tab.active { 
@@ -1622,13 +1237,10 @@
                 </div>
 
                 <div id="shopPurchasedTab" style="display: none;">
-    <div id="purchasedItemsList" class="loading">
-        <div style="text-align: center; padding: 40px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-            <div>Загрузка ваших покупок...</div>
-        </div>
-    </div>
-</div>
+                    <div id="purchasedItemsList" class="loading">
+                        Загрузка купленных товаров...
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -2143,499 +1755,6 @@
             }
         }
 
-// ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПОКУПОК ====================
-
-// Генерация содержимого покупки в зависимости от типа
-function generatePurchaseContent(purchase) {
-    const fileUrl = purchase.file_data || purchase.file_url; // ← ВАЖНО: сначала base64
-    const previewUrl = purchase.preview_data || purchase.preview_url; // ← ВАЖНО: сначала base64
-    
-    // Функция для проверки base64
-    const isBase64 = (str) => {
-        if (typeof str !== 'string') return false;
-        return str.startsWith('data:') && str.includes('base64,');
-    };
-    
-    switch(purchase.type) {
-        case 'video':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px;">🎥 Видео содержание</h4>
-                    ${previewUrl ? `
-                        <img src="${previewUrl}" class="media-preview" 
-                             onclick="openMediaModal('${fileUrl}', 'video')">
-                    ` : ''}
-                    <div style="background: #000; border-radius: 12px; overflow: hidden;">
-                        <video controls class="media-preview" style="width: 100%;">
-                            <source src="${fileUrl}">
-                            Ваш браузер не поддерживает видео.
-                        </video>
-                    </div>
-                </div>
-            `;
-            
-        case 'image':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px;">🖼️ Изображение</h4>
-                    <img src="${fileUrl}" class="media-preview" 
-                         onclick="openMediaModal('${fileUrl}', 'image')"
-                         style="cursor: pointer;">
-                </div>
-            `;
-            
-        case 'audio':
-            const audioMimeType = isBase64(fileUrl) ? getMimeTypeFromBase64(fileUrl) : 'audio/mpeg';
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🎧 Аудио содержание
-                    </h4>
-                    <div style="background: #f7fafc; padding: 24px; border-radius: 16px; text-align: center;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">🎵</div>
-                        <audio controls style="width: 100%; max-width: 400px;">
-                            <source src="${fileUrl}" type="${audioMimeType}">
-                            Ваш браузер не поддерживает аудио.
-                        </audio>
-                        <div style="margin-top: 16px; color: #718096; font-size: 14px;">
-                            Используйте элементы управления для воспроизведения
-                        </div>
-                    </div>
-                    <div style="margin-top: 12px;">
-                        <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}.mp3')">
-                            📥 Скачать аудио
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-        case 'pdf':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        📚 PDF документ
-                    </h4>
-                    <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 16px; margin: 16px 0;">
-                        <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
-                        <div style="font-weight: 600; margin-bottom: 8px; font-size: 18px;">${purchase.title}</div>
-                        <div style="color: #718096; margin-bottom: 20px;">
-                            ${purchase.pages_count ? `Документ на ${purchase.pages_count} страниц` : 'PDF документ готов к просмотру'}
-                        </div>
-                        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                            ${isBase64(fileUrl) ? `
-                                <button class="btn btn-success" onclick="downloadBase64File('${fileUrl}', '${purchase.title}.pdf')">
-                                    📥 Скачать PDF
-                                </button>
-                            ` : `
-                                <a href="${fileUrl}" target="_blank" class="btn btn-success">
-                                    👀 Открыть в браузере
-                                </a>
-                                <button class="btn" onclick="downloadPurchase('${purchase.id}', '${purchase.title}.pdf')">
-                                    📥 Скачать PDF
-                                </button>
-                            `}
-                        </div>
-                    </div>
-                </div>
-            `;
-        
-        case 'text':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        📝 Текстовое содержание
-                    </h4>
-                    <div class="content-preview" style="max-height: none; background: white; padding: 24px; border-radius: 12px; white-space: pre-line; line-height: 1.6; font-size: 14px;">
-                        ${purchase.content_text || 'Содержимое временно недоступно'}
-                    </div>
-                    ${fileUrl ? `
-                        <div style="margin-top: 12px;">
-                            <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}.txt')">
-                                📥 Скачать текст
-                            </button>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-            
-        case 'link':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🔗 Ссылка на ресурс
-                    </h4>
-                    <div style="background: #f0fff4; padding: 20px; border-radius: 12px; border: 1px solid #9ae6b4;">
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                            <span style="font-size: 24px;">🌐</span>
-                            <div>
-                                <div style="font-weight: 600;">Внешний ресурс</div>
-                                <div style="color: #718096; font-size: 14px;">Нажмите для перехода</div>
-                            </div>
-                        </div>
-                        <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; word-break: break-all; font-size: 14px;">
-                            ${purchase.external_url}
-                        </div>
-                        <a href="${purchase.external_url}" target="_blank" class="btn btn-success" style="width: 100%;">
-                            🔗 Перейти по ссылке
-                        </a>
-                    </div>
-                </div>
-            `;
-            
-        default:
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px;">📦 Содержимое товара</h4>
-                    <div class="info">
-                        <p>Тип содержимого: ${purchase.type}</p>
-                        ${fileUrl ? `
-                            <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}')">
-                                📥 Скачать файл
-                            </button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-    }
-}
-
-        // Скачать base64 файл
-function downloadBase64File(base64Data, filename) {
-    try {
-        // Создаем временную ссылку для скачивания
-        const link = document.createElement('a');
-        link.href = base64Data;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showMessage('✅ Файл скачивается', 'success');
-    } catch (error) {
-        console.error('Ошибка скачивания base64 файла:', error);
-        showMessage('❌ Ошибка скачивания файла', 'error');
-    }
-}
-
-// Получить название типа товара на русском
-function getPurchaseTypeName(type) {
-    const typeNames = {
-        'video': 'Видео',
-        'image': 'Изображение',
-        'audio': 'Аудио',
-        'pdf': 'PDF документ',
-        'text': 'Текст',
-        'link': 'Ссылка',
-        'course': 'Курс',
-        'package': 'Пакет'
-    };
-    return typeNames[type] || type;
-}
-
-// Получить иконку типа товара
-function getPurchaseTypeIcon(type) {
-    const icons = {
-        'video': '🎥',
-        'image': '🖼️',
-        'audio': '🎧',
-        'pdf': '📚',
-        'text': '📝',
-        'link': '🔗',
-        'course': '🎓',
-        'package': '📦'
-    };
-    return icons[type] || '📄';
-}
-
-// Форматирование размера файла
-function formatFileSize(bytes) {
-    if (!bytes) return 'Неизвестно';
-    const sizes = ['Байт', 'КБ', 'МБ', 'ГБ'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-}
-
-// Получить количество дней до истечения доступа
-function getDaysLeft(expiryDate) {
-    const expiry = new Date(expiryDate);
-    const now = new Date();
-    const diffTime = expiry - now;
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-}
-
-// Скачать покупку
-async function downloadPurchase(purchaseId, fileName) {
-    try {
-        showMessage('⏳ Начинаем скачивание...', 'info');
-        
-        const response = await fetch(`/api/webapp/purchases/${purchaseId}/download`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUserId })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Создаем временную ссылку для скачивания
-            const downloadLink = document.createElement('a');
-            downloadLink.href = result.downloadUrl || result.file_url;
-            downloadLink.download = fileName;
-            downloadLink.target = '_blank';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-            
-            showMessage('✅ Файл скачивается', 'success');
-            
-            // Обновляем счетчик скачиваний
-            setTimeout(() => loadPurchasedItems(), 1000);
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
-        }
-    } catch (error) {
-        console.error('Ошибка скачивания:', error);
-        showMessage('❌ Ошибка скачивания. Попробуйте позже.', 'error');
-    }
-}
-
-// Модальное окно для медиа
-function openMediaModal(mediaUrl, mediaType) {
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.95);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-        padding: 20px;
-    `;
-    
-    const content = document.createElement('div');
-    content.style.cssText = `
-        position: relative;
-        max-width: 95%;
-        max-height: 95%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    `;
-    
-    let mediaElement;
-    if (mediaType === 'video') {
-        mediaElement = document.createElement('video');
-        mediaElement.controls = true;
-        mediaElement.autoplay = true;
-        mediaElement.style.cssText = 'max-width: 100%; max-height: 90vh; border-radius: 8px;';
-        mediaElement.src = mediaUrl;
-        
-        // Добавляем обработчик ошибок для видео
-        mediaElement.addEventListener('error', function(e) {
-            console.error('Ошибка загрузки видео:', e);
-            showMessage('❌ Ошибка воспроизведения видео', 'error');
-        });
-        
-    } else if (mediaType === 'image') {
-        mediaElement = document.createElement('img');
-        mediaElement.style.cssText = 'max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px;';
-        mediaElement.src = mediaUrl;
-        
-        // Добавляем обработчик ошибок для изображений
-        mediaElement.addEventListener('error', function(e) {
-            console.error('Ошибка загрузки изображения:', e);
-            showMessage('❌ Ошибка загрузки изображения', 'error');
-        });
-    }
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '✕';
-    closeBtn.style.cssText = `
-        position: absolute;
-        top: -45px;
-        right: 0;
-        background: #f56565;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 35px;
-        height: 35px;
-        font-size: 18px;
-        cursor: pointer;
-        z-index: 10001;
-    `;
-    closeBtn.onclick = () => document.body.removeChild(modal);
-    
-    const downloadBtn = document.createElement('button');
-    downloadBtn.innerHTML = '📥';
-    downloadBtn.style.cssText = `
-        position: absolute;
-        top: -45px;
-        right: 45px;
-        background: #48bb78;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 35px;
-        height: 35px;
-        font-size: 18px;
-        cursor: pointer;
-        z-index: 10001;
-    `;
-    
-    // Обновляем логику скачивания для base64
-    downloadBtn.onclick = () => {
-        if (mediaUrl.startsWith('data:')) {
-            // Для base64 данных
-            const filename = `download.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
-            downloadBase64File(mediaUrl, filename);
-        } else {
-            // Для обычных URL
-            const link = document.createElement('a');
-            link.href = mediaUrl;
-            link.download = mediaUrl.split('/').pop() || 'download';
-            link.click();
-        }
-    };
-    
-    content.appendChild(mediaElement);
-    content.appendChild(closeBtn);
-    content.appendChild(downloadBtn);
-    modal.appendChild(content);
-    
-    // Закрытие по клику на фон
-    modal.onclick = (e) => {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
-        }
-    };
-    
-    // Закрытие по ESC
-    const closeModal = (e) => {
-        if (e.key === 'Escape') {
-            document.body.removeChild(modal);
-            document.removeEventListener('keydown', closeModal);
-        }
-    };
-    document.addEventListener('keydown', closeModal);
-    
-    document.body.appendChild(modal);
-}
-
-// Добавить в избранное
-async function togglePurchaseFavorite(purchaseId) {
-    try {
-        const response = await fetch(`/api/webapp/purchases/${purchaseId}/favorite`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUserId })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage(result.is_favorite ? '❤️ Добавлено в избранное' : '💔 Убрано из избранного', 'success');
-            loadPurchasedItems();
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
-        }
-    } catch (error) {
-        console.error('Ошибка обновления избранного:', error);
-        showMessage('❌ Ошибка обновления избранного', 'error');
-    }
-}
-
-// Поделиться покупкой
-async function sharePurchase(purchaseId) {
-    try {
-        const response = await fetch(`/api/webapp/purchases/${purchaseId}/share`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUserId })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success && result.shareUrl) {
-            // Копируем ссылку в буфер обмена
-            await navigator.clipboard.writeText(result.shareUrl);
-            showMessage('✅ Ссылка скопирована в буфер обмена!', 'success');
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
-        }
-    } catch (error) {
-        console.error('Ошибка создания ссылки:', error);
-        showMessage('❌ Ошибка создания ссылки', 'error');
-    }
-}
-
-// Поиск по покупкам
-function searchPurchases(query) {
-    const purchases = document.querySelectorAll('.purchase-item');
-    let visibleCount = 0;
-    
-    purchases.forEach(purchase => {
-        const title = purchase.dataset.title;
-        const description = purchase.querySelector('p')?.textContent.toLowerCase() || '';
-        const type = purchase.dataset.type;
-        
-        const matchesSearch = !query || title.includes(query.toLowerCase()) || description.includes(query.toLowerCase());
-        
-        if (matchesSearch) {
-            purchase.style.display = 'block';
-            visibleCount++;
-        } else {
-            purchase.style.display = 'none';
-        }
-    });
-    
-    // Показываем сообщение если ничего не найдено
-    const container = document.getElementById('purchasesContainer');
-    if (visibleCount === 0 && query) {
-        if (!document.getElementById('noResults')) {
-            const noResults = document.createElement('div');
-            noResults.id = 'noResults';
-            noResults.className = 'info';
-            noResults.innerHTML = `
-                <div style="text-align: center; padding: 40px;">
-                    <div style="font-size: 64px; margin-bottom: 16px;">🔍</div>
-                    <h3 style="margin-bottom: 12px;">Ничего не найдено</h3>
-                    <p style="color: #718096;">Попробуйте изменить поисковый запрос</p>
-                </div>
-            `;
-            container.appendChild(noResults);
-        }
-    } else {
-        const noResults = document.getElementById('noResults');
-        if (noResults) noResults.remove();
-    }
-}
-
-// Фильтрация покупок по типу
-function filterPurchasesByType(type) {
-    const searchInput = document.getElementById('searchPurchases');
-    const searchQuery = searchInput ? searchInput.value : '';
-    
-    // Комбинируем фильтрацию по типу и поиск
-    searchPurchases(searchQuery);
-    
-    if (type !== 'all') {
-        const purchases = document.querySelectorAll('.purchase-item');
-        purchases.forEach(purchase => {
-            if (purchase.style.display !== 'none') {
-                const purchaseType = purchase.dataset.type;
-                if (purchaseType !== type) {
-                    purchase.style.display = 'none';
-                }
-            }
-        });
-    }
-}
-        
         // ==================== КВИЗЫ ====================
 
         // Загрузка квизов
@@ -3709,8 +2828,6 @@ function filterPurchasesByType(type) {
             }
         }
 
-// ==================== СИСТЕМА ПОКУПОК ====================
-
 // Загрузка купленных товаров
 async function loadPurchasedItems() {
     try {
@@ -3734,56 +2851,82 @@ async function loadPurchasedItems() {
             return;
         }
         
-        // Добавляем заголовок и фильтры
-        purchasedList.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
-                <h3 style="margin: 0;">📦 Мои покупки (${data.purchases.length})</h3>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <input type="text" id="searchPurchases" class="form-control" placeholder="🔍 Поиск покупок..." 
-                           style="width: 200px; padding: 8px 12px; font-size: 14px;" oninput="searchPurchases(this.value)">
-                    <select id="filterPurchases" class="form-control" onchange="filterPurchasesByType(this.value)"
-                            style="width: 150px; padding: 8px 12px; font-size: 14px;">
-                        <option value="all">Все типы</option>
-                        <option value="video">🎥 Видео</option>
-                        <option value="image">🖼️ Изображения</option>
-                        <option value="audio">🎧 Аудио</option>
-                        <option value="pdf">📚 PDF</option>
-                        <option value="text">📝 Текст</option>
-                        <option value="link">🔗 Ссылки</option>
-                    </select>
-                </div>
-            </div>
-        `;
-        
-        const purchasesContainer = document.createElement('div');
-        purchasesContainer.id = 'purchasesContainer';
-        
         data.purchases.forEach(purchase => {
             const purchaseCard = document.createElement('div');
             purchaseCard.className = 'purchase-item';
-            purchaseCard.dataset.type = purchase.type;
-            purchaseCard.dataset.title = purchase.title.toLowerCase();
             
-            // Генерируем HTML для содержимого в зависимости от типа
-            const contentHtml = generatePurchaseContent(purchase);
+            // Определяем тип контента
+            const fileUrl = purchase.file_data || purchase.file_url;
+            const previewUrl = purchase.preview_data || purchase.preview_url;
+            
+            let contentHtml = '';
+            
+            // ОТОБРАЖАЕМ КОНТЕНТ В ЗАВИСИМОСТИ ОТ ТИПА
+            if (purchase.type === 'video' && fileUrl) {
+                contentHtml = `
+                    <div style="margin: 16px 0;">
+                        <h4 style="margin-bottom: 12px;">🎥 Видео содержание:</h4>
+                        <video controls style="width: 100%; max-height: 400px; border-radius: 12px; background: #000;">
+                            <source src="${fileUrl}" type="video/mp4">
+                            Ваш браузер не поддерживает видео.
+                        </video>
+                    </div>
+                `;
+            } 
+            else if (purchase.type === 'image' && fileUrl) {
+                contentHtml = `
+                    <div style="margin: 16px 0;">
+                        <h4 style="margin-bottom: 12px;">🖼️ Изображение:</h4>
+                        <img src="${fileUrl}" class="media-preview" style="max-height: 400px;">
+                    </div>
+                `;
+            }
+            else if (purchase.type === 'audio' && fileUrl) {
+                contentHtml = `
+                    <div style="margin: 16px 0;">
+                        <h4 style="margin-bottom: 12px;">🎧 Аудио содержание:</h4>
+                        <audio controls style="width: 100%; margin: 12px 0;">
+                            <source src="${fileUrl}" type="audio/mpeg">
+                            Ваш браузер не поддерживает аудио.
+                        </audio>
+                    </div>
+                `;
+            }
+            else if (purchase.type === 'pdf' && fileUrl) {
+                contentHtml = `
+                    <div style="margin: 16px 0;">
+                        <h4 style="margin-bottom: 12px;">📚 PDF документ:</h4>
+                        <div style="text-align: center; padding: 30px; background: #f7fafc; border-radius: 12px; margin: 12px 0;">
+                            <div style="font-size: 64px; margin-bottom: 16px;">📚</div>
+                            <div style="font-weight: 600; margin-bottom: 8px;">PDF документ готов к скачиванию</div>
+                            <a href="${fileUrl}" target="_blank" class="btn btn-success" style="margin-top: 12px;">
+                                📥 Скачать PDF
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Если есть текстовое содержимое
+            let textContentHtml = '';
+            if (purchase.content_text) {
+                textContentHtml = `
+                    <div style="margin: 16px 0;">
+                        <h4 style="margin-bottom: 12px;">📝 Описание:</h4>
+                        <div class="content-preview" style="max-height: none; background: #f7fafc; padding: 20px;">
+                            ${purchase.content_text}
+                        </div>
+                    </div>
+                `;
+            }
             
             purchaseCard.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
                     <div style="flex: 1;">
-                        <h3 style="margin: 0 0 8px 0; color: #2d3748;">${purchase.title}</h3>
+                        <h3 style="margin: 0 0 8px 0;">${purchase.title}</h3>
                         <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;">
-                            <span class="badge badge-info">${getPurchaseTypeIcon(purchase.type)} ${getPurchaseTypeName(purchase.type)}</span>
-                            <span class="badge badge-success">Куплено за ${purchase.price_paid}✨</span>
-                            ${purchase.download_count !== undefined ? `
-                                <span class="badge" style="background: #e9d8fd; color: #6b46c1;">
-                                    📥 ${purchase.download_count} скачиваний
-                                </span>
-                            ` : ''}
-                            ${purchase.is_favorite ? `
-                                <span class="badge" style="background: #fed7d7; color: #c53030;">
-                                    ❤️ В избранном
-                                </span>
-                            ` : ''}
+                            <span class="badge badge-info">${getPurchaseTypeIcon(purchase.type)} ${purchase.type}</span>
+                            <span class="badge badge-success">${purchase.price_paid}✨</span>
                         </div>
                     </div>
                     <div style="color: #718096; font-size: 14px; text-align: right;">
@@ -3795,78 +2938,34 @@ async function loadPurchasedItems() {
                     <p style="color: #718096; margin-bottom: 16px; line-height: 1.5;">${purchase.description}</p>
                 ` : ''}
                 
-                <!-- Основное содержимое покупки -->
-                ${contentHtml}
+                ${previewUrl ? `
+                    <div style="margin: 16px 0;">
+                        <h4 style="margin-bottom: 12px;">🖼️ Превью:</h4>
+                        <img src="${previewUrl}" class="media-preview" style="max-height: 200px;">
+                    </div>
+                ` : ''}
                 
-                <!-- Дополнительная информация -->
-                <div style="display: flex; gap: 16px; flex-wrap: wrap; margin: 16px 0;">
-                    ${purchase.file_size ? `
-                        <div style="display: flex; align-items: center; gap: 6px; color: #718096; font-size: 14px;">
-                            📦 Размер: ${formatFileSize(purchase.file_size)}
-                        </div>
-                    ` : ''}
-                    
-                    ${purchase.duration ? `
-                        <div style="display: flex; align-items: center; gap: 6px; color: #718096; font-size: 14px;">
-                            ⏱️ Длительность: ${purchase.duration}
-                        </div>
-                    ` : ''}
-                    
-                    ${purchase.pages_count ? `
-                        <div style="display: flex; align-items: center; gap: 6px; color: #718096; font-size: 14px;">
-                            📄 Страниц: ${purchase.pages_count}
-                        </div>
-                    ` : ''}
-                </div>
+                ${contentHtml}
+                ${textContentHtml}
                 
                 <!-- Кнопки действий -->
-                <div class="action-buttons" style="margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap;">
-                    ${(purchase.file_url || purchase.file_data) && purchase.type !== 'link' ? `
-                        <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}')">
-                            📥 Скачать
-                        </button>
-                    ` : ''}
-                    
-                    ${purchase.external_url ? `
-                        <a href="${purchase.external_url}" target="_blank" class="btn btn-info">
-                            🌐 Открыть ссылку
+                <div class="action-buttons" style="margin-top: 20px;">
+                    ${fileUrl && !fileUrl.startsWith('data:') ? `
+                        <a href="${fileUrl}" target="_blank" class="btn btn-success">
+                            📥 Скачать файл
                         </a>
                     ` : ''}
-                    
-                    <button class="btn ${purchase.is_favorite ? 'btn-danger' : ''}" onclick="togglePurchaseFavorite('${purchase.id}')">
-                        ${purchase.is_favorite ? '❤️' : '🤍'} Избранное
-                    </button>
-                    
-                    <button class="btn btn-info" onclick="sharePurchase('${purchase.id}')">
+                    <button class="btn btn-info" onclick="sharePurchase(${purchase.id})">
                         📤 Поделиться
                     </button>
                 </div>
-                
-                <!-- Информация о доступе -->
-                ${purchase.access_expires ? `
-                    <div style="margin-top: 16px; padding: 12px; background: #fffaf0; border-radius: 8px; border: 1px solid #fbd38d;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="color: #dd6b20;">⏰</span>
-                            <span style="color: #dd6b20; font-size: 14px;">
-                                Доступ до: ${new Date(purchase.access_expires).toLocaleDateString('ru-RU')}
-                                ${new Date(purchase.access_expires) > new Date() ? 
-                                    `(${getDaysLeft(purchase.access_expires)} дней осталось)` : 
-                                    '(доступ истек)'
-                                }
-                            </span>
-                        </div>
-                    </div>
-                ` : ''}
             `;
             
-            purchasesContainer.appendChild(purchaseCard);
+            purchasedList.appendChild(purchaseCard);
         });
-        
-        purchasedList.appendChild(purchasesContainer);
-        
     } catch (error) {
         console.error('Ошибка загрузки покупок:', error);
-        document.getElementById('purchasedItemsList').innerHTML = '<div class="error">❌ Ошибка загрузки покупок. Попробуйте позже.</div>';
+        document.getElementById('purchasedItemsList').innerHTML = '<div class="error">Ошибка загрузки покупок</div>';
     }
 }
 
