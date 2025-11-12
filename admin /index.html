@@ -3725,63 +3725,71 @@ function displayShopItems(items) {
             document.getElementById('shopItemActive').checked = true;
         }
 
-        // Сохранение товара
-        async function saveShopItem() {
-            const title = document.getElementById('shopItemTitle').value.trim();
-            const description = document.getElementById('shopItemDescription').value.trim();
-            const type = document.getElementById('shopItemType').value;
-            const file_url = document.getElementById('shopItemFileUrl').value.trim();
-            const preview_url = document.getElementById('shopItemPreviewUrl').value.trim();
-            const price = parseFloat(document.getElementById('shopItemPrice').value);
-            const content_text = document.getElementById('shopItemContent').value.trim();
-            const is_active = document.getElementById('shopItemActive').checked;
-            
-            if (!title || !price) {
-                alert('Заполните название и цену');
-                return;
-            }
-            
-            try {
-                const itemData = {
-                    title,
-                    description,
-                    type,
-                    file_url,
-                    preview_url,
-                    price,
-                    content_text,
-                    is_active
-                };
-                
-                let response;
-                if (currentEditingId) {
-                    response = await fetch(`/api/admin/shop/items/${currentEditingId}?userId=${currentUserId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(itemData)
-                    });
-                } else {
-                    response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(itemData)
-                    });
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Товар успешно сохранен', 'success');
-                    hideShopItemForm();
-                    loadShopItems();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка сохранения товара', 'error');
-            }
+// Сохранение товара (в админке)
+async function saveShopItem() {
+    const title = document.getElementById('shopItemTitle').value.trim();
+    const description = document.getElementById('shopItemDescription').value.trim();
+    const type = document.getElementById('shopItemType').value;
+    const file_url = document.getElementById('shopItemFileUrl').value.trim();
+    const preview_url = document.getElementById('shopItemPreviewUrl').value.trim();
+    const price = parseFloat(document.getElementById('shopItemPrice').value);
+    const content_text = document.getElementById('shopItemContent').value.trim();
+    const is_active = document.getElementById('shopItemActive').checked;
+    
+    if (!title || !price) {
+        alert('Заполните название и цену');
+        return;
+    }
+    
+    try {
+        const itemData = {
+            title,
+            description,
+            type,
+            // ПРИОРИТЕТ: base64 данные над URL
+            file_url: shopItemFileData || file_url,
+            preview_url: shopItemPreviewData || preview_url,
+            price,
+            content_text,
+            is_active
+        };
+        
+        console.log('Отправляемые данные товара:', {
+            ...itemData,
+            file_url: itemData.file_url ? `[base64 data: ${itemData.file_url.length} chars]` : 'empty',
+            preview_url: itemData.preview_url ? `[base64 data: ${itemData.preview_url.length} chars]` : 'empty'
+        });
+        
+        let response;
+        if (currentEditingId) {
+            response = await fetch(`/api/admin/shop/items/${currentEditingId}?userId=${currentUserId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(itemData)
+            });
+        } else {
+            response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(itemData)
+            });
         }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Товар успешно сохранен', 'success');
+            hideShopItemForm();
+            loadShopItems();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка сохранения товара:', error);
+        showMessage('❌ Ошибка сохранения товара', 'error');
+    }
+}
 
         // Редактирование товара
         async function editShopItem(itemId) {
@@ -3926,19 +3934,23 @@ function hideShopItemForm() {
 
         // ==================== ПОСТЫ ====================
 
-        // Загрузка постов
-        async function loadPosts() {
-            try {
-                const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
-                const data = await response.json();
-                
-                displayPosts(data.posts);
-                
-            } catch (error) {
-                document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов</div>';
-            }
+        // Исправление функции загрузки постов
+async function loadPosts() {
+    try {
+        const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
+        if (!response.ok) {
+            throw new Error('Ошибка доступа');
         }
-
+        const data = await response.json();
+        
+        // ИСПРАВЛЕНИЕ: Правильное обращение к данным
+        displayPosts(data.posts || []);
+        
+    } catch (error) {
+        console.error('Ошибка загрузки постов:', error);
+        document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов: ' + error.message + '</div>';
+    }
+}
         // Отображение постов
         function displayPosts(posts) {
             const postsList = document.getElementById('postsList');
@@ -4167,19 +4179,24 @@ function hideShopItemForm() {
             }
         }
 
-        // Загрузка работ для модерации
-        async function loadWorksForModeration() {
-            try {
-                const status = document.getElementById('workStatusFilter').value;
-                const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
-                const data = await response.json();
-                
-                displayWorksForModeration(data.works);
-                
-            } catch (error) {
-                document.getElementById('worksModerationList').innerHTML = '<div class="message error">Ошибка загрузки работ</div>';
-            }
+        // Исправление функции загрузки работ для модерации
+async function loadWorksForModeration() {
+    try {
+        const status = document.getElementById('workStatusFilter').value;
+        const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
+        if (!response.ok) {
+            throw new Error('Ошибка доступа');
         }
+        const data = await response.json();
+        
+        // ИСПРАВЛЕНИЕ: Правильное обращение к данным
+        displayWorksForModeration(data.works || []);
+        
+    } catch (error) {
+        console.error('Ошибка загрузки работ:', error);
+        document.getElementById('worksModerationList').innerHTML = '<div class="message error">Ошибка загрузки работ: ' + error.message + '</div>';
+    }
+}
 
         // Отображение работ для модерации
         function displayWorksForModeration(works) {
@@ -4410,18 +4427,22 @@ function hideShopItemForm() {
 
         // ==================== АДМИНЫ ====================
 
-        // Загрузка администраторов
-        async function loadAdmins() {
-            try {
-                const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
-                const admins = await response.json();
-                
-                displayAdmins(admins);
-                
-            } catch (error) {
-                document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов</div>';
-            }
+        // Исправление функции загрузки админов
+async function loadAdmins() {
+    try {
+        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
+        if (!response.ok) {
+            throw new Error('Ошибка доступа');
         }
+        const admins = await response.json();
+        
+        displayAdmins(admins);
+        
+    } catch (error) {
+        console.error('Ошибка загрузки администраторов:', error);
+        document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов: ' + error.message + '</div>';
+    }
+}
 
         // Отображение администраторов
         function displayAdmins(admins) {
@@ -4476,45 +4497,99 @@ function hideShopItemForm() {
             document.getElementById('adminForm').style.display = 'block';
         }
 
-        // Сохранение админа
-        async function saveAdmin() {
-            const user_id = document.getElementById('adminUserId').value;
-            const username = document.getElementById('adminUsername').value.trim();
-            const role = document.getElementById('adminRole').value;
-            
-            if (!user_id) {
-                alert('Введите ID пользователя');
-                return;
-            }
-            
-            try {
-                const adminData = {
-                    user_id: parseInt(user_id),
-                    username,
-                    role
-                };
-                
-                const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(adminData)
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Администратор успешно добавлен', 'success');
-                    hideAdminForm();
-                    loadAdmins();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка добавления администратора', 'error');
-            }
+       // Исправление функции загрузки админов
+async function loadAdmins() {
+    try {
+        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
+        if (!response.ok) {
+            throw new Error('Ошибка доступа');
         }
+        const admins = await response.json();
+        
+        displayAdmins(admins);
+        
+    } catch (error) {
+        console.error('Ошибка загрузки администраторов:', error);
+        document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов: ' + error.message + '</div>';
+    }
+}
 
+// Исправление функции загрузки работ для модерации
+async function loadWorksForModeration() {
+    try {
+        const status = document.getElementById('workStatusFilter').value;
+        const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
+        if (!response.ok) {
+            throw new Error('Ошибка доступа');
+        }
+        const data = await response.json();
+        
+        // ИСПРАВЛЕНИЕ: Правильное обращение к данным
+        displayWorksForModeration(data.works || []);
+        
+    } catch (error) {
+        console.error('Ошибка загрузки работ:', error);
+        document.getElementById('worksModerationList').innerHTML = '<div class="message error">Ошибка загрузки работ: ' + error.message + '</div>';
+    }
+}
+
+// Исправление функции загрузки постов
+async function loadPosts() {
+    try {
+        const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
+        if (!response.ok) {
+            throw new Error('Ошибка доступа');
+        }
+        const data = await response.json();
+        
+        // ИСПРАВЛЕНИЕ: Правильное обращение к данным
+        displayPosts(data.posts || []);
+        
+    } catch (error) {
+        console.error('Ошибка загрузки постов:', error);
+        document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов: ' + error.message + '</div>';
+    }
+}
+
+// Исправление функции добавления админа
+async function saveAdmin() {
+    const user_id = document.getElementById('adminUserId').value;
+    const username = document.getElementById('adminUsername').value.trim();
+    const role = document.getElementById('adminRole').value;
+    
+    if (!user_id) {
+        alert('Введите ID пользователя');
+        return;
+    }
+    
+    try {
+        const adminData = {
+            user_id: parseInt(user_id),
+            username,
+            role
+        };
+        
+        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(adminData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Администратор успешно добавлен', 'success');
+            hideAdminForm();
+            loadAdmins();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка добавления администратора:', error);
+        showMessage('❌ Ошибка добавления администратора: ' + error.message, 'error');
+    }
+}
         // Удаление админа
         async function deleteAdmin(userId) {
             if (!confirm('Вы уверены, что хотите удалить этого администратора?')) return;
