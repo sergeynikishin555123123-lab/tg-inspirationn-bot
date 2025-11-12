@@ -580,7 +580,7 @@ function calculateLevel(sparks) {
 function addSparks(userId, sparks, activityType, description) {
     const user = db.users.find(u => u.user_id == userId);
     if (user) {
-        user.sparks = Math.max(0, user.sparks + sparks); // Защита от отрицательных значений
+        user.sparks = Math.max(0, user.sparks + sparks);
         user.level = calculateLevel(user.sparks);
         user.last_active = new Date().toISOString();
         
@@ -1308,543 +1308,57 @@ app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
     });
 });
 
-// Admin API
-app.get('/api/admin/stats', requireAdmin, (req, res) => {
-    const stats = {
-        totalUsers: db.users.length,
-        registeredUsers: db.users.filter(u => u.is_registered).length,
-        activeQuizzes: db.quizzes.filter(q => q.is_active).length,
-        activeMarathons: db.marathons.filter(m => m.is_active).length,
-        shopItems: db.shop_items.filter(i => i.is_active).length,
-        totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
-        totalAdmins: db.admins.length,
-        pendingReviews: db.post_reviews.filter(r => r.status === 'pending').length,
-        pendingWorks: db.user_works.filter(w => w.status === 'pending').length,
-        totalPosts: db.channel_posts.filter(p => p.is_active).length,
-        totalPurchases: db.purchases.length,
-        totalActivities: db.activities.length,
-        interactives: db.interactives.filter(i => i.is_active).length
-    };
-    res.json(stats);
+// ==================== API ДЛЯ АДМИНОВ ====================
+app.get('/api/admin/admins', requireAdmin, (req, res) => {
+    res.json(db.admins);
 });
 
-// Управление интерактивами
-app.get('/api/admin/interactives', requireAdmin, (req, res) => {
-    const interactives = db.interactives.map(interactive => {
-        const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
-        
-        return {
-            ...interactive,
-            completions_count: completions.length,
-            average_score: completions.length > 0 ? 
-                completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length : 0
-        };
-    });
-    res.json(interactives);
-});
-
-app.post('/api/admin/interactives', requireAdmin, (req, res) => {
-    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake } = req.body;
+app.post('/api/admin/admins', requireAdmin, (req, res) => {
+    const { user_id, username, role } = req.body;
     
-    if (!title || !type || !category) {
-        return res.status(400).json({ error: 'Title, type and category are required' });
+    if (!user_id) {
+        return res.status(400).json({ error: 'User ID is required' });
     }
     
-    const newInteractive = {
+    const existingAdmin = db.admins.find(a => a.user_id == user_id);
+    if (existingAdmin) {
+        return res.status(400).json({ error: 'Admin already exists' });
+    }
+    
+    const newAdmin = {
         id: Date.now(),
-        title,
-        description: description || '',
-        type,
-        category,
-        image_url: image_url || '',
-        question: question || '',
-        options: options || [],
-        correct_answer: correct_answer || 0,
-        sparks_reward: sparks_reward || SPARKS_SYSTEM.INTERACTIVE_COMPLETION,
-        allow_retake: allow_retake || false,
-        is_active: true,
+        user_id: parseInt(user_id),
+        username: username || '',
+        role: role || 'moderator',
         created_at: new Date().toISOString()
     };
     
-    db.interactives.push(newInteractive);
+    db.admins.push(newAdmin);
     
     res.json({ 
         success: true, 
-        message: 'Интерактив успешно создан', 
-        interactiveId: newInteractive.id,
-        interactive: newInteractive
+        message: 'Админ успешно добавлен',
+        admin: newAdmin
     });
 });
 
-app.put('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
-    const interactiveId = parseInt(req.params.interactiveId);
-    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
+app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
+    const userId = parseInt(req.params.userId);
     
-    const interactive = db.interactives.find(i => i.id === interactiveId);
-    if (!interactive) {
-        return res.status(404).json({ error: 'Interactive not found' });
+    if (userId === req.admin.user_id) {
+        return res.status(400).json({ error: 'Cannot remove yourself' });
     }
     
-    if (title) interactive.title = title;
-    if (description) interactive.description = description;
-    if (type) interactive.type = type;
-    if (category) interactive.category = category;
-    if (image_url) interactive.image_url = image_url;
-    if (question) interactive.question = question;
-    if (options) interactive.options = options;
-    if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
-    if (sparks_reward !== undefined) interactive.sparks_reward = sparks_reward;
-    if (allow_retake !== undefined) interactive.allow_retake = allow_retake;
-    if (is_active !== undefined) interactive.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Интерактив успешно обновлен',
-        interactive: interactive
-    });
-});
-
-app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
-    const interactiveId = parseInt(req.params.interactiveId);
-    const interactiveIndex = db.interactives.findIndex(i => i.id === interactiveId);
-    
-    if (interactiveIndex === -1) {
-        return res.status(404).json({ error: 'Interactive not found' });
+    const adminIndex = db.admins.findIndex(a => a.user_id === userId);
+    if (adminIndex === -1) {
+        return res.status(404).json({ error: 'Admin not found' });
     }
     
-    db.interactives.splice(interactiveIndex, 1);
-    res.json({ success: true, message: 'Интерактив удален' });
+    db.admins.splice(adminIndex, 1);
+    res.json({ success: true, message: 'Админ удален' });
 });
 
-// Управление ролями
-app.get('/api/admin/roles', requireAdmin, (req, res) => {
-    res.json(db.roles);
-});
-
-app.post('/api/admin/roles', requireAdmin, (req, res) => {
-    const { name, description, icon, available_buttons } = req.body;
-    
-    if (!name || !description) {
-        return res.status(400).json({ error: 'Name and description are required' });
-    }
-    
-    const newRole = {
-        id: Date.now(),
-        name,
-        description,
-        icon: icon || '🎨',
-        available_buttons: available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.roles.push(newRole);
-    
-    res.json({ 
-        success: true, 
-        message: 'Роль успешно создана', 
-        role: newRole
-    });
-});
-
-app.put('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
-    const roleId = parseInt(req.params.roleId);
-    const { name, description, icon, available_buttons, is_active } = req.body;
-    
-    const role = db.roles.find(r => r.id === roleId);
-    if (!role) {
-        return res.status(404).json({ error: 'Role not found' });
-    }
-    
-    if (name) role.name = name;
-    if (description) role.description = description;
-    if (icon) role.icon = icon;
-    if (available_buttons) role.available_buttons = available_buttons;
-    if (is_active !== undefined) role.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Роль успешно обновлена',
-        role: role
-    });
-});
-
-app.delete('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
-    const roleId = parseInt(req.params.roleId);
-    const roleIndex = db.roles.findIndex(r => r.id === roleId);
-    
-    if (roleIndex === -1) {
-        return res.status(404).json({ error: 'Role not found' });
-    }
-    
-    const usersWithRole = db.users.filter(u => u.class === db.roles[roleIndex].name);
-    if (usersWithRole.length > 0) {
-        return res.status(400).json({ error: 'Нельзя удалить роль, у которой есть пользователи' });
-    }
-    
-    db.roles.splice(roleIndex, 1);
-    res.json({ success: true, message: 'Роль удалена' });
-});
-
-// Управление персонажами
-app.get('/api/admin/characters', requireAdmin, (req, res) => {
-    const characters = db.characters.map(character => {
-        const role = db.roles.find(r => r.id === character.role_id);
-        return {
-            ...character,
-            role_name: role?.name
-        };
-    });
-    res.json(characters);
-});
-
-app.post('/api/admin/characters', requireAdmin, (req, res) => {
-    const { role_id, name, description, bonus_type, bonus_value } = req.body;
-    
-    if (!role_id || !name || !bonus_type || !bonus_value) {
-        return res.status(400).json({ error: 'Role ID, name, bonus type and value are required' });
-    }
-    
-    const newCharacter = {
-        id: Date.now(),
-        role_id: parseInt(role_id),
-        name,
-        description: description || '',
-        bonus_type,
-        bonus_value,
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.characters.push(newCharacter);
-    
-    res.json({ 
-        success: true, 
-        message: 'Персонаж успешно создан', 
-        character: newCharacter
-    });
-});
-
-app.put('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
-    const characterId = parseInt(req.params.characterId);
-    const { name, description, bonus_type, bonus_value, is_active } = req.body;
-    
-    const character = db.characters.find(c => c.id === characterId);
-    if (!character) {
-        return res.status(404).json({ error: 'Character not found' });
-    }
-    
-    if (name) character.name = name;
-    if (description) character.description = description;
-    if (bonus_type) character.bonus_type = bonus_type;
-    if (bonus_value) character.bonus_value = bonus_value;
-    if (is_active !== undefined) character.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Персонаж успешно обновлен',
-        character: character
-    });
-});
-
-app.delete('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
-    const characterId = parseInt(req.params.characterId);
-    const characterIndex = db.characters.findIndex(c => c.id === characterId);
-    
-    if (characterIndex === -1) {
-        return res.status(404).json({ error: 'Character not found' });
-    }
-    
-    const usersWithCharacter = db.users.filter(u => u.character_id === characterId);
-    if (usersWithCharacter.length > 0) {
-        return res.status(400).json({ error: 'Нельзя удалить персонажа, у которого есть пользователи' });
-    }
-    
-    db.characters.splice(characterIndex, 1);
-    res.json({ success: true, message: 'Персонаж удален' });
-});
-
-// Управление магазином
-app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
-    res.json(db.shop_items);
-});
-
-app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
-    const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data } = req.body;
-    
-    if (!title || !price) {
-        return res.status(400).json({ error: 'Title and price are required' });
-    }
-    
-     const newItem = {
-        id: Date.now(),
-        title,
-        description: description || '',
-        type: type || 'video',
-        file_url: file_data || file_url || '', // ← ВАЖНО: сначала base64, потом URL
-        preview_url: preview_data || preview_url || '', // ← ВАЖНО: сначала base64, потом URL
-        price: parseFloat(price),
-        content_text: content_text || '',
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.shop_items.push(newItem);
-    
-    res.json({ 
-        success: true, 
-        message: 'Товар успешно создан', 
-        itemId: newItem.id,
-        item: newItem
-    });
-});
-
-app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
-    const itemId = parseInt(req.params.itemId);
-    const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data } = req.body;
-    
-    const item = db.shop_items.find(i => i.id === itemId);
-    if (!item) {
-        return res.status(404).json({ error: 'Item not found' });
-    }
-    
-    if (title) item.title = title;
-    if (description) item.description = description;
-    if (type) item.type = type;
-    
-    // ИСПРАВЛЕНИЕ: Обновляем base64 данные
-    if (file_data !== undefined) item.file_url = file_data;
-    else if (file_url !== undefined) item.file_url = file_url;
-    
-    if (preview_data !== undefined) item.preview_url = preview_data;
-    else if (preview_url !== undefined) item.preview_url = preview_url;
-    
-    if (price) item.price = parseFloat(price);
-    if (content_text) item.content_text = content_text;
-    if (is_active !== undefined) item.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Товар успешно обновлен',
-        item: item
-    });
-});
-
-app.delete('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
-    const itemId = parseInt(req.params.itemId);
-    const itemIndex = db.shop_items.findIndex(i => i.id === itemId);
-    
-    if (itemIndex === -1) {
-        return res.status(404).json({ error: 'Item not found' });
-    }
-    
-    db.shop_items.splice(itemIndex, 1);
-    res.json({ success: true, message: 'Товар удален' });
-});
-
-// Управление квизами
-app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
-    const quizzes = db.quizzes.map(quiz => {
-        const completions = db.quiz_completions.filter(qc => qc.quiz_id === quiz.id);
-        return {
-            ...quiz,
-            completions_count: completions.length,
-            average_score: completions.length > 0 ? 
-                completions.reduce((sum, qc) => sum + qc.score, 0) / completions.length : 0
-        };
-    });
-    res.json(quizzes);
-});
-
-app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
-    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake } = req.body;
-    
-    if (!title || !questions || !Array.isArray(questions)) {
-        return res.status(400).json({ error: 'Title and questions array are required' });
-    }
-    
-    const newQuiz = {
-        id: Date.now(),
-        title,
-        description: description || '',
-        questions: questions,
-        sparks_per_correct: sparks_per_correct || SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER,
-        sparks_perfect_bonus: sparks_perfect_bonus || SPARKS_SYSTEM.QUIZ_PERFECT_BONUS,
-        cooldown_hours: cooldown_hours || 24,
-        allow_retake: allow_retake || true,
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.quizzes.push(newQuiz);
-    
-    res.json({ 
-        success: true, 
-        message: 'Квиз успешно создан', 
-        quizId: newQuiz.id,
-        quiz: newQuiz
-    });
-});
-
-app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
-    const quizId = parseInt(req.params.quizId);
-    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake, is_active } = req.body;
-    
-    const quiz = db.quizzes.find(q => q.id === quizId);
-    if (!quiz) {
-        return res.status(404).json({ error: 'Quiz not found' });
-    }
-    
-    if (title) quiz.title = title;
-    if (description) quiz.description = description;
-    if (questions) quiz.questions = questions;
-    if (sparks_per_correct !== undefined) quiz.sparks_per_correct = sparks_per_correct;
-    if (sparks_perfect_bonus !== undefined) quiz.sparks_perfect_bonus = sparks_perfect_bonus;
-    if (cooldown_hours !== undefined) quiz.cooldown_hours = cooldown_hours;
-    if (allow_retake !== undefined) quiz.allow_retake = allow_retake;
-    if (is_active !== undefined) quiz.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Квиз успешно обновлен',
-        quiz: quiz
-    });
-});
-
-app.delete('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
-    const quizId = parseInt(req.params.quizId);
-    const quizIndex = db.quizzes.findIndex(q => q.id === quizId);
-    
-    if (quizIndex === -1) {
-        return res.status(404).json({ error: 'Quiz not found' });
-    }
-    
-    db.quizzes.splice(quizIndex, 1);
-    res.json({ success: true, message: 'Квиз удален' });
-});
-
-// Управление марафонами
-app.get('/api/admin/marathons', requireAdmin, (req, res) => {
-    const marathons = db.marathons.map(marathon => {
-        const completions = db.marathon_completions.filter(mc => mc.marathon_id === marathon.id);
-        return {
-            ...marathon,
-            completions_count: completions.length,
-            active_users: completions.filter(mc => !mc.completed).length
-        };
-    });
-    res.json(marathons);
-});
-
-app.post('/api/admin/marathons', requireAdmin, (req, res) => {
-    const { title, description, duration_days, tasks, sparks_per_day } = req.body;
-    
-    if (!title || !duration_days || !tasks || !Array.isArray(tasks)) {
-        return res.status(400).json({ error: 'Title, duration and tasks array are required' });
-    }
-    
-    const newMarathon = {
-        id: Date.now(),
-        title,
-        description: description || '',
-        duration_days: parseInt(duration_days),
-        tasks: tasks,
-        sparks_per_day: sparks_per_day || SPARKS_SYSTEM.MARATHON_DAY_COMPLETION,
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.marathons.push(newMarathon);
-    
-    res.json({ 
-        success: true, 
-        message: 'Марафон успешно создан', 
-        marathonId: newMarathon.id,
-        marathon: newMarathon
-    });
-});
-
-app.put('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
-    const marathonId = parseInt(req.params.marathonId);
-    const { title, description, duration_days, tasks, sparks_per_day, is_active } = req.body;
-    
-    const marathon = db.marathons.find(m => m.id === marathonId);
-    if (!marathon) {
-        return res.status(404).json({ error: 'Marathon not found' });
-    }
-    
-    if (title) marathon.title = title;
-    if (description) marathon.description = description;
-    if (duration_days) marathon.duration_days = parseInt(duration_days);
-    if (tasks) marathon.tasks = tasks;
-    if (sparks_per_day !== undefined) marathon.sparks_per_day = sparks_per_day;
-    if (is_active !== undefined) marathon.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Марафон успешно обновлен',
-        marathon: marathon
-    });
-});
-
-app.delete('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
-    const marathonId = parseInt(req.params.marathonId);
-    const marathonIndex = db.marathons.findIndex(m => m.id === marathonId);
-    
-    if (marathonIndex === -1) {
-        return res.status(404).json({ error: 'Marathon not found' });
-    }
-    
-    db.marathons.splice(marathonIndex, 1);
-    res.json({ success: true, message: 'Марафон удален' });
-});
-
-// Управление работами пользователей
-app.get('/api/admin/user-works', requireAdmin, (req, res) => {
-    const { status = 'pending' } = req.query;
-    
-    const works = db.user_works
-        .filter(w => w.status === status)
-        .map(work => {
-            const user = db.users.find(u => u.user_id === work.user_id);
-            return {
-                ...work,
-                user_name: user?.tg_first_name || 'Неизвестно',
-                user_username: user?.tg_username
-            };
-        })
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    
-    res.json({ works });
-});
-
-app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
-    const workId = parseInt(req.params.workId);
-    const { status, admin_comment } = req.body;
-    const adminId = req.admin.user_id;
-    
-    const work = db.user_works.find(w => w.id === workId);
-    if (!work) {
-        return res.status(404).json({ error: 'Work not found' });
-    }
-    
-    work.status = status;
-    work.moderated_at = new Date().toISOString();
-    work.moderator_id = adminId;
-    work.admin_comment = admin_comment || null;
-    
-    if (status === 'approved') {
-        addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
-    }
-    
-    res.json({ 
-        success: true, 
-        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
-        work: work
-    });
-});
-
-// Управление постами
+// ==================== API ДЛЯ ПОСТОВ ====================
 app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     const posts = db.channel_posts.map(post => {
         const admin = db.admins.find(a => a.user_id === post.admin_id);
@@ -1934,7 +1448,66 @@ app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Пост удален' });
 });
 
-// Управление отзывами
+// ==================== API ДЛЯ МОДЕРАЦИИ ====================
+app.get('/api/admin/user-works', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    const works = db.user_works
+        .filter(w => w.status === status)
+        .map(work => {
+            const user = db.users.find(u => u.user_id === work.user_id);
+            return {
+                ...work,
+                user_name: user?.tg_first_name || 'Неизвестно',
+                user_username: user?.tg_username
+            };
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    res.json({ works });
+});
+
+app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
+    const workId = parseInt(req.params.workId);
+    const { status, admin_comment } = req.body;
+    const adminId = req.admin.user_id;
+    
+    const work = db.user_works.find(w => w.id === workId);
+    if (!work) {
+        return res.status(404).json({ error: 'Work not found' });
+    }
+    
+    work.status = status;
+    work.moderated_at = new Date().toISOString();
+    work.moderator_id = adminId;
+    work.admin_comment = admin_comment || null;
+    
+    if (status === 'approved') {
+        // Добавляем искры за одобренную работу
+        const SPARKS_SYSTEM = { WORK_APPROVED: 15 };
+        const user = db.users.find(u => u.user_id === work.user_id);
+        if (user) {
+            user.sparks += SPARKS_SYSTEM.WORK_APPROVED;
+            user.level = calculateLevel(user.sparks);
+            
+            db.activities.push({
+                id: Date.now(),
+                user_id: work.user_id,
+                activity_type: 'work_approved',
+                sparks_earned: SPARKS_SYSTEM.WORK_APPROVED,
+                description: `Работа одобрена: ${work.title}`,
+                created_at: new Date().toISOString()
+            });
+        }
+    }
+    
+    res.json({ 
+        success: true, 
+        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
+        work: work
+    });
+});
+
 app.get('/api/admin/reviews', requireAdmin, (req, res) => {
     const { status = 'pending' } = req.query;
     
@@ -1978,137 +1551,11 @@ app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     });
 });
 
-// Управление админами
-app.get('/api/admin/admins', requireAdmin, (req, res) => {
-    res.json(db.admins);
-});
+// ==================== КОНЕЦ API МЕТОДОВ ====================
 
-app.post('/api/admin/admins', requireAdmin, (req, res) => {
-    const { user_id, username, role } = req.body;
-    
-    if (!user_id) {
-        return res.status(400).json({ error: 'User ID is required' });
-    }
-    
-    const existingAdmin = db.admins.find(a => a.user_id == user_id);
-    if (existingAdmin) {
-        return res.status(400).json({ error: 'Admin already exists' });
-    }
-    
-    const newAdmin = {
-        id: Date.now(),
-        user_id: parseInt(user_id),
-        username: username || '',
-        role: role || 'moderator',
-        created_at: new Date().toISOString()
-    };
-    
-    db.admins.push(newAdmin);
-    
-    res.json({ 
-        success: true, 
-        message: 'Админ успешно добавлен',
-        admin: newAdmin
-    });
-});
-
-app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    
-    if (userId === req.admin.user_id) {
-        return res.status(400).json({ error: 'Cannot remove yourself' });
-    }
-    
-    const adminIndex = db.admins.findIndex(a => a.user_id === userId);
-    if (adminIndex === -1) {
-        return res.status(404).json({ error: 'Admin not found' });
-    }
-    
-    db.admins.splice(adminIndex, 1);
-    res.json({ success: true, message: 'Админ удален' });
-});
-
-// Отчет по пользователям
-app.get('/api/admin/users-report', requireAdmin, (req, res) => {
-    const users = db.users
-        .filter(u => u.is_registered)
-        .map(user => {
-            const stats = getUserStats(user.user_id);
-            const works = db.user_works.filter(w => w.user_id === user.user_id);
-            const quizCompletions = db.quiz_completions.filter(q => q.user_id === user.user_id);
-            const marathonCompletions = db.marathon_completions.filter(m => m.user_id === user.user_id);
-            const interactiveCompletions = db.interactive_completions.filter(i => i.user_id === user.user_id);
-            
-            const totalActivities = 
-                quizCompletions.length + 
-                marathonCompletions.filter(m => m.completed).length + 
-                interactiveCompletions.length + 
-                works.length;
-            
-            return {
-                id: user.user_id,
-                name: user.tg_first_name,
-                username: user.tg_username,
-                role: user.class,
-                character: user.character_name,
-                sparks: user.sparks,
-                level: user.level,
-                total_quizzes: quizCompletions.length,
-                total_marathons: marathonCompletions.filter(m => m.completed).length,
-                total_interactives: interactiveCompletions.length,
-                total_works: works.length,
-                approved_works: works.filter(w => w.status === 'approved').length,
-                total_activities: totalActivities,
-                registration_date: user.registration_date,
-                last_active: user.last_active
-            };
-        })
-        .sort((a, b) => b.total_activities - a.total_activities);
-    
-    res.json({ users });
-});
-
-// Полная статистика
-app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
-    const stats = {
-        users: {
-            total: db.users.length,
-            registered: db.users.filter(u => u.is_registered).length,
-            by_role: db.roles.map(role => ({
-                role: role.name,
-                count: db.users.filter(u => u.class === role.name).length
-            })),
-            active_today: db.users.filter(u => {
-                const today = new Date();
-                const lastActive = new Date(u.last_active);
-                return lastActive.toDateString() === today.toDateString();
-            }).length
-        },
-        content: {
-            quizzes: db.quizzes.length,
-            marathons: db.marathons.length,
-            shop_items: db.shop_items.length,
-            posts: db.channel_posts.length,
-            interactives: db.interactives.length
-        },
-        activities: {
-            total_sparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
-            total_purchases: db.purchases.length,
-            total_works: db.user_works.length,
-            pending_moderation: {
-                works: db.user_works.filter(w => w.status === 'pending').length,
-                reviews: db.post_reviews.filter(r => r.status === 'pending').length
-            }
-        },
-        completions: {
-            quizzes: db.quiz_completions.length,
-            marathons: db.marathon_completions.filter(m => m.completed).length,
-            interactives: db.interactive_completions.length
-        }
-    };
-    
-    res.json(stats);
-});
+// Telegram Bot
+let bot;
+if (process.env.BOT_TOKEN) {
 
 // Telegram Bot
 let bot;
