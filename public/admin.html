@@ -4444,12 +4444,11 @@ async function loadAdmins() {
     }
 }
 
-        // Отображение администраторов
-        function displayAdmins(admins) {
+      // Ищите этот блок в JavaScript части admin.html:
+function displayAdmins(admins) {
     const adminsList = document.getElementById('adminsList');
     
-    // ИСПРАВЛЕНИЕ: Добавляем проверку на null/undefined
-    if (!admins || admins.length === 0) {
+    if (admins.length === 0) {
         adminsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔧</div><div>Администраторов не найдено</div></div>';
         return;
     }
@@ -4459,46 +4458,9 @@ async function loadAdmins() {
     admins.forEach(admin => {
         const roleBadges = {
             'moderator': 'badge-info',
-            'admin': 'badge-warning', 
+            'admin': 'badge-warning',
             'superadmin': 'badge-danger'
         };
-        
-        // ИСПРАВЛЕНИЕ: Добавляем русские названия ролей
-        const roleNames = {
-            'moderator': 'Модератор',
-            'admin': 'Администратор',
-            'superadmin': 'Супер-админ'
-        };
-        
-        html += `
-            <div class="admin-card">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                    <div style="flex: 1;">
-                        <h3 style="margin: 0 0 8px 0;">${admin.username || `Пользователь ${admin.user_id}`}</h3>
-                        <div style="margin-bottom: 12px;">
-                            <span class="badge ${roleBadges[admin.role]}">${roleNames[admin.role]}</span>
-                            <span class="badge badge-secondary">ID: ${admin.user_id}</span>
-                        </div>
-                    </div>
-                </div>
-                <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                    Добавлен: ${new Date(admin.created_at).toLocaleDateString('ru-RU')}
-                </div>
-                ${admin.user_id != currentUserId ? `
-                    <div class="action-buttons">
-                        <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">🗑️ Удалить</button>
-                    </div>
-                ` : `
-                    <div style="color: #718096; font-style: italic;">
-                        Это ваша учетная запись
-                    </div>
-                `}
-            </div>
-        `;
-    });
-    
-    adminsList.innerHTML = html;
-}
         }
 
         // Показать форму добавления админа
