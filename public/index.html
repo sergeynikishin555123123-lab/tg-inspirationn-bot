@@ -1195,29 +1195,51 @@
                 <p class="header-subtitle">Ваше творческое пространство</p>
                 
                 <div id="userData">
-                    <div class="loading">
-                        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-                        Загрузка данных...
-                    </div>
-                    <div id="userContent" style="display: none;">
-                        <div class="user-info-grid">
-                            <div class="user-info-item">
-                                <span class="user-info-label">Имя:</span>
-                                <span id="userName" class="user-info-value">-</span>
-                            </div>
-                            <div class="user-info-item">
-                                <span class="user-info-label">Уровень:</span>
-                                <span id="userLevel" class="user-info-value">-</span>
-                            </div>
-                            <div class="user-info-item">
-                                <span class="user-info-label">Роль:</span>
-                                <span id="userRole" class="user-info-value">-</span>
-                            </div>
-                            <div class="user-info-item">
-                                <span class="user-info-label">Персонаж:</span>
-                                <span id="userCharacter" class="user-info-value">-</span>
-                            </div>
-                        </div>
+                <div id="userData">
+    <div id="userContent">
+        <div class="user-info-grid">
+            <div class="user-info-item">
+                <span class="user-info-label">Имя:</span>
+                <span id="userName" class="user-info-value">-</span>
+            </div>
+            <div class="user-info-item">
+                <span class="user-info-label">Уровень:</span>
+                <span id="userLevel" class="user-info-value">-</span>
+            </div>
+            <div class="user-info-item">
+                <span class="user-info-label">Роль:</span>
+                <span id="userRole" class="user-info-value">-</span>
+            </div>
+            <div class="user-info-item">
+                <span class="user-info-label">Персонаж:</span>
+                <span id="userCharacter" class="user-info-value">-</span>
+            </div>
+        </div>
+        
+        <div class="sparks pulse" id="sparksCount">✨ 0</div>
+        
+        <div id="userStats">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number" id="statQuizzes">0</div>
+                    <div class="stat-label">Квизов</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="statWorks">0</div>
+                    <div class="stat-label">Работ</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="statMarathons">0</div>
+                    <div class="stat-label">Марафонов</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="statInteractives">0</div>
+                    <div class="stat-label">Интерактивов</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
                         
                         <div class="sparks pulse" id="sparksCount">✨ 0</div>
                         
@@ -1772,24 +1794,23 @@
 
         // Показать данные пользователя
         function showUserData() {
-            document.getElementById('userContent').style.display = 'block';
-            document.getElementById('welcomeBlock').style.display = 'none';
-            document.getElementById('actionsBlock').style.display = 'block';
-            
-            document.getElementById('userName').textContent = currentUser.tg_first_name;
-            document.getElementById('userLevel').textContent = currentUser.level;
-            document.getElementById('sparksCount').textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
-            document.getElementById('userRole').textContent = currentUser.class || 'Не выбрана';
-            document.getElementById('userCharacter').textContent = currentUser.character_name || 'Не выбран';
-            
-            // Обновляем статистику если есть
-            if (currentUser.stats) {
-                document.getElementById('userStats').style.display = 'block';
-                document.getElementById('statQuizzes').textContent = currentUser.stats.totalQuizzesCompleted;
-                document.getElementById('statWorks').textContent = currentUser.stats.totalWorks;
-                document.getElementById('statMarathons').textContent = currentUser.stats.totalMarathonsCompleted;
-                document.getElementById('statInteractives').textContent = currentUser.stats.totalInteractivesCompleted;
-            }
+           document.getElementById('welcomeBlock').style.display = 'none';
+    document.getElementById('actionsBlock').style.display = 'block';
+    
+    document.getElementById('userName').textContent = currentUser.tg_first_name;
+    document.getElementById('userLevel').textContent = currentUser.level;
+    document.getElementById('sparksCount').textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
+    document.getElementById('userRole').textContent = currentUser.class || 'Не выбрана';
+    document.getElementById('userCharacter').textContent = currentUser.character_name || 'Не выбран';
+    
+    // Обновляем статистику если есть
+    if (currentUser.stats) {
+        document.getElementById('statQuizzes').textContent = currentUser.stats.totalQuizzesCompleted;
+        document.getElementById('statWorks').textContent = currentUser.stats.totalWorks;
+        document.getElementById('statMarathons').textContent = currentUser.stats.totalMarathonsCompleted;
+        document.getElementById('statInteractives').textContent = currentUser.stats.totalInteractivesCompleted;
+    }
+}
             
             // Заполняем имя в форме регистрации
             document.getElementById('userFirstName').value = currentUser.tg_first_name;
@@ -3679,7 +3700,7 @@ function filterPurchasesByType(type) {
                         <div class="content-preview">
                             ${item.content_text || 'Описание содержимого...'}
                         </div>
-                        // В функции создания карточки товара ЗАМЕНИ КНОПКУ ПОКУПКИ:
+                       
 <button class="btn ${canAfford && !hasPurchased ? 'btn-success' : 'btn-secondary'}" 
         onclick="purchaseItem(${item.id})" 
         ${!canAfford || hasPurchased ? 'disabled' : ''}>
