@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+-  <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -1195,52 +1195,29 @@
                 <p class="header-subtitle">Ваше творческое пространство</p>
                 
                 <div id="userData">
-    <div class="loading">
-        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-        Загрузка данных...
-    </div>
-        <div class="user-info-grid">
-            <div class="user-info-item">
-                <span class="user-info-label">Имя:</span>
-                <span id="userName" class="user-info-value">-</span>
-            </div>
-            <div class="user-info-item">
-                <span class="user-info-label">Уровень:</span>
-                <span id="userLevel" class="user-info-value">-</span>
-            </div>
-            <div class="user-info-item">
-                <span class="user-info-label">Роль:</span>
-                <span id="userRole" class="user-info-value">-</span>
-            </div>
-            <div class="user-info-item">
-                <span class="user-info-label">Персонаж:</span>
-                <span id="userCharacter" class="user-info-value">-</span>
-            </div>
-        </div>
-        
-        <div class="sparks pulse" id="sparksCount">✨ 0</div>
-        
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-number" id="statQuizzes">0</div>
-                    <div class="stat-label">Квизов</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="statWorks">0</div>
-                    <div class="stat-label">Работ</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="statMarathons">0</div>
-                    <div class="stat-label">Марафонов</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="statInteractives">0</div>
-                    <div class="stat-label">Интерактивов</div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+                    <div class="loading">
+                        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                        Загрузка данных...
+                    </div>
+                    <div id="userContent" style="display: none;">
+                        <div class="user-info-grid">
+                            <div class="user-info-item">
+                                <span class="user-info-label">Имя:</span>
+                                <span id="userName" class="user-info-value">-</span>
+                            </div>
+                            <div class="user-info-item">
+                                <span class="user-info-label">Уровень:</span>
+                                <span id="userLevel" class="user-info-value">-</span>
+                            </div>
+                            <div class="user-info-item">
+                                <span class="user-info-label">Роль:</span>
+                                <span id="userRole" class="user-info-value">-</span>
+                            </div>
+                            <div class="user-info-item">
+                                <span class="user-info-label">Персонаж:</span>
+                                <span id="userCharacter" class="user-info-value">-</span>
+                            </div>
+                        </div>
                         
                         <div class="sparks pulse" id="sparksCount">✨ 0</div>
                         
@@ -1268,26 +1245,27 @@
                 </div>
             </div>
 
-            <div id="welcomeBlock" class="card">
-    <h3 style="text-align: center; margin-bottom: 20px;">🎯 Добро пожаловать в мир творчества!</h3>
-    <p style="text-align: center; color: #718096; margin-bottom: 24px; line-height: 1.6;">
-        Присоединяйтесь к сообществу творческих людей. Выберите свою роль и начните путь к мастерству!
-    </p>
-    <button class="btn pulse" onclick="showScreen('registrationScreen')">
-        Начать путешествие
-    </button>
-</div>
-           <div id="actionsBlock" class="card">
-    <h3 style="margin-bottom: 20px; text-align: center;">🚀 Ваши возможности</h3>
-    <div class="action-grid" id="actionButtons">
-        <!-- Кнопки загружаются динамически -->
-    </div>
-    
-    <!-- Кнопка смены роли -->
-    <button class="btn change-role-btn" onclick="showScreen('changeRoleScreen')" style="margin-top: 16px;">
-        🔄 Сменить роль
-    </button>
-</div>
+            <div id="welcomeBlock" class="card" style="display: none;">
+                <h3 style="text-align: center; margin-bottom: 20px;">🎯 Добро пожаловать в мир творчества!</h3>
+                <p style="text-align: center; color: #718096; margin-bottom: 24px; line-height: 1.6;">
+                    Присоединяйтесь к сообществу творческих людей. Выберите свою роль и начните путь к мастерству!
+                </p>
+                <button class="btn pulse" onclick="showScreen('registrationScreen')">
+                    Начать путешествие
+                </button>
+            </div>
+
+            <div id="actionsBlock" class="card" style="display: none;">
+                <h3 style="margin-bottom: 20px; text-align: center;">🚀 Ваши возможности</h3>
+                <div class="action-grid" id="actionButtons">
+                    <!-- Кнопки загружаются динамически -->
+                </div>
+                
+                <!-- Кнопка смены роли -->
+                <button class="btn change-role-btn" onclick="showScreen('changeRoleScreen')" style="margin-top: 16px;">
+                    🔄 Сменить роль
+                </button>
+            </div>
         </div>
 
         <!-- Экран смены роли -->
@@ -1774,107 +1752,100 @@
         }
 
         // Загрузка данных пользователя
-async function loadUserData() {
-    try {
-        const response = await fetch(`/api/users/${currentUserId}`);
-        const data = await response.json();
-        
-        if (data.exists) {
-            currentUser = data.user;
-            showUserData();
-            loadAvailableButtons();
-        } else {
-            showWelcomeScreen();
+        async function loadUserData() {
+            try {
+                const response = await fetch(`/api/users/${currentUserId}`);
+                const data = await response.json();
+                
+                if (data.exists) {
+                    currentUser = data.user;
+                    showUserData();
+                    loadAvailableButtons();
+                } else {
+                    showWelcomeScreen();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки пользователя:', error);
+                showMessage('❌ Ошибка загрузки данных', 'error');
+            }
         }
-    } catch (error) {
-        console.error('Ошибка загрузки пользователя:', error);
-        showMessage('❌ Ошибка загрузки данных', 'error');
-    }
-}
 
-       function showUserData() {
-    document.getElementById('userContent').style.display = 'block';
-    document.getElementById('welcomeBlock').style.display = 'none';
-    document.getElementById('actionsBlock').style.display = 'block';
-    
-    document.getElementById('userName').textContent = currentUser.tg_first_name;
-    document.getElementById('userLevel').textContent = currentUser.level;
-    document.getElementById('sparksCount').textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
-    document.getElementById('userRole').textContent = currentUser.class || 'Не выбрана';
-    document.getElementById('userCharacter').textContent = currentUser.character_name || 'Не выбран';
-    
-    // Обновляем статистику если есть
-    if (currentUser.stats) {
-        document.getElementById('userStats').style.display = 'block';
-        document.getElementById('statQuizzes').textContent = currentUser.stats.totalQuizzesCompleted;
-        document.getElementById('statWorks').textContent = currentUser.stats.totalWorks;
-        document.getElementById('statMarathons').textContent = currentUser.stats.totalMarathonsCompleted;
-        document.getElementById('statInteractives').textContent = currentUser.stats.totalInteractivesCompleted;
-    }
-}
+        // Показать данные пользователя
+        function showUserData() {
+            document.getElementById('userContent').style.display = 'block';
+            document.getElementById('welcomeBlock').style.display = 'none';
+            document.getElementById('actionsBlock').style.display = 'block';
+            
+            document.getElementById('userName').textContent = currentUser.tg_first_name;
+            document.getElementById('userLevel').textContent = currentUser.level;
+            document.getElementById('sparksCount').textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
+            document.getElementById('userRole').textContent = currentUser.class || 'Не выбрана';
+            document.getElementById('userCharacter').textContent = currentUser.character_name || 'Не выбран';
+            
+            // Обновляем статистику если есть
+            if (currentUser.stats) {
+                document.getElementById('userStats').style.display = 'block';
+                document.getElementById('statQuizzes').textContent = currentUser.stats.totalQuizzesCompleted;
+                document.getElementById('statWorks').textContent = currentUser.stats.totalWorks;
+                document.getElementById('statMarathons').textContent = currentUser.stats.totalMarathonsCompleted;
+                document.getElementById('statInteractives').textContent = currentUser.stats.totalInteractivesCompleted;
+            }
             
             // Заполняем имя в форме регистрации
             document.getElementById('userFirstName').value = currentUser.tg_first_name;
         }
 
         // Показать экран приветствия
-       function showWelcomeScreen() {
-    document.getElementById('userContent').style.display = 'none';
-    document.getElementById('welcomeBlock').style.display = 'block';
-    document.getElementById('actionsBlock').style.display = 'none';
-}
+        function showWelcomeScreen() {
+            document.getElementById('userContent').style.display = 'none';
+            document.getElementById('welcomeBlock').style.display = 'block';
+            document.getElementById('actionsBlock').style.display = 'none';
+        }
+
         // Загрузка доступных кнопок
-function loadAvailableButtons() {
-    const buttonsContainer = document.getElementById('actionButtons');
-    const availableButtons = currentUser.available_buttons || [];
-    
-    const buttons = {
-        'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary', icon: '🎯' },
-        'marathon': { text: '🏃‍♂️ Участвовать в марафоне', screen: 'marathonsScreen', color: 'btn-warning', icon: '🏃‍♂️' },
-        'works': { text: '🖼️ Мои работы', screen: 'worksScreen', color: 'btn-info', icon: '🖼️' },
-        'activities': { text: '📊 История активностей', screen: 'activitiesScreen', color: 'btn', icon: '📊' },
-        'posts': { text: '📰 Полезные материалы', screen: 'postsScreen', color: 'btn-success', icon: '📰' },
-        'shop': { text: '🛒 Магазин знаний', screen: 'shopScreen', color: 'btn-danger', icon: '🛒' },
-        'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info', icon: '👥' },
-        'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success', icon: '🎮' }
-    };
-    
-    buttonsContainer.innerHTML = '';
-    
-    // Если у пользователя есть доступные кнопки, показываем их
-    if (availableButtons.length > 0) {
-        availableButtons.forEach(buttonKey => {
-            if (buttons[buttonKey]) {
-                const buttonInfo = buttons[buttonKey];
+        function loadAvailableButtons() {
+            const buttonsContainer = document.getElementById('actionButtons');
+            const availableButtons = currentUser.available_buttons || [];
+            
+            const buttons = {
+                'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary', icon: '🎯' },
+                'marathon': { text: '🏃‍♂️ Участвовать в марафоне', screen: 'marathonsScreen', color: 'btn-warning', icon: '🏃‍♂️' },
+                'works': { text: '🖼️ Мои работы', screen: 'worksScreen', color: 'btn-info', icon: '🖼️' },
+                'activities': { text: '📊 История активностей', screen: 'activitiesScreen', color: 'btn', icon: '📊' },
+                'posts': { text: '📰 Полезные материалы', screen: 'postsScreen', color: 'btn-success', icon: '📰' },
+                'shop': { text: '🛒 Магазин знаний', screen: 'shopScreen', color: 'btn-danger', icon: '🛒' },
+                'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info', icon: '👥' },
+                'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success', icon: '🎮' }
+            };
+            
+            buttonsContainer.innerHTML = '';
+            
+            availableButtons.forEach(buttonKey => {
+                if (buttons[buttonKey]) {
+                    const buttonInfo = buttons[buttonKey];
+                    const featureCard = document.createElement('div');
+                    featureCard.className = 'feature-card';
+                    featureCard.innerHTML = `
+                        <div class="feature-icon">${buttonInfo.icon}</div>
+                        <div class="feature-title">${buttonInfo.text}</div>
+                    `;
+                    featureCard.onclick = () => showScreen(buttonInfo.screen);
+                    buttonsContainer.appendChild(featureCard);
+                }
+            });
+            
+            // Всегда показываем кнопку интерактивов
+            if (!availableButtons.includes('interactives')) {
                 const featureCard = document.createElement('div');
                 featureCard.className = 'feature-card';
                 featureCard.innerHTML = `
-                    <div class="feature-icon">${buttonInfo.icon}</div>
-                    <div class="feature-title">${buttonInfo.text}</div>
+                    <div class="feature-icon">🎮</div>
+                    <div class="feature-title">Интерактивные задания</div>
                 `;
-                featureCard.onclick = () => showScreen(buttonInfo.screen);
+                featureCard.onclick = () => showScreen('interactivesScreen');
                 buttonsContainer.appendChild(featureCard);
             }
-        });
-    } else {
-        // Если нет доступных кнопок, показываем стандартный набор
-        const defaultButtons = ['quiz', 'marathon', 'works', 'interactives', 'shop'];
-        
-        defaultButtons.forEach(buttonKey => {
-            if (buttons[buttonKey]) {
-                const buttonInfo = buttons[buttonKey];
-                const featureCard = document.createElement('div');
-                featureCard.className = 'feature-card';
-                featureCard.innerHTML = `
-                    <div class="feature-icon">${buttonInfo.icon}</div>
-                    <div class="feature-title">${buttonInfo.text}</div>
-                `;
-                featureCard.onclick = () => showScreen(buttonInfo.screen);
-                buttonsContainer.appendChild(featureCard);
-            }
-        });
-    }
-}
+        }
 
         // Показать экран
         function showScreen(screenName) {
@@ -2037,141 +2008,140 @@ function loadAvailableButtons() {
         // ==================== РЕГИСТРАЦИЯ ====================
 
         // Регистрация - загрузка ролей
-        // Регистрация - загрузка ролей
-async function loadRoles() {
-    try {
-        const response = await fetch('/api/webapp/roles');
-        const roles = await response.json();
-        
-        const rolesList = document.getElementById('rolesList');
-        rolesList.innerHTML = '';
-        
-        roles.forEach(role => {
-            const roleCard = document.createElement('div');
-            roleCard.className = 'role-card';
-            roleCard.innerHTML = `
-                <div style="font-size: 24px; margin-bottom: 8px;">${role.icon}</div>
-                <div style="font-weight: 600; margin-bottom: 5px;">${role.name}</div>
-                <div style="color: #718096; font-size: 14px;">${role.description}</div>
-            `;
-            roleCard.onclick = () => selectRole(role);
-            rolesList.appendChild(roleCard);
-        });
-    } catch (error) {
-        document.getElementById('rolesList').innerHTML = '<div class="error">Ошибка загрузки ролей</div>';
-    }
-}
+        async function loadRoles() {
+            try {
+                const response = await fetch('/api/webapp/roles');
+                const roles = await response.json();
+                
+                const rolesList = document.getElementById('rolesList');
+                rolesList.innerHTML = '';
+                
+                roles.forEach(role => {
+                    const roleCard = document.createElement('div');
+                    roleCard.className = 'role-card';
+                    roleCard.innerHTML = `
+                        <div style="font-size: 24px; margin-bottom: 8px;">${role.icon}</div>
+                        <div style="font-weight: 600; margin-bottom: 5px;">${role.name}</div>
+                        <div style="color: #718096; font-size: 14px;">${role.description}</div>
+                    `;
+                    roleCard.onclick = () => selectRole(role);
+                    rolesList.appendChild(roleCard);
+                });
+            } catch (error) {
+                document.getElementById('rolesList').innerHTML = '<div class="error">Ошибка загрузки ролей</div>';
+            }
+        }
 
         // Выбор роли
-function selectRole(role) {
-    selectedRole = role;
-    
-    // Снимаем выделение со всех карточек
-    document.querySelectorAll('.role-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    // Выделяем выбранную карточку
-    event.currentTarget.classList.add('selected');
-    
-    // Загружаем персонажей для выбранной роли
-    loadCharacters(role.id);
-}
+        function selectRole(role) {
+            selectedRole = role;
+            
+            // Снимаем выделение со всех карточек
+            document.querySelectorAll('.role-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Выделяем выбранную карточку
+            event.currentTarget.classList.add('selected');
+            
+            // Загружаем персонажей для выбранной роли
+            loadCharacters(role.id);
+        }
 
-       // Загрузка персонажей
-async function loadCharacters(roleId) {
-    try {
-        const response = await fetch(`/api/webapp/characters/${roleId}`);
-        const characters = await response.json();
-        
-        const charactersSection = document.getElementById('charactersSection');
-        const charactersList = document.getElementById('charactersList');
-        
-        charactersSection.style.display = 'block';
-        charactersList.innerHTML = '';
-        
-        characters.forEach(character => {
-            const characterCard = document.createElement('div');
-            characterCard.className = 'character-card';
-            characterCard.innerHTML = `
-                <div style="font-weight: 600; margin-bottom: 5px;">${character.name}</div>
-                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
-                <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
-            `;
-            characterCard.onclick = () => selectCharacter(character);
-            charactersList.appendChild(characterCard);
-        });
-    } catch (error) {
-        document.getElementById('charactersList').innerHTML = '<div class="error">Ошибка загрузки персонажей</div>';
-    }
-}
+        // Загрузка персонажей
+        async function loadCharacters(roleId) {
+            try {
+                const response = await fetch(`/api/webapp/characters/${roleId}`);
+                const characters = await response.json();
+                
+                const charactersSection = document.getElementById('charactersSection');
+                const charactersList = document.getElementById('charactersList');
+                
+                charactersSection.style.display = 'block';
+                charactersList.innerHTML = '';
+                
+                characters.forEach(character => {
+                    const characterCard = document.createElement('div');
+                    characterCard.className = 'character-card';
+                    characterCard.innerHTML = `
+                        <div style="font-weight: 600; margin-bottom: 5px;">${character.name}</div>
+                        <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
+                        <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
+                    `;
+                    characterCard.onclick = () => selectCharacter(character);
+                    charactersList.appendChild(characterCard);
+                });
+            } catch (error) {
+                document.getElementById('charactersList').innerHTML = '<div class="error">Ошибка загрузки персонажей</div>';
+            }
+        }
 
         // Получить описание бонуса
-function getBonusDescription(character) {
-    const bonuses = {
-        'percent_bonus': `+${character.bonus_value}% к наградам`,
-        'forgiveness': `${character.bonus_value} право на ошибку`,
-        'random_gift': `Случайный подарок ${character.bonus_value} раз в день`,
-        'secret_advice': `Секретные советы на ${character.bonus_value}`,
-        'series_bonus': `+${character.bonus_value} к серийным наградам`
-    };
-    return bonuses[character.bonus_type] || 'Особый бонус';
-}
+        function getBonusDescription(character) {
+            const bonuses = {
+                'percent_bonus': `+${character.bonus_value}% к наградам`,
+                'forgiveness': `${character.bonus_value} право на ошибку`,
+                'random_gift': `Случайный подарок ${character.bonus_value} раз в день`,
+                'secret_advice': `Секретные советы на ${character.bonus_value}`,
+                'series_bonus': `+${character.bonus_value} к серийным наградам`
+            };
+            return bonuses[character.bonus_type] || 'Особый бонус';
+        }
 
         // Выбор персонажа
-function selectCharacter(character) {
-    selectedCharacter = character;
-    
-    // Снимаем выделение со всех карточек
-    document.querySelectorAll('.character-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    // Выделяем выбранную карточку
-    event.currentTarget.classList.add('selected');
-    
-    // Активируем кнопку завершения регистрации
-    document.getElementById('completeBtn').disabled = false;
-}
+        function selectCharacter(character) {
+            selectedCharacter = character;
+            
+            // Снимаем выделение со всех карточек
+            document.querySelectorAll('.character-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Выделяем выбранную карточку
+            event.currentTarget.classList.add('selected');
+            
+            // Активируем кнопку завершения регистрации
+            document.getElementById('completeBtn').disabled = false;
+        }
 
         // Завершение регистрации
-async function completeRegistration() {
-    if (!selectedRole || !selectedCharacter) {
-        showMessage('❌ Выберите роль и персонажа', 'error');
-        return;
-    }
-    
-    const firstName = document.getElementById('userFirstName').value.trim();
-    if (!firstName) {
-        showMessage('❌ Введите ваше имя', 'error');
-        return;
-    }
-    
-    try {
-        const response = await fetch('/api/users/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: currentUserId,
-                firstName: firstName,
-                roleId: selectedRole.id,
-                characterId: selectedCharacter.id
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage(`✅ ${result.message}`, 'success');
-            await loadUserData();
-            showScreen('mainScreen');
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
+        async function completeRegistration() {
+            if (!selectedRole || !selectedCharacter) {
+                showMessage('❌ Выберите роль и персонажа', 'error');
+                return;
+            }
+            
+            const firstName = document.getElementById('userFirstName').value.trim();
+            if (!firstName) {
+                showMessage('❌ Введите ваше имя', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/users/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        firstName: firstName,
+                        roleId: selectedRole.id,
+                        characterId: selectedCharacter.id
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    await loadUserData();
+                    showScreen('mainScreen');
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка регистрации', 'error');
+            }
         }
-    } catch (error) {
-        showMessage('❌ Ошибка регистрации', 'error');
-    }
-}
 
 // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПОКУПОК ====================
 
@@ -3709,7 +3679,7 @@ function filterPurchasesByType(type) {
                         <div class="content-preview">
                             ${item.content_text || 'Описание содержимого...'}
                         </div>
-                       
+                        // В функции создания карточки товара ЗАМЕНИ КНОПКУ ПОКУПКИ:
 <button class="btn ${canAfford && !hasPurchased ? 'btn-success' : 'btn-secondary'}" 
         onclick="purchaseItem(${item.id})" 
         ${!canAfford || hasPurchased ? 'disabled' : ''}>
@@ -4162,4 +4132,5 @@ function sharePurchase(purchaseId) {
         setTimeout(animateElements, 500);
     </script>
 </body>
-</html>
+</html> 
+
