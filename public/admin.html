@@ -3934,23 +3934,19 @@ function hideShopItemForm() {
 
         // ==================== ПОСТЫ ====================
 
-        // Исправление функции загрузки постов
-async function loadPosts() {
-    try {
-        const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
-        if (!response.ok) {
-            throw new Error('Ошибка доступа');
+        // Загрузка постов
+        async function loadPosts() {
+            try {
+                const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
+                const data = await response.json();
+                
+                displayPosts(data.posts);
+                
+            } catch (error) {
+                document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов</div>';
+            }
         }
-        const data = await response.json();
-        
-        // ИСПРАВЛЕНИЕ: Правильное обращение к данным
-        displayPosts(data.posts || []);
-        
-    } catch (error) {
-        console.error('Ошибка загрузки постов:', error);
-        document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов: ' + error.message + '</div>';
-    }
-}
+
         // Отображение постов
         function displayPosts(posts) {
             const postsList = document.getElementById('postsList');
@@ -4179,24 +4175,19 @@ async function loadPosts() {
             }
         }
 
-        // Исправление функции загрузки работ для модерации
-async function loadWorksForModeration() {
-    try {
-        const status = document.getElementById('workStatusFilter').value;
-        const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
-        if (!response.ok) {
-            throw new Error('Ошибка доступа');
+        // Загрузка работ для модерации
+        async function loadWorksForModeration() {
+            try {
+                const status = document.getElementById('workStatusFilter').value;
+                const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
+                const data = await response.json();
+                
+                displayWorksForModeration(data.works);
+                
+            } catch (error) {
+                document.getElementById('worksModerationList').innerHTML = '<div class="message error">Ошибка загрузки работ</div>';
+            }
         }
-        const data = await response.json();
-        
-        // ИСПРАВЛЕНИЕ: Правильное обращение к данным
-        displayWorksForModeration(data.works || []);
-        
-    } catch (error) {
-        console.error('Ошибка загрузки работ:', error);
-        document.getElementById('worksModerationList').innerHTML = '<div class="message error">Ошибка загрузки работ: ' + error.message + '</div>';
-    }
-}
 
         // Отображение работ для модерации
         function displayWorksForModeration(works) {
@@ -4427,40 +4418,65 @@ async function loadWorksForModeration() {
 
         // ==================== АДМИНЫ ====================
 
-        // Исправление функции загрузки админов
-async function loadAdmins() {
-    try {
-        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
-        if (!response.ok) {
-            throw new Error('Ошибка доступа');
+        // Загрузка администраторов
+        async function loadAdmins() {
+            try {
+                const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
+                const admins = await response.json();
+                
+                displayAdmins(admins);
+                
+            } catch (error) {
+                document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов</div>';
+            }
         }
-        const admins = await response.json();
-        
-        displayAdmins(admins);
-        
-    } catch (error) {
-        console.error('Ошибка загрузки администраторов:', error);
-        document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов: ' + error.message + '</div>';
-    }
-}
 
-      // Ищите этот блок в JavaScript части admin.html:
-function displayAdmins(admins) {
-    const adminsList = document.getElementById('adminsList');
-    
-    if (admins.length === 0) {
-        adminsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔧</div><div>Администраторов не найдено</div></div>';
-        return;
-    }
-    
-    let html = '';
-    
-    admins.forEach(admin => {
-        const roleBadges = {
-            'moderator': 'badge-info',
-            'admin': 'badge-warning',
-            'superadmin': 'badge-danger'
-        };
+        // Отображение администраторов
+        function displayAdmins(admins) {
+            const adminsList = document.getElementById('adminsList');
+            
+            if (admins.length === 0) {
+                adminsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔧</div><div>Администраторов не найдено</div></div>';
+                return;
+            }
+            
+            let html = '';
+            
+            admins.forEach(admin => {
+                const roleBadges = {
+                    'moderator': 'badge-info',
+                    'admin': 'badge-warning',
+                    'superadmin': 'badge-danger'
+                };
+                
+                html += `
+                    <div class="admin-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <h3 style="margin: 0 0 8px 0;">${admin.username || `Пользователь ${admin.user_id}`}</h3>
+                                <div style="margin-bottom: 12px;">
+                                    <span class="badge ${roleBadges[admin.role]}">${admin.role}</span>
+                                    <span class="badge badge-secondary">ID: ${admin.user_id}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+                            Добавлен: ${new Date(admin.created_at).toLocaleDateString('ru-RU')}
+                        </div>
+                        ${admin.user_id != currentUserId ? `
+                            <div class="action-buttons">
+                                <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">🗑️ Удалить</button>
+                            </div>
+                        ` : `
+                            <div style="color: #718096; font-style: italic;">
+                                Это ваша учетная запись
+                            </div>
+                        `}
+                    </div>
+                `;
+            });
+            
+            adminsList.innerHTML = html;
         }
 
         // Показать форму добавления админа
@@ -4468,99 +4484,45 @@ function displayAdmins(admins) {
             document.getElementById('adminForm').style.display = 'block';
         }
 
-       // Исправление функции загрузки админов
-async function loadAdmins() {
-    try {
-        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
-        if (!response.ok) {
-            throw new Error('Ошибка доступа');
+        // Сохранение админа
+        async function saveAdmin() {
+            const user_id = document.getElementById('adminUserId').value;
+            const username = document.getElementById('adminUsername').value.trim();
+            const role = document.getElementById('adminRole').value;
+            
+            if (!user_id) {
+                alert('Введите ID пользователя');
+                return;
+            }
+            
+            try {
+                const adminData = {
+                    user_id: parseInt(user_id),
+                    username,
+                    role
+                };
+                
+                const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(adminData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Администратор успешно добавлен', 'success');
+                    hideAdminForm();
+                    loadAdmins();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка добавления администратора', 'error');
+            }
         }
-        const admins = await response.json();
-        
-        displayAdmins(admins);
-        
-    } catch (error) {
-        console.error('Ошибка загрузки администраторов:', error);
-        document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов: ' + error.message + '</div>';
-    }
-}
 
-// Исправление функции загрузки работ для модерации
-async function loadWorksForModeration() {
-    try {
-        const status = document.getElementById('workStatusFilter').value;
-        const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
-        if (!response.ok) {
-            throw new Error('Ошибка доступа');
-        }
-        const data = await response.json();
-        
-        // ИСПРАВЛЕНИЕ: Правильное обращение к данным
-        displayWorksForModeration(data.works || []);
-        
-    } catch (error) {
-        console.error('Ошибка загрузки работ:', error);
-        document.getElementById('worksModerationList').innerHTML = '<div class="message error">Ошибка загрузки работ: ' + error.message + '</div>';
-    }
-}
-
-// Исправление функции загрузки постов
-async function loadPosts() {
-    try {
-        const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
-        if (!response.ok) {
-            throw new Error('Ошибка доступа');
-        }
-        const data = await response.json();
-        
-        // ИСПРАВЛЕНИЕ: Правильное обращение к данным
-        displayPosts(data.posts || []);
-        
-    } catch (error) {
-        console.error('Ошибка загрузки постов:', error);
-        document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов: ' + error.message + '</div>';
-    }
-}
-
-// Исправление функции добавления админа
-async function saveAdmin() {
-    const user_id = document.getElementById('adminUserId').value;
-    const username = document.getElementById('adminUsername').value.trim();
-    const role = document.getElementById('adminRole').value;
-    
-    if (!user_id) {
-        alert('Введите ID пользователя');
-        return;
-    }
-    
-    try {
-        const adminData = {
-            user_id: parseInt(user_id),
-            username,
-            role
-        };
-        
-        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(adminData)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage('✅ Администратор успешно добавлен', 'success');
-            hideAdminForm();
-            loadAdmins();
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
-        }
-        
-    } catch (error) {
-        console.error('Ошибка добавления администратора:', error);
-        showMessage('❌ Ошибка добавления администратора: ' + error.message, 'error');
-    }
-}
         // Удаление админа
         async function deleteAdmin(userId) {
             if (!confirm('Вы уверены, что хотите удалить этого администратора?')) return;
