@@ -2786,7 +2786,8 @@ audio {
                         <div class="content-preview">
                             ${item.content_text || 'Описание содержимого...'}
                         </div>
-                        <button class="btn ${canAfford && !hasPurchased ? 'btn-success' : 'btn-secondary'}" 
+                        // В функции создания карточки товара ЗАМЕНИ КНОПКУ ПОКУПКИ:
+<button class="btn ${canAfford && !hasPurchased ? 'btn-success' : 'btn-secondary'}" 
         onclick="purchaseItem(${item.id})" 
         ${!canAfford || hasPurchased ? 'disabled' : ''}>
     ${hasPurchased ? '✅ Куплено' : canAfford ? '🛒 Купить' : '🔒 Недоступно'}
