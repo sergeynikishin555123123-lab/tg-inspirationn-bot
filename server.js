@@ -1328,6 +1328,237 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
     res.json(stats);
 });
 
+// ==================== ДОПОЛНИТЕЛЬНЫЕ ADMIN API ====================
+
+// Управление администраторами
+app.get('/api/admin/admins', requireAdmin, (req, res) => {
+    res.json(db.admins);
+});
+
+app.post('/api/admin/admins', requireAdmin, (req, res) => {
+    const { user_id, username, role } = req.body;
+    
+    if (!user_id) {
+        return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    const existingAdmin = db.admins.find(a => a.user_id == user_id);
+    if (existingAdmin) {
+        return res.status(400).json({ error: 'Admin already exists' });
+    }
+    
+    const newAdmin = {
+        id: Date.now(),
+        user_id: parseInt(user_id),
+        username: username || '',
+        role: role || 'moderator',
+        created_at: new Date().toISOString()
+    };
+    
+    db.admins.push(newAdmin);
+    
+    res.json({ 
+        success: true, 
+        message: 'Админ успешно добавлен',
+        admin: newAdmin
+    });
+});
+
+app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
+    const userId = parseInt(req.params.userId);
+    
+    if (userId === req.admin.user_id) {
+        return res.status(400).json({ error: 'Cannot remove yourself' });
+    }
+    
+    const adminIndex = db.admins.findIndex(a => a.user_id === userId);
+    if (adminIndex === -1) {
+        return res.status(404).json({ error: 'Admin not found' });
+    }
+    
+    db.admins.splice(adminIndex, 1);
+    res.json({ success: true, message: 'Админ удален' });
+});
+
+// Модерация работ пользователей
+app.get('/api/admin/user-works', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    const works = db.user_works
+        .filter(w => w.status === status)
+        .map(work => {
+            const user = db.users.find(u => u.user_id === work.user_id);
+            return {
+                ...work,
+                user_name: user?.tg_first_name || 'Неизвестно',
+                user_username: user?.tg_username
+            };
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    res.json({ works });
+});
+
+app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
+    const workId = parseInt(req.params.workId);
+    const { status, admin_comment } = req.body;
+    const adminId = req.admin.user_id;
+    
+    const work = db.user_works.find(w => w.id === workId);
+    if (!work) {
+        return res.status(404).json({ error: 'Work not found' });
+    }
+    
+    work.status = status;
+    work.moderated_at = new Date().toISOString();
+    work.moderator_id = adminId;
+    work.admin_comment = admin_comment || null;
+    
+    if (status === 'approved') {
+        addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
+    }
+    
+    res.json({ 
+        success: true, 
+        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
+        work: work
+    });
+});
+
+// Модерация отзывов
+app.get('/api/admin/reviews', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    const reviews = db.post_reviews
+        .filter(r => r.status === status)
+        .map(review => {
+            const user = db.users.find(u => u.user_id === review.user_id);
+            const post = db.channel_posts.find(p => p.post_id === review.post_id);
+            const moderator = db.admins.find(a => a.user_id === review.moderator_id);
+            return {
+                ...review,
+                tg_first_name: user?.tg_first_name,
+                tg_username: user?.tg_username,
+                post_title: post?.title,
+                moderator_username: moderator?.username
+            };
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    res.json({ reviews });
+});
+
+app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
+    const reviewId = parseInt(req.params.reviewId);
+    const { status, admin_comment } = req.body;
+    
+    const review = db.post_reviews.find(r => r.id === reviewId);
+    if (!review) {
+        return res.status(404).json({ error: 'Review not found' });
+    }
+    
+    review.status = status;
+    review.moderated_at = new Date().toISOString();
+    review.moderator_id = req.admin.user_id;
+    review.admin_comment = admin_comment || null;
+    
+    res.json({ 
+        success: true, 
+        message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`,
+        review: review
+    });
+});
+
+// Управление постами
+app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
+    const posts = db.channel_posts.map(post => {
+        const admin = db.admins.find(a => a.user_id === post.admin_id);
+        const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
+        return {
+            ...post,
+            admin_username: admin?.username,
+            reviews_count: reviews.length
+        };
+    }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
+    res.json({ posts });
+});
+
+app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
+    const { post_id, title, content, image_url, video_url, media_type, action_type, action_target } = req.body;
+    
+    if (!post_id || !title) {
+        return res.status(400).json({ error: 'Post ID and title are required' });
+    }
+    
+    const existingPost = db.channel_posts.find(p => p.post_id === post_id);
+    if (existingPost) {
+        return res.status(400).json({ error: 'Post with this ID already exists' });
+    }
+    
+    const newPost = {
+        id: Date.now(),
+        post_id,
+        title,
+        content: content || '',
+        image_url: image_url || '',
+        video_url: video_url || '',
+        media_type: media_type || 'text',
+        admin_id: req.admin.user_id,
+        created_at: new Date().toISOString(),
+        is_active: true,
+        telegram_message_id: null,
+        action_type: action_type || null,
+        action_target: action_target || null
+    };
+    
+    db.channel_posts.push(newPost);
+    
+    res.json({ 
+        success: true, 
+        message: 'Пост успешно создан', 
+        postId: newPost.id,
+        post: newPost
+    });
+});
+
+app.put('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
+    const postId = parseInt(req.params.postId);
+    const { title, content, image_url, video_url, media_type, is_active, action_type, action_target } = req.body;
+    
+    const post = db.channel_posts.find(p => p.id === postId);
+    if (!post) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    if (title) post.title = title;
+    if (content) post.content = content;
+    if (image_url) post.image_url = image_url;
+    if (video_url) post.video_url = video_url;
+    if (media_type) post.media_type = media_type;
+    if (is_active !== undefined) post.is_active = is_active;
+    if (action_type !== undefined) post.action_type = action_type;
+    if (action_target !== undefined) post.action_target = action_target;
+    
+    res.json({ 
+        success: true, 
+        message: 'Пост успешно обновлен',
+        post: post
+    });
+});
+
+app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
+    const postId = parseInt(req.params.postId);
+    const postIndex = db.channel_posts.findIndex(p => p.id === postId);
+    
+    if (postIndex === -1) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    db.channel_posts.splice(postIndex, 1);
+    res.json({ success: true, message: 'Пост удален' });
+});
+
 // Управление интерактивами
 app.get('/api/admin/interactives', requireAdmin, (req, res) => {
     const interactives = db.interactives.map(interactive => {
