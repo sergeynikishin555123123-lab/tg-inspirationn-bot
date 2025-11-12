@@ -1080,7 +1080,10 @@ app.get('/api/webapp/users/:userId/purchases', (req, res) => {
                 type: item?.type,
                 file_url: item?.file_url,
                 content_text: item?.content_text,
-                preview_url: item?.preview_url
+                preview_url: item?.preview_url,
+                // ДОБАВЛЯЕМ ВСЕ ДАННЫЕ ДЛЯ ОТОБРАЖЕНИЯ
+                file_data: item?.file_url?.startsWith('data:') ? item.file_url : null,
+                preview_data: item?.preview_url?.startsWith('data:') ? item.preview_url : null
             };
         })
         .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
