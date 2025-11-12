@@ -1576,13 +1576,13 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
         return res.status(400).json({ error: 'Title and price are required' });
     }
     
-    const newItem = {
+     const newItem = {
         id: Date.now(),
         title,
         description: description || '',
         type: type || 'video',
-        file_url: file_url || file_data || '', // Поддержка base64 данных
-        preview_url: preview_url || preview_data || '', // Поддержка base64 данных
+        file_url: file_data || file_url || '', // ← ВАЖНО: сначала base64, потом URL
+        preview_url: preview_data || preview_url || '', // ← ВАЖНО: сначала base64, потом URL
         price: parseFloat(price),
         content_text: content_text || '',
         is_active: true,
@@ -1611,10 +1611,14 @@ app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     if (title) item.title = title;
     if (description) item.description = description;
     if (type) item.type = type;
-    if (file_url !== undefined) item.file_url = file_url;
-    if (file_data !== undefined) item.file_url = file_data; // Обновляем base64 данные
-    if (preview_url !== undefined) item.preview_url = preview_url;
-    if (preview_data !== undefined) item.preview_url = preview_data; // Обновляем base64 данные
+    
+    // ИСПРАВЛЕНИЕ: Обновляем base64 данные
+    if (file_data !== undefined) item.file_url = file_data;
+    else if (file_url !== undefined) item.file_url = file_url;
+    
+    if (preview_data !== undefined) item.preview_url = preview_data;
+    else if (preview_url !== undefined) item.preview_url = preview_url;
+    
     if (price) item.price = parseFloat(price);
     if (content_text) item.content_text = content_text;
     if (is_active !== undefined) item.is_active = is_active;
