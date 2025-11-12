@@ -1268,26 +1268,25 @@
             </div>
 
             <div id="welcomeBlock" class="card" style="display: none;">
-                <h3 style="text-align: center; margin-bottom: 20px;">🎯 Добро пожаловать в мир творчества!</h3>
-                <p style="text-align: center; color: #718096; margin-bottom: 24px; line-height: 1.6;">
-                    Присоединяйтесь к сообществу творческих людей. Выберите свою роль и начните путь к мастерству!
-                </p>
-                <button class="btn pulse" onclick="showScreen('registrationScreen')">
-                    Начать путешествие
-                </button>
-            </div>
-
-            <div id="actionsBlock" class="card" style="display: none;">
-                <h3 style="margin-bottom: 20px; text-align: center;">🚀 Ваши возможности</h3>
-                <div class="action-grid" id="actionButtons">
-                    <!-- Кнопки загружаются динамически -->
-                </div>
-                
-                <!-- Кнопка смены роли -->
-                <button class="btn change-role-btn" onclick="showScreen('changeRoleScreen')" style="margin-top: 16px;">
-                    🔄 Сменить роль
-                </button>
-            </div>
+    <h3 style="text-align: center; margin-bottom: 20px;">🎯 Добро пожаловать в мир творчества!</h3>
+    <p style="text-align: center; color: #718096; margin-bottom: 24px; line-height: 1.6;">
+        Присоединяйтесь к сообществу творческих людей. Выберите свою роль и начните путь к мастерству!
+    </p>
+    <button class="btn pulse" onclick="showScreen('registrationScreen')">
+        Начать путешествие
+    </button>
+</div>
+           <div id="actionsBlock" class="card" style="display: none;">
+    <h3 style="margin-bottom: 20px; text-align: center;">🚀 Ваши возможности</h3>
+    <div class="action-grid" id="actionButtons">
+        <!-- Кнопки загружаются динамически -->
+    </div>
+    
+    <!-- Кнопка смены роли -->
+    <button class="btn change-role-btn" onclick="showScreen('changeRoleScreen')" style="margin-top: 16px;">
+        🔄 Сменить роль
+    </button>
+</div>
         </div>
 
         <!-- Экран смены роли -->
@@ -1774,29 +1773,55 @@
         }
 
         // Загрузка данных пользователя
-        async function loadUserData() {
-            try {
-                const response = await fetch(`/api/users/${currentUserId}`);
-                const data = await response.json();
-                
-                if (data.exists) {
-                    currentUser = data.user;
-                    showUserData();
-                    loadAvailableButtons();
-                } else {
-                    showWelcomeScreen();
+        // Загрузка данных пользователя
+async function loadUserData() {
+    try {
+        const response = await fetch(`/api/users/${currentUserId}`);
+        const data = await response.json();
+        
+        if (data.exists) {
+            currentUser = data.user;
+            showUserData();
+            loadAvailableButtons();
+        } else {
+            // Для нового пользователя создаем базовые данные
+            currentUser = {
+                tg_first_name: tg.initDataUnsafe.user?.first_name || 'Гость',
+                sparks: 0,
+                level: 'Ученик',
+                is_registered: false,
+                class: null,
+                character_name: null,
+                stats: {
+                    totalQuizzesCompleted: 0,
+                    totalWorks: 0,
+                    totalMarathonsCompleted: 0,
+                    totalInteractivesCompleted: 0
                 }
-            } catch (error) {
-                console.error('Ошибка загрузки пользователя:', error);
-                showMessage('❌ Ошибка загрузки данных', 'error');
-            }
+            };
+            showWelcomeScreen();
         }
+    } catch (error) {
+        console.error('Ошибка загрузки пользователя:', error);
+        // При ошибке показываем welcome экран с данными по умолчанию
+        currentUser = {
+            tg_first_name: 'Гость',
+            sparks: 0,
+            level: 'Ученик',
+            is_registered: false,
+            class: null,
+            character_name: null
+        };
+        showWelcomeScreen();
+    }
+}
 
-        // Показать данные пользователя
-        function showUserData() {
-           document.getElementById('welcomeBlock').style.display = 'none';
+       function showUserData() {
+    // Скрываем welcome блок и показываем контент пользователя
+    document.getElementById('welcomeBlock').style.display = 'none';
     document.getElementById('actionsBlock').style.display = 'block';
     
+    // Заполняем данные пользователя
     document.getElementById('userName').textContent = currentUser.tg_first_name;
     document.getElementById('userLevel').textContent = currentUser.level;
     document.getElementById('sparksCount').textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
@@ -1817,56 +1842,78 @@
         }
 
         // Показать экран приветствия
-        function showWelcomeScreen() {
-            document.getElementById('userContent').style.display = 'none';
-            document.getElementById('welcomeBlock').style.display = 'block';
-            document.getElementById('actionsBlock').style.display = 'none';
-        }
+       function showWelcomeScreen() {
+    // Показываем welcome блок и скрываем контент пользователя
+    document.getElementById('welcomeBlock').style.display = 'block';
+    document.getElementById('actionsBlock').style.display = 'none';
+    
+    // Сбрасываем данные пользователя до значений по умолчанию
+    document.getElementById('userName').textContent = 'Гость';
+    document.getElementById('userLevel').textContent = 'Ученик';
+    document.getElementById('sparksCount').textContent = '✨ 0';
+    document.getElementById('userRole').textContent = 'Не выбрана';
+    document.getElementById('userCharacter').textContent = 'Не выбран';
+    
+    // Сбрасываем статистику
+    document.getElementById('statQuizzes').textContent = '0';
+    document.getElementById('statWorks').textContent = '0';
+    document.getElementById('statMarathons').textContent = '0';
+    document.getElementById('statInteractives').textContent = '0';
+}
 
         // Загрузка доступных кнопок
-        function loadAvailableButtons() {
-            const buttonsContainer = document.getElementById('actionButtons');
-            const availableButtons = currentUser.available_buttons || [];
-            
-            const buttons = {
-                'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary', icon: '🎯' },
-                'marathon': { text: '🏃‍♂️ Участвовать в марафоне', screen: 'marathonsScreen', color: 'btn-warning', icon: '🏃‍♂️' },
-                'works': { text: '🖼️ Мои работы', screen: 'worksScreen', color: 'btn-info', icon: '🖼️' },
-                'activities': { text: '📊 История активностей', screen: 'activitiesScreen', color: 'btn', icon: '📊' },
-                'posts': { text: '📰 Полезные материалы', screen: 'postsScreen', color: 'btn-success', icon: '📰' },
-                'shop': { text: '🛒 Магазин знаний', screen: 'shopScreen', color: 'btn-danger', icon: '🛒' },
-                'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info', icon: '👥' },
-                'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success', icon: '🎮' }
-            };
-            
-            buttonsContainer.innerHTML = '';
-            
-            availableButtons.forEach(buttonKey => {
-                if (buttons[buttonKey]) {
-                    const buttonInfo = buttons[buttonKey];
-                    const featureCard = document.createElement('div');
-                    featureCard.className = 'feature-card';
-                    featureCard.innerHTML = `
-                        <div class="feature-icon">${buttonInfo.icon}</div>
-                        <div class="feature-title">${buttonInfo.text}</div>
-                    `;
-                    featureCard.onclick = () => showScreen(buttonInfo.screen);
-                    buttonsContainer.appendChild(featureCard);
-                }
-            });
-            
-            // Всегда показываем кнопку интерактивов
-            if (!availableButtons.includes('interactives')) {
+        // Загрузка доступных кнопок
+function loadAvailableButtons() {
+    const buttonsContainer = document.getElementById('actionButtons');
+    const availableButtons = currentUser.available_buttons || [];
+    
+    const buttons = {
+        'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary', icon: '🎯' },
+        'marathon': { text: '🏃‍♂️ Участвовать в марафоне', screen: 'marathonsScreen', color: 'btn-warning', icon: '🏃‍♂️' },
+        'works': { text: '🖼️ Мои работы', screen: 'worksScreen', color: 'btn-info', icon: '🖼️' },
+        'activities': { text: '📊 История активностей', screen: 'activitiesScreen', color: 'btn', icon: '📊' },
+        'posts': { text: '📰 Полезные материалы', screen: 'postsScreen', color: 'btn-success', icon: '📰' },
+        'shop': { text: '🛒 Магазин знаний', screen: 'shopScreen', color: 'btn-danger', icon: '🛒' },
+        'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info', icon: '👥' },
+        'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success', icon: '🎮' }
+    };
+    
+    buttonsContainer.innerHTML = '';
+    
+    // Если у пользователя есть доступные кнопки, показываем их
+    if (availableButtons.length > 0) {
+        availableButtons.forEach(buttonKey => {
+            if (buttons[buttonKey]) {
+                const buttonInfo = buttons[buttonKey];
                 const featureCard = document.createElement('div');
                 featureCard.className = 'feature-card';
                 featureCard.innerHTML = `
-                    <div class="feature-icon">🎮</div>
-                    <div class="feature-title">Интерактивные задания</div>
+                    <div class="feature-icon">${buttonInfo.icon}</div>
+                    <div class="feature-title">${buttonInfo.text}</div>
                 `;
-                featureCard.onclick = () => showScreen('interactivesScreen');
+                featureCard.onclick = () => showScreen(buttonInfo.screen);
                 buttonsContainer.appendChild(featureCard);
             }
-        }
+        });
+    } else {
+        // Если нет доступных кнопок, показываем стандартный набор
+        const defaultButtons = ['quiz', 'marathon', 'works', 'interactives', 'shop'];
+        
+        defaultButtons.forEach(buttonKey => {
+            if (buttons[buttonKey]) {
+                const buttonInfo = buttons[buttonKey];
+                const featureCard = document.createElement('div');
+                featureCard.className = 'feature-card';
+                featureCard.innerHTML = `
+                    <div class="feature-icon">${buttonInfo.icon}</div>
+                    <div class="feature-title">${buttonInfo.text}</div>
+                `;
+                featureCard.onclick = () => showScreen(buttonInfo.screen);
+                buttonsContainer.appendChild(featureCard);
+            }
+        });
+    }
+}
 
         // Показать экран
         function showScreen(screenName) {
