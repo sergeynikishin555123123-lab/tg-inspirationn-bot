@@ -918,20 +918,96 @@ audio {
             </div>
         </div>
 
-        <!-- Навигация -->
-        <div class="nav-tabs">
-            <div class="nav-tab active" onclick="showTab('dashboard')">📊 Дашборд</div>
-            <div class="nav-tab" onclick="showTab('users')">👥 Пользователи</div>
-            <div class="nav-tab" onclick="showTab('roles')">🎭 Роли</div>
-            <div class="nav-tab" onclick="showTab('characters')">👤 Персонажи</div>
-            <div class="nav-tab" onclick="showTab('quizzes')">🎯 Квизы</div>
-            <div class="nav-tab" onclick="showTab('marathons')">🏃‍♂️ Марафоны</div>
-            <div class="nav-tab" onclick="showTab('interactives')">🎮 Интерактивы</div>
-            <div class="nav-tab" onclick="showTab('shop')">🛒 Магазин</div>
-            <div class="nav-tab" onclick="showTab('posts')">📰 Посты</div>
-            <div class="nav-tab" onclick="showTab('moderation')">⚖️ Модерация</div>
-            <div class="nav-tab" onclick="showTab('admins')">🔧 Админы</div>
-        </div>
+       // ==================== НАВИГАЦИЯ - ИСПРАВЛЕННАЯ ВЕРСИЯ ====================
+
+// Показать вкладку
+function showTab(tabName) {
+    console.log("🔄 Активация вкладки:", tabName);
+    
+    // Скрыть все вкладки
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Убрать активный класс со всех кнопок навигации
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Показать выбранную вкладку
+    const targetTab = document.getElementById(tabName);
+    if (targetTab) {
+        targetTab.classList.add('active');
+        console.log("✅ Вкладка найдена и активирована");
+    } else {
+        console.error("❌ Вкладка не найдена:", tabName);
+        showMessage(`❌ Ошибка: вкладка "${tabName}" не найдена`, 'error');
+        return;
+    }
+    
+    // Активировать соответствующую кнопку навигации
+    let found = false;
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        if (tab.getAttribute('onclick')?.includes(`'${tabName}'`)) {
+            tab.classList.add('active');
+            found = true;
+            console.log("✅ Кнопка навигации активирована");
+        }
+    });
+    
+    if (!found) {
+        console.error("❌ Кнопка навигации для вкладки не найдена:", tabName);
+    }
+    
+    // Скрыть все формы при переключении вкладок
+    hideAllForms();
+    
+    // Загрузить данные для активной вкладки
+    loadTabData(tabName);
+}
+
+// Загрузить данные для конкретной вкладки
+function loadTabData(tabName) {
+    console.log("📥 Загрузка данных для вкладки:", tabName);
+    
+    switch(tabName) {
+        case 'dashboard':
+            loadStats();
+            break;
+        case 'users':
+            loadUsers();
+            break;
+        case 'roles':
+            loadRoles();
+            break;
+        case 'characters':
+            loadCharacters();
+            break;
+        case 'quizzes':
+            loadQuizzes();
+            break;
+        case 'marathons':
+            loadMarathons();
+            break;
+        case 'interactives':
+            loadInteractives();
+            break;
+        case 'shop':
+            loadShopItems();
+            break;
+        case 'posts':
+            loadPosts();
+            break;
+        case 'moderation':
+            showModerationTab('works');
+            break;
+        case 'admins':
+            loadAdmins();
+            break;
+        default:
+            console.log("ℹ️ Нет специальной загрузки для вкладки:", tabName);
+    }
+}
 
         <!-- Дашборд -->
         <div id="dashboard" class="tab-content active">
@@ -4820,6 +4896,264 @@ document.addEventListener('DOMContentLoaded', function() {
         setupDragAndDrop(previewUploadArea, handleShopItemPreviewUpload);
     }
 });
+
+// ==================== АДМИНЫ - ПОЛНОСТЬЮ РАБОЧИЙ КОД ====================
+
+// Загрузка администраторов
+async function loadAdmins() {
+    console.log("🔧 Загрузка списка администраторов...");
+    
+    try {
+        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const admins = await response.json();
+        displayAdmins(admins);
+        console.log("✅ Список администраторов загружен");
+        
+    } catch (error) {
+        console.error("❌ Ошибка загрузки администраторов:", error);
+        document.getElementById('adminsList').innerHTML = `
+            <div class="message error">
+                ❌ Ошибка загрузки администраторов
+                <br><small>${error.message}</small>
+            </div>
+        `;
+    }
+}
+
+// Отображение администраторов
+function displayAdmins(admins) {
+    const adminsList = document.getElementById('adminsList');
+    
+    if (!adminsList) {
+        console.error("❌ Элемент adminsList не найден в DOM");
+        return;
+    }
+    
+    if (!admins || admins.length === 0) {
+        adminsList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🔧</div>
+                <div>Администраторов не найдено</div>
+                <button class="btn btn-success" onclick="showAdminForm()" style="margin-top: 16px;">
+                    ➕ Добавить первого администратора
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    
+    admins.forEach(admin => {
+        const roleBadges = {
+            'moderator': 'badge-info',
+            'admin': 'badge-warning', 
+            'superadmin': 'badge-danger'
+        };
+        
+        const roleTexts = {
+            'moderator': 'Модератор',
+            'admin': 'Администратор',
+            'superadmin': 'Супер-админ'
+        };
+        
+        html += `
+            <div class="admin-card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 8px 0;">
+                            ${admin.username || `Пользователь ${admin.user_id}`}
+                        </h3>
+                        <div style="margin-bottom: 12px;">
+                            <span class="badge ${roleBadges[admin.role]}">
+                                ${roleTexts[admin.role]}
+                            </span>
+                            <span class="badge badge-secondary">ID: ${admin.user_id}</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+                    Добавлен: ${new Date(admin.created_at).toLocaleDateString('ru-RU')}
+                </div>
+                ${admin.user_id != currentUserId ? `
+                    <div class="action-buttons">
+                        <button class="btn btn-warning" onclick="editAdmin(${admin.user_id})">
+                            ✏️ Изменить роль
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">
+                            🗑️ Удалить
+                        </button>
+                    </div>
+                ` : `
+                    <div style="color: #718096; font-style: italic; padding: 8px; background: #f7fafc; border-radius: 8px;">
+                        👤 Это ваша учетная запись
+                    </div>
+                `}
+            </div>
+        `;
+    });
+    
+    adminsList.innerHTML = html;
+    console.log("✅ Список администраторов отображен");
+}
+
+// Показать форму добавления админа
+function showAdminForm() {
+    console.log("➕ Открытие формы добавления администратора");
+    
+    const adminForm = document.getElementById('adminForm');
+    if (!adminForm) {
+        console.error("❌ Форма adminForm не найдена в DOM");
+        return;
+    }
+    
+    adminForm.style.display = 'block';
+    adminForm.scrollIntoView({ behavior: 'smooth' });
+    
+    // Сбросить форму
+    document.getElementById('adminUserId').value = '';
+    document.getElementById('adminUsername').value = '';
+    document.getElementById('adminRole').value = 'moderator';
+    
+    console.log("✅ Форма добавления администратора открыта");
+}
+
+// Сохранение админа
+async function saveAdmin() {
+    console.log("💾 Сохранение нового администратора...");
+    
+    const user_id = document.getElementById('adminUserId').value;
+    const username = document.getElementById('adminUsername').value.trim();
+    const role = document.getElementById('adminRole').value;
+    
+    // Валидация
+    if (!user_id) {
+        showMessage('❌ Введите ID пользователя Telegram', 'error');
+        return;
+    }
+    
+    if (isNaN(user_id) || user_id <= 0) {
+        showMessage('❌ ID пользователя должен быть положительным числом', 'error');
+        return;
+    }
+    
+    try {
+        const adminData = {
+            user_id: parseInt(user_id),
+            username: username || null,
+            role
+        };
+        
+        console.log("📤 Отправка данных администратора:", adminData);
+        
+        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(adminData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Администратор успешно добавлен', 'success');
+            hideAdminForm();
+            loadAdmins();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка добавления администратора:', error);
+        showMessage('❌ Ошибка добавления администратора: ' + error.message, 'error');
+    }
+}
+
+// Редактирование админа
+async function editAdmin(userId) {
+    console.log("✏️ Редактирование администратора ID:", userId);
+    
+    const newRole = prompt('Введите новую роль (moderator/admin/superadmin):', 'moderator');
+    
+    if (!newRole || !['moderator', 'admin', 'superadmin'].includes(newRole)) {
+        showMessage('❌ Неверная роль', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/admins/${userId}?userId=${currentUserId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: newRole })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage(`✅ Роль администратора изменена на: ${newRole}`, 'success');
+            loadAdmins();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка изменения роли:', error);
+        showMessage('❌ Ошибка изменения роли администратора', 'error');
+    }
+}
+
+// Удаление админа
+async function deleteAdmin(userId) {
+    console.log("🗑️ Удаление администратора ID:", userId);
+    
+    if (!confirm('Вы уверены, что хотите удалить этого администратора?')) {
+        console.log("❌ Удаление отменено пользователем");
+        return;
+    }
+    
+    if (userId == currentUserId) {
+        showMessage('❌ Нельзя удалить свою собственную учетную запись', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/admins/${userId}?userId=${currentUserId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Администратор успешно удален', 'success');
+            loadAdmins();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка удаления администратора:', error);
+        showMessage('❌ Ошибка удаления администратора: ' + error.message, 'error');
+    }
+}
+
+// Скрыть форму админа
+function hideAdminForm() {
+    console.log("❌ Закрытие формы администратора");
+    
+    const adminForm = document.getElementById('adminForm');
+    if (adminForm) {
+        adminForm.style.display = 'none';
+    }
+    
+    // Сбросить форму
+    document.getElementById('adminUserId').value = '';
+    document.getElementById('adminUsername').value = '';
+    document.getElementById('adminRole').value = 'moderator';
+}
         
     </script>
 </body>
