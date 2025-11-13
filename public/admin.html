@@ -918,96 +918,20 @@ audio {
             </div>
         </div>
 
-       // ==================== НАВИГАЦИЯ - ИСПРАВЛЕННАЯ ВЕРСИЯ ====================
-
-// Показать вкладку
-function showTab(tabName) {
-    console.log("🔄 Активация вкладки:", tabName);
-    
-    // Скрыть все вкладки
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Убрать активный класс со всех кнопок навигации
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Показать выбранную вкладку
-    const targetTab = document.getElementById(tabName);
-    if (targetTab) {
-        targetTab.classList.add('active');
-        console.log("✅ Вкладка найдена и активирована");
-    } else {
-        console.error("❌ Вкладка не найдена:", tabName);
-        showMessage(`❌ Ошибка: вкладка "${tabName}" не найдена`, 'error');
-        return;
-    }
-    
-    // Активировать соответствующую кнопку навигации
-    let found = false;
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        if (tab.getAttribute('onclick')?.includes(`'${tabName}'`)) {
-            tab.classList.add('active');
-            found = true;
-            console.log("✅ Кнопка навигации активирована");
-        }
-    });
-    
-    if (!found) {
-        console.error("❌ Кнопка навигации для вкладки не найдена:", tabName);
-    }
-    
-    // Скрыть все формы при переключении вкладок
-    hideAllForms();
-    
-    // Загрузить данные для активной вкладки
-    loadTabData(tabName);
-}
-
-// Загрузить данные для конкретной вкладки
-function loadTabData(tabName) {
-    console.log("📥 Загрузка данных для вкладки:", tabName);
-    
-    switch(tabName) {
-        case 'dashboard':
-            loadStats();
-            break;
-        case 'users':
-            loadUsers();
-            break;
-        case 'roles':
-            loadRoles();
-            break;
-        case 'characters':
-            loadCharacters();
-            break;
-        case 'quizzes':
-            loadQuizzes();
-            break;
-        case 'marathons':
-            loadMarathons();
-            break;
-        case 'interactives':
-            loadInteractives();
-            break;
-        case 'shop':
-            loadShopItems();
-            break;
-        case 'posts':
-            loadPosts();
-            break;
-        case 'moderation':
-            showModerationTab('works');
-            break;
-        case 'admins':
-            loadAdmins();
-            break;
-        default:
-            console.log("ℹ️ Нет специальной загрузки для вкладки:", tabName);
-    }
-}
+        <!-- Навигация -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="showTab('dashboard')">📊 Дашборд</div>
+            <div class="nav-tab" onclick="showTab('users')">👥 Пользователи</div>
+            <div class="nav-tab" onclick="showTab('roles')">🎭 Роли</div>
+            <div class="nav-tab" onclick="showTab('characters')">👤 Персонажи</div>
+            <div class="nav-tab" onclick="showTab('quizzes')">🎯 Квизы</div>
+            <div class="nav-tab" onclick="showTab('marathons')">🏃‍♂️ Марафоны</div>
+            <div class="nav-tab" onclick="showTab('interactives')">🎮 Интерактивы</div>
+            <div class="nav-tab" onclick="showTab('shop')">🛒 Магазин</div>
+            <div class="nav-tab" onclick="showTab('posts')">📰 Посты</div>
+            <div class="nav-tab" onclick="showTab('moderation')">⚖️ Модерация</div>
+            <div class="nav-tab" onclick="showTab('admins')">🔧 Админы</div>
+        </div>
 
         <!-- Дашборд -->
         <div id="dashboard" class="tab-content active">
