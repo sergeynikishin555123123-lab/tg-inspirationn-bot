@@ -1975,33 +1975,49 @@ app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     });
 });
 
-// Управление админами
+// ==================== УПРАВЛЕНИЕ АДМИНАМИ ====================
+
 app.get('/api/admin/admins', requireAdmin, (req, res) => {
+    console.log('📋 Запрос списка админов от пользователя:', req.admin.user_id);
     res.json(db.admins);
 });
 
 app.post('/api/admin/admins', requireAdmin, (req, res) => {
     const { user_id, username, role } = req.body;
     
+    console.log('🔄 Попытка добавления админа:', { user_id, username, role });
+    
     if (!user_id) {
+        console.log('❌ Ошибка: User ID не указан');
         return res.status(400).json({ error: 'User ID is required' });
     }
     
-    // 🔴 ПРОБЛЕМА: Неправильная проверка существующего админа
+    // Проверяем, существует ли уже админ с таким user_id
     const existingAdmin = db.admins.find(a => a.user_id == user_id);
     if (existingAdmin) {
+        console.log('❌ Ошибка: Админ уже существует', existingAdmin);
         return res.status(400).json({ error: 'Admin already exists' });
+    }
+    
+    // Проверяем, существует ли пользователь в базе
+    const userExists = db.users.find(u => u.user_id == user_id);
+    if (!userExists) {
+        console.log('❌ Ошибка: Пользователь не найден в системе');
+        return res.status(404).json({ error: 'User not found in system' });
     }
     
     const newAdmin = {
         id: Date.now(),
         user_id: parseInt(user_id),
-        username: username || '',
+        username: username || userExists.tg_username || '',
         role: role || 'moderator',
         created_at: new Date().toISOString()
     };
     
     db.admins.push(newAdmin);
+    
+    console.log('✅ Админ успешно добавлен:', newAdmin);
+    console.log('📊 Текущее количество админов:', db.admins.length);
     
     res.json({ 
         success: true, 
@@ -2013,17 +2029,29 @@ app.post('/api/admin/admins', requireAdmin, (req, res) => {
 app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
     const userId = parseInt(req.params.userId);
     
+    console.log('🔄 Попытка удаления админа:', userId);
+    
     if (userId === req.admin.user_id) {
+        console.log('❌ Ошибка: Пользователь пытается удалить себя');
         return res.status(400).json({ error: 'Cannot remove yourself' });
     }
     
     const adminIndex = db.admins.findIndex(a => a.user_id === userId);
     if (adminIndex === -1) {
+        console.log('❌ Ошибка: Админ не найден');
         return res.status(404).json({ error: 'Admin not found' });
     }
     
-    db.admins.splice(adminIndex, 1);
-    res.json({ success: true, message: 'Админ удален' });
+    const removedAdmin = db.admins.splice(adminIndex, 1)[0];
+    
+    console.log('✅ Админ успешно удален:', removedAdmin);
+    console.log('📊 Текущее количество админов:', db.admins.length);
+    
+    res.json({ 
+        success: true, 
+        message: 'Админ удален',
+        removedAdmin: removedAdmin
+    });
 });
 
 // Отчет по пользователям
