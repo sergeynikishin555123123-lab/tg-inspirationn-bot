@@ -661,33 +661,33 @@
         }
 
         /* Стили для видео превью */
-        video.upload-preview {
-            max-width: 100%;
-            max-height: 300px;
-            width: 100%;
-            height: auto;
-            background: #000;
-            border-radius: 12px;
-        }
+video.upload-preview {
+    max-width: 100%;
+    max-height: 300px;
+    width: 100%;
+    height: auto;
+    background: #000;
+    border-radius: 12px;
+}
 
-        /* Стили для аудио плеера */
-        audio {
-            border-radius: 25px;
-            background: #f7fafc;
-            padding: 10px;
-            width: 100%;
-            margin: 16px 0;
-        }
+/* Стили для аудио плеера */
+audio {
+    border-radius: 25px;
+    background: #f7fafc;
+    padding: 10px;
+    width: 100%;
+    margin: 16px 0;
+}
 
-        /* Общие стили для превью */
-        .upload-preview {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 12px;
-            margin: 12px 0;
-            border: 2px solid #e2e8f0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
+/* Общие стили для превью */
+.upload-preview {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 12px;
+    margin: 12px 0;
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
         
         .task-item {
             background: rgba(247, 250, 252, 0.8);
@@ -912,7 +912,7 @@
                         🔄 Обновить
                     </button>
                     <div style="color: #718096; font-size: 14px;">
-                        ID: <span id="adminId">-</span> | Роль: <span id="adminRole">-</span>
+                        ID: <span id="adminId">-</span>
                     </div>
                 </div>
             </div>
@@ -929,8 +929,8 @@
             <div class="nav-tab" onclick="showTab('interactives')">🎮 Интерактивы</div>
             <div class="nav-tab" onclick="showTab('shop')">🛒 Магазин</div>
             <div class="nav-tab admin-only" onclick="showTab('posts')">📰 Посты</div>
-            <div class="nav-tab admin-only" onclick="showTab('moderation')">⚖️ Модерация</div>
-            <div class="nav-tab admin-only" onclick="showTab('admins')">🔧 Админы</div>
+<div class="nav-tab admin-only" onclick="showTab('moderation')">⚖️ Модерация</div>
+<div class="nav-tab admin-only" onclick="showTab('admins')">🔧 Админы</div>
         </div>
 
         <!-- Дашборд -->
@@ -965,7 +965,7 @@
                     <button class="btn btn-info" onclick="showTab('marathons')">➕ Создать марафон</button>
                     <button class="btn btn-warning" onclick="showTab('interactives')">➕ Создать интерактив</button>
                     <button class="btn" onclick="showTab('shop')">➕ Добавить товар</button>
-                    <button class="btn btn-success admin-only-btn" onclick="showTab('posts')">➕ Создать пост</button>
+                    <button class="btn btn-success" onclick="showTab('posts')">➕ Создать пост</button>
                 </div>
             </div>
         </div>
@@ -1374,108 +1374,107 @@
                 </div>
 
                 <!-- Форма создания/редактирования товара -->
-                <div id="shopItemForm" class="card" style="display: none;">
-                    <h3 id="shopItemFormTitle" style="margin-bottom: 20px;">Добавление нового товара</h3>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Название товара:</label>
-                        <input type="text" id="shopItemTitle" class="form-control" placeholder="Например: Урок акварели">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Описание:</label>
-                        <textarea id="shopItemDescription" class="form-control" rows="3" placeholder="Описание товара..."></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Тип:</label>
-                        <select id="shopItemType" class="form-control" onchange="updateShopItemForm()">
-                            <option value="video">🎥 Видео</option>
-                            <option value="pdf">📚 PDF</option>
-                            <option value="text">📝 Текст</option>
-                            <option value="audio">🎧 Аудио</option>
-                            <option value="image">🖼️ Изображение</option>
-                        </select>
-                    </div>
+<div id="shopItemForm" class="card" style="display: none;">
+    <h3 id="shopItemFormTitle" style="margin-bottom: 20px;">Добавление нового товара</h3>
+    
+    <div class="form-group">
+        <label class="form-label">Название товара:</label>
+        <input type="text" id="shopItemTitle" class="form-control" placeholder="Например: Урок акварели">
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">Описание:</label>
+        <textarea id="shopItemDescription" class="form-control" rows="3" placeholder="Описание товара..."></textarea>
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">Тип:</label>
+        <select id="shopItemType" class="form-control" onchange="updateShopItemForm()">
+            <option value="video">🎥 Видео</option>
+            <option value="pdf">📚 PDF</option>
+            <option value="text">📝 Текст</option>
+            <option value="audio">🎧 Аудио</option>
+            <option value="image">🖼️ Изображение</option>
+        </select>
+    </div>
 
-                    <!-- СЕКЦИЯ ДЛЯ ФАЙЛА ТОВАРА -->
-                    <div class="form-group" id="shopItemFileSection">
-                        <label class="form-label">Файл товара:</label>
-                        
-                        <div class="image-upload-area" id="shopItemFileUploadArea" onclick="document.getElementById('shopItemFileInput').click()">
-                            <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
-                            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки файла</div>
-                            <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
-                            <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
-                                Поддерживаются: MP4, PDF, JPG, PNG, MP3 (макс. 10MB)
-                            </div>
-                        </div>
-                        <input type="file" id="shopItemFileInput" accept=".mp4,.pdf,.jpg,.jpeg,.png,.mp3" style="display: none;" onchange="handleShopItemFileUpload(this.files[0])">
-                        
-                        <div id="shopItemFilePreview" style="display: none;">
-                            <div id="shopItemFilePreviewContent"></div>
-                            <button class="btn btn-danger" onclick="clearShopItemFile()" style="margin-top: 12px;">
-                                🗑️ Удалить файл
-                            </button>
-                        </div>
-
-                        <!-- Старое поле URL (альтернатива) -->
-                        <div style="margin-top: 16px;">
-                            <label class="form-label">Или URL файла:</label>
-                            <input type="text" id="shopItemFileUrl" class="form-control" placeholder="https://example.com/file.mp4">
-                        </div>
-                    </div>
-
-                    <!-- СЕКЦИЯ ДЛЯ ПРЕВЬЮ ТОВАРА -->
-                    <div class="form-group">
-                        <label class="form-label">Превью товара (изображение):</label>
-                        
-                        <div class="image-upload-area" id="shopItemPreviewUploadArea" onclick="document.getElementById('shopItemPreviewInput').click()">
-                            <div style="font-size: 48px; margin-bottom: 12px;">🖼️</div>
-                            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки превью</div>
-                            <div style="color: #718096; font-size: 14px;">или перетащите изображение сюда</div>
-                            <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
-                                Поддерживаются: JPG, PNG (макс. 5MB)
-                            </div>
-                        </div>
-                        <input type="file" id="shopItemPreviewInput" accept="image/*" style="display: none;" onchange="handleShopItemPreviewUpload(this.files[0])">
-                        
-                        <div id="shopItemPreviewImagePreview" style="display: none;">
-                            <img id="shopItemPreviewImage" class="upload-preview">
-                            <button class="btn btn-danger" onclick="clearShopItemPreview()" style="margin-top: 12px;">
-                                🗑️ Удалить превью
-                            </button>
-                        </div>
-
-                        <!-- Старое поле URL (альтернатива) -->
-                        <div style="margin-top: 16px;">
-                            <label class="form-label">Или URL превью:</label>
-                            <input type="text" id="shopItemPreviewUrl" class="form-control" placeholder="https://example.com/preview.jpg">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Цена (искры):</label>
-                        <input type="number" id="shopItemPrice" class="form-control" value="10" min="0" step="0.5">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Содержимое (текст):</label>
-                        <textarea id="shopItemContent" class="form-control" rows="6" placeholder="Подробное описание содержимого..."></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">
-                            <input type="checkbox" id="shopItemActive" checked> Активный товар
-                        </label>
-                    </div>
-                    
-                    <div class="action-buttons">
-    <button class="btn btn-success" onclick="saveShopItem()">💾 Сохранить товар</button>
-    <button class="btn btn-danger" onclick="hideShopItemForm()">❌ Отмена</button>
-</div>
-                </div>
+    <!-- СЕКЦИЯ ДЛЯ ФАЙЛА ТОВАРА -->
+    <div class="form-group" id="shopItemFileSection">
+        <label class="form-label">Файл товара:</label>
+        
+        <div class="image-upload-area" id="shopItemFileUploadArea" onclick="document.getElementById('shopItemFileInput').click()">
+            <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
+            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки файла</div>
+            <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
+            <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
+                Поддерживаются: MP4, PDF, JPG, PNG, MP3 (макс. 10MB)
             </div>
+        </div>
+        <input type="file" id="shopItemFileInput" accept=".mp4,.pdf,.jpg,.jpeg,.png,.mp3" style="display: none;" onchange="handleShopItemFileUpload(this.files[0])">
+        
+        <div id="shopItemFilePreview" style="display: none;">
+            <div id="shopItemFilePreviewContent"></div>
+            <button class="btn btn-danger" onclick="clearShopItemFile()" style="margin-top: 12px;">
+                🗑️ Удалить файл
+            </button>
+        </div>
+
+        <!-- Старое поле URL (альтернатива) -->
+        <div style="margin-top: 16px;">
+            <label class="form-label">Или URL файла:</label>
+            <input type="text" id="shopItemFileUrl" class="form-control" placeholder="https://example.com/file.mp4">
+        </div>
+    </div>
+
+    <!-- СЕКЦИЯ ДЛЯ ПРЕВЬЮ ТОВАРА -->
+    <div class="form-group">
+        <label class="form-label">Превью товара (изображение):</label>
+        
+        <div class="image-upload-area" id="shopItemPreviewUploadArea" onclick="document.getElementById('shopItemPreviewInput').click()">
+            <div style="font-size: 48px; margin-bottom: 12px;">🖼️</div>
+            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки превью</div>
+            <div style="color: #718096; font-size: 14px;">или перетащите изображение сюда</div>
+            <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
+                Поддерживаются: JPG, PNG (макс. 5MB)
+            </div>
+        </div>
+        <input type="file" id="shopItemPreviewInput" accept="image/*" style="display: none;" onchange="handleShopItemPreviewUpload(this.files[0])">
+        
+        <div id="shopItemPreviewImagePreview" style="display: none;">
+            <img id="shopItemPreviewImage" class="upload-preview">
+            <button class="btn btn-danger" onclick="clearShopItemPreview()" style="margin-top: 12px;">
+                🗑️ Удалить превью
+            </button>
+        </div>
+
+        <!-- Старое поле URL (альтернатива) -->
+        <div style="margin-top: 16px;">
+            <label class="form-label">Или URL превью:</label>
+            <input type="text" id="shopItemPreviewUrl" class="form-control" placeholder="https://example.com/preview.jpg">
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">Цена (искры):</label>
+        <input type="number" id="shopItemPrice" class="form-control" value="10" min="0" step="0.5">
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">Содержимое (текст):</label>
+        <textarea id="shopItemContent" class="form-control" rows="6" placeholder="Подробное описание содержимого..."></textarea>
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">
+            <input type="checkbox" id="shopItemActive" checked> Активный товар
+        </label>
+    </div>
+    
+    <div class="action-buttons">
+        <button class="btn btn-success" onclick="saveShopItem()">💾 Сохранить товар</button>
+        <button class="btn btn-danger" onclick="hideShopItemForm()">❌ Отмена</button>
+    </div>
+</div>
 
             <div id="shopPurchasesTab" style="display: none;">
                 <div class="card">
@@ -1698,185 +1697,89 @@
         let currentShopTab = 'items';
         let currentModerationTab = 'works';
         let interactiveImageData = null;
-        let shopItemFileData = null;
-        let shopItemPreviewData = null;
 
-        // Список супер-админов (ваш ID и другие доверенные пользователи)
-        const SUPER_ADMINS = [123456789, 987654321, 898508164]; // ЗДДЕСЬ ДОБАВЬТЕ ВАШ 
+// ПРАВИЛЬНАЯ ПРОВЕРКА ПРАВ - СУПЕР-АДМИН ВИДИТ ВСЁ
+async function initAdminPanel() {
+    console.log("🚀 Загрузка админ-панели");
+    
+    // Получаем ID из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    currentUserId = urlParams.get('userId');
+    
+    if (!currentUserId) {
+        document.body.innerHTML = `
+            <div class="admin-login">
+                <h1>❌ Ошибка</h1>
+                <p>Не указан ID пользователя</p>
+                <p style="color: #718096; font-size: 14px;">
+                    Добавьте ?userId=ВАШ_ID к URL
+                </p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Список супер-админов (добавьте свой ID)
+    const SUPER_ADMINS = [123456789, 987654321, 898508164];
+    
+    // Проверяем, является ли пользователь супер-админом
+    const isSuperAdmin = SUPER_ADMINS.includes(parseInt(currentUserId));
+    
+    if (isSuperAdmin) {
+        currentAdmin = { 
+            user_id: parseInt(currentUserId), 
+            role: 'superadmin',
+            username: 'Супер-админ'
+        };
+        
+        document.getElementById('adminId').textContent = currentUserId;
+        document.getElementById('adminRole').textContent = 'Супер-админ';
+        
+        // АКТИВИРУЕМ ВСЕ КНОПКИ ДЛЯ СУПЕР-АДМИНА
+        document.querySelectorAll('.admin-only').forEach(element => {
+            element.style.display = 'flex';
+        });
+        
+        document.querySelectorAll('.admin-only-btn').forEach(element => {
+            element.style.display = 'inline-block';
+        });
+        
+        console.log("✅ Супер-админ - все разделы доступны");
+        loadAllData();
+    } else {
+        // Для обычных пользователей
+        currentAdmin = { user_id: parseInt(currentUserId) };
+        document.getElementById('adminId').textContent = currentUserId;
+        
+        // Скрываем админские кнопки
+        document.querySelectorAll('.admin-only').forEach(element => {
+            element.style.display = 'none';
+        });
+        
+        console.log("⚠️ Обычный пользователь - ограниченный доступ");
+        loadAllData();
+    }
+}
 
-        // Инициализация админ-панели
-        async function initAdminPanel() {
-            console.log("🚀 Загрузка админ-панели");
-            
-            // Получаем ID из URL
-            const urlParams = new URLSearchParams(window.location.search);
-            currentUserId = urlParams.get('userId');
-            
-            // Если нет ID, показываем ошибку
-            if (!currentUserId) {
-                document.body.innerHTML = `
-                    <div class="admin-login">
-                        <h1>❌ Ошибка</h1>
-                        <p>Не указан ID пользователя</p>
-                        <p style="color: #718096; font-size: 14px;">
-                            Добавьте ?userId=ВАШ_ID к URL
-                        </p>
-                    </div>
-                `;
-                return;
-            }
-            
-            // Проверяем права доступа
-            await checkAdminAccess();
-        }
-
-        // Проверка прав доступа
-        async function checkAdminAccess() {
-            try {
-                // Сначала проверяем, есть ли пользователь в списке админов
-                const response = await fetch(`/api/admin/check-access?userId=${currentUserId}`);
-                
-                if (!response.ok) {
-                    throw new Error('Доступ запрещен');
-                }
-                
-                const adminData = await response.json();
-                
-                if (adminData.success) {
-                    currentAdmin = adminData.admin;
-                    setupAdminPanel();
-                    loadAllData();
-                } else {
-                    throw new Error('Доступ запрещен');
-                }
-                
-            } catch (error) {
-                // Если API недоступно, используем fallback логику
-                console.log('API недоступно, используем fallback логику');
-                await checkAdminAccessFallback();
-            }
-        }
-
-        // Fallback проверка прав доступа
-        async function checkAdminAccessFallback() {
-            // Проверяем, является ли пользователь супер-админом
-            const isSuperAdmin = SUPER_ADMINS.includes(parseInt(currentUserId));
-            
-            if (isSuperAdmin) {
-                currentAdmin = {
-                    user_id: parseInt(currentUserId),
-                    role: 'superadmin',
-                    username: 'Супер-админ'
-                };
-                setupAdminPanel();
-                loadAllData();
-            } else {
-                // Проверяем через localStorage или другие методы
-                const localAdmins = JSON.parse(localStorage.getItem('inspiration_admins') || '[]');
-                const admin = localAdmins.find(a => a.user_id == currentUserId);
-                
-                if (admin) {
-                    currentAdmin = admin;
-                    setupAdminPanel();
-                    loadAllData();
-                } else {
-                    showAccessDenied();
-                }
-            }
-        }
-
-        // Настройка админ-панели после авторизации
-        function setupAdminPanel() {
-            document.getElementById('adminId').textContent = currentAdmin.user_id;
-            document.getElementById('adminRole').textContent = getRoleDisplayName(currentAdmin.role);
-            
-            // Показываем/скрываем элементы в зависимости от роли
-            updateUIForRole();
-            
-            console.log(`✅ Админ авторизован: ${currentAdmin.user_id}, роль: ${currentAdmin.role}`);
-        }
-
-        // Получение отображаемого имени роли
-        function getRoleDisplayName(role) {
-            const roleNames = {
-                'superadmin': 'Супер-админ',
-                'admin': 'Администратор',
-                'moderator': 'Модератор'
-            };
-            return roleNames[role] || role;
-        }
-
-        // Обновление UI в зависимости от роли
-        function updateUIForRole() {
-            const isSuperAdmin = currentAdmin.role === 'superadmin';
-            const isAdmin = currentAdmin.role === 'admin' || isSuperAdmin;
-            
-            // Показываем/скрываем вкладки
-            document.querySelectorAll('.admin-only').forEach(element => {
-                element.style.display = isAdmin ? 'flex' : 'none';
-            });
-            
-            document.querySelectorAll('.admin-only-btn').forEach(element => {
-                element.style.display = isAdmin ? 'inline-block' : 'none';
-            });
-            
-            // Обновляем заголовок с информацией о роли
-            const roleBadge = document.getElementById('adminRole');
-            if (roleBadge) {
-                roleBadge.className = `badge badge-${getRoleBadgeType(currentAdmin.role)}`;
-                roleBadge.textContent = getRoleDisplayName(currentAdmin.role);
-            }
-        }
-
-        // Получение типа бейджа для роли
-        function getRoleBadgeType(role) {
-            const badgeTypes = {
-                'superadmin': 'danger',
-                'admin': 'warning',
-                'moderator': 'info'
-            };
-            return badgeTypes[role] || 'secondary';
-        }
-
-        // Показать сообщение об отказе в доступе
-        function showAccessDenied() {
-            document.body.innerHTML = `
-                <div class="admin-login">
-                    <h1>🚫 Доступ запрещен</h1>
-                    <p>У вас нет прав для доступа к админ-панели</p>
-                    <p style="color: #718096; font-size: 14px;">
-                        ID: ${currentUserId}<br>
-                        Обратитесь к администратору системы
-                    </p>
-                    <button class="btn" onclick="location.reload()" style="margin-top: 20px;">
-                        🔄 Повторить попытку
-                    </button>
-                </div>
-            `;
-        }
-
-        // Проверка прав доступа для действия
-        function checkPermission(requiredRole) {
-            const roleHierarchy = {
-                'moderator': 1,
-                'admin': 2,
-                'superadmin': 3
-            };
-            
-            const userLevel = roleHierarchy[currentAdmin.role] || 0;
-            const requiredLevel = roleHierarchy[requiredRole] || 0;
-            
-            return userLevel >= requiredLevel;
+        // Загрузка всех данных
+        async function loadAllData() {
+            await loadStats();
+            await loadUsers();
+            await loadRoles();
+            await loadCharacters();
+            await loadQuizzes();
+            await loadMarathons();
+            await loadInteractives();
+            await loadShopItems();
+            await loadPosts();
+            await loadAdmins();
+            await loadWorksForModeration();
+            await loadReviewsForModeration();
+            await loadMarathonSubmissions();
         }
 
         // Показать вкладку
         function showTab(tabName) {
-            // Проверка прав доступа для определенных вкладок
-            if (['posts', 'moderation', 'admins'].includes(tabName) && !checkPermission('admin')) {
-                showMessage('❌ У вас нет прав для доступа к этому разделу', 'error');
-                return;
-            }
-            
             // Скрыть все вкладки
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
@@ -1932,76 +1835,13 @@
             currentEditingId = null;
         }
 
-        // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
-
-        // Загрузка всех данных
-        async function loadAllData() {
-            showMessage('🔄 Загрузка данных...', 'info');
-            
-            try {
-                await Promise.all([
-                    loadStats(),
-                    loadUsers(),
-                    loadRoles(),
-                    loadCharacters(),
-                    loadQuizzes(),
-                    loadMarathons(),
-                    loadInteractives(),
-                    loadShopItems()
-                ]);
-                
-                // Загружаем данные только для админов
-                if (checkPermission('admin')) {
-                    await Promise.all([
-                        loadPosts(),
-                        loadAdmins(),
-                        loadWorksForModeration(),
-                        loadReviewsForModeration()
-                    ]);
-                }
-                
-                showMessage('✅ Данные успешно загружены', 'success');
-                
-            } catch (error) {
-                console.error('Ошибка загрузки данных:', error);
-                showMessage('❌ Ошибка загрузки данных', 'error');
-            }
-        }
-
-        // Показать сообщение
-        function showMessage(message, type) {
-            const messageArea = document.getElementById('messageArea');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}`;
-            messageDiv.textContent = message;
-            messageArea.appendChild(messageDiv);
-            
-            setTimeout(() => {
-                if (messageDiv.parentNode) {
-                    messageDiv.parentNode.removeChild(messageDiv);
-                }
-            }, 5000);
-        }
-
         // ==================== СТАТИСТИКА ====================
 
+        // Загрузка статистики
         async function loadStats() {
             try {
-                // Заглушка для демонстрации
-                const stats = {
-                    totalUsers: 1542,
-                    registeredUsers: 1420,
-                    activeQuizzes: 8,
-                    activeMarathons: 3,
-                    shopItems: 25,
-                    totalSparks: 18450.5,
-                    totalAdmins: 4,
-                    pendingReviews: 12,
-                    pendingWorks: 8,
-                    totalPosts: 45,
-                    totalPurchases: 324,
-                    totalActivities: 8921
-                };
+                const response = await fetch(`/api/admin/stats?userId=${currentUserId}`);
+                const stats = await response.json();
                 
                 document.getElementById('statsGrid').innerHTML = `
                     <div class="stat-card">
@@ -2054,54 +1894,110 @@
                     </div>
                 `;
                 
+                // Загружаем расширенную статистику
+                await loadFullStats();
+                
             } catch (error) {
                 document.getElementById('statsGrid').innerHTML = '<div class="message error">Ошибка загрузки статистики</div>';
             }
         }
 
+        // Загрузка полной статистики
+        async function loadFullStats() {
+            try {
+                const response = await fetch(`/api/admin/full-stats?userId=${currentUserId}`);
+                const fullStats = await response.json();
+                
+                // Создаем простые графики
+                createActivityChart(fullStats);
+                createRolesChart(fullStats);
+                
+            } catch (error) {
+                console.error('Ошибка загрузки полной статистики:', error);
+            }
+        }
+
+        // Создание графика активности
+        function createActivityChart(stats) {
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            
+            // Простой линейный график
+            const activityData = {
+                labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+                datasets: [{
+                    label: 'Активность пользователей',
+                    data: [65, 59, 80, 81, 56, 55, 40],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            };
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: activityData,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Создание графика распределения по ролям
+        function createRolesChart(stats) {
+            const ctx = document.getElementById('rolesChart').getContext('2d');
+            
+            const rolesData = {
+                labels: stats.users.by_role.map(role => role.role),
+                datasets: [{
+                    data: stats.users.by_role.map(role => role.count),
+                    backgroundColor: [
+                        '#667eea', '#ed8936', '#48bb78', '#f56565', '#9f7aea'
+                    ]
+                }]
+            };
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: rolesData,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
         // ==================== ПОЛЬЗОВАТЕЛИ ====================
 
+        // Загрузка пользователей
         async function loadUsers() {
             try {
-                // Заглушка для демонстрации
-                const users = [
-                    {
-                        id: 123456789,
-                        name: "Иван Петров",
-                        username: "ivan_petrov",
-                        role: "Художники",
-                        character: "Лука Цветной",
-                        level: "Мастер",
-                        sparks: 245.5,
-                        registration_date: "2024-01-15",
-                        last_active: "2024-03-20",
-                        total_quizzes: 12,
-                        total_works: 8,
-                        total_activities: 45
-                    },
-                    {
-                        id: 987654321,
-                        name: "Мария Сидорова",
-                        username: "maria_sid",
-                        role: "Дизайнеры",
-                        character: "Оливия Стильная",
-                        level: "Знаток",
-                        sparks: 178.0,
-                        registration_date: "2024-02-01",
-                        last_active: "2024-03-19",
-                        total_quizzes: 8,
-                        total_works: 12,
-                        total_activities: 32
-                    }
-                ];
+                const response = await fetch(`/api/admin/users-report?userId=${currentUserId}`);
+                const data = await response.json();
                 
-                displayUsers(users);
+                displayUsers(data.users);
+                populateRoleFilter(data.users);
                 
             } catch (error) {
                 document.getElementById('usersList').innerHTML = '<div class="message error">Ошибка загрузки пользователей</div>';
             }
         }
 
+        // Отображение пользователей
         function displayUsers(users) {
             const usersList = document.getElementById('usersList');
             
@@ -2173,31 +2069,42 @@
             usersList.innerHTML = html;
         }
 
+        // Заполнение фильтра ролей
+        function populateRoleFilter(users) {
+            const roles = [...new Set(users.map(user => user.role).filter(role => role))];
+            const roleFilter = document.getElementById('roleFilter');
+            
+            roles.forEach(role => {
+                const option = document.createElement('option');
+                option.value = role;
+                option.textContent = role;
+                roleFilter.appendChild(option);
+            });
+        }
+
+        // Фильтрация пользователей
+        function filterUsers() {
+            const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+            const roleFilter = document.getElementById('roleFilter').value;
+            const levelFilter = document.getElementById('levelFilter').value;
+            
+            // В реальном приложении здесь был бы запрос к серверу
+            // Для демонстрации просто перезагружаем список
+            loadUsers();
+        }
+
+        // Экспорт пользователей
+        function exportUsers() {
+            alert('Экспорт в CSV будет реализован в следующей версии');
+        }
+
         // ==================== РОЛИ ====================
 
+        // Загрузка ролей
         async function loadRoles() {
             try {
-                // Заглушка для демонстрации
-                const roles = [
-                    {
-                        id: 1,
-                        name: "Художники",
-                        description: "Творческие личности, создающие произведения искусства",
-                        icon: "🎨",
-                        available_buttons: ["quiz", "marathon", "works", "activities", "posts", "shop", "invite", "interactives"],
-                        is_active: true,
-                        created_at: "2024-01-01"
-                    },
-                    {
-                        id: 2,
-                        name: "Дизайнеры",
-                        description: "Специалисты по созданию эстетичных и функциональных решений",
-                        icon: "👗",
-                        available_buttons: ["quiz", "marathon", "works", "activities", "shop", "interactives"],
-                        is_active: true,
-                        created_at: "2024-01-02"
-                    }
-                ];
+                const response = await fetch(`/api/admin/roles?userId=${currentUserId}`);
+                const roles = await response.json();
                 
                 displayRoles(roles);
                 
@@ -2206,6 +2113,7 @@
             }
         }
 
+        // Отображение ролей
         function displayRoles(roles) {
             const rolesList = document.getElementById('rolesList');
             
@@ -2248,43 +2156,199 @@
             rolesList.innerHTML = html;
         }
 
+        // Показать форму роли
+        function showRoleForm() {
+            document.getElementById('roleForm').style.display = 'block';
+            document.getElementById('roleFormTitle').textContent = 'Добавление новой роли';
+            currentEditingId = null;
+            
+            // Сбросить форму
+            document.getElementById('roleName').value = '';
+            document.getElementById('roleDescription').value = '';
+            document.getElementById('roleIcon').value = '🎨';
+            document.getElementById('roleActive').checked = true;
+            
+            // Заполнить кнопки
+            populateRoleButtons();
+        }
+
+        // Заполнение кнопок роли
+        function populateRoleButtons() {
+            const buttonsGrid = document.getElementById('roleButtons');
+            const availableButtons = [
+                { id: 'quiz', label: '🎯 Квизы', checked: true },
+                { id: 'marathon', label: '🏃‍♂️ Марафоны', checked: true },
+                { id: 'works', label: '🖼️ Работы', checked: true },
+                { id: 'activities', label: '📊 Активности', checked: true },
+                { id: 'posts', label: '📰 Посты', checked: true },
+                { id: 'shop', label: '🛒 Магазин', checked: true },
+                { id: 'invite', label: '👥 Приглашения', checked: true },
+                { id: 'interactives', label: '🎮 Интерактивы', checked: true },
+                { id: 'change_role', label: '🔄 Смена роли', checked: true }
+            ];
+            
+            buttonsGrid.innerHTML = '';
+            
+            availableButtons.forEach(button => {
+                const buttonHtml = `
+                    <div class="button-checkbox ${button.checked ? 'checked' : ''}">
+                        <input type="checkbox" id="btn_${button.id}" ${button.checked ? 'checked' : ''}>
+                        <label for="btn_${button.id}">${button.label}</label>
+                    </div>
+                `;
+                buttonsGrid.innerHTML += buttonHtml;
+            });
+            
+            // Добавить обработчики для чекбоксов
+            document.querySelectorAll('.button-checkbox input').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    this.parentElement.classList.toggle('checked', this.checked);
+                });
+            });
+        }
+
+        // Сохранение роли
+        async function saveRole() {
+            const name = document.getElementById('roleName').value.trim();
+            const description = document.getElementById('roleDescription').value.trim();
+            const icon = document.getElementById('roleIcon').value.trim();
+            const is_active = document.getElementById('roleActive').checked;
+            
+            if (!name) {
+                alert('Введите название роли');
+                return;
+            }
+            
+            // Собираем выбранные кнопки
+            const available_buttons = [];
+            document.querySelectorAll('.button-checkbox input:checked').forEach(checkbox => {
+                available_buttons.push(checkbox.id.replace('btn_', ''));
+            });
+            
+            try {
+                const roleData = {
+                    name,
+                    description,
+                    icon,
+                    available_buttons,
+                    is_active
+                };
+                
+                let response;
+                if (currentEditingId) {
+                    response = await fetch(`/api/admin/roles/${currentEditingId}?userId=${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(roleData)
+                    });
+                } else {
+                    response = await fetch(`/api/admin/roles?userId=${currentUserId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(roleData)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Роль успешно сохранена', 'success');
+                    hideRoleForm();
+                    loadRoles();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка сохранения роли', 'error');
+            }
+        }
+
+        // Редактирование роли
+        async function editRole(roleId) {
+            try {
+                const response = await fetch(`/api/admin/roles?userId=${currentUserId}`);
+                const roles = await response.json();
+                const role = roles.find(r => r.id === roleId);
+                
+                if (!role) {
+                    showMessage('❌ Роль не найдена', 'error');
+                    return;
+                }
+                
+                document.getElementById('roleForm').style.display = 'block';
+                document.getElementById('roleFormTitle').textContent = 'Редактирование роли';
+                currentEditingId = roleId;
+                
+                // Заполнить форму
+                document.getElementById('roleName').value = role.name;
+                document.getElementById('roleDescription').value = role.description;
+                document.getElementById('roleIcon').value = role.icon;
+                document.getElementById('roleActive').checked = role.is_active;
+                
+                // Заполнить кнопки
+                populateRoleButtons();
+                
+                // Отметить выбранные кнопки
+                role.available_buttons.forEach(buttonId => {
+                    const checkbox = document.getElementById(`btn_${buttonId}`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        checkbox.parentElement.classList.add('checked');
+                    }
+                });
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки роли', 'error');
+            }
+        }
+
+        // Удаление роли
+        async function deleteRole(roleId) {
+            if (!confirm('Вы уверены, что хотите удалить эту роль?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/roles/${roleId}?userId=${currentUserId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Роль успешно удалена', 'success');
+                    loadRoles();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка удаления роли', 'error');
+            }
+        }
+
+        // Скрыть форму роли
+        function hideRoleForm() {
+            document.getElementById('roleForm').style.display = 'none';
+            currentEditingId = null;
+        }
+
         // ==================== ПЕРСОНАЖИ ====================
 
+        // Загрузка персонажей
         async function loadCharacters() {
             try {
-                // Заглушка для демонстрации
-                const characters = [
-                    {
-                        id: 1,
-                        role_id: 1,
-                        role_name: "Художники",
-                        name: "Лука Цветной",
-                        description: "Весёлый художник, который обожает яркие цвета",
-                        bonus_type: "percent_bonus",
-                        bonus_value: "10",
-                        is_active: true,
-                        created_at: "2024-01-01"
-                    },
-                    {
-                        id: 2,
-                        role_id: 2,
-                        role_name: "Дизайнеры",
-                        name: "Оливия Стильная",
-                        description: "Элегантный дизайнер с безупречным вкусом",
-                        bonus_type: "forgiveness",
-                        bonus_value: "1",
-                        is_active: true,
-                        created_at: "2024-01-02"
-                    }
-                ];
+                const response = await fetch(`/api/admin/characters?userId=${currentUserId}`);
+                const characters = await response.json();
                 
                 displayCharacters(characters);
+                populateCharacterRoles(characters);
                 
             } catch (error) {
                 document.getElementById('charactersList').innerHTML = '<div class="message error">Ошибка загрузки персонажей</div>';
             }
         }
 
+        // Отображение персонажей
         function displayCharacters(characters) {
             const charactersList = document.getElementById('charactersList');
             
@@ -2336,33 +2400,158 @@
             charactersList.innerHTML = html;
         }
 
+        // Заполнение ролей для формы персонажа
+        function populateCharacterRoles(characters) {
+            const roleSelect = document.getElementById('characterRole');
+            const roles = [...new Set(characters.map(char => char.role_id).filter(id => id))];
+            
+            // В реальном приложении здесь был бы запрос к API ролей
+            roleSelect.innerHTML = '<option value="">Выберите роль</option>';
+            roles.forEach(roleId => {
+                const character = characters.find(c => c.role_id === roleId);
+                if (character) {
+                    const option = document.createElement('option');
+                    option.value = roleId;
+                    option.textContent = character.role_name;
+                    roleSelect.appendChild(option);
+                }
+            });
+        }
+
+        // Показать форму персонажа
+        function showCharacterForm() {
+            document.getElementById('characterForm').style.display = 'block';
+            document.getElementById('characterFormTitle').textContent = 'Добавление нового персонажа';
+            currentEditingId = null;
+            
+            // Сбросить форму
+            document.getElementById('characterRole').value = '';
+            document.getElementById('characterName').value = '';
+            document.getElementById('characterDescription').value = '';
+            document.getElementById('characterBonusType').value = 'percent_bonus';
+            document.getElementById('characterBonusValue').value = '';
+            document.getElementById('characterActive').checked = true;
+        }
+
+        // Сохранение персонажа
+        async function saveCharacter() {
+            const role_id = document.getElementById('characterRole').value;
+            const name = document.getElementById('characterName').value.trim();
+            const description = document.getElementById('characterDescription').value.trim();
+            const bonus_type = document.getElementById('characterBonusType').value;
+            const bonus_value = document.getElementById('characterBonusValue').value.trim();
+            const is_active = document.getElementById('characterActive').checked;
+            
+            if (!role_id || !name || !bonus_value) {
+                alert('Заполните все обязательные поля');
+                return;
+            }
+            
+            try {
+                const characterData = {
+                    role_id: parseInt(role_id),
+                    name,
+                    description,
+                    bonus_type,
+                    bonus_value,
+                    is_active
+                };
+                
+                let response;
+                if (currentEditingId) {
+                    response = await fetch(`/api/admin/characters/${currentEditingId}?userId=${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(characterData)
+                    });
+                } else {
+                    response = await fetch(`/api/admin/characters?userId=${currentUserId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(characterData)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Персонаж успешно сохранен', 'success');
+                    hideCharacterForm();
+                    loadCharacters();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка сохранения персонажа', 'error');
+            }
+        }
+
+        // Редактирование персонажа
+        async function editCharacter(characterId) {
+            try {
+                const response = await fetch(`/api/admin/characters?userId=${currentUserId}`);
+                const characters = await response.json();
+                const character = characters.find(c => c.id === characterId);
+                
+                if (!character) {
+                    showMessage('❌ Персонаж не найден', 'error');
+                    return;
+                }
+                
+                document.getElementById('characterForm').style.display = 'block';
+                document.getElementById('characterFormTitle').textContent = 'Редактирование персонажа';
+                currentEditingId = characterId;
+                
+                // Заполнить форму
+                document.getElementById('characterRole').value = character.role_id;
+                document.getElementById('characterName').value = character.name;
+                document.getElementById('characterDescription').value = character.description;
+                document.getElementById('characterBonusType').value = character.bonus_type;
+                document.getElementById('characterBonusValue').value = character.bonus_value;
+                document.getElementById('characterActive').checked = character.is_active;
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки персонажа', 'error');
+            }
+        }
+
+        // Удаление персонажа
+        async function deleteCharacter(characterId) {
+            if (!confirm('Вы уверены, что хотите удалить этого персонажа?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/characters/${characterId}?userId=${currentUserId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Персонаж успешно удален', 'success');
+                    loadCharacters();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка удаления персонажа', 'error');
+            }
+        }
+
+        // Скрыть форму персонажа
+        function hideCharacterForm() {
+            document.getElementById('characterForm').style.display = 'none';
+            currentEditingId = null;
+        }
+
         // ==================== КВИЗЫ ====================
 
+        // Загрузка квизов
         async function loadQuizzes() {
             try {
-                // Заглушка для демонстрации
-                const quizzes = [
-                    {
-                        id: 1,
-                        title: "Основы живописи",
-                        description: "Тест на знание основных техник и материалов живописи",
-                        questions: [
-                            {
-                                question: "Какая краска считается самой древней?",
-                                options: ["Масляная", "Акварель", "Темпера", "Гуашь"],
-                                correctAnswer: 2
-                            }
-                        ],
-                        sparks_per_correct: 1,
-                        sparks_perfect_bonus: 5,
-                        cooldown_hours: 24,
-                        allow_retake: true,
-                        is_active: true,
-                        completions_count: 142,
-                        average_score: 7.8,
-                        created_at: "2024-01-01"
-                    }
-                ];
+                const response = await fetch(`/api/admin/quizzes?userId=${currentUserId}`);
+                const quizzes = await response.json();
                 
                 displayQuizzes(quizzes);
                 
@@ -2371,6 +2560,7 @@
             }
         }
 
+        // Отображение квизов
         function displayQuizzes(quizzes) {
             const quizzesList = document.getElementById('quizzesList');
             
@@ -2431,41 +2621,282 @@
             quizzesList.innerHTML = html;
         }
 
+        // Показать форму квиза
+        function showQuizForm() {
+            document.getElementById('quizForm').style.display = 'block';
+            document.getElementById('quizFormTitle').textContent = 'Создание нового квиза';
+            currentEditingId = null;
+            
+            // Сбросить форму
+            document.getElementById('quizTitle').value = '';
+            document.getElementById('quizDescription').value = '';
+            document.getElementById('quizSparksPerCorrect').value = '1';
+            document.getElementById('quizPerfectBonus').value = '5';
+            document.getElementById('quizCooldown').value = '24';
+            document.getElementById('quizAllowRetake').checked = true;
+            document.getElementById('quizActive').checked = true;
+            
+            // Очистить вопросы
+            document.getElementById('quizQuestions').innerHTML = '';
+            addQuestion(); // Добавить первый вопрос по умолчанию
+        }
+
+// Добавить вопрос
+function addQuestion() {
+    const questionsContainer = document.getElementById('quizQuestions');
+    const questionIndex = questionsContainer.children.length;
+    
+    const questionHtml = `
+        <div class="question-item" data-index="${questionIndex}">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="margin: 0;">Вопрос ${questionIndex + 1}</h4>
+                <button class="btn btn-danger" onclick="removeQuestion(${questionIndex})">🗑️ Удалить</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Текст вопроса:</label>
+                <input type="text" class="form-control question-text" placeholder="Введите вопрос">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Варианты ответов:</label>
+                <div class="option-item">
+                    <input type="radio" name="correct_${questionIndex}" value="0" checked>
+                    <input type="text" class="form-control option-text" placeholder="Вариант ответа 1">
+                </div>
+                <div class="option-item">
+                    <input type="radio" name="correct_${questionIndex}" value="1">
+                    <input type="text" class="form-control option-text" placeholder="Вариант ответа 2">
+                </div>
+                <div class="option-item">
+                    <input type="radio" name="correct_${questionIndex}" value="2">
+                    <input type="text" class="form-control option-text" placeholder="Вариант ответа 3">
+                </div>
+                <div class="option-item">
+                    <input type="radio" name="correct_${questionIndex}" value="3">
+                    <input type="text" class="form-control option-text" placeholder="Вариант ответа 4">
+                </div>
+            </div>
+        </div>
+    `;
+    
+    questionsContainer.innerHTML += questionHtml;
+}
+
+        // Удалить вопрос
+        function removeQuestion(index) {
+            const questionElement = document.querySelector(`.question-item[data-index="${index}"]`);
+            if (questionElement && document.getElementById('quizQuestions').children.length > 1) {
+                questionElement.remove();
+                // Перенумеровать оставшиеся вопросы
+                renumberQuestions();
+            }
+        }
+
+        // Перенумеровать вопросы
+        function renumberQuestions() {
+            const questions = document.querySelectorAll('.question-item');
+            questions.forEach((question, index) => {
+                question.setAttribute('data-index', index);
+                question.querySelector('h4').textContent = `Вопрос ${index + 1}`;
+                
+                // Обновить radio buttons
+                const radioName = `correct_${index}`;
+                question.querySelectorAll('input[type="radio"]').forEach((radio, radioIndex) => {
+                    radio.name = radioName;
+                    radio.value = radioIndex;
+                });
+            });
+        }
+
+        // Сохранение квиза
+        async function saveQuiz() {
+            const title = document.getElementById('quizTitle').value.trim();
+            const description = document.getElementById('quizDescription').value.trim();
+            const sparks_per_correct = parseFloat(document.getElementById('quizSparksPerCorrect').value);
+            const sparks_perfect_bonus = parseFloat(document.getElementById('quizPerfectBonus').value);
+            const cooldown_hours = parseInt(document.getElementById('quizCooldown').value);
+            const allow_retake = document.getElementById('quizAllowRetake').checked;
+            const is_active = document.getElementById('quizActive').checked;
+            
+            if (!title) {
+                alert('Введите название квиза');
+                return;
+            }
+            
+            // Собираем вопросы
+            const questions = [];
+            const questionElements = document.querySelectorAll('.question-item');
+            
+            if (questionElements.length === 0) {
+                alert('Добавьте хотя бы один вопрос');
+                return;
+            }
+            
+            questionElements.forEach(questionElement => {
+                const questionText = questionElement.querySelector('.question-text').value.trim();
+                const options = Array.from(questionElement.querySelectorAll('.option-text')).map(input => input.value.trim());
+                const correctAnswer = parseInt(questionElement.querySelector('input[type="radio"]:checked').value);
+                
+                if (questionText && options.every(opt => opt)) {
+                    questions.push({
+                        question: questionText,
+                        options: options,
+                        correctAnswer: correctAnswer
+                    });
+                }
+            });
+            
+            if (questions.length === 0) {
+                alert('Заполните все вопросы и варианты ответов');
+                return;
+            }
+            
+            try {
+                const quizData = {
+                    title,
+                    description,
+                    questions,
+                    sparks_per_correct,
+                    sparks_perfect_bonus,
+                    cooldown_hours,
+                    allow_retake,
+                    is_active
+                };
+                
+                let response;
+                if (currentEditingId) {
+                    response = await fetch(`/api/admin/quizzes/${currentEditingId}?userId=${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(quizData)
+                    });
+                } else {
+                    response = await fetch(`/api/admin/quizzes?userId=${currentUserId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(quizData)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Квиз успешно сохранен', 'success');
+                    hideQuizForm();
+                    loadQuizzes();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка сохранения квиза', 'error');
+            }
+        }
+
+        // Редактирование квиза
+        async function editQuiz(quizId) {
+            try {
+                const response = await fetch(`/api/admin/quizzes?userId=${currentUserId}`);
+                const quizzes = await response.json();
+                const quiz = quizzes.find(q => q.id === quizId);
+                
+                if (!quiz) {
+                    showMessage('❌ Квиз не найден', 'error');
+                    return;
+                }
+                
+                document.getElementById('quizForm').style.display = 'block';
+                document.getElementById('quizFormTitle').textContent = 'Редактирование квиза';
+                currentEditingId = quizId;
+                
+                // Заполнить основную информацию
+                document.getElementById('quizTitle').value = quiz.title;
+                document.getElementById('quizDescription').value = quiz.description;
+                document.getElementById('quizSparksPerCorrect').value = quiz.sparks_per_correct;
+                document.getElementById('quizPerfectBonus').value = quiz.sparks_perfect_bonus;
+                document.getElementById('quizCooldown').value = quiz.cooldown_hours;
+                document.getElementById('quizAllowRetake').checked = quiz.allow_retake;
+                document.getElementById('quizActive').checked = quiz.is_active;
+                
+                // Заполнить вопросы
+const questionsContainer = document.getElementById('quizQuestions');
+questionsContainer.innerHTML = '';
+
+quiz.questions.forEach((question, index) => {
+    const questionHtml = `
+        <div class="question-item" data-index="${index}">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="margin: 0;">Вопрос ${index + 1}</h4>
+                <button class="btn btn-danger" onclick="removeQuestion(${index})">🗑️ Удалить</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Текст вопроса:</label>
+                <input type="text" class="form-control question-text" value="${question.question}" placeholder="Введите вопрос">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Варианты ответов:</label>
+                ${question.options.map((option, optIndex) => `
+                    <div class="option-item">
+                        <input type="radio" name="correct_${index}" value="${optIndex}" ${optIndex === question.correctAnswer ? 'checked' : ''}>
+                        <input type="text" class="form-control option-text" value="${option}" placeholder="Вариант ответа ${optIndex + 1}">
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    questionsContainer.innerHTML += questionHtml;
+});
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки квиза', 'error');
+            }
+        }
+
+        // Удаление квиза
+        async function deleteQuiz(quizId) {
+            if (!confirm('Вы уверены, что хотите удалить этот квиз?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/quizzes/${quizId}?userId=${currentUserId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Квиз успешно удален', 'success');
+                    loadQuizzes();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка удаления квиза', 'error');
+            }
+        }
+
+        // Скрыть форму квиза
+        function hideQuizForm() {
+            document.getElementById('quizForm').style.display = 'none';
+            currentEditingId = null;
+        }
+
         // ==================== МАРАФОНЫ ====================
 
+        // Загрузка марафонов
         async function loadMarathons() {
             try {
-                // Заглушка для демонстрации
-                const marathons = [
-                    {
-                        id: 1,
-                        title: "Марафон акварели",
-                        description: "7-дневный интенсив по основам акварельной живописи",
-                        duration_days: 7,
-                        tasks: [
-                            {
-                                day: 1,
-                                title: "Основы материалов",
-                                description: "Знакомство с кистями и красками",
-                                requires_submission: true,
-                                submission_type: "text"
-                            }
-                        ],
-                        sparks_per_day: 7,
-                        is_active: true,
-                        completions_count: 45,
-                        active_users: 23,
-                        created_at: "2024-01-01"
-                    }
-                ];
+                const response = await fetch(`/api/admin/marathons?userId=${currentUserId}`);
+                const marathons = await response.json();
                 
                 displayMarathons(marathons);
+                populateMarathonFilter(marathons);
                 
             } catch (error) {
                 document.getElementById('marathonsList').innerHTML = '<div class="message error">Ошибка загрузки марафонов</div>';
             }
         }
 
+        // Отображение марафонов
         function displayMarathons(marathons) {
             const marathonsList = document.getElementById('marathonsList');
             
@@ -2535,30 +2966,283 @@
             marathonsList.innerHTML = html;
         }
 
+        // Заполнение фильтра марафонов
+        function populateMarathonFilter(marathons) {
+            const marathonFilter = document.getElementById('marathonFilter');
+            marathonFilter.innerHTML = '<option value="">Все марафоны</option>';
+            
+            marathons.forEach(marathon => {
+                const option = document.createElement('option');
+                option.value = marathon.id;
+                option.textContent = marathon.title;
+                marathonFilter.appendChild(option);
+            });
+        }
+
+        // Показать форму марафона
+        function showMarathonForm() {
+            document.getElementById('marathonForm').style.display = 'block';
+            document.getElementById('marathonFormTitle').textContent = 'Создание нового марафона';
+            currentEditingId = null;
+            
+            // Сбросить форму
+            document.getElementById('marathonTitle').value = '';
+            document.getElementById('marathonDescription').value = '';
+            document.getElementById('marathonDuration').value = '7';
+            document.getElementById('marathonSparksPerDay').value = '7';
+            document.getElementById('marathonActive').checked = true;
+            
+            // Очистить задания
+            document.getElementById('marathonTasks').innerHTML = '';
+            addMarathonTask(); // Добавить первое задание по умолчанию
+        }
+
+        // Добавить задание марафона
+        function addMarathonTask() {
+            const tasksContainer = document.getElementById('marathonTasks');
+            const taskIndex = tasksContainer.children.length;
+            
+            const taskHtml = `
+                <div class="task-item" data-index="${taskIndex}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0;">День ${taskIndex + 1}</h4>
+                        <button class="btn btn-danger" onclick="removeMarathonTask(${taskIndex})">🗑️ Удалить</button>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Название дня:</label>
+                        <input type="text" class="form-control task-title" placeholder="Название задания">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание:</label>
+                        <textarea class="form-control task-description" rows="3" placeholder="Описание задания..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" class="task-requires-submission" checked> Требует отправки работы
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Тип отправки:</label>
+                        <select class="form-control task-submission-type">
+                            <option value="text">📝 Текст</option>
+                            <option value="image">🖼️ Изображение</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            
+            tasksContainer.innerHTML += taskHtml;
+        }
+
+        // Удалить задание марафона
+        function removeMarathonTask(index) {
+            const taskElement = document.querySelector(`.task-item[data-index="${index}"]`);
+            if (taskElement && document.getElementById('marathonTasks').children.length > 1) {
+                taskElement.remove();
+                // Перенумеровать оставшиеся задания
+                renumberMarathonTasks();
+            }
+        }
+
+        // Перенумеровать задания марафона
+        function renumberMarathonTasks() {
+            const tasks = document.querySelectorAll('.task-item');
+            tasks.forEach((task, index) => {
+                task.setAttribute('data-index', index);
+                task.querySelector('h4').textContent = `День ${index + 1}`;
+            });
+        }
+
+        // Сохранение марафона
+        async function saveMarathon() {
+            const title = document.getElementById('marathonTitle').value.trim();
+            const description = document.getElementById('marathonDescription').value.trim();
+            const duration_days = parseInt(document.getElementById('marathonDuration').value);
+            const sparks_per_day = parseFloat(document.getElementById('marathonSparksPerDay').value);
+            const is_active = document.getElementById('marathonActive').checked;
+            
+            if (!title) {
+                alert('Введите название марафона');
+                return;
+            }
+            
+            // Собираем задания
+            const tasks = [];
+            const taskElements = document.querySelectorAll('.task-item');
+            
+            if (taskElements.length === 0) {
+                alert('Добавьте хотя бы одно задание');
+                return;
+            }
+            
+            if (taskElements.length !== duration_days) {
+                if (!confirm(`Количество заданий (${taskElements.length}) не совпадает с длительностью марафона (${duration_days}). Продолжить?`)) {
+                    return;
+                }
+            }
+            
+            taskElements.forEach((taskElement, index) => {
+                const taskTitle = taskElement.querySelector('.task-title').value.trim();
+                const taskDescription = taskElement.querySelector('.task-description').value.trim();
+                const requires_submission = taskElement.querySelector('.task-requires-submission').checked;
+                const submission_type = taskElement.querySelector('.task-submission-type').value;
+                
+                if (taskTitle && taskDescription) {
+                    tasks.push({
+                        day: index + 1,
+                        title: taskTitle,
+                        description: taskDescription,
+                        requires_submission: requires_submission,
+                        submission_type: submission_type
+                    });
+                }
+            });
+            
+            if (tasks.length === 0) {
+                alert('Заполните все задания');
+                return;
+            }
+            
+            try {
+                const marathonData = {
+                    title,
+                    description,
+                    duration_days,
+                    tasks,
+                    sparks_per_day,
+                    is_active
+                };
+                
+                let response;
+                if (currentEditingId) {
+                    response = await fetch(`/api/admin/marathons/${currentEditingId}?userId=${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(marathonData)
+                    });
+                } else {
+                    response = await fetch(`/api/admin/marathons?userId=${currentUserId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(marathonData)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Марафон успешно сохранен', 'success');
+                    hideMarathonForm();
+                    loadMarathons();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка сохранения марафона', 'error');
+            }
+        }
+
+        // Редактирование марафона
+        async function editMarathon(marathonId) {
+            try {
+                const response = await fetch(`/api/admin/marathons?userId=${currentUserId}`);
+                const marathons = await response.json();
+                const marathon = marathons.find(m => m.id === marathonId);
+                
+                if (!marathon) {
+                    showMessage('❌ Марафон не найден', 'error');
+                    return;
+                }
+                
+                document.getElementById('marathonForm').style.display = 'block';
+                document.getElementById('marathonFormTitle').textContent = 'Редактирование марафона';
+                currentEditingId = marathonId;
+                
+                // Заполнить основную информацию
+                document.getElementById('marathonTitle').value = marathon.title;
+                document.getElementById('marathonDescription').value = marathon.description;
+                document.getElementById('marathonDuration').value = marathon.duration_days;
+                document.getElementById('marathonSparksPerDay').value = marathon.sparks_per_day;
+                document.getElementById('marathonActive').checked = marathon.is_active;
+                
+                // Заполнить задания
+                const tasksContainer = document.getElementById('marathonTasks');
+                tasksContainer.innerHTML = '';
+                
+                marathon.tasks.forEach((task, index) => {
+                    const taskHtml = `
+                        <div class="task-item" data-index="${index}">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <h4 style="margin: 0;">День ${task.day}</h4>
+                                <button class="btn btn-danger" onclick="removeMarathonTask(${index})">🗑️ Удалить</button>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Название дня:</label>
+                                <input type="text" class="form-control task-title" value="${task.title}" placeholder="Название задания">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Описание:</label>
+                                <textarea class="form-control task-description" rows="3" placeholder="Описание задания...">${task.description}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" class="task-requires-submission" ${task.requires_submission ? 'checked' : ''}> Требует отправки работы
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Тип отправки:</label>
+                                <select class="form-control task-submission-type">
+                                    <option value="text" ${task.submission_type === 'text' ? 'selected' : ''}>📝 Текст</option>
+                                    <option value="image" ${task.submission_type === 'image' ? 'selected' : ''}>🖼️ Изображение</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                    tasksContainer.innerHTML += taskHtml;
+                });
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки марафона', 'error');
+            }
+        }
+
+        // Удаление марафона
+        async function deleteMarathon(marathonId) {
+            if (!confirm('Вы уверены, что хотите удалить этот марафон?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/marathons/${marathonId}?userId=${currentUserId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Марафон успешно удален', 'success');
+                    loadMarathons();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка удаления марафона', 'error');
+            }
+        }
+
+        // Скрыть форму марафона
+        function hideMarathonForm() {
+            document.getElementById('marathonForm').style.display = 'none';
+            currentEditingId = null;
+        }
+
         // ==================== ИНТЕРАКТИВЫ ====================
 
+        // Загрузка интерактивов
         async function loadInteractives() {
             try {
-                // Заглушка для демонстрации
-                const interactives = [
-                    {
-                        id: 1,
-                        title: "Угадай эпоху картины",
-                        description: "Определите исторический период по стилю произведения",
-                        type: "guess_era",
-                        category: "history",
-                        image_url: "",
-                        question: "К какому периоду относится эта картина?",
-                        options: ["Ренессанс", "Барокко", "Импрессионизм", "Модерн"],
-                        correct_answer: 2,
-                        sparks_reward: 3,
-                        allow_retake: false,
-                        is_active: true,
-                        completions_count: 89,
-                        average_score: 2.1,
-                        created_at: "2024-01-01"
-                    }
-                ];
+                const response = await fetch(`/api/admin/interactives?userId=${currentUserId}`);
+                const interactives = await response.json();
                 
                 displayInteractives(interactives);
                 
@@ -2567,6 +3251,7 @@
             }
         }
 
+        // Отображение интерактивов
         function displayInteractives(interactives) {
             const interactivesList = document.getElementById('interactivesList');
             
@@ -2643,15 +3328,400 @@
             interactivesList.innerHTML = html;
         }
 
-// ==================== МАГАЗИН - РЕАЛЬНЫЙ ФУНКЦИОНАЛ ====================
+        // Показать форму интерактива
+        function showInteractiveForm() {
+            document.getElementById('interactiveForm').style.display = 'block';
+            document.getElementById('interactiveFormTitle').textContent = 'Создание нового интерактива';
+            currentEditingId = null;
+            interactiveImageData = null;
+            
+            // Сбросить форму
+            document.getElementById('interactiveTitle').value = '';
+            document.getElementById('interactiveDescription').value = '';
+            document.getElementById('interactiveType').value = 'guess_era';
+            document.getElementById('interactiveCategory').value = 'history';
+            document.getElementById('interactiveQuestion').value = '';
+            document.getElementById('interactiveCorrectAnswer').value = '0';
+            document.getElementById('interactiveSparksReward').value = '3';
+            document.getElementById('interactiveAllowRetake').checked = false;
+            document.getElementById('interactiveActive').checked = true;
+            
+            // Очистить изображение
+            clearInteractiveImage();
+            
+            // Очистить варианты
+            document.getElementById('interactiveOptions').innerHTML = '';
+            addInteractiveOption(); // Добавить первый вариант по умолчанию
+            
+            // Обновить форму в зависимости от типа
+            updateInteractiveForm();
+        }
 
-let shopItemFileData = null;
-let shopItemPreviewData = null;
+        // Обновить форму интерактива
+        function updateInteractiveForm() {
+            const type = document.getElementById('interactiveType').value;
+            const optionsSection = document.getElementById('interactiveOptionsSection');
+            
+            if (type === 'drawing_challenge') {
+                optionsSection.style.display = 'none';
+                document.getElementById('interactiveCorrectAnswer').style.display = 'none';
+                document.querySelector('label[for="interactiveCorrectAnswer"]').style.display = 'none';
+            } else {
+                optionsSection.style.display = 'block';
+                document.getElementById('interactiveCorrectAnswer').style.display = 'block';
+                document.querySelector('label[for="interactiveCorrectAnswer"]').style.display = 'block';
+            }
+        }
 
-// Сохранение товара
-async function saveShopItem() {
-    console.log('Сохранение товара...');
+        // Добавить вариант ответа
+        function addInteractiveOption() {
+            const optionsContainer = document.getElementById('interactiveOptions');
+            const optionIndex = optionsContainer.children.length;
+            
+            const optionHtml = `
+                <div class="option-item">
+                    <input type="text" class="form-control interactive-option" placeholder="Вариант ответа ${optionIndex + 1}">
+                    <button class="btn btn-danger" onclick="removeInteractiveOption(this)" style="margin-left: 8px;">🗑️</button>
+                </div>
+            `;
+            
+            optionsContainer.innerHTML += optionHtml;
+        }
+
+        // Удалить вариант ответа
+        function removeInteractiveOption(button) {
+            const optionItem = button.parentElement;
+            if (document.getElementById('interactiveOptions').children.length > 1) {
+                optionItem.remove();
+            }
+        }
+
+        // Обработка загрузки изображения для интерактива
+        function handleInteractiveImageUpload(file) {
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                alert('Пожалуйста, выберите изображение');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Размер файла не должен превышать 5MB');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                interactiveImageData = e.target.result;
+                document.getElementById('interactivePreviewImage').src = interactiveImageData;
+                document.getElementById('interactiveImagePreview').style.display = 'block';
+                document.getElementById('interactiveUploadArea').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Очистить изображение интерактива
+        function clearInteractiveImage() {
+            interactiveImageData = null;
+            document.getElementById('interactiveImagePreview').style.display = 'none';
+            document.getElementById('interactiveUploadArea').style.display = 'block';
+            document.getElementById('interactiveImageInput').value = '';
+        }
+
+        // Сохранение интерактива
+        async function saveInteractive() {
+            const title = document.getElementById('interactiveTitle').value.trim();
+            const description = document.getElementById('interactiveDescription').value.trim();
+            const type = document.getElementById('interactiveType').value;
+            const category = document.getElementById('interactiveCategory').value;
+            const question = document.getElementById('interactiveQuestion').value.trim();
+            const correct_answer = parseInt(document.getElementById('interactiveCorrectAnswer').value);
+            const sparks_reward = parseFloat(document.getElementById('interactiveSparksReward').value);
+            const allow_retake = document.getElementById('interactiveAllowRetake').checked;
+            const is_active = document.getElementById('interactiveActive').checked;
+            
+            if (!title || !question) {
+                alert('Заполните название и вопрос');
+                return;
+            }
+            
+            // Собираем варианты ответов (если применимо)
+            const options = [];
+            if (type !== 'drawing_challenge') {
+                const optionElements = document.querySelectorAll('.interactive-option');
+                optionElements.forEach(input => {
+                    if (input.value.trim()) {
+                        options.push(input.value.trim());
+                    }
+                });
+                
+                if (options.length === 0) {
+                    alert('Добавьте варианты ответов');
+                    return;
+                }
+                
+                if (correct_answer >= options.length) {
+                    alert('Правильный ответ должен быть в пределах количества вариантов');
+                    return;
+                }
+            }
+            
+            try {
+                const interactiveData = {
+                    title,
+                    description,
+                    type,
+                    category,
+                    image_url: interactiveImageData || '',
+                    question,
+                    options,
+                    correct_answer,
+                    sparks_reward,
+                    allow_retake,
+                    is_active
+                };
+                
+                let response;
+                if (currentEditingId) {
+                    response = await fetch(`/api/admin/interactives/${currentEditingId}?userId=${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(interactiveData)
+                    });
+                } else {
+                    response = await fetch(`/api/admin/interactives?userId=${currentUserId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(interactiveData)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Интерактив успешно сохранен', 'success');
+                    hideInteractiveForm();
+                    loadInteractives();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка сохранения интерактива', 'error');
+            }
+        }
+
+        // Редактирование интерактива
+        async function editInteractive(interactiveId) {
+            try {
+                const response = await fetch(`/api/admin/interactives?userId=${currentUserId}`);
+                const interactives = await response.json();
+                const interactive = interactives.find(i => i.id === interactiveId);
+                
+                if (!interactive) {
+                    showMessage('❌ Интерактив не найден', 'error');
+                    return;
+                }
+                
+                document.getElementById('interactiveForm').style.display = 'block';
+                document.getElementById('interactiveFormTitle').textContent = 'Редактирование интерактива';
+                currentEditingId = interactiveId;
+                interactiveImageData = interactive.image_url || null;
+                
+                // Заполнить основную информацию
+                document.getElementById('interactiveTitle').value = interactive.title;
+                document.getElementById('interactiveDescription').value = interactive.description;
+                document.getElementById('interactiveType').value = interactive.type;
+                document.getElementById('interactiveCategory').value = interactive.category;
+                document.getElementById('interactiveQuestion').value = interactive.question;
+                document.getElementById('interactiveCorrectAnswer').value = interactive.correct_answer;
+                document.getElementById('interactiveSparksReward').value = interactive.sparks_reward;
+                document.getElementById('interactiveAllowRetake').checked = interactive.allow_retake;
+                document.getElementById('interactiveActive').checked = interactive.is_active;
+                
+                // Заполнить изображение
+                if (interactive.image_url) {
+                    document.getElementById('interactivePreviewImage').src = interactive.image_url;
+                    document.getElementById('interactiveImagePreview').style.display = 'block';
+                    document.getElementById('interactiveUploadArea').style.display = 'none';
+                } else {
+                    clearInteractiveImage();
+                }
+                
+                // Заполнить варианты
+                const optionsContainer = document.getElementById('interactiveOptions');
+                optionsContainer.innerHTML = '';
+                
+                interactive.options.forEach((option, index) => {
+                    const optionHtml = `
+                        <div class="option-item">
+                            <input type="text" class="form-control interactive-option" value="${option}" placeholder="Вариант ответа ${index + 1}">
+                            <button class="btn btn-danger" onclick="removeInteractiveOption(this)" style="margin-left: 8px;">🗑️</button>
+                        </div>
+                    `;
+                    optionsContainer.innerHTML += optionHtml;
+                });
+                
+                // Обновить форму
+                updateInteractiveForm();
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки интерактива', 'error');
+            }
+        }
+
+        // Удаление интерактива
+        async function deleteInteractive(interactiveId) {
+            if (!confirm('Вы уверены, что хотите удалить этот интерактив?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/interactives/${interactiveId}?userId=${currentUserId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Интерактив успешно удален', 'success');
+                    loadInteractives();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка удаления интерактива', 'error');
+            }
+        }
+
+        // Скрыть форму интерактива
+        function hideInteractiveForm() {
+            document.getElementById('interactiveForm').style.display = 'none';
+            currentEditingId = null;
+            interactiveImageData = null;
+        }
+
+        // ==================== МАГАЗИН ====================
+
+        // Показать вкладку магазина
+        function showShopTab(tab) {
+            currentShopTab = tab;
+            
+            document.querySelectorAll('.tab-subnav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            document.getElementById('shopItemsTab').style.display = 'none';
+            document.getElementById('shopPurchasesTab').style.display = 'none';
+            
+            if (tab === 'items') {
+                document.querySelector('.tab-subnav-item[onclick="showShopTab(\'items\')"]').classList.add('active');
+                document.getElementById('shopItemsTab').style.display = 'block';
+            } else if (tab === 'purchases') {
+                document.querySelector('.tab-subnav-item[onclick="showShopTab(\'purchases\')"]').classList.add('active');
+                document.getElementById('shopPurchasesTab').style.display = 'block';
+                loadPurchases();
+            }
+        }
+
+        // Загрузка товаров
+        async function loadShopItems() {
+            try {
+                const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`);
+                const items = await response.json();
+                
+                displayShopItems(items);
+                populatePurchaseItemFilter(items);
+                
+            } catch (error) {
+                document.getElementById('shopItemsList').innerHTML = '<div class="message error">Ошибка загрузки товаров</div>';
+            }
+        }
+
+// Отображение товаров
+function displayShopItems(items) {
+    const shopItemsList = document.getElementById('shopItemsList');
     
+    if (items.length === 0) {
+        shopItemsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛒</div><div>Товаров не найдено</div></div>';
+        return;
+    }
+    
+    let html = '';
+    
+    items.forEach(item => {
+        const typeIcons = {
+            'video': '🎥',
+            'pdf': '📚',
+            'text': '📝',
+            'audio': '🎧',
+            'image': '🖼️'
+        };
+        
+        // Показываем превью если есть (поддерживаем base64)
+        const previewUrl = item.preview_url || '';
+        const hasPreview = previewUrl && (previewUrl.startsWith('http') || previewUrl.startsWith('data:'));
+        
+        html += `
+            <div class="shop-item-card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 8px 0;">${typeIcons[item.type]} ${item.title}</h3>
+                        <p style="color: #718096; margin-bottom: 12px;">${item.description}</p>
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <span class="badge badge-info">${item.type}</span>
+                            <span class="badge badge-success">${item.price}✨</span>
+                            ${item.file_url && item.file_url.startsWith('data:') ? 
+                                '<span class="badge badge-warning">📁 Файл загружен</span>' : ''}
+                        </div>
+                        ${hasPreview ? `
+                            <img src="${previewUrl}" class="file-preview" style="max-width: 200px; max-height: 150px;">
+                        ` : ''}
+                        ${item.content_text ? `
+                            <div class="content-preview">
+                                ${item.content_text}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">
+                            <span class="status-indicator ${item.is_active ? 'status-active' : 'status-inactive'}"></span>
+                            ${item.is_active ? 'Активен' : 'Неактивен'}
+                        </span>
+                    </div>
+                </div>
+                <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+                    Создан: ${new Date(item.created_at).toLocaleDateString('ru-RU')}
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-warning" onclick="editShopItem(${item.id})">✏️ Редактировать</button>
+                    <button class="btn btn-danger" onclick="deleteShopItem(${item.id})">🗑️ Удалить</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    shopItemsList.innerHTML = html;
+}
+
+        // Показать форму товара
+        function showShopItemForm() {
+            document.getElementById('shopItemForm').style.display = 'block';
+            document.getElementById('shopItemFormTitle').textContent = 'Добавление нового товара';
+            currentEditingId = null;
+            
+            // Сбросить форму
+            document.getElementById('shopItemTitle').value = '';
+            document.getElementById('shopItemDescription').value = '';
+            document.getElementById('shopItemType').value = 'video';
+            document.getElementById('shopItemFileUrl').value = '';
+            document.getElementById('shopItemPreviewUrl').value = '';
+            document.getElementById('shopItemPrice').value = '10';
+            document.getElementById('shopItemContent').value = '';
+            document.getElementById('shopItemActive').checked = true;
+        }
+
+// Сохранение товара (в админке)
+async function saveShopItem() {
     const title = document.getElementById('shopItemTitle').value.trim();
     const description = document.getElementById('shopItemDescription').value.trim();
     const type = document.getElementById('shopItemType').value;
@@ -2661,19 +3731,8 @@ async function saveShopItem() {
     const content_text = document.getElementById('shopItemContent').value.trim();
     const is_active = document.getElementById('shopItemActive').checked;
     
-    if (!title) {
-        showMessage('❌ Введите название товара', 'error');
-        return;
-    }
-    
-    if (!price || price <= 0) {
-        showMessage('❌ Введите корректную цену', 'error');
-        return;
-    }
-    
-    // Проверка наличия файла или URL
-    if (!shopItemFileData && !file_url && type !== 'text') {
-        showMessage('❌ Загрузите файл или укажите URL', 'error');
+    if (!title || !price) {
+        alert('Заполните название и цену');
         return;
     }
     
@@ -2682,6 +3741,7 @@ async function saveShopItem() {
             title,
             description,
             type,
+            // ПРИОРИТЕТ: base64 данные над URL
             file_url: shopItemFileData || file_url,
             preview_url: shopItemPreviewData || preview_url,
             price,
@@ -2689,17 +3749,25 @@ async function saveShopItem() {
             is_active
         };
         
-        // Реальный запрос к API
-        const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(itemData)
+        console.log('Отправляемые данные товара:', {
+            ...itemData,
+            file_url: itemData.file_url ? `[base64 data: ${itemData.file_url.length} chars]` : 'empty',
+            preview_url: itemData.preview_url ? `[base64 data: ${itemData.preview_url.length} chars]` : 'empty'
         });
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        let response;
+        if (currentEditingId) {
+            response = await fetch(`/api/admin/shop/items/${currentEditingId}?userId=${currentUserId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(itemData)
+            });
+        } else {
+            response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(itemData)
+            });
         }
         
         const result = await response.json();
@@ -2709,7 +3777,7 @@ async function saveShopItem() {
             hideShopItemForm();
             loadShopItems();
         } else {
-            showMessage(`❌ Ошибка: ${result.error}`, 'error');
+            showMessage(`❌ ${result.error}`, 'error');
         }
         
     } catch (error) {
@@ -2718,193 +3786,163 @@ async function saveShopItem() {
     }
 }
 
-// Редактирование товара
-async function editShopItem(itemId) {
-    try {
-        const response = await fetch(`/api/admin/shop/items/${itemId}?userId=${currentUserId}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Редактирование товара
+        async function editShopItem(itemId) {
+            try {
+                const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`);
+                const items = await response.json();
+                const item = items.find(i => i.id === itemId);
+                
+                if (!item) {
+                    showMessage('❌ Товар не найден', 'error');
+                    return;
+                }
+                
+                document.getElementById('shopItemForm').style.display = 'block';
+                document.getElementById('shopItemFormTitle').textContent = 'Редактирование товара';
+                currentEditingId = itemId;
+                
+                // Заполнить форму
+                document.getElementById('shopItemTitle').value = item.title;
+                document.getElementById('shopItemDescription').value = item.description;
+                document.getElementById('shopItemType').value = item.type;
+                document.getElementById('shopItemFileUrl').value = item.file_url || '';
+                document.getElementById('shopItemPreviewUrl').value = item.preview_url || '';
+                document.getElementById('shopItemPrice').value = item.price;
+                document.getElementById('shopItemContent').value = item.content_text || '';
+                document.getElementById('shopItemActive').checked = item.is_active;
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки товара', 'error');
+            }
         }
-        
-        const item = await response.json();
-        
-        document.getElementById('shopItemForm').style.display = 'block';
-        document.getElementById('shopItemFormTitle').textContent = 'Редактирование товара';
-        currentEditingId = itemId;
-        
-        // Заполнить форму данными
-        document.getElementById('shopItemTitle').value = item.title;
-        document.getElementById('shopItemDescription').value = item.description;
-        document.getElementById('shopItemType').value = item.type;
-        document.getElementById('shopItemFileUrl').value = item.file_url || '';
-        document.getElementById('shopItemPreviewUrl').value = item.preview_url || '';
-        document.getElementById('shopItemPrice').value = item.price;
-        document.getElementById('shopItemContent').value = item.content_text || '';
-        document.getElementById('shopItemActive').checked = item.is_active;
-        
-        // Показать превью если есть
-        if (item.preview_url) {
-            shopItemPreviewData = item.preview_url;
-            document.getElementById('shopItemPreviewImage').src = item.preview_url;
-            document.getElementById('shopItemPreviewImagePreview').style.display = 'block';
-            document.getElementById('shopItemPreviewUploadArea').style.display = 'none';
+
+        // Удаление товара
+        async function deleteShopItem(itemId) {
+            if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/shop/items/${itemId}?userId=${currentUserId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Товар успешно удален', 'success');
+                    loadShopItems();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка удаления товара', 'error');
+            }
         }
-        
-    } catch (error) {
-        console.error('Ошибка загрузки товара:', error);
-        showMessage('❌ Ошибка загрузки товара', 'error');
-    }
+
+        // Скрыть форму товара
+function hideShopItemForm() {
+    document.getElementById('shopItemForm').style.display = 'none';
+    currentEditingId = null;
+    
+    // ДОБАВЬ ЭТИ СТРОКИ ДЛЯ ОЧИСТКИ ФАЙЛОВ
+    shopItemFileData = null;
+    shopItemPreviewData = null;
+    clearShopItemFile();
+    clearShopItemPreview();
 }
 
-// Удаление товара
-async function deleteShopItem(itemId) {
-    if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
-    
-    try {
-        const response = await fetch(`/api/admin/shop/items/${itemId}?userId=${currentUserId}`, {
-            method: 'DELETE'
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Загрузка покупок
+        async function loadPurchases() {
+            try {
+                const response = await fetch(`/api/webapp/users/${currentUserId}/purchases`);
+                const data = await response.json();
+                
+                displayPurchases(data.purchases);
+                
+            } catch (error) {
+                document.getElementById('purchasesList').innerHTML = '<div class="message error">Ошибка загрузки покупок</div>';
+            }
         }
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage('✅ Товар успешно удален', 'success');
-            loadShopItems();
-        } else {
-            showMessage(`❌ Ошибка: ${result.error}`, 'error');
-        }
-        
-    } catch (error) {
-        console.error('Ошибка удаления товара:', error);
-        showMessage('❌ Ошибка удаления товара', 'error');
-    }
-}
 
-// Загрузка товаров
-async function loadShopItems() {
-    try {
-        const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const items = await response.json();
-        displayShopItems(items);
-        
-    } catch (error) {
-        console.error('Ошибка загрузки товаров:', error);
-        document.getElementById('shopItemsList').innerHTML = '<div class="message error">Ошибка загрузки товаров</div>';
-    }
-}
-
-// Загрузка покупок
-async function loadPurchases() {
-    try {
-        const response = await fetch(`/api/admin/shop/purchases?userId=${currentUserId}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const purchases = await response.json();
-        displayPurchases(purchases);
-        
-    } catch (error) {
-        console.error('Ошибка загрузки покупок:', error);
-        document.getElementById('purchasesList').innerHTML = '<div class="message error">Ошибка загрузки покупок</div>';
-    }
-}
-
-// Отображение покупок
-function displayPurchases(purchases) {
-    const purchasesList = document.getElementById('purchasesList');
-    
-    if (!purchases || purchases.length === 0) {
-        purchasesList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><div>Покупок не найдено</div></div>';
-        return;
-    }
-    
-    let html = `
-        <div class="users-table-container">
-            <table class="users-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Товар</th>
-                        <th>Пользователь</th>
-                        <th>Цена</th>
-                        <th>Дата</th>
-                        <th>Статус</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-    
-    purchases.forEach(purchase => {
-        html += `
-            <tr>
-                <td>${purchase.id}</td>
-                <td>
-                    <strong>${purchase.item_title}</strong>
-                    <br><small>${purchase.item_type}</small>
-                </td>
-                <td>ID: ${purchase.user_id}</td>
-                <td>${purchase.price_paid}✨</td>
-                <td>${new Date(purchase.purchased_at).toLocaleString('ru-RU')}</td>
-                <td>
-                    <span class="badge ${purchase.status === 'completed' ? 'badge-success' : 'badge-warning'}">
-                        ${purchase.status === 'completed' ? '✅ Завершена' : '⏳ В процессе'}
-                    </span>
-                </td>
-            </tr>
-        `;
-    });
-    
-    html += '</tbody></table></div>';
-    purchasesList.innerHTML = html;
-}
-
-        // ==================== ПОСТЫ ====================
-
-        async function loadPosts() {
-            if (!checkPermission('admin')) {
-                document.getElementById('postsList').innerHTML = '<div class="message error">❌ У вас нет прав для доступа к этому разделу</div>';
+        // Отображение покупок
+        function displayPurchases(purchases) {
+            const purchasesList = document.getElementById('purchasesList');
+            
+            if (purchases.length === 0) {
+                purchasesList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><div>Покупок не найдено</div></div>';
                 return;
             }
             
+            let html = `
+                <div class="users-table-container">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Товар</th>
+                                <th>Пользователь</th>
+                                <th>Цена</th>
+                                <th>Дата</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            purchases.forEach(purchase => {
+                html += `
+                    <tr>
+                        <td>${purchase.id}</td>
+                        <td>
+                            <strong>${purchase.title}</strong>
+                            <br><small>${purchase.description}</small>
+                        </td>
+                        <td>ID: ${purchase.user_id}</td>
+                        <td>${purchase.price_paid}✨</td>
+                        <td>${new Date(purchase.purchased_at).toLocaleString('ru-RU')}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            purchasesList.innerHTML = html;
+        }
+
+        // Заполнение фильтра товаров для покупок
+        function populatePurchaseItemFilter(items) {
+            const itemFilter = document.getElementById('purchaseItemFilter');
+            itemFilter.innerHTML = '<option value="">Все товары</option>';
+            
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.title;
+                itemFilter.appendChild(option);
+            });
+        }
+
+        // Фильтрация покупок
+        function filterPurchases() {
+            // В реальном приложении здесь был бы запрос к серверу
+            loadPurchases();
+        }
+
+        // ==================== ПОСТЫ ====================
+
+        // Загрузка постов
+        async function loadPosts() {
             try {
-                // Заглушка для демонстрации
-                const posts = [
-                    {
-                        id: 1,
-                        post_id: "welcome_post",
-                        title: "Добро пожаловать в Мастерскую Вдохновения!",
-                        content: "Мы рады приветствовать вас в нашем творческом сообществе...",
-                        image_url: "",
-                        video_url: "",
-                        media_type: "text",
-                        action_type: "quiz",
-                        action_target: "1",
-                        is_active: true,
-                        admin_username: "superadmin",
-                        reviews_count: 23,
-                        created_at: "2024-01-01"
-                    }
-                ];
+                const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
+                const data = await response.json();
                 
-                displayPosts(posts);
+                displayPosts(data.posts);
                 
             } catch (error) {
                 document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов</div>';
             }
         }
 
+        // Отображение постов
         function displayPosts(posts) {
             const postsList = document.getElementById('postsList');
             
@@ -2964,121 +4002,189 @@ function displayPurchases(purchases) {
             postsList.innerHTML = html;
         }
 
-        // ==================== АДМИНЫ ====================
+        // Показать форму поста
+        function showPostForm() {
+            document.getElementById('postForm').style.display = 'block';
+            document.getElementById('postFormTitle').textContent = 'Создание нового поста';
+            currentEditingId = null;
+            
+            // Сбросить форму
+            document.getElementById('postId').value = '';
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postContent').value = '';
+            document.getElementById('postImageUrl').value = '';
+            document.getElementById('postVideoUrl').value = '';
+            document.getElementById('postMediaType').value = 'text';
+            document.getElementById('postActionType').value = '';
+            document.getElementById('postActionTarget').value = '';
+            document.getElementById('postActive').checked = true;
+        }
 
-        async function loadAdmins() {
-            if (!checkPermission('admin')) {
-                document.getElementById('adminsList').innerHTML = '<div class="message error">❌ У вас нет прав для доступа к этому разделу</div>';
+        // Сохранение поста
+        async function savePost() {
+            const post_id = document.getElementById('postId').value.trim();
+            const title = document.getElementById('postTitle').value.trim();
+            const content = document.getElementById('postContent').value.trim();
+            const image_url = document.getElementById('postImageUrl').value.trim();
+            const video_url = document.getElementById('postVideoUrl').value.trim();
+            const media_type = document.getElementById('postMediaType').value;
+            const action_type = document.getElementById('postActionType').value;
+            const action_target = document.getElementById('postActionTarget').value.trim();
+            const is_active = document.getElementById('postActive').checked;
+            
+            if (!post_id || !title) {
+                alert('Заполните ID и заголовок поста');
                 return;
             }
             
             try {
-                // Заглушка для демонстрации
-                const admins = [
-                    {
-                        user_id: 123456789,
-                        username: "superadmin",
-                        role: "superadmin",
-                        created_at: "2024-01-01"
-                    },
-                    {
-                        user_id: 987654321,
-                        username: "admin_user",
-                        role: "admin",
-                        created_at: "2024-01-02"
-                    }
-                ];
+                const postData = {
+                    post_id,
+                    title,
+                    content,
+                    image_url,
+                    video_url,
+                    media_type,
+                    action_type: action_type || null,
+                    action_target: action_target || null,
+                    is_active
+                };
                 
-                // Добавляем текущего админа, если его нет в списке
-                if (!admins.find(a => a.user_id == currentAdmin.user_id)) {
-                    admins.push(currentAdmin);
+                let response;
+                if (currentEditingId) {
+                    response = await fetch(`/api/admin/channel-posts/${currentEditingId}?userId=${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(postData)
+                    });
+                } else {
+                    response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(postData)
+                    });
                 }
                 
-                displayAdmins(admins);
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Пост успешно сохранен', 'success');
+                    hidePostForm();
+                    loadPosts();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
                 
             } catch (error) {
-                document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов</div>';
+                showMessage('❌ Ошибка сохранения поста', 'error');
             }
         }
 
-        function displayAdmins(admins) {
-            const adminsList = document.getElementById('adminsList');
-            
-            if (admins.length === 0) {
-                adminsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔧</div><div>Администраторов не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            admins.forEach(admin => {
-                const roleBadges = {
-                    'moderator': 'badge-info',
-                    'admin': 'badge-warning',
-                    'superadmin': 'badge-danger'
-                };
+        // Редактирование поста
+        async function editPost(postId) {
+            try {
+                const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
+                const data = await response.json();
+                const post = data.posts.find(p => p.id === postId);
                 
-                html += `
-                    <div class="admin-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${admin.username || `Пользователь ${admin.user_id}`}</h3>
-                                <div style="margin-bottom: 12px;">
-                                    <span class="badge ${roleBadges[admin.role]}">${getRoleDisplayName(admin.role)}</span>
-                                    <span class="badge badge-secondary">ID: ${admin.user_id}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Добавлен: ${new Date(admin.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                        ${admin.user_id != currentAdmin.user_id ? `
-                            <div class="action-buttons">
-                                <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">🗑️ Удалить</button>
-                            </div>
-                        ` : `
-                            <div style="color: #718096; font-style: italic;">
-                                Это ваша учетная запись
-                            </div>
-                        `}
-                    </div>
-                `;
-            });
+                if (!post) {
+                    showMessage('❌ Пост не найден', 'error');
+                    return;
+                }
+                
+                document.getElementById('postForm').style.display = 'block';
+                document.getElementById('postFormTitle').textContent = 'Редактирование поста';
+                currentEditingId = postId;
+                
+                // Заполнить форму
+                document.getElementById('postId').value = post.post_id;
+                document.getElementById('postTitle').value = post.title;
+                document.getElementById('postContent').value = post.content;
+                document.getElementById('postImageUrl').value = post.image_url || '';
+                document.getElementById('postVideoUrl').value = post.video_url || '';
+                document.getElementById('postMediaType').value = post.media_type;
+                document.getElementById('postActionType').value = post.action_type || '';
+                document.getElementById('postActionTarget').value = post.action_target || '';
+                document.getElementById('postActive').checked = post.is_active;
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки поста', 'error');
+            }
+        }
+
+        // Удаление поста
+        async function deletePost(postId) {
+            if (!confirm('Вы уверены, что хотите удалить этот пост?')) return;
             
-            adminsList.innerHTML = html;
+            try {
+                const response = await fetch(`/api/admin/channel-posts/${postId}?userId=${currentUserId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Пост успешно удален', 'success');
+                    loadPosts();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка удаления поста', 'error');
+            }
+        }
+
+        // Скрыть форму поста
+        function hidePostForm() {
+            document.getElementById('postForm').style.display = 'none';
+            currentEditingId = null;
         }
 
         // ==================== МОДЕРАЦИЯ ====================
 
-        async function loadWorksForModeration() {
-            if (!checkPermission('admin')) {
-                document.getElementById('worksModerationList').innerHTML = '<div class="message error">❌ У вас нет прав для доступа к этому разделу</div>';
-                return;
-            }
+        // Показать вкладку модерации
+        function showModerationTab(tab) {
+            currentModerationTab = tab;
             
+            document.querySelectorAll('.tab-subnav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            document.getElementById('moderationWorksTab').style.display = 'none';
+            document.getElementById('moderationReviewsTab').style.display = 'none';
+            document.getElementById('moderationMarathonTab').style.display = 'none';
+            
+            if (tab === 'works') {
+                document.querySelector('.tab-subnav-item[onclick="showModerationTab(\'works\')"]').classList.add('active');
+                document.getElementById('moderationWorksTab').style.display = 'block';
+                loadWorksForModeration();
+            } else if (tab === 'reviews') {
+                document.querySelector('.tab-subnav-item[onclick="showModerationTab(\'reviews\')"]').classList.add('active');
+                document.getElementById('moderationReviewsTab').style.display = 'block';
+                loadReviewsForModeration();
+            } else if (tab === 'marathon') {
+                document.querySelector('.tab-subnav-item[onclick="showModerationTab(\'marathon\')"]').classList.add('active');
+                document.getElementById('moderationMarathonTab').style.display = 'block';
+                loadMarathonSubmissions();
+            }
+        }
+
+        // Загрузка работ для модерации
+        async function loadWorksForModeration() {
             try {
-                // Заглушка для демонстрации
-                const works = [
-                    {
-                        id: 1,
-                        title: "Моя первая картина",
-                        description: "Попытка написать пейзаж маслом",
-                        image_url: "",
-                        status: "pending",
-                        user_name: "Иван Петров",
-                        admin_comment: "",
-                        created_at: "2024-03-20",
-                        moderated_at: null
-                    }
-                ];
+                const status = document.getElementById('workStatusFilter').value;
+                const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
+                const data = await response.json();
                 
-                displayWorksForModeration(works);
+                displayWorksForModeration(data.works);
                 
             } catch (error) {
                 document.getElementById('worksModerationList').innerHTML = '<div class="message error">Ошибка загрузки работ</div>';
             }
         }
 
+        // Отображение работ для модерации
         function displayWorksForModeration(works) {
             const worksList = document.getElementById('worksModerationList');
             
@@ -3112,9 +4218,7 @@ function displayPurchases(purchases) {
                                     <span class="badge ${statusBadges[work.status]}">${statusTexts[work.status]}</span>
                                     <span class="badge badge-secondary">Автор: ${work.user_name}</span>
                                 </div>
-                                ${work.image_url ? `
-                                    <img src="${work.image_url}" class="work-image">
-                                ` : ''}
+                                <img src="${work.image_url}" class="work-image">
                                 ${work.admin_comment ? `
                                     <div class="review-text">
                                         <strong>💬 Комментарий модератора:</strong><br>
@@ -3140,35 +4244,55 @@ function displayPurchases(purchases) {
             worksList.innerHTML = html;
         }
 
-        async function loadReviewsForModeration() {
-            if (!checkPermission('admin')) {
-                document.getElementById('reviewsModerationList').innerHTML = '<div class="message error">❌ У вас нет прав для доступа к этому разделу</div>';
-                return;
-            }
-            
+        // Модерация работы
+        async function moderateWork(workId, status, comment = '') {
             try {
-                // Заглушка для демонстрации
-                const reviews = [
-                    {
-                        id: 1,
-                        post_title: "Добро пожаловать в Мастерскую Вдохновения!",
-                        review_text: "Отличный пост, очень информативно!",
-                        rating: 5,
-                        status: "pending",
-                        tg_first_name: "Иван",
-                        admin_comment: "",
-                        created_at: "2024-03-20",
-                        moderated_at: null
-                    }
-                ];
+                const response = await fetch(`/api/admin/user-works/${workId}/moderate?userId=${currentUserId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status,
+                        admin_comment: comment
+                    })
+                });
                 
-                displayReviewsForModeration(reviews);
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`, 'success');
+                    loadWorksForModeration();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка модерации работы', 'error');
+            }
+        }
+
+        // Показать форму отклонения работы
+        function showRejectWorkForm(workId) {
+            const comment = prompt('Введите причину отклонения работы:');
+            if (comment !== null) {
+                moderateWork(workId, 'rejected', comment);
+            }
+        }
+
+        // Загрузка отзывов для модерации
+        async function loadReviewsForModeration() {
+            try {
+                const status = document.getElementById('reviewStatusFilter').value;
+                const response = await fetch(`/api/admin/reviews?userId=${currentUserId}&status=${status}`);
+                const data = await response.json();
+                
+                displayReviewsForModeration(data.reviews);
                 
             } catch (error) {
                 document.getElementById('reviewsModerationList').innerHTML = '<div class="message error">Ошибка загрузки отзывов</div>';
             }
         }
 
+        // Отображение отзывов для модерации
         function displayReviewsForModeration(reviews) {
             const reviewsList = document.getElementById('reviewsModerationList');
             
@@ -3230,49 +4354,33 @@ function displayPurchases(purchases) {
             reviewsList.innerHTML = html;
         }
 
-        // ==================== ФУНКЦИИ МОДЕРАЦИИ ====================
-
-        async function moderateWork(workId, status, comment = '') {
-            if (!checkPermission('admin')) {
-                showMessage('❌ У вас нет прав для модерации работ', 'error');
-                return;
-            }
-            
-            try {
-                showMessage(`🔄 Модерация работы...`, 'info');
-                // Здесь будет реальный API вызов
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                showMessage(`✅ Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`, 'success');
-                loadWorksForModeration();
-            } catch (error) {
-                showMessage('❌ Ошибка модерации работы', 'error');
-            }
-        }
-
-        function showRejectWorkForm(workId) {
-            const comment = prompt('Введите причину отклонения работы:');
-            if (comment !== null) {
-                moderateWork(workId, 'rejected', comment);
-            }
-        }
-
+        // Модерация отзыва
         async function moderateReview(reviewId, status, comment = '') {
-            if (!checkPermission('admin')) {
-                showMessage('❌ У вас нет прав для модерации отзывов', 'error');
-                return;
-            }
-            
             try {
-                showMessage(`🔄 Модерация отзыва...`, 'info');
-                // Здесь будет реальный API вызов
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                showMessage(`✅ Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`, 'success');
-                loadReviewsForModeration();
+                const response = await fetch(`/api/admin/reviews/${reviewId}/moderate?userId=${currentUserId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status,
+                        admin_comment: comment
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`, 'success');
+                    loadReviewsForModeration();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
             } catch (error) {
                 showMessage('❌ Ошибка модерации отзыва', 'error');
             }
         }
 
+        // Показать форму отклонения отзыва
         function showRejectReviewForm(reviewId) {
             const comment = prompt('Введите причину отклонения отзыва:');
             if (comment !== null) {
@@ -3280,247 +4388,348 @@ function displayPurchases(purchases) {
             }
         }
 
-        // ==================== ФУНКЦИИ ДЛЯ ФОРМ ====================
+        // Загрузка работ марафонов
+        async function loadMarathonSubmissions() {
+            try {
+                const marathonId = document.getElementById('marathonFilter').value;
+                const day = document.getElementById('marathonDayFilter').value;
+                
+                // В реальном приложении здесь был бы запрос к API
+                // Для демонстрации покажем заглушку
+                document.getElementById('marathonSubmissionsList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🏃‍♂️</div>
+                        <div>Функция модерации работ марафонов</div>
+                        <div style="color: #718096; margin-top: 12px; font-size: 14px;">
+                            Будет реализована в следующей версии
+                        </div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                document.getElementById('marathonSubmissionsList').innerHTML = '<div class="message error">Ошибка загрузки работ марафонов</div>';
+            }
+        }
 
-        // Функции для форм (упрощенные версии)
-        function showRoleForm() {
-            if (!checkPermission('admin')) {
-                showMessage('❌ У вас нет прав для управления ролями', 'error');
+        // ==================== АДМИНЫ ====================
+
+        // Загрузка администраторов
+        async function loadAdmins() {
+            try {
+                const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
+                const admins = await response.json();
+                
+                displayAdmins(admins);
+                
+            } catch (error) {
+                document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов</div>';
+            }
+        }
+
+        // Отображение администраторов
+        function displayAdmins(admins) {
+            const adminsList = document.getElementById('adminsList');
+            
+            if (admins.length === 0) {
+                adminsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔧</div><div>Администраторов не найдено</div></div>';
                 return;
             }
-            document.getElementById('roleForm').style.display = 'block';
+            
+            let html = '';
+            
+            admins.forEach(admin => {
+                const roleBadges = {
+                    'moderator': 'badge-info',
+                    'admin': 'badge-warning',
+                    'superadmin': 'badge-danger'
+                };
+                
+                html += `
+                    <div class="admin-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <h3 style="margin: 0 0 8px 0;">${admin.username || `Пользователь ${admin.user_id}`}</h3>
+                                <div style="margin-bottom: 12px;">
+                                    <span class="badge ${roleBadges[admin.role]}">${admin.role}</span>
+                                    <span class="badge badge-secondary">ID: ${admin.user_id}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+                            Добавлен: ${new Date(admin.created_at).toLocaleDateString('ru-RU')}
+                        </div>
+                        ${admin.user_id != currentUserId ? `
+                            <div class="action-buttons">
+                                <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">🗑️ Удалить</button>
+                            </div>
+                        ` : `
+                            <div style="color: #718096; font-style: italic;">
+                                Это ваша учетная запись
+                            </div>
+                        `}
+                    </div>
+                `;
+            });
+            
+            adminsList.innerHTML = html;
         }
 
-        function showCharacterForm() {
-            document.getElementById('characterForm').style.display = 'block';
-        }
-
-        function showQuizForm() {
-            document.getElementById('quizForm').style.display = 'block';
-        }
-
-        function showMarathonForm() {
-            document.getElementById('marathonForm').style.display = 'block';
-        }
-
-        function showInteractiveForm() {
-            document.getElementById('interactiveForm').style.display = 'block';
-        }
-
-        function showShopItemForm() {
-            document.getElementById('shopItemForm').style.display = 'block';
-        }
-
-        function showPostForm() {
-            if (!checkPermission('admin')) {
-                showMessage('❌ У вас нет прав для управления постами', 'error');
-                return;
-            }
-            document.getElementById('postForm').style.display = 'block';
-        }
-
+        // Показать форму добавления админа
         function showAdminForm() {
-            if (!checkPermission('admin')) {
-                showMessage('❌ У вас нет прав для управления администраторами', 'error');
-                return;
-            }
             document.getElementById('adminForm').style.display = 'block';
         }
 
-        // Функции для вкладок магазина
-        function showShopTab(tab) {
-            currentShopTab = tab;
-            
-            document.querySelectorAll('.tab-subnav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            document.getElementById('shopItemsTab').style.display = 'none';
-            document.getElementById('shopPurchasesTab').style.display = 'none';
-            
-            if (tab === 'items') {
-                document.querySelector('.tab-subnav-item[onclick="showShopTab(\'items\')"]').classList.add('active');
-                document.getElementById('shopItemsTab').style.display = 'block';
-            } else if (tab === 'purchases') {
-                document.querySelector('.tab-subnav-item[onclick="showShopTab(\'purchases\')"]').classList.add('active');
-                document.getElementById('shopPurchasesTab').style.display = 'block';
-            }
+       // Сохранение админа
+async function saveAdmin() {
+    const user_id = document.getElementById('adminUserId').value.trim();
+    const username = document.getElementById('adminUsername').value.trim();
+    const role = document.getElementById('adminRole').value;
+    
+    console.log('🔄 Попытка добавления админа:', { user_id, username, role });
+    
+    if (!user_id) {
+        showMessage('❌ Введите ID пользователя', 'error');
+        return;
+    }
+    
+    // Проверяем, что ID - число
+    if (isNaN(user_id)) {
+        showMessage('❌ ID пользователя должен быть числом', 'error');
+        return;
+    }
+    
+    try {
+        const adminData = {
+            user_id: parseInt(user_id),
+            username: username || undefined, // Отправляем undefined если пустое
+            role: role
+        };
+        
+        console.log('📤 Отправка данных:', adminData);
+        
+        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(adminData)
+        });
+        
+        console.log('📥 Получен ответ, статус:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Ошибка HTTP:', response.status, errorText);
+            throw new Error(`HTTP error ${response.status}`);
         }
-
-        // Функции для вкладок модерации
-        function showModerationTab(tab) {
-            if (!checkPermission('admin')) {
-                showMessage('❌ У вас нет прав для доступа к модерации', 'error');
-                return;
-            }
-            
-            currentModerationTab = tab;
-            
-            document.querySelectorAll('.tab-subnav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            document.getElementById('moderationWorksTab').style.display = 'none';
-            document.getElementById('moderationReviewsTab').style.display = 'none';
-            document.getElementById('moderationMarathonTab').style.display = 'none';
-            
-            if (tab === 'works') {
-                document.querySelector('.tab-subnav-item[onclick="showModerationTab(\'works\')"]').classList.add('active');
-                document.getElementById('moderationWorksTab').style.display = 'block';
-            } else if (tab === 'reviews') {
-                document.querySelector('.tab-subnav-item[onclick="showModerationTab(\'reviews\')"]').classList.add('active');
-                document.getElementById('moderationReviewsTab').style.display = 'block';
-            } else if (tab === 'marathon') {
-                document.querySelector('.tab-subnav-item[onclick="showModerationTab(\'marathon\')"]').classList.add('active');
-                document.getElementById('moderationMarathonTab').style.display = 'block';
-            }
+        
+        const result = await response.json();
+        console.log('📋 Результат:', result);
+        
+        if (result.success) {
+            showMessage('✅ Администратор успешно добавлен', 'success');
+            hideAdminForm();
+            loadAdmins();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
         }
+        
+    } catch (error) {
+        console.error('💥 Ошибка при добавлении админа:', error);
+        showMessage('❌ Ошибка добавления администратора: ' + error.message, 'error');
+    }
+}
 
-        // ==================== ФУНКЦИИ ДЛЯ ФАЙЛОВ ====================
-
-        // Обработка загрузки файла товара
-        function handleShopItemFileUpload(file) {
-            if (!file) return;
+        // Удаление админа
+        async function deleteAdmin(userId) {
+            if (!confirm('Вы уверены, что хотите удалить этого администратора?')) return;
             
-            const allowedTypes = [
-                'video/mp4', 'video/webm', 'video/ogg',
-                'application/pdf',
-                'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
-                'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'
-            ];
-            
-            if (!allowedTypes.includes(file.type)) {
-                alert('❌ Неподдерживаемый тип файла. Разрешенные типы: MP4, PDF, JPG, PNG, MP3, WAV');
-                return;
-            }
-            
-            if (file.size > 10 * 1024 * 1024) {
-                alert('❌ Размер файла не должен превышать 10MB');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                shopItemFileData = e.target.result;
+            try {
+                const response = await fetch(`/api/admin/admins/${userId}?userId=${currentUserId}`, {
+                    method: 'DELETE'
+                });
                 
-                const previewContent = document.getElementById('shopItemFilePreviewContent');
-                const fileType = file.type.split('/')[0];
+                const result = await response.json();
                 
-                if (fileType === 'video') {
-                    previewContent.innerHTML = `
-                        <video controls class="upload-preview">
-                            <source src="${shopItemFileData}" type="${file.type}">
-                            Ваш браузер не поддерживает видео.
-                        </video>
-                        <div style="text-align: center; margin-top: 8px; color: #718096;">
-                            🎥 Видео файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </div>
-                    `;
-                } else if (fileType === 'image') {
-                    previewContent.innerHTML = `
-                        <img src="${shopItemFileData}" class="upload-preview">
-                        <div style="text-align: center; margin-top: 8px; color: #718096;">
-                            🖼️ Изображение: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </div>
-                    `;
-                } else if (file.type === 'application/pdf') {
-                    previewContent.innerHTML = `
-                        <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
-                            <div style="font-size: 64px; margin-bottom: 16px;">📚</div>
-                            <div style="font-weight: 600; margin-bottom: 8px;">PDF документ</div>
-                            <div style="color: #718096;">${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
-                        </div>
-                    `;
-                } else if (fileType === 'audio') {
-                    previewContent.innerHTML = `
-                        <audio controls style="width: 100%; margin: 16px 0;">
-                            <source src="${shopItemFileData}" type="${file.type}">
-                            Ваш браузер не поддерживает аудио.
-                        </audio>
-                        <div style="text-align: center; color: #718096;">
-                            🎧 Аудио файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </div>
-                    `;
+                if (result.success) {
+                    showMessage('✅ Администратор успешно удален', 'success');
+                    loadAdmins();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
                 }
                 
-                document.getElementById('shopItemFilePreview').style.display = 'block';
-                document.getElementById('shopItemFileUploadArea').style.display = 'none';
-                document.getElementById('shopItemFileUrl').value = '';
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // Обработка загрузки превью товара
-        function handleShopItemPreviewUpload(file) {
-            if (!file) return;
-            
-            if (!file.type.startsWith('image/')) {
-                alert('❌ Пожалуйста, выберите изображение для превью');
-                return;
+            } catch (error) {
+                showMessage('❌ Ошибка удаления администратора', 'error');
             }
+        }
+
+        // Скрыть форму админа
+        function hideAdminForm() {
+            document.getElementById('adminForm').style.display = 'none';
+            document.getElementById('adminUserId').value = '';
+            document.getElementById('adminUsername').value = '';
+            document.getElementById('adminRole').value = 'moderator';
+        }
+
+        // ==================== МАГАЗИН - ЗАГРУЗКА ФАЙЛОВ ====================
+
+let shopItemFileData = null;
+let shopItemPreviewData = null;
+
+// Обработка загрузки файла товара
+function handleShopItemFileUpload(file) {
+    if (!file) return;
+    
+    // ПРОВЕРКА ТИПА ФАЙЛА
+    const allowedTypes = [
+        'video/mp4', 'video/webm', 'video/ogg',
+        'application/pdf',
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+        'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+        alert('❌ Неподдерживаемый тип файла. Разрешенные типы: MP4, PDF, JPG, PNG, MP3, WAV');
+        return;
+    }
+    
+    // Проверка размера файла
+    if (file.size > 10 * 1024 * 1024) {
+        alert('❌ Размер файла не должен превышать 10MB');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        shopItemFileData = e.target.result;
+        
+        const previewContent = document.getElementById('shopItemFilePreviewContent');
+        const fileType = file.type.split('/')[0];
+        
+        if (fileType === 'video') {
+            previewContent.innerHTML = `
+                <video controls class="upload-preview">
+                    <source src="${shopItemFileData}" type="${file.type}">
+                    Ваш браузер не поддерживает видео.
+                </video>
+                <div style="text-align: center; margin-top: 8px; color: #718096;">
+                    🎥 Видео файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+            `;
+        } else if (fileType === 'image') {
+            previewContent.innerHTML = `
+                <img src="${shopItemFileData}" class="upload-preview">
+                <div style="text-align: center; margin-top: 8px; color: #718096;">
+                    🖼️ Изображение: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+            `;
+        } else if (file.type === 'application/pdf') {
+            previewContent.innerHTML = `
+                <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">📚</div>
+                    <div style="font-weight: 600; margin-bottom: 8px;">PDF документ</div>
+                    <div style="color: #718096;">${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
+                </div>
+            `;
+        } else if (fileType === 'audio') {
+            previewContent.innerHTML = `
+                <audio controls style="width: 100%; margin: 16px 0;">
+                    <source src="${shopItemFileData}" type="${file.type}">
+                    Ваш браузер не поддерживает аудио.
+                </audio>
+                <div style="text-align: center; color: #718096;">
+                    🎧 Аудио файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+            `;
+        } else {
+            previewContent.innerHTML = `
+                <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
+                    <div style="font-weight: 600; margin-bottom: 8px;">Файл: ${file.name}</div>
+                    <div style="color: #718096;">Тип: ${file.type} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
+                </div>
+            `;
+        }
+        
+        document.getElementById('shopItemFilePreview').style.display = 'block';
+        document.getElementById('shopItemFileUploadArea').style.display = 'none';
+        
+        // Очистить URL поле если загружаем файл
+        document.getElementById('shopItemFileUrl').value = '';
+    };
+    reader.readAsDataURL(file);
+}
+
+// Обработка загрузки превью товара
+function handleShopItemPreviewUpload(file) {
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+        alert('❌ Пожалуйста, выберите изображение для превью');
+        return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+        alert('❌ Размер файла не должен превышать 5MB');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        shopItemPreviewData = e.target.result;
+        document.getElementById('shopItemPreviewImage').src = shopItemPreviewData;
+        document.getElementById('shopItemPreviewImagePreview').style.display = 'block';
+        document.getElementById('shopItemPreviewUploadArea').style.display = 'none';
+        
+        // Очистить URL поле если загружаем файл
+        document.getElementById('shopItemPreviewUrl').value = '';
+    };
+    reader.readAsDataURL(file);
+}
+
+// Очистить файл товара
+function clearShopItemFile() {
+    shopItemFileData = null;
+    document.getElementById('shopItemFilePreview').style.display = 'none';
+    document.getElementById('shopItemFileUploadArea').style.display = 'block';
+    document.getElementById('shopItemFileInput').value = '';
+    document.getElementById('shopItemFileUrl').value = '';
+}
+
+// Очистить превью товара
+function clearShopItemPreview() {
+    shopItemPreviewData = null;
+    document.getElementById('shopItemPreviewImagePreview').style.display = 'none';
+    document.getElementById('shopItemPreviewUploadArea').style.display = 'block';
+    document.getElementById('shopItemPreviewInput').value = '';
+    document.getElementById('shopItemPreviewUrl').value = '';
+}
+
+        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+
+        // Показать сообщение
+        function showMessage(message, type) {
+            const messageArea = document.getElementById('messageArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = message;
+            messageArea.appendChild(messageDiv);
             
-            if (file.size > 5 * 1024 * 1024) {
-                alert('❌ Размер файла не должен превышать 5MB');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                shopItemPreviewData = e.target.result;
-                document.getElementById('shopItemPreviewImage').src = shopItemPreviewData;
-                document.getElementById('shopItemPreviewImagePreview').style.display = 'block';
-                document.getElementById('shopItemPreviewUploadArea').style.display = 'none';
-                document.getElementById('shopItemPreviewUrl').value = '';
-            };
-            reader.readAsDataURL(file);
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 5000);
         }
-
-        // Очистить файл товара
-        function clearShopItemFile() {
-            shopItemFileData = null;
-            document.getElementById('shopItemFilePreview').style.display = 'none';
-            document.getElementById('shopItemFileUploadArea').style.display = 'block';
-            document.getElementById('shopItemFileInput').value = '';
-            document.getElementById('shopItemFileUrl').value = '';
-        }
-
-        // Очистить превью товара
-        function clearShopItemPreview() {
-            shopItemPreviewData = null;
-            document.getElementById('shopItemPreviewImagePreview').style.display = 'none';
-            document.getElementById('shopItemPreviewUploadArea').style.display = 'block';
-            document.getElementById('shopItemPreviewInput').value = '';
-            document.getElementById('shopItemPreviewUrl').value = '';
-        }
-
-        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', initAdminPanel);
 
-        // Обработка перетаскивания файлов
+        // Обработка перетаскивания файлов для интерактивов
         document.addEventListener('DOMContentLoaded', function() {
-            // Настройка перетаскивания для файла товара
-            const fileUploadArea = document.getElementById('shopItemFileUploadArea');
-            if (fileUploadArea) {
-                setupDragAndDrop(fileUploadArea, handleShopItemFileUpload);
-            }
+            const uploadArea = document.getElementById('interactiveUploadArea');
             
-            // Настройка перетаскивания для превью товара
-            const previewUploadArea = document.getElementById('shopItemPreviewUploadArea');
-            if (previewUploadArea) {
-                setupDragAndDrop(previewUploadArea, handleShopItemPreviewUpload);
-            }
-            
-            // Настройка перетаскивания для изображения интерактива
-            const interactiveUploadArea = document.getElementById('interactiveUploadArea');
-            if (interactiveUploadArea) {
-                setupDragAndDrop(interactiveUploadArea, handleInteractiveImageUpload);
-            }
-        });
-
-        // Общая функция для настройки перетаскивания
-        function setupDragAndDrop(uploadArea, callback) {
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 uploadArea.addEventListener(eventName, preventDefaults, false);
             });
@@ -3551,42 +4760,62 @@ function displayPurchases(purchases) {
             function handleDrop(e) {
                 const dt = e.dataTransfer;
                 const files = dt.files;
-                callback(files[0]);
+                handleInteractiveImageUpload(files[0]);
             }
-        }
+        });
 
-        // Обработка загрузки изображения для интерактива
-        function handleInteractiveImageUpload(file) {
-            if (!file) return;
-            
-            if (!file.type.startsWith('image/')) {
-                alert('Пожалуйста, выберите изображение');
-                return;
-            }
-            
-            if (file.size > 5 * 1024 * 1024) {
-                alert('Размер файла не должен превышать 5MB');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                interactiveImageData = e.target.result;
-                document.getElementById('interactivePreviewImage').src = interactiveImageData;
-                document.getElementById('interactiveImagePreview').style.display = 'block';
-                document.getElementById('interactiveUploadArea').style.display = 'none';
-            };
-            reader.readAsDataURL(file);
+        // Обработка перетаскивания файлов для магазина
+document.addEventListener('DOMContentLoaded', function() {
+    const fileUploadArea = document.getElementById('shopItemFileUploadArea');
+    const previewUploadArea = document.getElementById('shopItemPreviewUploadArea');
+    
+    // Функции для обработки перетаскивания файлов магазина
+    function setupDragAndDrop(uploadArea, callback) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
         }
-
-        // Очистить изображение интерактива
-        function clearInteractiveImage() {
-            interactiveImageData = null;
-            document.getElementById('interactiveImagePreview').style.display = 'none';
-            document.getElementById('interactiveUploadArea').style.display = 'block';
-            document.getElementById('interactiveImageInput').value = '';
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            uploadArea.classList.add('dragover');
         }
-
+        
+        function unhighlight() {
+            uploadArea.classList.remove('dragover');
+        }
+        
+        uploadArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            callback(files[0]);
+        }
+    }
+    
+    // Настройка перетаскивания для файла товара
+    if (fileUploadArea) {
+        setupDragAndDrop(fileUploadArea, handleShopItemFileUpload);
+    }
+    
+    // Настройка перетаскивания для превью товара
+    if (previewUploadArea) {
+        setupDragAndDrop(previewUploadArea, handleShopItemPreviewUpload);
+    }
+});
+        
     </script>
 </body>
-</html>
+</html> 
