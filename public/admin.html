@@ -4484,44 +4484,67 @@ function hideShopItemForm() {
             document.getElementById('adminForm').style.display = 'block';
         }
 
-        // Сохранение админа
-        async function saveAdmin() {
-            const user_id = document.getElementById('adminUserId').value;
-            const username = document.getElementById('adminUsername').value.trim();
-            const role = document.getElementById('adminRole').value;
-            
-            if (!user_id) {
-                alert('Введите ID пользователя');
-                return;
-            }
-            
-            try {
-                const adminData = {
-                    user_id: parseInt(user_id),
-                    username,
-                    role
-                };
-                
-                const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(adminData)
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Администратор успешно добавлен', 'success');
-                    hideAdminForm();
-                    loadAdmins();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка добавления администратора', 'error');
-            }
+       // Сохранение админа
+async function saveAdmin() {
+    const user_id = document.getElementById('adminUserId').value.trim();
+    const username = document.getElementById('adminUsername').value.trim();
+    const role = document.getElementById('adminRole').value;
+    
+    console.log('🔄 Попытка добавления админа:', { user_id, username, role });
+    
+    if (!user_id) {
+        showMessage('❌ Введите ID пользователя', 'error');
+        return;
+    }
+    
+    // Проверяем, что ID - число
+    if (isNaN(user_id)) {
+        showMessage('❌ ID пользователя должен быть числом', 'error');
+        return;
+    }
+    
+    try {
+        const adminData = {
+            user_id: parseInt(user_id),
+            username: username || undefined, // Отправляем undefined если пустое
+            role: role
+        };
+        
+        console.log('📤 Отправка данных:', adminData);
+        
+        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(adminData)
+        });
+        
+        console.log('📥 Получен ответ, статус:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Ошибка HTTP:', response.status, errorText);
+            throw new Error(`HTTP error ${response.status}`);
         }
+        
+        const result = await response.json();
+        console.log('📋 Результат:', result);
+        
+        if (result.success) {
+            showMessage('✅ Администратор успешно добавлен', 'success');
+            hideAdminForm();
+            loadAdmins();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('💥 Ошибка при добавлении админа:', error);
+        showMessage('❌ Ошибка добавления администратора: ' + error.message, 'error');
+    }
+}
 
         // Удаление админа
         async function deleteAdmin(userId) {
