@@ -2146,56 +2146,75 @@ if (process.env.BOT_TOKEN) {
         
         console.log('✅ Telegram Bot инициализирован (WebApp only)');
         console.log('=== НАСТРОЙКИ БОТА ===');
-        console.log('CHANNEL_ID:', process.env.CHANNEL_ID);
-        console.log('GROUP_ID:', process.env.GROUP_ID);
-        console.log('APP_URL:', process.env.APP_URL);
+        console.log('CHANNEL_ID:', process.env.CHANNEL_ID || 'не указан');
+        console.log('GROUP_ID:', process.env.GROUP_ID || 'не указан');
+        console.log('APP_URL:', process.env.APP_URL || 'не указан');
         console.log('====================');
-
-        // 🔥 ВАЖНО: УДАЛИТЕ ВЕСЬ ЭТОТ КОД КОМАНД БОТА:
-        /*
-        bot.onText(/\/start/, (msg) => {
-            // ... старый код
-        });
-
-        bot.onText(/\/admin/, (msg) => {
-            // ... старый код  
-        });
-
-        bot.onText(/\/stats/, (msg) => {
-            // ... старый код
-        });
-        */
         
     } catch (error) {
-        console.error('❌ Ошибка инициализации бота:', error);
+        console.error('❌ Ошибка инициализации бота:', error.message);
     }
 } else {
     console.log('⚠️  BOT_TOKEN не указан, бот не инициализирован');
 }
 
-// ==================== ОСТАВШАЯСЯ ЧАСТЬ СЕРВЕРА ====================
+// ==================== ЗАПУСК СЕРВЕРА С ОБРАБОТКОЙ ОШИБОК ====================
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Сервер запущен на порту ${PORT}`);
-    console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
-    console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
-    console.log(`🎯 Квизов: ${db.quizzes.length}`);
-    console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
-    console.log(`🎮 Интерактивов: ${db.interactives.length}`);
-    console.log(`🛒 Товаров: ${db.shop_items.length}`);
-    console.log(`👥 Пользователей: ${db.users.length}`);
-    console.log('✅ Все системы работают!');
-    
-    // 🔥 ДОБАВЬТЕ ЭТОТ ВЫВОД ДЛЯ ПРОВЕРКИ:
-    console.log('\n=== 🎯 ДЕБАГ ИНФОРМАЦИЯ ===');
-    console.log('👥 Текущие админы в системе:');
-    db.admins.forEach(admin => {
-        console.log(`   - ID: ${admin.user_id}, Роль: ${admin.role}, Имя: ${admin.username}`);
+
+try {
+    const server = app.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 Сервер запущен на порту ${PORT}`);
+        console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
+        console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
+        console.log(`🎯 Квизов: ${db.quizzes.length}`);
+        console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
+        console.log(`🎮 Интерактивов: ${db.interactives.length}`);
+        console.log(`🛒 Товаров: ${db.shop_items.length}`);
+        console.log(`👥 Пользователей: ${db.users.length}`);
+        console.log('✅ Все системы работают!');
+        
+        console.log('\n=== 🎯 ДЕБАГ ИНФОРМАЦИЯ ===');
+        console.log('👥 Текущие админы в системе:');
+        db.admins.forEach(admin => {
+            console.log(`   - ID: ${admin.user_id}, Роль: ${admin.role}, Имя: ${admin.username}`);
+        });
+        console.log('👤 Первые 5 пользователей:');
+        db.users.slice(0, 5).forEach(user => {
+            console.log(`   - ID: ${user.user_id}, Имя: ${user.tg_first_name}, Зарегистрирован: ${user.is_registered}`);
+        });
+        console.log('==============================\n');
     });
-    console.log('👤 Все пользователи в системе:');
-    db.users.slice(0, 5).forEach(user => {
-        console.log(`   - ID: ${user.user_id}, Имя: ${user.tg_first_name}, Зарегистрирован: ${user.is_registered}`);
+
+    // Обработка graceful shutdown
+    process.on('SIGTERM', () => {
+        console.log('🔄 Получен SIGTERM, graceful shutdown...');
+        server.close(() => {
+            console.log('✅ Сервер остановлен');
+            process.exit(0);
+        });
     });
-    console.log('==============================\n');
-});
+
+    process.on('SIGINT', () => {
+        console.log('🔄 Получен SIGINT, остановка сервера...');
+        server.close(() => {
+            console.log('✅ Сервер остановлен');
+            process.exit(0);
+        });
+    });
+
+    // Обработка необработанных ошибок
+    process.on('uncaughtException', (error) => {
+        console.error('💥 Необработанная ошибка:', error);
+        process.exit(1);
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+        console.error('💥 Необработанный rejection:', reason);
+        process.exit(1);
+    });
+
+} catch (error) {
+    console.error('💥 Критическая ошибка запуска сервера:', error);
+    process.exit(1);
+}
