@@ -2108,22 +2108,45 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     res.json(stats);
 });
 
-// Telegram Bot
-let bot;
-if (process.env.BOT_TOKEN) {
+// Telegram Bot - с защитой от множественных экземпляров
+let bot = null;
+let botInitialized = false;
+
+if (process.env.BOT_TOKEN && !botInitialized) {
     try {
-        bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+        console.log('🔄 Инициализация Telegram Bot...');
         
-        console.log('✅ Telegram Bot инициализирован');
-        console.log('=== НАСТРОЙКИ БОТА ===');
-        console.log('CHANNEL_ID:', process.env.CHANNEL_ID);
-        console.log('GROUP_ID:', process.env.GROUP_ID);
-        console.log('====================');
+        bot = new TelegramBot(process.env.BOT_TOKEN, { 
+            polling: { 
+                timeout: 10,
+                interval: 300
+            } 
+        });
         
+        // Обработчик ошибок polling
+        bot.on('polling_error', (error) => {
+            console.log('⚠️ Polling error:', error.code);
+            
+            if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
+                console.log('🔴 Другой экземпляр бота уже запущен. Останавливаем polling...');
+                bot.stopPolling();
+                botInitialized = false;
+            }
+        });
+
+        bot.on('webhook_error', (error) => {
+            console.log('❌ Webhook error:', error);
+        });
+
+        // Базовые команды бота
         bot.onText(/\/start/, (msg) => {
+            if (!botInitialized) return;
+            
             const chatId = msg.chat.id;
             const name = msg.from.first_name || 'Друг';
             const userId = msg.from.id;
+            
+            console.log(`👋 Команда /start от ${name} (ID: ${userId})`);
             
             let user = db.users.find(u => u.user_id === userId);
             if (!user) {
@@ -2149,7 +2172,7 @@ if (process.env.BOT_TOKEN) {
             
             const welcomeText = `🎨 Привет, ${name}!
 
-Добро пожаловать в **Мастерская Вдохновения**!
+Добро пожаловать в **Мастерскую Вдохновения**!
 
 ✨ Откройте личный кабинет чтобы:
 • 🎯 Проходить квизы и получать искры
@@ -2174,31 +2197,95 @@ if (process.env.BOT_TOKEN) {
             bot.sendMessage(chatId, welcomeText, {
                 parse_mode: 'Markdown',
                 reply_markup: keyboard
+            }).catch(error => {
+                console.error('❌ Ошибка отправки сообщения:', error);
             });
         });
 
-       bot.onText(/\/admin/, (msg) => {
-    const chatId = msg.chat.id;
-    const userId = msg.from.id;
-    
-    const admin = db.admins.find(a => a.user_id == userId);
-    if (!admin) {
-        bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
-        return;
-    }
-    
-    // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
-    const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
-    const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
-    
-    const keyboard = {
-        inline_keyboard: [[
-            {
-                text: "🔧 Открыть Админ Панель",
-                url: adminUrl
+        bot.onText(/\/admin/, (msg) => {
+            if (!botInitialized) return;
+            
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            console.log(`🔧 Команда /admin от пользователя ${userId}`);
+            
+            const admin = db.admins.find(a => a.user_id == userId);
+            if (!admin) {
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.').catch(console.error);
+                return;
             }
-        ]]
-    };
+            
+            const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
+            const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
+            
+            const keyboard = {
+                inline_keyboard: [[
+                    {
+                        text: "🔧 Открыть Админ Панель",
+                        url: adminUrl
+                    }
+                ]]
+            };
+            
+            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            }).catch(error => {
+                console.error('❌ Ошибка отправки сообщения админа:', error);
+            });
+        });
+
+        bot.onText(/\/stats/, (msg) => {
+            if (!botInitialized) return;
+            
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            const admin = db.admins.find(a => a.user_id == userId);
+            if (!admin) {
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа.').catch(console.error);
+                return;
+            }
+            
+            const stats = {
+                totalUsers: db.users.length,
+                registeredUsers: db.users.filter(u => u.is_registered).length,
+                activeQuizzes: db.quizzes.filter(q => q.is_active).length,
+                activeMarathons: db.marathons.filter(m => m.is_active).length,
+                shopItems: db.shop_items.filter(i => i.is_active).length,
+                totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0)
+            };
+            
+            const statsText = `📊 Статистика бота:
+            
+👥 Пользователи: ${stats.totalUsers}
+✅ Зарегистрировано: ${stats.registeredUsers}
+🎯 Активных квизов: ${stats.activeQuizzes}
+🏃‍♂️ Активных марафонов: ${stats.activeMarathons}
+🛒 Товаров в магазине: ${stats.shopItems}
+✨ Всего искр: ${stats.totalSparks.toFixed(1)}`;
+            
+            bot.sendMessage(chatId, statsText).catch(error => {
+                console.error('❌ Ошибка отправки статистики:', error);
+            });
+        });
+
+        // Успешная инициализация
+        botInitialized = true;
+        console.log('✅ Telegram Bot инициализирован');
+        console.log('=== НАСТРОЙКИ БОТА ===');
+        console.log('CHANNEL_ID:', process.env.CHANNEL_ID);
+        console.log('GROUP_ID:', process.env.GROUP_ID);
+        console.log('====================');
+        
+    } catch (error) {
+        console.error('❌ Ошибка инициализации бота:', error);
+        botInitialized = false;
+    }
+} else if (!process.env.BOT_TOKEN) {
+    console.log('⚠️ BOT_TOKEN не установлен, бот не будет запущен');
+}
     
     bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
         parse_mode: 'Markdown',
