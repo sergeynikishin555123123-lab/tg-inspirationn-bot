@@ -1471,9 +1471,9 @@
                     </div>
                     
                     <div class="action-buttons">
-                        <button class="btn btn-success" onclick="saveShopItem()">💾 Сохранить товар</button>
-                        <button class="btn btn-danger" onclick="hideShopItemForm()">❌ Отмена</button>
-                    </div>
+    <button class="btn btn-success" onclick="saveShopItem()">💾 Сохранить товар</button>
+    <button class="btn btn-danger" onclick="hideShopItemForm()">❌ Отмена</button>
+</div>
                 </div>
             </div>
 
@@ -1702,7 +1702,7 @@
         let shopItemPreviewData = null;
 
         // Список супер-админов (ваш ID и другие доверенные пользователи)
-        const SUPER_ADMINS = [123456789, 987654321, 898508164]; // ЗДДЕСЬ ДОБАВЬТЕ ВАШ
+        const SUPER_ADMINS = [123456789, 987654321, 898508164]; // ЗДДЕСЬ ДОБАВЬТЕ ВАШ 
 
         // Инициализация админ-панели
         async function initAdminPanel() {
@@ -2643,88 +2643,232 @@
             interactivesList.innerHTML = html;
         }
 
-        // ==================== МАГАЗИН ====================
+// ==================== МАГАЗИН - РЕАЛЬНЫЙ ФУНКЦИОНАЛ ====================
 
-        async function loadShopItems() {
-            try {
-                // Заглушка для демонстрации
-                const items = [
-                    {
-                        id: 1,
-                        title: "Урок акварели для начинающих",
-                        description: "Пошаговый видеоурок по основам акварельной техники",
-                        type: "video",
-                        file_url: "",
-                        preview_url: "",
-                        price: 15,
-                        content_text: "В этом уроке вы научитесь основам работы с акварелью...",
-                        is_active: true,
-                        created_at: "2024-01-01"
-                    }
-                ];
-                
-                displayShopItems(items);
-                
-            } catch (error) {
-                document.getElementById('shopItemsList').innerHTML = '<div class="message error">Ошибка загрузки товаров</div>';
-            }
-        }
+let shopItemFileData = null;
+let shopItemPreviewData = null;
 
-        function displayShopItems(items) {
-            const shopItemsList = document.getElementById('shopItemsList');
-            
-            if (items.length === 0) {
-                shopItemsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛒</div><div>Товаров не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            items.forEach(item => {
-                const typeIcons = {
-                    'video': '🎥',
-                    'pdf': '📚',
-                    'text': '📝',
-                    'audio': '🎧',
-                    'image': '🖼️'
-                };
-                
-                html += `
-                    <div class="shop-item-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${typeIcons[item.type]} ${item.title}</h3>
-                                <p style="color: #718096; margin-bottom: 12px;">${item.description}</p>
-                                <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                                    <span class="badge badge-info">${item.type}</span>
-                                    <span class="badge badge-success">${item.price}✨</span>
-                                </div>
-                                ${item.content_text ? `
-                                    <div class="content-preview">
-                                        ${item.content_text}
-                                    </div>
-                                ` : ''}
-                            </div>
-                            <div style="text-align: right;">
-                                <span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">
-                                    <span class="status-indicator ${item.is_active ? 'status-active' : 'status-inactive'}"></span>
-                                    ${item.is_active ? 'Активен' : 'Неактивен'}
-                                </span>
-                            </div>
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Создан: ${new Date(item.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-warning" onclick="editShopItem(${item.id})">✏️ Редактировать</button>
-                            <button class="btn btn-danger" onclick="deleteShopItem(${item.id})">🗑️ Удалить</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            shopItemsList.innerHTML = html;
+// Сохранение товара
+async function saveShopItem() {
+    console.log('Сохранение товара...');
+    
+    const title = document.getElementById('shopItemTitle').value.trim();
+    const description = document.getElementById('shopItemDescription').value.trim();
+    const type = document.getElementById('shopItemType').value;
+    const file_url = document.getElementById('shopItemFileUrl').value.trim();
+    const preview_url = document.getElementById('shopItemPreviewUrl').value.trim();
+    const price = parseFloat(document.getElementById('shopItemPrice').value);
+    const content_text = document.getElementById('shopItemContent').value.trim();
+    const is_active = document.getElementById('shopItemActive').checked;
+    
+    if (!title) {
+        showMessage('❌ Введите название товара', 'error');
+        return;
+    }
+    
+    if (!price || price <= 0) {
+        showMessage('❌ Введите корректную цену', 'error');
+        return;
+    }
+    
+    // Проверка наличия файла или URL
+    if (!shopItemFileData && !file_url && type !== 'text') {
+        showMessage('❌ Загрузите файл или укажите URL', 'error');
+        return;
+    }
+    
+    try {
+        const itemData = {
+            title,
+            description,
+            type,
+            file_url: shopItemFileData || file_url,
+            preview_url: shopItemPreviewData || preview_url,
+            price,
+            content_text,
+            is_active
+        };
+        
+        // Реальный запрос к API
+        const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(itemData)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Товар успешно сохранен', 'success');
+            hideShopItemForm();
+            loadShopItems();
+        } else {
+            showMessage(`❌ Ошибка: ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка сохранения товара:', error);
+        showMessage('❌ Ошибка сохранения товара', 'error');
+    }
+}
+
+// Редактирование товара
+async function editShopItem(itemId) {
+    try {
+        const response = await fetch(`/api/admin/shop/items/${itemId}?userId=${currentUserId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const item = await response.json();
+        
+        document.getElementById('shopItemForm').style.display = 'block';
+        document.getElementById('shopItemFormTitle').textContent = 'Редактирование товара';
+        currentEditingId = itemId;
+        
+        // Заполнить форму данными
+        document.getElementById('shopItemTitle').value = item.title;
+        document.getElementById('shopItemDescription').value = item.description;
+        document.getElementById('shopItemType').value = item.type;
+        document.getElementById('shopItemFileUrl').value = item.file_url || '';
+        document.getElementById('shopItemPreviewUrl').value = item.preview_url || '';
+        document.getElementById('shopItemPrice').value = item.price;
+        document.getElementById('shopItemContent').value = item.content_text || '';
+        document.getElementById('shopItemActive').checked = item.is_active;
+        
+        // Показать превью если есть
+        if (item.preview_url) {
+            shopItemPreviewData = item.preview_url;
+            document.getElementById('shopItemPreviewImage').src = item.preview_url;
+            document.getElementById('shopItemPreviewImagePreview').style.display = 'block';
+            document.getElementById('shopItemPreviewUploadArea').style.display = 'none';
+        }
+        
+    } catch (error) {
+        console.error('Ошибка загрузки товара:', error);
+        showMessage('❌ Ошибка загрузки товара', 'error');
+    }
+}
+
+// Удаление товара
+async function deleteShopItem(itemId) {
+    if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
+    
+    try {
+        const response = await fetch(`/api/admin/shop/items/${itemId}?userId=${currentUserId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Товар успешно удален', 'success');
+            loadShopItems();
+        } else {
+            showMessage(`❌ Ошибка: ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка удаления товара:', error);
+        showMessage('❌ Ошибка удаления товара', 'error');
+    }
+}
+
+// Загрузка товаров
+async function loadShopItems() {
+    try {
+        const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const items = await response.json();
+        displayShopItems(items);
+        
+    } catch (error) {
+        console.error('Ошибка загрузки товаров:', error);
+        document.getElementById('shopItemsList').innerHTML = '<div class="message error">Ошибка загрузки товаров</div>';
+    }
+}
+
+// Загрузка покупок
+async function loadPurchases() {
+    try {
+        const response = await fetch(`/api/admin/shop/purchases?userId=${currentUserId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const purchases = await response.json();
+        displayPurchases(purchases);
+        
+    } catch (error) {
+        console.error('Ошибка загрузки покупок:', error);
+        document.getElementById('purchasesList').innerHTML = '<div class="message error">Ошибка загрузки покупок</div>';
+    }
+}
+
+// Отображение покупок
+function displayPurchases(purchases) {
+    const purchasesList = document.getElementById('purchasesList');
+    
+    if (!purchases || purchases.length === 0) {
+        purchasesList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><div>Покупок не найдено</div></div>';
+        return;
+    }
+    
+    let html = `
+        <div class="users-table-container">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Товар</th>
+                        <th>Пользователь</th>
+                        <th>Цена</th>
+                        <th>Дата</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    purchases.forEach(purchase => {
+        html += `
+            <tr>
+                <td>${purchase.id}</td>
+                <td>
+                    <strong>${purchase.item_title}</strong>
+                    <br><small>${purchase.item_type}</small>
+                </td>
+                <td>ID: ${purchase.user_id}</td>
+                <td>${purchase.price_paid}✨</td>
+                <td>${new Date(purchase.purchased_at).toLocaleString('ru-RU')}</td>
+                <td>
+                    <span class="badge ${purchase.status === 'completed' ? 'badge-success' : 'badge-warning'}">
+                        ${purchase.status === 'completed' ? '✅ Завершена' : '⏳ В процессе'}
+                    </span>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    purchasesList.innerHTML = html;
+}
 
         // ==================== ПОСТЫ ====================
 
