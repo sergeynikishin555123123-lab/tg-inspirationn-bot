@@ -2140,7 +2140,25 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
 let bot;
 if (process.env.BOT_TOKEN) {
     try {
-        bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+        // Добавляем опции для избежания конфликта
+        bot = new TelegramBot(process.env.BOT_TOKEN, { 
+            polling: {
+                timeout: 10,
+                interval: 300,
+                autoStart: false
+            }
+        });
+        
+        // Запускаем polling только если нет других инстансов
+        setTimeout(() => {
+            bot.startPolling().catch(error => {
+                if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
+                    console.log('⚠️  Другой инстанс бота уже запущен, продолжаем без polling');
+                } else {
+                    console.error('❌ Ошибка запуска бота:', error.message);
+                }
+            });
+        }, 1000);
         
         console.log('✅ Telegram Bot инициализирован');
         console.log('=== НАСТРОЙКИ БОТА ===');
