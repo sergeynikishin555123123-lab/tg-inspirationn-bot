@@ -1698,15 +1698,12 @@ audio {
         let currentModerationTab = 'works';
         let interactiveImageData = null;
 
-        // САМЫЙ ПРОСТОЙ КОД - ВСЕ АДМИНЫ ВИДЯТ ВСЁ
 async function initAdminPanel() {
     console.log("🚀 Загрузка админ-панели");
     
-    // Получаем ID из URL
     const urlParams = new URLSearchParams(window.location.search);
     currentUserId = urlParams.get('userId');
     
-    // Если нет ID, показываем ошибку
     if (!currentUserId) {
         document.body.innerHTML = `
             <div class="admin-login">
@@ -1720,21 +1717,40 @@ async function initAdminPanel() {
         return;
     }
     
-    // Просто записываем ID и загружаем админку
-    currentAdmin = { user_id: currentUserId };
-    document.getElementById('adminId').textContent = currentUserId;
+    // Проверяем права пользователя
+    const userData = ADMIN_USERS[currentUserId];
     
-    // ВСЕ КНОПКИ АКТИВНЫ ВСЕГДА
-    console.log("✅ Все разделы доступны");
+    if (userData) {
+        currentAdmin = {
+            user_id: parseInt(currentUserId),
+            role: userData.role,
+            username: userData.username
+        };
+        
+        document.getElementById('adminId').textContent = currentUserId;
+        document.getElementById('adminRole').textContent = userData.role === 'superadmin' ? 'Супер-админ' : 
+                                                          userData.role === 'admin' ? 'Администратор' : 'Модератор';
+        
+        // Включаем кнопки в зависимости от роли
+        if (userData.role === 'superadmin' || userData.role === 'admin') {
+            document.querySelectorAll('.admin-only').forEach(element => {
+                element.style.display = 'flex';
+            });
+            document.querySelectorAll('.admin-only-btn').forEach(element => {
+                element.style.display = 'inline-block';
+            });
+        }
+        
+        console.log(`✅ ${userData.username} - доступ разрешен`);
+    } else {
+        // Обычный пользователь
+        currentAdmin = { user_id: parseInt(currentUserId) };
+        document.getElementById('adminId').textContent = currentUserId;
+        document.getElementById('adminRole').textContent = 'Пользователь';
+        console.log("⚠️ Обычный пользователь - ограниченный доступ");
+    }
     
-    // Загружаем данные
     loadAllData();
-}
-
-// Убираем форму логина
-function showLoginForm() {
-    // Просто запускаем админку
-    initAdminPanel();
 }
 
         // Попытка входа
@@ -4811,6 +4827,156 @@ document.addEventListener('DOMContentLoaded', function() {
         setupDragAndDrop(previewUploadArea, handleShopItemPreviewUpload);
     }
 });
+
+// ==================== МОДЕРАЦИЯ ====================
+
+// Загрузка данных для модерации
+async function loadModerationData() {
+    console.log("Загрузка данных модерации...");
+    
+    try {
+        // Данные для работ
+        const worksData = [
+            {
+                id: 1,
+                title: "Моя первая картина",
+                description: "Акварельный пейзаж",
+                image_url: "",
+                status: "pending",
+                user_name: "Иван Петров",
+                created_at: new Date().toISOString()
+            },
+            {
+                id: 2, 
+                title: "Портрет друга",
+                description: "Графитный карандаш",
+                image_url: "",
+                status: "pending",
+                user_name: "Мария Сидорова",
+                created_at: new Date().toISOString()
+            }
+        ];
+        
+        // Данные для отзывов
+        const reviewsData = [
+            {
+                id: 1,
+                post_title: "Основы композиции",
+                review_text: "Отличный материал, очень помог!",
+                rating: 5,
+                status: "pending",
+                tg_first_name: "Алексей",
+                created_at: new Date().toISOString()
+            }
+        ];
+        
+        displayWorksForModeration(worksData);
+        displayReviewsForModeration(reviewsData);
+        
+    } catch (error) {
+        console.error('Ошибка загрузки данных модерации:', error);
+    }
+}
+
+// Отображение работ для модерации
+function displayWorksForModeration(works) {
+    const worksList = document.getElementById('worksModerationList');
+    if (!worksList) return;
+    
+    if (!works || works.length === 0) {
+        worksList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🖼️</div><div>Работ нет</div></div>';
+        return;
+    }
+    
+    let html = '';
+    works.forEach(work => {
+        html += `
+            <div class="work-card">
+                <h3 style="margin-bottom: 10px;">${work.title}</h3>
+                <p style="color: #718096; margin-bottom: 15px;">${work.description}</p>
+                <div style="margin-bottom: 15px;">
+                    <span class="badge badge-warning">На модерации</span>
+                    <span class="badge badge-secondary">Автор: ${work.user_name}</span>
+                </div>
+                <div class="moderation-actions">
+                    <button class="btn btn-success" onclick="moderateWork(${work.id}, 'approved')">✅ Одобрить</button>
+                    <button class="btn btn-danger" onclick="moderateWork(${work.id}, 'rejected')">❌ Отклонить</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    worksList.innerHTML = html;
+}
+
+// Отображение отзывов для модерации
+function displayReviewsForModeration(reviews) {
+    const reviewsList = document.getElementById('reviewsModerationList');
+    if (!reviewsList) return;
+    
+    if (!reviews || reviews.length === 0) {
+        reviewsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💬</div><div>Отзывов нет</div></div>';
+        return;
+    }
+    
+    let html = '';
+    reviews.forEach(review => {
+        html += `
+            <div class="review-card">
+                <h3 style="margin-bottom: 10px;">Отзыв: "${review.post_title}"</h3>
+                <div class="review-text">${review.review_text}</div>
+                <div style="margin: 15px 0;">
+                    <span class="badge badge-warning">На модерации</span>
+                    <span class="badge badge-info">Рейтинг: ${'★'.repeat(review.rating)}</span>
+                    <span class="badge badge-secondary">Автор: ${review.tg_first_name}</span>
+                </div>
+                <div class="moderation-actions">
+                    <button class="btn btn-success" onclick="moderateReview(${review.id}, 'approved')">✅ Одобрить</button>
+                    <button class="btn btn-danger" onclick="moderateReview(${review.id}, 'rejected')">❌ Отклонить</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    reviewsList.innerHTML = html;
+}
+
+// Модерация работы
+async function moderateWork(workId, status) {
+    showMessage(`🔄 Модерация работы #${workId}...`, 'info');
+    
+    // Имитация API запроса
+    setTimeout(() => {
+        showMessage(`✅ Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`, 'success');
+        // Перезагружаем данные
+        loadModerationData();
+    }, 1000);
+}
+
+// Модерация отзыва
+async function moderateReview(reviewId, status) {
+    showMessage(`🔄 Модерация отзыва #${reviewId}...`, 'info');
+    
+    // Имитация API запроса
+    setTimeout(() => {
+        showMessage(`✅ Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`, 'success');
+        // Перезагружаем данные
+        loadModerationData();
+    }, 1000);
+}
+
+// Загрузка работ марафонов (заглушка)
+async function loadMarathonSubmissions() {
+    const submissionsList = document.getElementById('marathonSubmissionsList');
+    if (submissionsList) {
+        submissionsList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🏃‍♂️</div>
+                <div>Работ марафонов пока нет</div>
+            </div>
+        `;
+    }
+}
         
     </script>
 </body>
