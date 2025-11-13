@@ -2136,157 +2136,44 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     res.json(stats);
 });
 
-// Telegram Bot
+// ==================== TELEGRAM BOT (БЕЗ POLLING) ====================
+
 let bot;
 if (process.env.BOT_TOKEN) {
     try {
-        // Добавляем опции для избежания конфликта
-        bot = new TelegramBot(process.env.BOT_TOKEN, { 
-            polling: {
-                timeout: 10,
-                interval: 300,
-                autoStart: false
-            }
-        });
+        // Инициализация бота БЕЗ polling
+        bot = new TelegramBot(process.env.BOT_TOKEN);
         
-        // Запускаем polling только если нет других инстансов
-        setTimeout(() => {
-            bot.startPolling().catch(error => {
-                if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
-                    console.log('⚠️  Другой инстанс бота уже запущен, продолжаем без polling');
-                } else {
-                    console.error('❌ Ошибка запуска бота:', error.message);
-                }
-            });
-        }, 1000);
-        
-        console.log('✅ Telegram Bot инициализирован');
+        console.log('✅ Telegram Bot инициализирован (WebApp only)');
         console.log('=== НАСТРОЙКИ БОТА ===');
         console.log('CHANNEL_ID:', process.env.CHANNEL_ID);
         console.log('GROUP_ID:', process.env.GROUP_ID);
+        console.log('APP_URL:', process.env.APP_URL);
         console.log('====================');
-        
+
+        // 🔥 ВАЖНО: УДАЛИТЕ ВЕСЬ ЭТОТ КОД КОМАНД БОТА:
+        /*
         bot.onText(/\/start/, (msg) => {
-            const chatId = msg.chat.id;
-            const name = msg.from.first_name || 'Друг';
-            const userId = msg.from.id;
-            
-            let user = db.users.find(u => u.user_id === userId);
-            if (!user) {
-                user = {
-                    id: Date.now(),
-                    user_id: userId,
-                    tg_first_name: msg.from.first_name,
-                    tg_username: msg.from.username,
-                    sparks: 0,
-                    level: 'Ученик',
-                    is_registered: false,
-                    class: null,
-                    character_id: null,
-                    character_name: null,
-                    available_buttons: [],
-                    registration_date: new Date().toISOString(),
-                    last_active: new Date().toISOString()
-                };
-                db.users.push(user);
-            } else {
-                user.last_active = new Date().toISOString();
-            }
-            
-            const welcomeText = `🎨 Привет, ${name}!
-
-Добро пожаловать в **Мастерская Вдохновения**!
-
-✨ Откройте личный кабинет чтобы:
-• 🎯 Проходить квизы и получать искры
-• 🏃‍♂️ Участвовать в марафонах  
-• 🖼️ Загружать свои работы
-• 🎮 Выполнять интерактивные задания
-• 🔄 Менять роль и персонажа
-• 📊 Отслеживать прогресс
-• 🛒 Покупать обучающие материалы
-
-Нажмите кнопку ниже чтобы начать!`;
-            
-            const keyboard = {
-                inline_keyboard: [[
-                    {
-                        text: "📱 Открыть Личный Кабинет",
-                        web_app: { url: process.env.APP_URL || `https://your-domain.timeweb.cloud` }
-                    }
-                ]]
-            };
-
-            bot.sendMessage(chatId, welcomeText, {
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            });
+            // ... старый код
         });
 
-       bot.onText(/\/admin/, (msg) => {
-    const chatId = msg.chat.id;
-    const userId = msg.from.id;
-    
-    const admin = db.admins.find(a => a.user_id == userId);
-    if (!admin) {
-        bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
-        return;
-    }
-    
-    // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
-    const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
-    const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
-    
-    const keyboard = {
-        inline_keyboard: [[
-            {
-                text: "🔧 Открыть Админ Панель",
-                url: adminUrl
-            }
-        ]]
-    };
-    
-    bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-    });
-});
+        bot.onText(/\/admin/, (msg) => {
+            // ... старый код  
+        });
 
         bot.onText(/\/stats/, (msg) => {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
-            
-            const admin = db.admins.find(a => a.user_id == userId);
-            if (!admin) {
-                bot.sendMessage(chatId, '❌ У вас нет прав доступа.');
-                return;
-            }
-            
-            const stats = {
-                totalUsers: db.users.length,
-                registeredUsers: db.users.filter(u => u.is_registered).length,
-                activeQuizzes: db.quizzes.filter(q => q.is_active).length,
-                activeMarathons: db.marathons.filter(m => m.is_active).length,
-                shopItems: db.shop_items.filter(i => i.is_active).length,
-                totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0)
-            };
-            
-            const statsText = `📊 Статистика бота:
-            
-👥 Пользователи: ${stats.totalUsers}
-✅ Зарегистрировано: ${stats.registeredUsers}
-🎯 Активных квизов: ${stats.activeQuizzes}
-🏃‍♂️ Активных марафонов: ${stats.activeMarathons}
-🛒 Товаров в магазине: ${stats.shopItems}
-✨ Всего искр: ${stats.totalSparks.toFixed(1)}`;
-            
-            bot.sendMessage(chatId, statsText);
+            // ... старый код
         });
-
+        */
+        
     } catch (error) {
         console.error('❌ Ошибка инициализации бота:', error);
     }
+} else {
+    console.log('⚠️  BOT_TOKEN не указан, бот не инициализирован');
 }
+
+// ==================== ОСТАВШАЯСЯ ЧАСТЬ СЕРВЕРА ====================
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
@@ -2299,27 +2186,16 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🛒 Товаров: ${db.shop_items.length}`);
     console.log(`👥 Пользователей: ${db.users.length}`);
     console.log('✅ Все системы работают!');
-});
-
-// ==================== ДЕБАГ ИНФОРМАЦИЯ ====================
-
-console.log('\n=== 🎯 ДЕБАГ ИНФОРМАЦИЯ ===');
-console.log('👥 Текущие админы в системе:');
-db.admins.forEach(admin => {
-    console.log(`   - ID: ${admin.user_id}, Роль: ${admin.role}, Имя: ${admin.username}`);
-});
-console.log('👤 Все пользователи в системе:');
-db.users.slice(0, 5).forEach(user => { // Покажем первые 5 пользователей
-    console.log(`   - ID: ${user.user_id}, Имя: ${user.tg_first_name}, Зарегистрирован: ${user.is_registered}`);
-});
-console.log('==============================\n');
-
-// Простая функция для тестирования API
-app.get('/api/debug/admins', (req, res) => {
-    res.json({
-        total_admins: db.admins.length,
-        admins: db.admins,
-        total_users: db.users.length,
-        sample_users: db.users.slice(0, 3).map(u => ({ id: u.user_id, name: u.tg_first_name }))
+    
+    // 🔥 ДОБАВЬТЕ ЭТОТ ВЫВОД ДЛЯ ПРОВЕРКИ:
+    console.log('\n=== 🎯 ДЕБАГ ИНФОРМАЦИЯ ===');
+    console.log('👥 Текущие админы в системе:');
+    db.admins.forEach(admin => {
+        console.log(`   - ID: ${admin.user_id}, Роль: ${admin.role}, Имя: ${admin.username}`);
     });
+    console.log('👤 Все пользователи в системе:');
+    db.users.slice(0, 5).forEach(user => {
+        console.log(`   - ID: ${user.user_id}, Имя: ${user.tg_first_name}, Зарегистрирован: ${user.is_registered}`);
+    });
+    console.log('==============================\n');
 });
