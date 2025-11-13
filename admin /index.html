@@ -1698,79 +1698,32 @@ audio {
         let currentModerationTab = 'works';
         let interactiveImageData = null;
 
-        // Инициализация админ панели - ИСПРАВЛЕННАЯ ВЕРСИЯ
-async function initAdminPanel() {
-    // Получаем ID пользователя из URL параметров
-    const urlParams = new URLSearchParams(window.location.search);
-    currentUserId = urlParams.get('userId');
-    
-    if (!currentUserId) {
-        showLoginForm();
-        return;
-    }
-    
-    // Проверяем права доступа
-    try {
-        const response = await fetch(`/api/admin/check-access?userId=${currentUserId}`);
-        if (response.ok) {
-            const accessData = await response.json();
-            currentAdmin = accessData.admin;
+        // Инициализация админ панели
+        async function initAdminPanel() {
+            // Получаем ID пользователя из URL параметров
+            const urlParams = new URLSearchParams(window.location.search);
+            currentUserId = urlParams.get('userId');
             
-            document.getElementById('adminId').textContent = currentUserId;
+            if (!currentUserId) {
+                showLoginForm();
+                return;
+            }
             
-            // ОБНОВЛЯЕМ ИНТЕРФЕЙС В ЗАВИСИМОСТИ ОТ ПРАВ
-            updateUIForPermissions(accessData.permissions);
-            
-            loadAllData();
-        } else {
-            showLoginForm();
-        }
-    } catch (error) {
-        showLoginForm();
-    }
-}
-
-// Обновление интерфейса в зависимости от прав доступа
-function updateUIForPermissions(permissions) {
-    console.log("🔐 Обновление интерфейса для прав:", permissions);
-    
-    // Список всех вкладок и требуемых прав
-    const tabPermissions = {
-        'dashboard': ['view_dashboard'],
-        'users': ['view_users', 'manage_users'],
-        'roles': ['manage_roles'],
-        'characters': ['manage_characters'],
-        'quizzes': ['manage_quizzes'],
-        'marathons': ['manage_marathons'],
-        'interactives': ['manage_interactives'],
-        'shop': ['manage_shop'],
-        'posts': ['manage_posts'],
-        'moderation': ['moderate_content'],
-        'admins': ['manage_admins']
-    };
-    
-    // Проверяем каждую вкладку
-    Object.entries(tabPermissions).forEach(([tabName, requiredPermissions]) => {
-        const navTab = document.querySelector(`.nav-tab[onclick*="${tabName}"]`);
-        
-        if (navTab) {
-            const hasAccess = requiredPermissions.some(perm => permissions.includes(perm));
-            
-            if (hasAccess) {
-                // Разрешаем доступ - убираем серый цвет
-                navTab.style.opacity = '1';
-                navTab.style.pointerEvents = 'auto';
-                navTab.title = ''; // Убираем подсказку о запрете
-            } else {
-                // Запрещаем доступ - серый цвет и блокировка
-                navTab.style.opacity = '0.5';
-                navTab.style.pointerEvents = 'none';
-                navTab.title = 'Недостаточно прав доступа';
-                console.log(`❌ Заблокирована вкладка: ${tabName}`);
+            // Проверяем права доступа
+            try {
+                const response = await fetch(`/api/admin/stats?userId=${currentUserId}`);
+                if (response.ok) {
+                    currentAdmin = { user_id: currentUserId };
+                    document.getElementById('adminId').textContent = currentUserId;
+                    loadAllData();
+                } else {
+                    showLoginForm();
+                }
+            } catch (error) {
+                showLoginForm();
             }
         }
-    });
-}
+
         // Показать форму логина
         function showLoginForm() {
             document.body.innerHTML = `
