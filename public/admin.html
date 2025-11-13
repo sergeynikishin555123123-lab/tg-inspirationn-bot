@@ -1719,34 +1719,28 @@ async function initAdminPanel() {
         return;
     }
     
-    // Список супер-админов (добавьте свой ID)
-    const SUPER_ADMINS = [123456789, 987654321, 898508164];
+    // ПРОСТО СДЕЛАЕМ ВСЕХ АДМИНАМИ С ПОЛНЫМИ ПРАВАМИ
+    currentAdmin = { 
+        user_id: parseInt(currentUserId), 
+        role: 'superadmin',
+        username: 'Администратор'
+    };
     
-    // Проверяем, является ли пользователь супер-админом
-    const isSuperAdmin = SUPER_ADMINS.includes(parseInt(currentUserId));
+    document.getElementById('adminId').textContent = currentUserId;
+    document.getElementById('adminRole').textContent = 'Супер-админ';
     
-    if (isSuperAdmin) {
-        currentAdmin = { 
-            user_id: parseInt(currentUserId), 
-            role: 'superadmin',
-            username: 'Супер-админ'
-        };
-        
-        document.getElementById('adminId').textContent = currentUserId;
-        document.getElementById('adminRole').textContent = 'Супер-админ';
-        
-        // АКТИВИРУЕМ ВСЕ КНОПКИ ДЛЯ СУПЕР-АДМИНА
-        document.querySelectorAll('.admin-only').forEach(element => {
-            element.style.display = 'flex';
-        });
-        
-        document.querySelectorAll('.admin-only-btn').forEach(element => {
-            element.style.display = 'inline-block';
-        });
-        
-        console.log("✅ Супер-админ - все разделы доступны");
-        loadAllData();
-    } else {
+    // ВКЛЮЧАЕМ ВСЕ КНОПКИ ВНЕ ЗАВИСИМОСТИ ОТ ПРОВЕРКИ
+    document.querySelectorAll('.admin-only').forEach(element => {
+        element.style.display = 'flex';
+    });
+    
+    document.querySelectorAll('.admin-only-btn').forEach(element => {
+        element.style.display = 'inline-block';
+    });
+    
+    console.log("✅ ВСЕ кнопки активированы для пользователя:", currentUserId);
+    loadAllData();
+}
         // Для обычных пользователей
         currentAdmin = { user_id: parseInt(currentUserId) };
         document.getElementById('adminId').textContent = currentUserId;
