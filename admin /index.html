@@ -1698,53 +1698,44 @@ audio {
         let currentModerationTab = 'works';
         let interactiveImageData = null;
 
-        // Инициализация админ панели
-        async function initAdminPanel() {
-            // Получаем ID пользователя из URL параметров
-            const urlParams = new URLSearchParams(window.location.search);
-            currentUserId = urlParams.get('userId');
-            
-            if (!currentUserId) {
-                showLoginForm();
-                return;
-            }
-            
-            // Проверяем права доступа
-            try {
-                const response = await fetch(`/api/admin/stats?userId=${currentUserId}`);
-                if (response.ok) {
-                    currentAdmin = { user_id: currentUserId };
-                    document.getElementById('adminId').textContent = currentUserId;
-                    loadAllData();
-                } else {
-                    showLoginForm();
-                }
-            } catch (error) {
-                showLoginForm();
-            }
-        }
+        // САМЫЙ ПРОСТОЙ КОД - ВСЕ АДМИНЫ ВИДЯТ ВСЁ
+async function initAdminPanel() {
+    console.log("🚀 Загрузка админ-панели");
+    
+    // Получаем ID из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    currentUserId = urlParams.get('userId');
+    
+    // Если нет ID, показываем ошибку
+    if (!currentUserId) {
+        document.body.innerHTML = `
+            <div class="admin-login">
+                <h1>❌ Ошибка</h1>
+                <p>Не указан ID пользователя</p>
+                <p style="color: #718096; font-size: 14px;">
+                    Добавьте ?userId=ВАШ_ID к URL
+                </p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Просто записываем ID и загружаем админку
+    currentAdmin = { user_id: currentUserId };
+    document.getElementById('adminId').textContent = currentUserId;
+    
+    // ВСЕ КНОПКИ АКТИВНЫ ВСЕГДА
+    console.log("✅ Все разделы доступны");
+    
+    // Загружаем данные
+    loadAllData();
+}
 
-        // Показать форму логина
-        function showLoginForm() {
-            document.body.innerHTML = `
-                <div class="admin-login">
-                    <h1>🔐 Вход в админ панель</h1>
-                    <p style="color: #718096; margin-bottom: 30px;">Для доступа требуется авторизация</p>
-                    
-                    <div class="form-group">
-                        <label class="form-label">ID администратора:</label>
-                        <input type="number" id="loginUserId" class="form-control" placeholder="Введите ваш ID">
-                    </div>
-                    
-                    <button class="btn" onclick="attemptLogin()">🚀 Войти</button>
-                    
-                    <div class="message info" style="margin-top: 20px; text-align: left;">
-                        <strong>💡 Информация:</strong><br>
-                        ID администратора можно получить в боте Telegram командой /admin
-                    </div>
-                </div>
-            `;
-        }
+// Убираем форму логина
+function showLoginForm() {
+    // Просто запускаем админку
+    initAdminPanel();
+}
 
         // Попытка входа
         async function attemptLogin() {
