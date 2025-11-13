@@ -2300,3 +2300,26 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`👥 Пользователей: ${db.users.length}`);
     console.log('✅ Все системы работают!');
 });
+
+// ==================== ДЕБАГ ИНФОРМАЦИЯ ====================
+
+console.log('\n=== 🎯 ДЕБАГ ИНФОРМАЦИЯ ===');
+console.log('👥 Текущие админы в системе:');
+db.admins.forEach(admin => {
+    console.log(`   - ID: ${admin.user_id}, Роль: ${admin.role}, Имя: ${admin.username}`);
+});
+console.log('👤 Все пользователи в системе:');
+db.users.slice(0, 5).forEach(user => { // Покажем первые 5 пользователей
+    console.log(`   - ID: ${user.user_id}, Имя: ${user.tg_first_name}, Зарегистрирован: ${user.is_registered}`);
+});
+console.log('==============================\n');
+
+// Простая функция для тестирования API
+app.get('/api/debug/admins', (req, res) => {
+    res.json({
+        total_admins: db.admins.length,
+        admins: db.admins,
+        total_users: db.users.length,
+        sample_users: db.users.slice(0, 3).map(u => ({ id: u.user_id, name: u.tg_first_name }))
+    });
+});
