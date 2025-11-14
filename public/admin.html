@@ -1775,31 +1775,82 @@ function showLoginForm() {
         }
 
         // Показать вкладку
-        function showTab(tabName) {
-            // Скрыть все вкладки
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Убрать активный класс со всех кнопок
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Показать выбранную вкладку
-            document.getElementById(tabName).classList.add('active');
-            
-            // Активировать соответствующую кнопку
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                if (tab.textContent.includes(getTabIcon(tabName))) {
-                    tab.classList.add('active');
-                }
-            });
-            
-            // Скрыть все формы
-            hideAllForms();
+function showTab(tabName) {
+    console.log(`🎯 Переключение на вкладку: ${tabName}`);
+    
+    // Скрыть все вкладки
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Убрать активный класс со всех кнопок
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Показать выбранную вкладку
+    const targetTab = document.getElementById(tabName);
+    if (targetTab) {
+        targetTab.classList.add('active');
+    } else {
+        console.error(`❌ Вкладка ${tabName} не найдена`);
+        return;
+    }
+    
+    // Активировать соответствующую кнопку
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        if (tab.textContent.includes(getTabIcon(tabName))) {
+            tab.classList.add('active');
         }
+    });
+    
+    // Скрыть все формы
+    hideAllForms();
+    
+    // ЗАГРУЗКА ДАННЫХ ДЛЯ КОНКРЕТНОЙ ВКЛАДКИ
+    loadTabData(tabName);
+}
 
+// НОВАЯ ФУНКЦИЯ: Загрузка данных для конкретной вкладки
+function loadTabData(tabName) {
+    console.log(`📥 Загрузка данных для: ${tabName}`);
+    
+    switch(tabName) {
+        case 'admins':
+            loadAdmins();
+            break;
+        case 'moderation':
+            loadModerationData();
+            break;
+        case 'posts':
+            loadPosts();
+            break;
+        case 'users':
+            loadUsers();
+            break;
+        case 'roles':
+            loadRoles();
+            break;
+        case 'characters':
+            loadCharacters();
+            break;
+        case 'quizzes':
+            loadQuizzes();
+            break;
+        case 'marathons':
+            loadMarathons();
+            break;
+        case 'interactives':
+            loadInteractives();
+            break;
+        case 'shop':
+            loadShopItems();
+            break;
+        default:
+            console.log(`ℹ️  Для вкладки ${tabName} не требуется загрузка данных`);
+    }
+}
+        
         // Получить иконку для вкладки
         function getTabIcon(tabName) {
             const icons = {
@@ -4409,25 +4460,52 @@ function hideShopItemForm() {
 
         // ==================== АДМИНЫ ====================
 
-        // Загрузка администраторов
+               // Загрузка администраторов
         async function loadAdmins() {
+            console.log("🔄 Загрузка списка администраторов...");
+            
             try {
+                const adminsList = document.getElementById('adminsList');
+                adminsList.innerHTML = '<div class="loading">Загрузка администраторов...</div>';
+                
                 const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                
                 const admins = await response.json();
+                console.log("✅ Админы загружены:", admins);
                 
                 displayAdmins(admins);
                 
             } catch (error) {
-                document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов</div>';
+                console.error('❌ Ошибка загрузки администраторов:', error);
+                document.getElementById('adminsList').innerHTML = `
+                    <div class="message error">
+                        ❌ Ошибка загрузки администраторов: ${error.message}
+                        <button class="btn btn-info" onclick="loadAdmins()" style="margin-top: 8px;">
+                            🔄 Повторить загрузку
+                        </button>
+                    </div>
+                `;
             }
         }
 
-        // Отображение администраторов
+              // Отображение администраторов
         function displayAdmins(admins) {
             const adminsList = document.getElementById('adminsList');
             
-            if (admins.length === 0) {
-                adminsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔧</div><div>Администраторов не найдено</div></div>';
+            if (!admins || admins.length === 0) {
+                adminsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔧</div>
+                        <div>Администраторов не найдено</div>
+                        <button class="btn btn-success" onclick="showAdminForm()" style="margin-top: 16px;">
+                            ➕ Добавить первого админа
+                        </button>
+                    </div>
+                `;
                 return;
             }
             
@@ -4436,17 +4514,27 @@ function hideShopItemForm() {
             admins.forEach(admin => {
                 const roleBadges = {
                     'moderator': 'badge-info',
-                    'admin': 'badge-warning',
+                    'admin': 'badge-warning', 
                     'superadmin': 'badge-danger'
+                };
+                
+                const roleTexts = {
+                    'moderator': 'Модератор',
+                    'admin': 'Администратор',
+                    'superadmin': 'Супер-админ'
                 };
                 
                 html += `
                     <div class="admin-card">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                             <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${admin.username || `Пользователь ${admin.user_id}`}</h3>
+                                <h3 style="margin: 0 0 8px 0;">
+                                    ${admin.username || `Пользователь ${admin.user_id}`}
+                                </h3>
                                 <div style="margin-bottom: 12px;">
-                                    <span class="badge ${roleBadges[admin.role]}">${admin.role}</span>
+                                    <span class="badge ${roleBadges[admin.role] || 'badge-secondary'}">
+                                        ${roleTexts[admin.role] || admin.role}
+                                    </span>
                                     <span class="badge badge-secondary">ID: ${admin.user_id}</span>
                                 </div>
                             </div>
@@ -4456,11 +4544,13 @@ function hideShopItemForm() {
                         </div>
                         ${admin.user_id != currentUserId ? `
                             <div class="action-buttons">
-                                <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">🗑️ Удалить</button>
+                                <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">
+                                    🗑️ Удалить
+                                </button>
                             </div>
                         ` : `
                             <div style="color: #718096; font-style: italic;">
-                                Это ваша учетная запись
+                                👆 Это ваша учетная запись
                             </div>
                         `}
                     </div>
