@@ -1698,12 +1698,15 @@ audio {
         let currentModerationTab = 'works';
         let interactiveImageData = null;
 
+        // САМЫЙ ПРОСТОЙ КОД - ВСЕ АДМИНЫ ВИДЯТ ВСЁ
 async function initAdminPanel() {
     console.log("🚀 Загрузка админ-панели");
     
+    // Получаем ID из URL
     const urlParams = new URLSearchParams(window.location.search);
     currentUserId = urlParams.get('userId');
     
+    // Если нет ID, показываем ошибку
     if (!currentUserId) {
         document.body.innerHTML = `
             <div class="admin-login">
@@ -1717,40 +1720,21 @@ async function initAdminPanel() {
         return;
     }
     
-    // Проверяем права пользователя
-    const userData = ADMIN_USERS[currentUserId];
+    // Просто записываем ID и загружаем админку
+    currentAdmin = { user_id: currentUserId };
+    document.getElementById('adminId').textContent = currentUserId;
     
-    if (userData) {
-        currentAdmin = {
-            user_id: parseInt(currentUserId),
-            role: userData.role,
-            username: userData.username
-        };
-        
-        document.getElementById('adminId').textContent = currentUserId;
-        document.getElementById('adminRole').textContent = userData.role === 'superadmin' ? 'Супер-админ' : 
-                                                          userData.role === 'admin' ? 'Администратор' : 'Модератор';
-        
-        // Включаем кнопки в зависимости от роли
-        if (userData.role === 'superadmin' || userData.role === 'admin') {
-            document.querySelectorAll('.admin-only').forEach(element => {
-                element.style.display = 'flex';
-            });
-            document.querySelectorAll('.admin-only-btn').forEach(element => {
-                element.style.display = 'inline-block';
-            });
-        }
-        
-        console.log(`✅ ${userData.username} - доступ разрешен`);
-    } else {
-        // Обычный пользователь
-        currentAdmin = { user_id: parseInt(currentUserId) };
-        document.getElementById('adminId').textContent = currentUserId;
-        document.getElementById('adminRole').textContent = 'Пользователь';
-        console.log("⚠️ Обычный пользователь - ограниченный доступ");
-    }
+    // ВСЕ КНОПКИ АКТИВНЫ ВСЕГДА
+    console.log("✅ Все разделы доступны");
     
+    // Загружаем данные
     loadAllData();
+}
+
+// Убираем форму логина
+function showLoginForm() {
+    // Просто запускаем админку
+    initAdminPanel();
 }
 
         // Попытка входа
@@ -1790,90 +1774,49 @@ async function initAdminPanel() {
             await loadMarathonSubmissions();
         }
 
-       // ==================== ПОКАЗ ВКЛАДОК ====================
-
-// Показать вкладку
-function showTab(tabName) {
-    // Скрыть все вкладки
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Убрать активный класс со всех кнопок
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Показать выбранную вкладку
-    document.getElementById(tabName).classList.add('active');
-    
-    // Активировать соответствующую кнопку
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        if (tab.textContent.includes(getTabIcon(tabName))) {
-            tab.classList.add('active');
+        // Показать вкладку
+        function showTab(tabName) {
+            // Скрыть все вкладки
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Убрать активный класс со всех кнопок
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Показать выбранную вкладку
+            document.getElementById(tabName).classList.add('active');
+            
+            // Активировать соответствующую кнопку
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                if (tab.textContent.includes(getTabIcon(tabName))) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // Скрыть все формы
+            hideAllForms();
         }
-    });
-    
-    // Скрыть все формы
-    hideAllForms();
-    
-    // ЗАГРУЗКА ДАННЫХ ДЛЯ КОНКРЕТНОЙ ВКЛАДКИ
-    loadTabData(tabName);
-}
 
-// НОВАЯ ФУНКЦИЯ: Загрузка данных для конкретной вкладки
-function loadTabData(tabName) {
-    switch(tabName) {
-        case 'admins':
-            loadAdmins();
-            break;
-        case 'moderation':
-            loadModerationData();
-            break;
-        case 'posts':
-            loadPosts();
-            break;
-        case 'users':
-            loadUsers();
-            break;
-        case 'roles':
-            loadRoles();
-            break;
-        case 'characters':
-            loadCharacters();
-            break;
-        case 'quizzes':
-            loadQuizzes();
-            break;
-        case 'marathons':
-            loadMarathons();
-            break;
-        case 'interactives':
-            loadInteractives();
-            break;
-        case 'shop':
-            loadShopItems();
-            break;
-    }
-}
-
-       // Получить иконку для вкладки
-function getTabIcon(tabName) {
-    const icons = {
-        'dashboard': '📊',
-        'users': '👥', 
-        'roles': '🎭',
-        'characters': '👤',
-        'quizzes': '🎯',
-        'marathons': '🏃‍♂️',
-        'interactives': '🎮',
-        'shop': '🛒',
-        'posts': '📰',
-        'moderation': '⚖️',
-        'admins': '🔧'
-    };
-    return icons[tabName] || '📄';
-}
+        // Получить иконку для вкладки
+        function getTabIcon(tabName) {
+            const icons = {
+                'dashboard': '📊',
+                'users': '👥',
+                'roles': '🎭',
+                'characters': '👤',
+                'quizzes': '🎯',
+                'marathons': '🏃‍♂️',
+                'interactives': '🎮',
+                'shop': '🛒',
+                'posts': '📰',
+                'moderation': '⚖️',
+                'admins': '🔧'
+            };
+            return icons[tabName] || '📄';
+        }
 
         // Скрыть все формы
         function hideAllForms() {
@@ -3982,31 +3925,18 @@ function hideShopItemForm() {
 
         // ==================== ПОСТЫ ====================
 
-       // Загрузка постов
-async function loadPosts() {
-    console.log("🔄 Загрузка постов...");
-    
-    try {
-        const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
+        // Загрузка постов
+        async function loadPosts() {
+            try {
+                const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
+                const data = await response.json();
+                
+                displayPosts(data.posts);
+                
+            } catch (error) {
+                document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов</div>';
+            }
         }
-        
-        const data = await response.json();
-        console.log("✅ Посты загружены:", data.posts);
-        
-        displayPosts(data.posts);
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки постов:', error);
-        document.getElementById('postsList').innerHTML = `
-            <div class="message error">
-                ❌ Ошибка загрузки постов: ${error.message}
-            </div>
-        `;
-    }
-}
 
         // Отображение постов
         function displayPosts(posts) {
@@ -4480,98 +4410,65 @@ async function loadPosts() {
         // ==================== АДМИНЫ ====================
 
         // Загрузка администраторов
-async function loadAdmins() {
-    console.log("🔄 Загрузка списка администраторов...");
-    
-    try {
-        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
+        async function loadAdmins() {
+            try {
+                const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
+                const admins = await response.json();
+                
+                displayAdmins(admins);
+                
+            } catch (error) {
+                document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов</div>';
+            }
         }
-        
-        const admins = await response.json();
-        console.log("✅ Админы загружены:", admins);
-        
-        displayAdmins(admins);
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки администраторов:', error);
-        document.getElementById('adminsList').innerHTML = `
-            <div class="message error">
-                ❌ Ошибка загрузки администраторов: ${error.message}
-            </div>
-        `;
-    }
-}
 
         // Отображение администраторов
-function displayAdmins(admins) {
-    const adminsList = document.getElementById('adminsList');
-    
-    if (!admins || admins.length === 0) {
-        adminsList.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">🔧</div>
-                <div>Администраторов не найдено</div>
-                <button class="btn btn-success" onclick="showAdminForm()" style="margin-top: 16px;">
-                    ➕ Добавить первого админа
-                </button>
-            </div>
-        `;
-        return;
-    }
-    
-    let html = '';
-    
-    admins.forEach(admin => {
-        const roleBadges = {
-            'moderator': 'badge-info',
-            'admin': 'badge-warning', 
-            'superadmin': 'badge-danger'
-        };
-        
-        const roleTexts = {
-            'moderator': 'Модератор',
-            'admin': 'Администратор',
-            'superadmin': 'Супер-админ'
-        };
-        
-        html += `
-            <div class="admin-card">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                    <div style="flex: 1;">
-                        <h3 style="margin: 0 0 8px 0;">
-                            ${admin.username || `Пользователь ${admin.user_id}`}
-                        </h3>
-                        <div style="margin-bottom: 12px;">
-                            <span class="badge ${roleBadges[admin.role] || 'badge-secondary'}">
-                                ${roleTexts[admin.role] || admin.role}
-                            </span>
-                            <span class="badge badge-secondary">ID: ${admin.user_id}</span>
+        function displayAdmins(admins) {
+            const adminsList = document.getElementById('adminsList');
+            
+            if (admins.length === 0) {
+                adminsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔧</div><div>Администраторов не найдено</div></div>';
+                return;
+            }
+            
+            let html = '';
+            
+            admins.forEach(admin => {
+                const roleBadges = {
+                    'moderator': 'badge-info',
+                    'admin': 'badge-warning',
+                    'superadmin': 'badge-danger'
+                };
+                
+                html += `
+                    <div class="admin-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <h3 style="margin: 0 0 8px 0;">${admin.username || `Пользователь ${admin.user_id}`}</h3>
+                                <div style="margin-bottom: 12px;">
+                                    <span class="badge ${roleBadges[admin.role]}">${admin.role}</span>
+                                    <span class="badge badge-secondary">ID: ${admin.user_id}</span>
+                                </div>
+                            </div>
                         </div>
+                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+                            Добавлен: ${new Date(admin.created_at).toLocaleDateString('ru-RU')}
+                        </div>
+                        ${admin.user_id != currentUserId ? `
+                            <div class="action-buttons">
+                                <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">🗑️ Удалить</button>
+                            </div>
+                        ` : `
+                            <div style="color: #718096; font-style: italic;">
+                                Это ваша учетная запись
+                            </div>
+                        `}
                     </div>
-                </div>
-                <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                    Добавлен: ${new Date(admin.created_at).toLocaleDateString('ru-RU')}
-                </div>
-                ${admin.user_id != currentUserId ? `
-                    <div class="action-buttons">
-                        <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">
-                            🗑️ Удалить
-                        </button>
-                    </div>
-                ` : `
-                    <div style="color: #718096; font-style: italic;">
-                        👆 Это ваша учетная запись
-                    </div>
-                `}
-            </div>
-        `;
-    });
-    
-    adminsList.innerHTML = html;
-}
+                `;
+            });
+            
+            adminsList.innerHTML = html;
+        }
 
         // Показать форму добавления админа
         function showAdminForm() {
@@ -4914,165 +4811,6 @@ document.addEventListener('DOMContentLoaded', function() {
         setupDragAndDrop(previewUploadArea, handleShopItemPreviewUpload);
     }
 });
-
-// ==================== МОДЕРАЦИЯ ====================
-
-// Загрузка данных для модерации
-async function loadModerationData() {
-    console.log("🔄 Загрузка данных модерации...");
-    
-    try {
-        // Загружаем работы для модерации
-        await loadWorksForModeration();
-        
-        // Загружаем отзывы для модерации  
-        await loadReviewsForModeration();
-        
-        // Загружаем работы марафонов
-        await loadMarathonSubmissions();
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки данных модерации:', error);
-    }
-}
-
-// Отображение работ для модерации
-function displayWorksForModeration(works) {
-    const worksList = document.getElementById('worksModerationList');
-    if (!worksList) return;
-    
-    if (!works || works.length === 0) {
-        worksList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🖼️</div><div>Работ нет</div></div>';
-        return;
-    }
-    
-    let html = '';
-    works.forEach(work => {
-        html += `
-            <div class="work-card">
-                <h3 style="margin-bottom: 10px;">${work.title}</h3>
-                <p style="color: #718096; margin-bottom: 15px;">${work.description}</p>
-                <div style="margin-bottom: 15px;">
-                    <span class="badge badge-warning">На модерации</span>
-                    <span class="badge badge-secondary">Автор: ${work.user_name}</span>
-                </div>
-                <div class="moderation-actions">
-                    <button class="btn btn-success" onclick="moderateWork(${work.id}, 'approved')">✅ Одобрить</button>
-                    <button class="btn btn-danger" onclick="moderateWork(${work.id}, 'rejected')">❌ Отклонить</button>
-                </div>
-            </div>
-        `;
-    });
-    
-    worksList.innerHTML = html;
-}
-
-// Отображение отзывов для модерации
-function displayReviewsForModeration(reviews) {
-    const reviewsList = document.getElementById('reviewsModerationList');
-    if (!reviewsList) return;
-    
-    if (!reviews || reviews.length === 0) {
-        reviewsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💬</div><div>Отзывов нет</div></div>';
-        return;
-    }
-    
-    let html = '';
-    reviews.forEach(review => {
-        html += `
-            <div class="review-card">
-                <h3 style="margin-bottom: 10px;">Отзыв: "${review.post_title}"</h3>
-                <div class="review-text">${review.review_text}</div>
-                <div style="margin: 15px 0;">
-                    <span class="badge badge-warning">На модерации</span>
-                    <span class="badge badge-info">Рейтинг: ${'★'.repeat(review.rating)}</span>
-                    <span class="badge badge-secondary">Автор: ${review.tg_first_name}</span>
-                </div>
-                <div class="moderation-actions">
-                    <button class="btn btn-success" onclick="moderateReview(${review.id}, 'approved')">✅ Одобрить</button>
-                    <button class="btn btn-danger" onclick="moderateReview(${review.id}, 'rejected')">❌ Отклонить</button>
-                </div>
-            </div>
-        `;
-    });
-    
-    reviewsList.innerHTML = html;
-}
-
-// Модерация работы
-async function moderateWork(workId, status) {
-    showMessage(`🔄 Модерация работы #${workId}...`, 'info');
-    
-    // Имитация API запроса
-    setTimeout(() => {
-        showMessage(`✅ Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`, 'success');
-        // Перезагружаем данные
-        loadModerationData();
-    }, 1000);
-}
-
-// Модерация отзыва
-async function moderateReview(reviewId, status) {
-    showMessage(`🔄 Модерация отзыва #${reviewId}...`, 'info');
-    
-    // Имитация API запроса
-    setTimeout(() => {
-        showMessage(`✅ Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`, 'success');
-        // Перезагружаем данные
-        loadModerationData();
-    }, 1000);
-}
-
-// Загрузка работ марафонов (заглушка)
-async function loadMarathonSubmissions() {
-    const submissionsList = document.getElementById('marathonSubmissionsList');
-    if (submissionsList) {
-        submissionsList.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">🏃‍♂️</div>
-                <div>Работ марафонов пока нет</div>
-            </div>
-        `;
-    }
-}
-
-// ==================== ИНИЦИАЛИЗАЦИЯ ПЕРЕТАСКИВАНИЯ ====================
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Инициализация перетаскивания для всех upload areas
-    initDragAndDrop();
-});
-
-function initDragAndDrop() {
-    const uploadAreas = document.querySelectorAll('.image-upload-area');
-    
-    uploadAreas.forEach(uploadArea => {
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, preventDefaults, false);
-        });
-        
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, highlight, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, unhighlight, false);
-        });
-        
-        function highlight() {
-            uploadArea.classList.add('dragover');
-        }
-        
-        function unhighlight() {
-            uploadArea.classList.remove('dragover');
-        }
-    });
-}
         
     </script>
 </body>
