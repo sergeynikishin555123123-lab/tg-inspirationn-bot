@@ -4460,7 +4460,7 @@ function hideShopItemForm() {
 
         // ==================== АДМИНЫ ====================
 
-           // Загрузка администраторов
+          // Загрузка администраторов
 async function loadAdmins() {
     console.log("🔄 Загрузка списка администраторов...");
     
@@ -4470,30 +4470,24 @@ async function loadAdmins() {
         
         const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
         
-        console.log("📥 Ответ сервера:", response.status, response.statusText);
-        
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Ошибка HTTP:', response.status, errorText);
-            throw new Error(`HTTP error ${response.status}: ${errorText}`);
+            throw new Error(`HTTP error ${response.status}`);
         }
         
-        const admins = await response.json();
-        console.log("✅ Админы загружены:", admins);
+        const data = await response.json();
+        console.log("✅ Данные получены:", data);
         
-        // Проверяем структуру ответа
-        if (Array.isArray(admins)) {
-            displayAdmins(admins);
-        } else if (admins && Array.isArray(admins.admins)) {
-            // Если ответ в формате {admins: [...]}
-            displayAdmins(admins.admins);
-        } else if (admins && admins.success !== undefined) {
-            // Если ответ в формате {success: true, admins: [...]}
-            displayAdmins(admins.admins || []);
+        // Обрабатываем разные форматы ответа
+        let admins = [];
+        if (Array.isArray(data)) {
+            admins = data;
+        } else if (data && Array.isArray(data.admins)) {
+            admins = data.admins;
         } else {
-            console.warn("⚠️ Неожиданный формат ответа:", admins);
-            displayAdmins(admins || []);
+            admins = data || [];
         }
+        
+        displayAdmins(admins);
         
     } catch (error) {
         console.error('❌ Ошибка загрузки администраторов:', error);
