@@ -4919,49 +4919,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Загрузка данных для модерации
 async function loadModerationData() {
-    console.log("Загрузка данных модерации...");
+    console.log("🔄 Загрузка данных модерации...");
     
     try {
-        // Данные для работ
-        const worksData = [
-            {
-                id: 1,
-                title: "Моя первая картина",
-                description: "Акварельный пейзаж",
-                image_url: "",
-                status: "pending",
-                user_name: "Иван Петров",
-                created_at: new Date().toISOString()
-            },
-            {
-                id: 2, 
-                title: "Портрет друга",
-                description: "Графитный карандаш",
-                image_url: "",
-                status: "pending",
-                user_name: "Мария Сидорова",
-                created_at: new Date().toISOString()
-            }
-        ];
+        // Загружаем работы для модерации
+        await loadWorksForModeration();
         
-        // Данные для отзывов
-        const reviewsData = [
-            {
-                id: 1,
-                post_title: "Основы композиции",
-                review_text: "Отличный материал, очень помог!",
-                rating: 5,
-                status: "pending",
-                tg_first_name: "Алексей",
-                created_at: new Date().toISOString()
-            }
-        ];
+        // Загружаем отзывы для модерации  
+        await loadReviewsForModeration();
         
-        displayWorksForModeration(worksData);
-        displayReviewsForModeration(reviewsData);
+        // Загружаем работы марафонов
+        await loadMarathonSubmissions();
         
     } catch (error) {
-        console.error('Ошибка загрузки данных модерации:', error);
+        console.error('❌ Ошибка загрузки данных модерации:', error);
     }
 }
 
