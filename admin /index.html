@@ -4811,7 +4811,63 @@ document.addEventListener('DOMContentLoaded', function() {
         setupDragAndDrop(previewUploadArea, handleShopItemPreviewUpload);
     }
 });
+
+// ==================== ИНИЦИАЛИЗАЦИЯ ПЕРЕТАСКИВАНИЯ ====================
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🎯 Инициализация админ-панели...");
+    
+    // Инициализация перетаскивания для всех upload areas
+    initDragAndDrop();
+});
+
+function initDragAndDrop() {
+    const uploadAreas = document.querySelectorAll('.image-upload-area');
+    
+    uploadAreas.forEach(uploadArea => {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            uploadArea.classList.add('dragover');
+        }
+        
+        function unhighlight() {
+            uploadArea.classList.remove('dragover');
+        }
+    });
+}
+
+// Обработка ошибок API
+function handleApiError(error, elementId) {
+    console.error('❌ API Error:', error);
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = `
+            <div class="message error">
+                ❌ Ошибка загрузки: ${error.message}
+                <button class="btn btn-info" onclick="location.reload()" style="margin-top: 8px;">
+                    🔄 Обновить страницу
+                </button>
+            </div>
+        `;
+    }
+}
         
     </script>
 </body>
-</html> 
+</html>
