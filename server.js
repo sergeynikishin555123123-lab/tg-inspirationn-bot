@@ -1087,6 +1087,389 @@ app.post('/api/webapp/compliment-challenge', (req, res) => {
     });
 });
 
+// ==================== ADMIN API ENDPOINTS ====================
+
+// Получить всех пользователей
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+    const users = db.users.map(user => {
+        const stats = getUserStats(user.user_id);
+        return {
+            ...user,
+            stats: stats
+        };
+    });
+    
+    res.json({ users });
+});
+
+// Получить все роли
+app.get('/api/admin/roles', requireAdmin, (req, res) => {
+    res.json({ roles: db.roles });
+});
+
+// Создать/обновить роль
+app.post('/api/admin/roles', requireAdmin, (req, res) => {
+    const { name, description, icon, is_active } = req.body;
+    
+    if (!name) {
+        return res.status(400).json({ error: 'Role name is required' });
+    }
+    
+    const newRole = {
+        id: Date.now(),
+        name,
+        description: description || '',
+        icon: icon || '🎭',
+        available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+        is_active: is_active !== undefined ? is_active : true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.roles.push(newRole);
+    
+    res.json({ success: true, role: newRole });
+});
+
+// Получить всех персонажей
+app.get('/api/admin/characters', requireAdmin, (req, res) => {
+    const characters = db.characters.map(character => {
+        const role = db.roles.find(r => r.id === character.role_id);
+        return {
+            ...character,
+            role_name: role ? role.name : 'Unknown'
+        };
+    });
+    
+    res.json({ characters });
+});
+
+// Создать/обновить персонажа
+app.post('/api/admin/characters', requireAdmin, (req, res) => {
+    const { role_id, name, description, bonus_type, bonus_value, is_active } = req.body;
+    
+    if (!role_id || !name) {
+        return res.status(400).json({ error: 'Role ID and name are required' });
+    }
+    
+    const newCharacter = {
+        id: Date.now(),
+        role_id: parseInt(role_id),
+        name,
+        description: description || '',
+        bonus_type: bonus_type || 'percent_bonus',
+        bonus_value: bonus_value || '0',
+        is_active: is_active !== undefined ? is_active : true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.characters.push(newCharacter);
+    
+    res.json({ success: true, character: newCharacter });
+});
+
+// Получить все квизы
+app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
+    res.json({ quizzes: db.quizzes });
+});
+
+// Создать/обновить квиз
+app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
+    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake, is_active } = req.body;
+    
+    if (!title || !questions || !Array.isArray(questions)) {
+        return res.status(400).json({ error: 'Title and questions array are required' });
+    }
+    
+    const newQuiz = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        questions: questions.map(q => ({
+            question: q.question,
+            options: q.options,
+            correctAnswer: parseInt(q.correctAnswer)
+        })),
+        sparks_per_correct: parseFloat(sparks_per_correct) || 1,
+        sparks_perfect_bonus: parseFloat(sparks_perfect_bonus) || 5,
+        cooldown_hours: parseInt(cooldown_hours) || 24,
+        allow_retake: allow_retake !== undefined ? allow_retake : true,
+        is_active: is_active !== undefined ? is_active : true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.quizzes.push(newQuiz);
+    
+    res.json({ success: true, quiz: newQuiz });
+});
+
+// Получить все марафоны
+app.get('/api/admin/marathons', requireAdmin, (req, res) => {
+    res.json({ marathons: db.marathons });
+});
+
+// Создать/обновить марафон
+app.post('/api/admin/marathons', requireAdmin, (req, res) => {
+    const { title, description, duration_days, tasks, sparks_per_day, is_active } = req.body;
+    
+    if (!title || !duration_days || !tasks || !Array.isArray(tasks)) {
+        return res.status(400).json({ error: 'Title, duration and tasks array are required' });
+    }
+    
+    const newMarathon = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        duration_days: parseInt(duration_days),
+        tasks: tasks.map(t => ({
+            day: parseInt(t.day),
+            title: t.title,
+            description: t.description,
+            requires_submission: t.requires_submission !== undefined ? t.requires_submission : false,
+            submission_type: t.submission_type || 'text'
+        })),
+        sparks_per_day: parseFloat(sparks_per_day) || 7,
+        is_active: is_active !== undefined ? is_active : true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.marathons.push(newMarathon);
+    
+    res.json({ success: true, marathon: newMarathon });
+});
+
+// Получить все интерактивы
+app.get('/api/admin/interactives', requireAdmin, (req, res) => {
+    res.json({ interactives: db.interactives });
+});
+
+// Создать/обновить интерактив
+app.post('/api/admin/interactives', requireAdmin, (req, res) => {
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
+    
+    if (!title || !question || !options || !Array.isArray(options)) {
+        return res.status(400).json({ error: 'Title, question and options array are required' });
+    }
+    
+    const newInteractive = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        type: type || 'guess_era',
+        category: category || 'art',
+        image_url: image_url || '',
+        question,
+        options,
+        correct_answer: parseInt(correct_answer) || 0,
+        sparks_reward: parseFloat(sparks_reward) || 3,
+        allow_retake: allow_retake !== undefined ? allow_retake : false,
+        is_active: is_active !== undefined ? is_active : true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.interactives.push(newInteractive);
+    
+    res.json({ success: true, interactive: newInteractive });
+});
+
+// Получить все товары магазина
+app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
+    res.json({ items: db.shop_items });
+});
+
+// Создать/обновить товар
+app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
+    const { title, description, type, file_url, preview_url, price, content_text, is_active } = req.body;
+    
+    if (!title || !price) {
+        return res.status(400).json({ error: 'Title and price are required' });
+    }
+    
+    const newItem = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        type: type || 'text',
+        file_url: file_url || '',
+        preview_url: preview_url || '',
+        price: parseFloat(price) || 10,
+        content_text: content_text || '',
+        is_active: is_active !== undefined ? is_active : true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.shop_items.push(newItem);
+    
+    res.json({ success: true, item: newItem });
+});
+
+// Получить все посты
+app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
+    res.json({ posts: db.channel_posts });
+});
+
+// Создать/обновить пост
+app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
+    const { post_id, title, content, image_url, video_url, media_type, is_active } = req.body;
+    
+    if (!post_id || !title || !content) {
+        return res.status(400).json({ error: 'Post ID, title and content are required' });
+    }
+    
+    const newPost = {
+        id: Date.now(),
+        post_id,
+        title,
+        content,
+        image_url: image_url || '',
+        video_url: video_url || null,
+        media_type: media_type || 'text',
+        admin_id: req.admin.user_id,
+        is_active: is_active !== undefined ? is_active : true,
+        created_at: new Date().toISOString(),
+        telegram_message_id: null,
+        action_type: null,
+        action_target: null
+    };
+    
+    db.channel_posts.push(newPost);
+    
+    res.json({ success: true, post: newPost });
+});
+
+// Получить всех админов
+app.get('/api/admin/admins', requireAdmin, (req, res) => {
+    res.json({ admins: db.admins });
+});
+
+// Добавить админа
+app.post('/api/admin/admins', requireAdmin, (req, res) => {
+    const { user_id, username, role } = req.body;
+    
+    if (!user_id) {
+        return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    const existingAdmin = db.admins.find(a => a.user_id == user_id);
+    if (existingAdmin) {
+        return res.status(400).json({ error: 'Admin already exists' });
+    }
+    
+    const newAdmin = {
+        id: Date.now(),
+        user_id: parseInt(user_id),
+        username: username || null,
+        role: role || 'moderator',
+        created_at: new Date().toISOString()
+    };
+    
+    db.admins.push(newAdmin);
+    
+    res.json({ success: true, admin: newAdmin });
+});
+
+// Получить работы для модерации
+app.get('/api/admin/works/moderation', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    let works = db.user_works;
+    if (status !== 'all') {
+        works = works.filter(work => work.status === status);
+    }
+    
+    // Добавляем информацию о пользователе
+    const worksWithUser = works.map(work => {
+        const user = db.users.find(u => u.user_id === work.user_id);
+        return {
+            ...work,
+            user_name: user ? user.tg_first_name : 'Unknown',
+            user_role: user ? user.class : 'Unknown'
+        };
+    });
+    
+    res.json({ works: worksWithUser });
+});
+
+// Обновить статус работы
+app.post('/api/admin/works/:workId/status', requireAdmin, (req, res) => {
+    const workId = parseInt(req.params.workId);
+    const { status, admin_comment } = req.body;
+    
+    const work = db.user_works.find(w => w.id === workId);
+    if (!work) {
+        return res.status(404).json({ error: 'Work not found' });
+    }
+    
+    work.status = status;
+    work.moderated_at = new Date().toISOString();
+    work.moderator_id = req.admin.user_id;
+    work.admin_comment = admin_comment || null;
+    
+    // Если работа одобрена, начисляем искры
+    if (status === 'approved') {
+        addSparks(work.user_id, 15, 'work_approved', `Работа одобрена: ${work.title}`);
+    }
+    
+    res.json({ success: true, work });
+});
+
+// Получить отзывы для модерации
+app.get('/api/admin/reviews/moderation', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    let reviews = db.post_reviews;
+    if (status !== 'all') {
+        reviews = reviews.filter(review => review.status === status);
+    }
+    
+    // Добавляем информацию о пользователе и посте
+    const reviewsWithInfo = reviews.map(review => {
+        const user = db.users.find(u => u.user_id === review.user_id);
+        const post = db.channel_posts.find(p => p.post_id === review.post_id);
+        
+        return {
+            ...review,
+            user_name: user ? user.tg_first_name : 'Unknown',
+            post_title: post ? post.title : 'Unknown Post'
+        };
+    });
+    
+    res.json({ reviews: reviewsWithInfo });
+});
+
+// Обновить статус отзыва
+app.post('/api/admin/reviews/:reviewId/status', requireAdmin, (req, res) => {
+    const reviewId = parseInt(req.params.reviewId);
+    const { status, admin_comment } = req.body;
+    
+    const review = db.post_reviews.find(r => r.id === reviewId);
+    if (!review) {
+        return res.status(404).json({ error: 'Review not found' });
+    }
+    
+    review.status = status;
+    review.moderated_at = new Date().toISOString();
+    review.moderator_id = req.admin.user_id;
+    review.admin_comment = admin_comment || null;
+    
+    res.json({ success: true, review });
+});
+
+// Получить все покупки
+app.get('/api/admin/purchases', requireAdmin, (req, res) => {
+    const purchases = db.purchases.map(purchase => {
+        const user = db.users.find(u => u.user_id === purchase.user_id);
+        const item = db.shop_items.find(i => i.id === purchase.item_id);
+        
+        return {
+            ...purchase,
+            user_name: user ? user.tg_first_name : 'Unknown',
+            item_title: item ? item.title : 'Unknown Item'
+        };
+    });
+    
+    res.json({ purchases });
+});
+
 // ==================== TELEGRAM BOT ====================
 let bot;
 if (process.env.BOT_TOKEN) {
