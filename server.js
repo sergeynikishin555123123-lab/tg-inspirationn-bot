@@ -1470,30 +1470,20 @@ app.get('/api/admin/purchases', requireAdmin, (req, res) => {
     res.json({ purchases });
 });
 
-// ==================== TELEGRAM BOT ====================
+// ==================== TELEGRAM BOT (ИСПРАВЛЕННЫЙ) ====================
 let bot;
 if (process.env.BOT_TOKEN) {
     try {
-        bot = new TelegramBot(process.env.BOT_TOKEN, { 
-            polling: {
-                timeout: 10,
-                interval: 300,
-                autoStart: false
-            }
+        bot = new TelegramBot(process.env.BOT_TOKEN);
+        
+        console.log('✅ Telegram Bot инициализирован (без polling)');
+        
+        // Обработка вебхуков вместо polling
+        app.post(`/webhook/${process.env.BOT_TOKEN}`, (req, res) => {
+            bot.processUpdate(req.body);
+            res.sendStatus(200);
         });
-        
-        setTimeout(() => {
-            bot.startPolling().catch(error => {
-                if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
-                    console.log('⚠️  Другой инстанс бота уже запущен, продолжаем без polling');
-                } else {
-                    console.error('❌ Ошибка запуска бота:', error.message);
-                }
-            });
-        }, 1000);
-        
-        console.log('✅ Telegram Bot инициализирован');
-        
+
         bot.onText(/\/start/, (msg) => {
             const chatId = msg.chat.id;
             const name = msg.from.first_name || 'Друг';
@@ -1549,6 +1539,8 @@ if (process.env.BOT_TOKEN) {
             bot.sendMessage(chatId, welcomeText, {
                 parse_mode: 'Markdown',
                 reply_markup: keyboard
+            }).catch(error => {
+                console.error('Ошибка отправки сообщения:', error);
             });
         });
 
@@ -1558,7 +1550,7 @@ if (process.env.BOT_TOKEN) {
             
             const admin = db.admins.find(a => a.user_id == userId);
             if (!admin) {
-                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.').catch(console.error);
                 return;
             }
             
@@ -1577,7 +1569,7 @@ if (process.env.BOT_TOKEN) {
             bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
                 parse_mode: 'Markdown',
                 reply_markup: keyboard
-            });
+            }).catch(console.error);
         });
 
         bot.onText(/\/stats/, (msg) => {
@@ -1586,7 +1578,7 @@ if (process.env.BOT_TOKEN) {
             
             const admin = db.admins.find(a => a.user_id == userId);
             if (!admin) {
-                bot.sendMessage(chatId, '❌ У вас нет прав доступа.');
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа.').catch(console.error);
                 return;
             }
             
@@ -1608,7 +1600,7 @@ if (process.env.BOT_TOKEN) {
 🛒 Товаров в магазине: ${stats.shopItems}
 ✨ Всего искр: ${stats.totalSparks.toFixed(1)}`;
             
-            bot.sendMessage(chatId, statsText);
+            bot.sendMessage(chatId, statsText).catch(console.error);
         });
 
     } catch (error) {
