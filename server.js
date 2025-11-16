@@ -4,7 +4,6 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -13,37 +12,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-
-// Автоматическое определение пути для TimeWeb
 const APP_ROOT = process.cwd();
 
-console.log('🎨 Мастерская Вдохновения - Запуск системы...');
-console.log('📁 Текущая рабочая директория:', APP_ROOT);
+console.log('🎨 Мастерская Вдохновения - Запуск системы v8.0...');
 
-// In-memory база данных с улучшенной структурой
+// ==================== УЛУЧШЕННАЯ IN-MEMORY БАЗА ДАННЫХ ====================
 let db = {
     users: [
         {
             id: 1,
-            user_id: 12345,
-            tg_first_name: 'Тестовый Пользователь',
-            tg_username: 'test_user',
-            sparks: 45.5,
-            level: 'Искатель',
-            is_registered: true,
-            class: 'Художники',
-            character_id: 1,
-            character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
-        },
-        {
-            id: 2,
             user_id: 898508164,
             tg_first_name: 'Администратор',
             tg_username: 'admin',
-            sparks: 250.0,
+            sparks: 1000.0,
             level: 'Мастер',
             is_registered: true,
             class: 'Художники',
@@ -72,24 +53,6 @@ let db = {
             available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             is_active: true,
             created_at: new Date().toISOString()
-        },
-        {
-            id: 3,
-            name: 'Мастера',
-            description: 'Ремесленники прикладного искусства',
-            icon: '🧵',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 4,
-            name: 'Историки',
-            description: 'Знатоки истории искусств',
-            icon: '🏛️',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            is_active: true,
-            created_at: new Date().toISOString()
         }
     ],
     characters: [
@@ -105,41 +68,11 @@ let db = {
         },
         { 
             id: 2, 
-            role_id: 1, 
-            name: 'Марина Кисть', 
-            description: 'Строгая преподавательница академической живописи', 
-            bonus_type: 'forgiveness', 
-            bonus_value: '1', 
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        { 
-            id: 3, 
             role_id: 2, 
             name: 'Эстелла Моде', 
             description: 'Бывший стилист, обучает восприятию образа', 
             bonus_type: 'percent_bonus', 
             bonus_value: '5', 
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        { 
-            id: 4, 
-            role_id: 3, 
-            name: 'Артем Резчик', 
-            description: 'Мастер по дереву и керамике', 
-            bonus_type: 'random_gift', 
-            bonus_value: '1-3', 
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        { 
-            id: 5, 
-            role_id: 4, 
-            name: 'София Хроник', 
-            description: 'Искусствовед и историк культуры', 
-            bonus_type: 'secret_advice', 
-            bonus_value: '2weeks', 
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -158,49 +91,6 @@ let db = {
                 {
                     question: "Какие цвета являются основными?",
                     options: ["Красный, синий, зеленый", "Красный, желтый, синий", "Фиолетовый, оранжевый, зеленый", "Черный, белый, серый"],
-                    correctAnswer: 1
-                },
-                {
-                    question: "Что такое акварель?",
-                    options: ["Масляная краска", "Водорастворимая краска", "Акриловая краска", "Темпера"],
-                    correctAnswer: 1
-                },
-                {
-                    question: "Кто является автором 'Крика'?",
-                    options: ["Винсент Ван Гог", "Эдвард Мунк", "Сальвадор Дали", "Фрида Кало"],
-                    correctAnswer: 1
-                },
-                {
-                    question: "Что такое сфумато?",
-                    options: ["Техника резких контрастов", "Техника мягких переходов", "Техника точечного нанесения", "Техника ярких цветов"],
-                    correctAnswer: 1
-                }
-            ],
-            sparks_per_correct: 1,
-            sparks_perfect_bonus: 5,
-            cooldown_hours: 24,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            title: "🏛️ История искусства",
-            description: "Тест по истории мирового искусства",
-            questions: [
-                {
-                    question: "В какой стране возникло искусство эпохи Возрождения?",
-                    options: ["Франция", "Италия", "Испания", "Германия"],
-                    correctAnswer: 1
-                },
-                {
-                    question: "Кто является автором фрески 'Тайная вечеря'?",
-                    options: ["Микеланджело", "Рафаэль", "Леонардо да Винчи", "Боттичелли"],
-                    correctAnswer: 2
-                },
-                {
-                    question: "Какой стиль характеризуется асимметрией и изогнутыми линиями?",
-                    options: ["Ренессанс", "Барокко", "Готика", "Классицизм"],
                     correctAnswer: 1
                 }
             ],
@@ -222,100 +112,12 @@ let db = {
                 { 
                     day: 1, 
                     title: "Основные техники", 
-                    description: "Изучите основные техники работы с акварелью и напишите о своих впечатлениях",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 2, 
-                    title: "Смешивание цветов", 
-                    description: "Практикуйтесь в смешивании цветов и загрузите фото своей палитры",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 3, 
-                    title: "Работа с светом", 
-                    description: "Научитесь передавать свет и тень в акварели",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 4, 
-                    title: "Пейзаж акварелью", 
-                    description: "Нарисуйте свой первый пейзаж и загрузите фото работы",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 5, 
-                    title: "Портрет акварелью", 
-                    description: "Освойте технику портрета акварелью",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 6, 
-                    title: "Натюрморт", 
-                    description: "Создайте композицию с натуры и загрузите фото",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 7, 
-                    title: "Финальная работа", 
-                    description: "Завершите марафон итоговой работой и поделитесь впечатлениями",
+                    description: "Изучите основные техники работы с акварелью",
                     requires_submission: true,
                     submission_type: "text"
                 }
             ],
             sparks_per_day: 7,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            title: "👗 Марафон стиля",
-            description: "5-дневный марафон по созданию гармоничного образа",
-            duration_days: 5,
-            tasks: [
-                { 
-                    day: 1, 
-                    title: "Анализ цветотипа", 
-                    description: "Определите свой цветотип и опишите результаты",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 2, 
-                    title: "Базовая капсула", 
-                    description: "Создайте базовый гардероб и загрузите фото своих вещей",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 3, 
-                    title: "Акценты и аксессуары", 
-                    description: "Научитесь дополнять образ аксессуарами",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 4, 
-                    title: "Стилизация", 
-                    description: "Создайте несколько образов и загрузите фото",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 5, 
-                    title: "Итоговый образ", 
-                    description: "Подберите идеальный образ для мероприятия и опишите его",
-                    requires_submission: true,
-                    submission_type: "text"
-                }
-            ],
-            sparks_per_day: 5,
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -326,46 +128,10 @@ let db = {
             title: "🎨 Урок акварели для начинающих",
             description: "Полный видеоурок по основам акварельной живописи",
             type: "video",
-            file_url: "https://example.com/watercolor-course.mp4",
-            preview_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=300&h=200&fit=crop",
-            price: 15,
-            content_text: "В этом уроке вы научитесь основам работы с акварелью, смешиванию цветов и созданию первых работ. Материал подойдет для начинающих художников.\n\nСодержание:\n- Подготовка материалов\n- Основные техники\n- Смешивание цветов\n- Создание простых работ\n- Советы по улучшению",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            title: "📚 Основы композиции",
-            description: "PDF руководство по основам композиции в живописи",
-            type: "pdf",
-            file_url: "https://example.com/composition-guide.pdf",
-            preview_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=200&fit=crop",
-            price: 10,
-            content_text: "Подробное руководство по построению композиции в художественных работах. Золотое сечение, правило третей, баланс и ритм.\n\nТемы:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с цветом",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 3,
-            title: "👗 Гид по стилю",
-            description: "Полное руководство по созданию гармоничного образа",
-            type: "text",
             file_url: "",
-            preview_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=300&h=200&fit=crop",
-            price: 12,
-            content_text: "Как определить свой цветотип, подобрать базовый гардероб, сочетать цвета и аксессуары. Практические советы от стилиста.\n\nРазделы:\n- Определение цветотипа\n- Базовый гардероб\n- Сочетание цветов\n- Выбор аксессуаров\n- Создание образов",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 4,
-            title: "🧵 Основы вышивки",
-            description: "Видеокурс по основам вышивки для начинающих",
-            type: "video",
-            file_url: "https://example.com/embroidery-course.mp4",
-            preview_url: "https://images.unsplash.com/photo-1576588676125-c6d68cf48b5c?w=300&h=200&fit=crop",
-            price: 18,
-            content_text: "Полный курс по основам вышивки. От простых стежков до сложных техник.\n\nСодержание:\n- Необходимые материалы\n- Основные стежки\n- Техники вышивки\n- Создание узоров\n- Завершение работы",
+            preview_url: "",
+            price: 15,
+            content_text: "В этом уроке вы научитесь основам работы с акварелью",
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -386,40 +152,10 @@ let db = {
             id: 1,
             post_id: "post_art_basics",
             title: "🎨 Основы композиции в живописи",
-            content: "Сегодня поговорим о фундаментальных принципах построения композиции. Золотое сечение, правило третей и многое другое! Композиция - это основа любого художественного произведения, которая помогает направлять взгляд зрителя и создавать гармоничное изображение.\n\n💡 Практический совет: Попробуйте использовать правило третей в своей следующей работе - разделите холст на 9 равных частей и размещайте ключевые элементы на пересечениях линий.",
-            image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
+            content: "Сегодня поговорим о фундаментальных принципах построения композиции.",
+            image_url: "",
             video_url: null,
-            media_type: 'image',
-            admin_id: 898508164,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            telegram_message_id: null,
-            action_type: null,
-            action_target: null
-        },
-        {
-            id: 2,
-            post_id: "post_style_tips",
-            title: "👗 5 советов по созданию стильного образа",
-            content: "1. Определите свой цветотип\n2. Создайте базовую капсулу\n3. Не бойтесь аксессуаров\n4. Учитывайте мероприятие\n5. Будьте уверены в себе!\n\n✨ Помните: Стиль - это не следование трендам, а умение выражать свою индивидуальность через одежду.",
-            image_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop",
-            video_url: null,
-            media_type: 'image',
-            admin_id: 898508164,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            telegram_message_id: null,
-            action_type: null,
-            action_target: null
-        },
-        {
-            id: 3,
-            post_id: "post_history_art",
-            title: "🏛️ Интересные факты о Ренессансе",
-            content: "Эпоха Возрождения подарила миру множество шедевров. Знаете ли вы, что:\n\n• Леонардо да Винчи был вегетарианцем\n• Микеланджело считал себя в первую очередь скульптором\n• Рафаэль умер в день своего рождения\n• Боттичелли сжег многие свои работы\n\n🎯 Интересный факт: Картины того времени часто содержали скрытые символы и послания.",
-            image_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
-            video_url: null,
-            media_type: 'image',
+            media_type: 'text',
             admin_id: 898508164,
             is_active: true,
             created_at: new Date().toISOString(),
@@ -441,86 +177,11 @@ let db = {
             description: "Определите эпоху по фрагменту картины",
             type: "guess_era",
             category: "history",
-            image_url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=300&fit=crop",
+            image_url: "",
             question: "Какой эпохе принадлежит этот фрагмент?",
             options: ["Ренессанс", "Барокко", "Импрессионизм", "Кубизм"],
             correct_answer: 0,
             sparks_reward: 3,
-            allow_retake: false,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            title: "👗 Подбери образ для мероприятия",
-            description: "Создай гармоничный образ для конкретного события",
-            type: "style_match",
-            category: "style",
-            image_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop",
-            question: "Какое сочетание цветов подойдет для деловой встречи?",
-            options: ["Черный + белый + красный акцент", "Ярко-красный + зеленый", "Фиолетовый + оранжевый", "Розовый + голубой"],
-            correct_answer: 0,
-            sparks_reward: 2,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 3,
-            title: "✏️ Продолжи рисунок",
-            description: "Дорисуйте предложенный контур и создайте свою работу",
-            type: "drawing_challenge",
-            category: "art",
-            image_url: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop",
-            question: "Дорисуйте этот контур и создайте свою уникальную работу",
-            options: [],
-            correct_answer: null,
-            sparks_reward: 5,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 4,
-            title: "🔍 Найди отличия",
-            description: "Найдите все отличия между двумя изображениями",
-            type: "find_difference",
-            category: "art",
-            image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
-            question: "Сколько отличий вы нашли между изображениями?",
-            options: ["2 отличия", "3 отличия", "4 отличия", "5 отличий"],
-            correct_answer: 2,
-            sparks_reward: 3,
-            allow_retake: false,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 5,
-            title: "🧩 Исторический пазл",
-            description: "Соберите пазл из фрагментов известной картины",
-            type: "puzzle",
-            category: "history",
-            image_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
-            question: "Из скольких фрагментов состоит этот пазл?",
-            options: ["6 фрагментов", "9 фрагментов", "12 фрагментов", "16 фрагментов"],
-            correct_answer: 1,
-            sparks_reward: 2,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 6,
-            title: "🎭 Определи стиль художника",
-            description: "По фрагменту картины определите авторский стиль",
-            type: "guess_era",
-            category: "history",
-            image_url: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=400&h=300&fit=crop",
-            question: "Какому художнику принадлежит этот стиль?",
-            options: ["Ван Гог", "Моне", "Пикассо", "Дали"],
-            correct_answer: 0,
-            sparks_reward: 4,
             allow_retake: false,
             is_active: true,
             created_at: new Date().toISOString()
@@ -531,25 +192,7 @@ let db = {
     marathon_submissions: []
 };
 
-app.use(express.json({ limit: '50mb' }));
-app.use(cors());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
-app.use(express.static(join(APP_ROOT, 'public')));
-app.use('/admin', express.static(join(APP_ROOT, 'admin')));
-
-app.get('/admin', (req, res) => {
-    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
-});
-
-app.get('/admin/*', (req, res) => {
-    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
-});
-
-console.log('🎨 Система инициализирована успешно!');
-
-// УЛУЧШЕННАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР
+// ==================== СИСТЕМА ИСКР ====================
 const SPARKS_SYSTEM = {
     QUIZ_PER_CORRECT_ANSWER: 1,
     QUIZ_PERFECT_BONUS: 5,
@@ -568,7 +211,7 @@ const SPARKS_SYSTEM = {
     ROLE_CHANGE: 0
 };
 
-// Вспомогательные функции
+// ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 function calculateLevel(sparks) {
     if (sparks >= 400) return 'Наставник';
     if (sparks >= 300) return 'Мастер';
@@ -580,7 +223,7 @@ function calculateLevel(sparks) {
 function addSparks(userId, sparks, activityType, description) {
     const user = db.users.find(u => u.user_id == userId);
     if (user) {
-        user.sparks = Math.max(0, user.sparks + sparks); // Защита от отрицательных значений
+        user.sparks = Math.max(0, user.sparks + sparks);
         user.level = calculateLevel(user.sparks);
         user.last_active = new Date().toISOString();
         
@@ -622,7 +265,12 @@ function getUserStats(userId) {
     };
 }
 
-// Middleware
+// ==================== MIDDLEWARE ====================
+app.use(express.json({ limit: '50mb' }));
+app.use(cors());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(join(APP_ROOT, 'public')));
+
 const requireAdmin = (req, res, next) => {
     const userId = req.query.userId || req.body.userId;
     
@@ -630,7 +278,7 @@ const requireAdmin = (req, res, next) => {
         return res.status(401).json({ error: 'User ID required' });
     }
     
-    const admin = db.admins.find(a => a.user_id == userId); // 🔴 ВАЖНО: == вместо ===
+    const admin = db.admins.find(a => a.user_id == userId);
     if (!admin) {
         return res.status(403).json({ error: 'Admin access required' });
     }
@@ -639,12 +287,12 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
-// Basic routes
+// ==================== BASIC ROUTES ====================
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
-        version: '7.0.0',
+        version: '8.0.0',
         database: 'In-Memory',
         users: db.users.length,
         quizzes: db.quizzes.length,
@@ -654,10 +302,10 @@ app.get('/health', (req, res) => {
     });
 });
 
-// WebApp API
+// ==================== WEBAPP API ====================
 app.get('/api/users/:userId', (req, res) => {
     const userId = parseInt(req.params.userId);
-    const user = db.users.find(u => u.user_id === userId);
+    let user = db.users.find(u => u.user_id === userId);
     
     if (user) {
         const stats = getUserStats(userId);
@@ -669,6 +317,7 @@ app.get('/api/users/:userId', (req, res) => {
             }
         });
     } else {
+        // Создаем нового пользователя
         const newUser = {
             id: Date.now(),
             user_id: userId,
@@ -691,45 +340,6 @@ app.get('/api/users/:userId', (req, res) => {
     }
 });
 
-// НОВЫЙ МЕТОД ДЛЯ СМЕНЫ РОЛИ
-app.post('/api/users/change-role', (req, res) => {
-    const { userId, roleId, characterId } = req.body;
-    
-    if (!userId || !roleId) {
-        return res.status(400).json({ error: 'User ID and role are required' });
-    }
-    
-    const user = db.users.find(u => u.user_id == userId);
-    const role = db.roles.find(r => r.id == roleId);
-    const character = db.characters.find(c => c.id == characterId);
-    
-    if (!user || !role) {
-        return res.status(404).json({ error: 'User or role not found' });
-    }
-    
-    if (!user.is_registered) {
-        return res.status(400).json({ error: 'User not registered' });
-    }
-    
-    // Сохраняем старую роль для лога
-    const oldRole = user.class;
-    
-    user.class = role.name;
-    user.character_id = characterId;
-    user.character_name = character ? character.name : null;
-    user.available_buttons = role.available_buttons;
-    user.last_active = new Date().toISOString();
-    
-    // Логируем смену роли (0 искр)
-    addSparks(userId, SPARKS_SYSTEM.ROLE_CHANGE, 'role_change', `Смена роли: ${oldRole} → ${role.name}`);
-    
-    res.json({ 
-        success: true, 
-        message: 'Роль успешно изменена!',
-        user: user
-    });
-});
-
 app.post('/api/users/register', (req, res) => {
     const { userId, firstName, roleId, characterId } = req.body;
     
@@ -747,6 +357,7 @@ app.post('/api/users/register', (req, res) => {
     
     const isNewUser = !user.is_registered;
     
+    // Обновляем данные пользователя
     user.tg_first_name = firstName;
     user.class = role.name;
     user.character_id = characterId;
@@ -772,6 +383,43 @@ app.post('/api/users/register', (req, res) => {
     });
 });
 
+app.post('/api/users/change-role', (req, res) => {
+    const { userId, roleId, characterId } = req.body;
+    
+    if (!userId || !roleId) {
+        return res.status(400).json({ error: 'User ID and role are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    const role = db.roles.find(r => r.id == roleId);
+    const character = db.characters.find(c => c.id == characterId);
+    
+    if (!user || !role) {
+        return res.status(404).json({ error: 'User or role not found' });
+    }
+    
+    if (!user.is_registered) {
+        return res.status(400).json({ error: 'User not registered' });
+    }
+    
+    const oldRole = user.class;
+    
+    user.class = role.name;
+    user.character_id = characterId;
+    user.character_name = character ? character.name : null;
+    user.available_buttons = role.available_buttons;
+    user.last_active = new Date().toISOString();
+    
+    addSparks(userId, SPARKS_SYSTEM.ROLE_CHANGE, 'role_change', `Смена роли: ${oldRole} → ${role.name}`);
+    
+    res.json({ 
+        success: true, 
+        message: 'Роль успешно изменена!',
+        user: user
+    });
+});
+
+// ==================== ROLES & CHARACTERS ====================
 app.get('/api/webapp/roles', (req, res) => {
     const roles = db.roles.filter(role => role.is_active);
     res.json(roles);
@@ -783,6 +431,7 @@ app.get('/api/webapp/characters/:roleId', (req, res) => {
     res.json(characters);
 });
 
+// ==================== QUIZZES ====================
 app.get('/api/webapp/quizzes', (req, res) => {
     const userId = parseInt(req.query.userId);
     const quizzes = db.quizzes.filter(q => q.is_active);
@@ -813,7 +462,6 @@ app.get('/api/webapp/quizzes', (req, res) => {
     res.json(quizzesWithStatus);
 });
 
-// ИСПРАВЛЕННОЕ ОТПРАВЛЕНИЕ РЕЗУЛЬТАТОВ КВИЗА
 app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
     const quizId = parseInt(req.params.quizId);
     const { userId, answers } = req.body;
@@ -855,14 +503,11 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
         }
     });
     
-    // ИСПРАВЛЕННОЕ НАЧИСЛЕНИЕ ИСКР
     let sparksEarned = 0;
     const perfectScore = correctAnswers === quiz.questions.length;
     
-    // Начисляем искры за правильные ответы
     sparksEarned = correctAnswers * quiz.sparks_per_correct;
     
-    // Добавляем бонус за идеальный результат
     if (perfectScore) {
         sparksEarned += quiz.sparks_perfect_bonus;
     }
@@ -896,11 +541,12 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
         perfectScore,
         scorePercentage: Math.round((correctAnswers / quiz.questions.length) * 100),
         message: perfectScore ? 
-            `Идеально! 🎉 +${sparksEarned}✨ (${correctAnswers}×${quiz.sparks_per_correct} + ${quiz.sparks_perfect_bonus} бонус)` : 
-            `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨ (${correctAnswers}×${quiz.sparks_per_correct})`
+            `Идеально! 🎉 +${sparksEarned}✨` : 
+            `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨`
     });
 });
 
+// ==================== MARATHONS ====================
 app.get('/api/webapp/marathons', (req, res) => {
     const userId = parseInt(req.query.userId);
     const marathons = db.marathons.filter(m => m.is_active);
@@ -925,7 +571,6 @@ app.get('/api/webapp/marathons', (req, res) => {
     res.json(marathonsWithStatus);
 });
 
-// НОВЫЙ МЕТОД ДЛЯ ОТПРАВКИ РАБОТЫ В МАРАФОНЕ
 app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
     const marathonId = parseInt(req.params.marathonId);
     const { userId, day, submission_text, submission_image } = req.body;
@@ -944,7 +589,6 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
         return res.status(404).json({ error: 'Task not found' });
     }
     
-    // Проверяем требования к заданию
     if (task.requires_submission && !submission_text && !submission_image) {
         return res.status(400).json({ error: 'Это задание требует отправки работы' });
     }
@@ -970,7 +614,6 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
         return res.status(400).json({ error: 'Неверный день марафона' });
     }
     
-    // Сохраняем работу пользователя
     if (submission_text || submission_image) {
         db.marathon_submissions.push({
             id: Date.now(),
@@ -984,7 +627,6 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
         });
     }
     
-    // Начисляем искры только после отправки работы
     const sparksEarned = marathon.sparks_per_day;
     addSparks(userId, sparksEarned, 'marathon_day', `Марафон: ${marathon.title} - день ${day}`);
     
@@ -995,243 +637,20 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
         completion.completed = true;
         completion.progress = 100;
         
-        // Дополнительная награда за завершение марафона
         const marathonBonus = marathon.sparks_per_day * 2;
         addSparks(userId, marathonBonus, 'marathon_completion', `Завершение марафона: ${marathon.title}`);
     }
     
     res.json({
         success: true,
-        sparksEarned,
-        currentDay: completion.current_day,
-        progress: completion.progress,
+        message: `День ${day} завершен! +${sparksEarned}✨`,
         completed: completion.completed,
-        message: completion.completed ? 
-            `🎉 Марафон завершен! +${sparksEarned}✨ (день) + ${marathon.sparks_per_day * 2}✨ (бонус)` : 
-            `День ${day} завершен! +${sparksEarned}✨`
+        nextDay: completion.current_day,
+        progress: completion.progress
     });
 });
 
-app.get('/api/webapp/shop/items', (req, res) => {
-    const items = db.shop_items.filter(item => item.is_active);
-    res.json(items);
-});
-
-// ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА
-app.post('/api/webapp/shop/purchase', (req, res) => {
-    const { userId, itemId } = req.body;
-    
-    if (!userId || !itemId) {
-        return res.status(400).json({ error: 'User ID and item ID are required' });
-    }
-    
-    const user = db.users.find(u => u.user_id == userId);
-    const item = db.shop_items.find(i => i.id == itemId && i.is_active);
-    
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    if (!item) return res.status(404).json({ error: 'Item not found' });
-    
-    // Проверяем, не куплен ли уже товар
-    const existingPurchase = db.purchases.find(
-        p => p.user_id === userId && p.item_id === itemId
-    );
-    
-    if (existingPurchase) {
-        return res.status(400).json({ error: 'Вы уже купили этот товар' });
-    }
-    
-    if (user.sparks < item.price) {
-        return res.status(400).json({ error: 'Недостаточно искр' });
-    }
-    
-    // Списание искр
-    user.sparks -= item.price;
-    
-    const purchase = {
-        id: Date.now(),
-        user_id: userId,
-        item_id: itemId,
-        price_paid: item.price,
-        purchased_at: new Date().toISOString()
-    };
-    
-    db.purchases.push(purchase);
-    
-    addSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
-    
-    res.json({
-        success: true,
-        message: `Покупка успешна! Куплено: ${item.title}`,
-        remainingSparks: user.sparks,
-        purchase: purchase
-    });
-});
-
-app.get('/api/webapp/users/:userId/purchases', (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const userPurchases = db.purchases
-        .filter(p => p.user_id === userId)
-        .map(purchase => {
-            const item = db.shop_items.find(i => i.id === purchase.item_id);
-            return { 
-                ...purchase, 
-                title: item?.title,
-                description: item?.description,
-                type: item?.type,
-                file_url: item?.file_url,
-                content_text: item?.content_text,
-                preview_url: item?.preview_url,
-                // ДОБАВЛЯЕМ ВСЕ ДАННЫЕ ДЛЯ ОТОБРАЖЕНИЯ
-                file_data: item?.file_url?.startsWith('data:') ? item.file_url : null,
-                preview_data: item?.preview_url?.startsWith('data:') ? item.preview_url : null
-            };
-        })
-        .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
-        
-    res.json({ purchases: userPurchases });
-});
-
-app.get('/api/webapp/users/:userId/activities', (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const userActivities = db.activities
-        .filter(a => a.user_id === userId)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        .slice(0, 50);
-    res.json({ activities: userActivities });
-});
-
-// Работы пользователя
-app.post('/api/webapp/upload-work', (req, res) => {
-    const { userId, title, description, imageUrl, type } = req.body;
-    
-    if (!userId || !title || !imageUrl) {
-        return res.status(400).json({ error: 'User ID, title and image URL are required' });
-    }
-    
-    const user = db.users.find(u => u.user_id == userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    
-    const newWork = {
-        id: Date.now(),
-        user_id: userId,
-        title,
-        description: description || '',
-        image_url: imageUrl,
-        type: type || 'image',
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        moderated_at: null,
-        moderator_id: null,
-        admin_comment: null
-    };
-    
-    db.user_works.push(newWork);
-    
-    addSparks(userId, SPARKS_SYSTEM.UPLOAD_WORK, 'upload_work', `Загрузка работы: ${title}`);
-    
-    res.json({
-        success: true,
-        message: `Работа успешно загружена! Получено +${SPARKS_SYSTEM.UPLOAD_WORK}✨. После одобрения вы получите +${SPARKS_SYSTEM.WORK_APPROVED}✨`,
-        workId: newWork.id,
-        work: newWork
-    });
-});
-
-app.get('/api/webapp/users/:userId/works', (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const userWorks = db.user_works
-        .filter(w => w.user_id === userId)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    res.json({ works: userWorks });
-});
-
-// Посты канала
-app.get('/api/webapp/channel-posts', (req, res) => {
-    const posts = db.channel_posts
-        .filter(p => p.is_active)
-        .map(post => {
-            const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
-            return {
-                ...post,
-                reviews_count: reviews.length,
-                average_rating: reviews.length > 0 ? 
-                    reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0
-            };
-        })
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        
-    res.json({ posts: posts });
-});
-
-app.post('/api/webapp/posts/:postId/review', (req, res) => {
-    const postId = req.params.postId;
-    const { userId, reviewText, rating } = req.body;
-    
-    if (!userId || !reviewText) {
-        return res.status(400).json({ error: 'User ID and review text are required' });
-    }
-    
-    const post = db.channel_posts.find(p => p.post_id === postId);
-    if (!post) {
-        return res.status(404).json({ error: 'Post not found' });
-    }
-    
-    const existingReview = db.post_reviews.find(
-        r => r.user_id === userId && r.post_id === postId
-    );
-    
-    if (existingReview) {
-        return res.status(400).json({ error: 'Вы уже оставляли отзыв на этот пост' });
-    }
-    
-    const today = new Date().toDateString();
-    const todayReviews = db.daily_reviews.filter(
-        dr => dr.user_id === userId && new Date(dr.date).toDateString() === today
-    );
-    
-    let sparksEarned = SPARKS_SYSTEM.WRITE_REVIEW;
-    
-    if (todayReviews.length === 0) {
-        sparksEarned += SPARKS_SYSTEM.DAILY_COMMENT;
-        
-        db.daily_reviews.push({
-            id: Date.now(),
-            user_id: userId,
-            date: new Date().toISOString(),
-            type: 'daily_comment'
-        });
-    }
-    
-    const newReview = {
-        id: Date.now(),
-        user_id: userId,
-        post_id: postId,
-        review_text: reviewText,
-        rating: rating || 5,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        moderated_at: null,
-        moderator_id: null,
-        admin_comment: null
-    };
-    
-    db.post_reviews.push(newReview);
-    
-    addSparks(userId, sparksEarned, 'post_review', `Отзыв к посту: ${post.title}`);
-    
-    const message = todayReviews.length === 0 
-        ? `Отзыв отправлен! +${sparksEarned}✨ (3 за отзыв + 1 за первый комментарий сегодня)`
-        : `Отзыв отправлен! +${sparksEarned}✨`;
-    
-    res.json({
-        success: true,
-        message: message,
-        reviewId: newReview.id,
-        sparksEarned: sparksEarned
-    });
-});
-
-// API ДЛЯ ИНТЕРАКТИВОВ
+// ==================== INTERACTIVES ====================
 app.get('/api/webapp/interactives', (req, res) => {
     const userId = parseInt(req.query.userId);
     const interactives = db.interactives.filter(i => i.is_active);
@@ -1244,7 +663,6 @@ app.get('/api/webapp/interactives', (req, res) => {
         return {
             ...interactive,
             completed: !!completion,
-            user_score: completion ? completion.score : 0,
             can_retake: interactive.allow_retake && !completion
         };
     });
@@ -1270,45 +688,227 @@ app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
     );
     
     if (existingCompletion && !interactive.allow_retake) {
-        return res.status(400).json({ error: 'Вы уже прошли этот интерактив' });
+        return res.status(400).json({ error: 'Этот интерактив нельзя пройти повторно' });
     }
     
     const isCorrect = answer === interactive.correct_answer;
-    const sparksEarned = isCorrect ? interactive.sparks_reward : 0;
+    let sparksEarned = 0;
     
-    if (existingCompletion) {
-        existingCompletion.score = isCorrect ? 1 : 0;
-        existingCompletion.sparks_earned = sparksEarned;
-        existingCompletion.completed_at = new Date().toISOString();
-        existingCompletion.answer = answer;
-    } else {
-        db.interactive_completions.push({
-            id: Date.now(),
-            user_id: userId,
-            interactive_id: interactiveId,
-            completed_at: new Date().toISOString(),
-            score: isCorrect ? 1 : 0,
-            sparks_earned: sparksEarned,
-            answer: answer
-        });
-    }
-    
-    if (sparksEarned > 0) {
-        addSparks(userId, sparksEarned, 'interactive', `Интерактив: ${interactive.title}`);
+    if (isCorrect) {
+        sparksEarned = interactive.sparks_reward;
+        
+        if (!existingCompletion) {
+            db.interactive_completions.push({
+                id: Date.now(),
+                user_id: userId,
+                interactive_id: interactiveId,
+                completed_at: new Date().toISOString(),
+                answer_given: answer,
+                is_correct: true,
+                sparks_earned: sparksEarned
+            });
+            
+            addSparks(userId, sparksEarned, 'interactive', `Интерактив: ${interactive.title}`);
+        }
     }
     
     res.json({
         success: true,
         correct: isCorrect,
-        score: isCorrect ? 1 : 0,
-        sparksEarned: sparksEarned,
+        sparksEarned: isCorrect ? sparksEarned : 0,
         message: isCorrect ? 
             `Правильно! +${sparksEarned}✨` : 
-            'Попробуйте еще раз!'
+            'Неправильно. Попробуйте еще раз!'
     });
 });
 
-// Admin API
+// ==================== SHOP ====================
+app.get('/api/webapp/shop/items', (req, res) => {
+    const items = db.shop_items.filter(item => item.is_active);
+    res.json(items);
+});
+
+app.post('/api/webapp/shop/purchase', (req, res) => {
+    const { userId, itemId } = req.body;
+    
+    if (!userId || !itemId) {
+        return res.status(400).json({ error: 'User ID and item ID are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    const item = db.shop_items.find(i => i.id == itemId);
+    
+    if (!user || !item) {
+        return res.status(404).json({ error: 'User or item not found' });
+    }
+    
+    if (user.sparks < item.price) {
+        return res.status(400).json({ error: 'Недостаточно искр' });
+    }
+    
+    const existingPurchase = db.purchases.find(
+        p => p.user_id === userId && p.item_id === itemId
+    );
+    
+    if (existingPurchase) {
+        return res.status(400).json({ error: 'Товар уже куплен' });
+    }
+    
+    user.sparks -= item.price;
+    
+    const purchase = {
+        id: Date.now(),
+        user_id: userId,
+        item_id: itemId,
+        item_title: item.title,
+        price_paid: item.price,
+        purchased_at: new Date().toISOString()
+    };
+    
+    db.purchases.push(purchase);
+    
+    res.json({
+        success: true,
+        message: `Товар "${item.title}" куплен за ${item.price}✨`,
+        purchase: purchase,
+        remainingSparks: user.sparks
+    });
+});
+
+app.get('/api/webapp/users/:userId/purchases', (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const purchases = db.purchases
+        .filter(p => p.user_id === userId)
+        .map(purchase => {
+            const item = db.shop_items.find(i => i.id === purchase.item_id);
+            return {
+                ...purchase,
+                ...item
+            };
+        });
+    
+    res.json({ purchases });
+});
+
+// ==================== WORKS ====================
+app.get('/api/webapp/users/:userId/works', (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const works = db.user_works.filter(w => w.user_id === userId);
+    
+    res.json({ works });
+});
+
+app.post('/api/webapp/upload-work', (req, res) => {
+    const { userId, title, description, imageUrl, type } = req.body;
+    
+    if (!userId || !title || !imageUrl) {
+        return res.status(400).json({ error: 'User ID, title and image are required' });
+    }
+    
+    const work = {
+        id: Date.now(),
+        user_id: userId,
+        title: title,
+        description: description || '',
+        image_url: imageUrl,
+        type: type || 'image',
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        moderated_at: null,
+        moderator_id: null,
+        admin_comment: null
+    };
+    
+    db.user_works.push(work);
+    
+    const sparksEarned = SPARKS_SYSTEM.UPLOAD_WORK;
+    addSparks(userId, sparksEarned, 'work_upload', `Загрузка работы: ${title}`);
+    
+    res.json({
+        success: true,
+        message: `Работа загружена! +${sparksEarned}✨`,
+        work: work
+    });
+});
+
+// ==================== ACTIVITIES ====================
+app.get('/api/webapp/users/:userId/activities', (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const activities = db.activities
+        .filter(a => a.user_id === userId)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 50);
+    
+    res.json({ activities });
+});
+
+// ==================== POSTS ====================
+app.get('/api/webapp/channel-posts', (req, res) => {
+    const posts = db.channel_posts
+        .filter(p => p.is_active)
+        .map(post => {
+            const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
+            const averageRating = reviews.length > 0 ? 
+                reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+            
+            return {
+                ...post,
+                reviews_count: reviews.length,
+                average_rating: averageRating
+            };
+        })
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
+    res.json({ posts });
+});
+
+app.post('/api/webapp/posts/:postId/review', (req, res) => {
+    const postId = req.params.postId;
+    const { userId, reviewText, rating } = req.body;
+    
+    if (!userId || !reviewText) {
+        return res.status(400).json({ error: 'User ID and review text are required' });
+    }
+    
+    const post = db.channel_posts.find(p => p.post_id === postId);
+    if (!post) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    const existingReview = db.post_reviews.find(
+        r => r.user_id === userId && r.post_id === postId
+    );
+    
+    if (existingReview) {
+        return res.status(400).json({ error: 'Отзыв уже оставлен' });
+    }
+    
+    const review = {
+        id: Date.now(),
+        user_id: userId,
+        post_id: postId,
+        review_text: reviewText,
+        rating: rating || 5,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        moderated_at: null,
+        moderator_id: null,
+        admin_comment: null
+    };
+    
+    db.post_reviews.push(review);
+    
+    const sparksEarned = SPARKS_SYSTEM.WRITE_REVIEW;
+    addSparks(userId, sparksEarned, 'post_review', `Отзыв к посту: ${post.title}`);
+    
+    res.json({
+        success: true,
+        message: `Отзыв отправлен! +${sparksEarned}✨`,
+        review: review
+    });
+});
+
+// ==================== ADMIN API ====================
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
     const stats = {
         totalUsers: db.users.length,
@@ -1320,121 +920,173 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
         totalAdmins: db.admins.length,
         pendingReviews: db.post_reviews.filter(r => r.status === 'pending').length,
         pendingWorks: db.user_works.filter(w => w.status === 'pending').length,
-        totalPosts: db.channel_posts.filter(p => p.is_active).length,
+        totalPosts: db.channel_posts.length,
         totalPurchases: db.purchases.length,
-        totalActivities: db.activities.length,
-        interactives: db.interactives.filter(i => i.is_active).length
+        totalActivities: db.activities.length
     };
+    
     res.json(stats);
 });
 
-// Управление интерактивами
-app.get('/api/admin/interactives', requireAdmin, (req, res) => {
-    const interactives = db.interactives.map(interactive => {
-        const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
-        
-        return {
-            ...interactive,
-            completions_count: completions.length,
-            average_score: completions.length > 0 ? 
-                completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length : 0
-        };
-    });
-    res.json(interactives);
+app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
+    const stats = {
+        users: {
+            total: db.users.length,
+            registered: db.users.filter(u => u.is_registered).length,
+            by_role: db.roles.map(role => ({
+                role: role.name,
+                count: db.users.filter(u => u.class === role.name).length
+            })),
+            active_today: db.users.filter(u => {
+                const today = new Date();
+                const lastActive = new Date(u.last_active);
+                return lastActive.toDateString() === today.toDateString();
+            }).length
+        },
+        content: {
+            quizzes: db.quizzes.length,
+            marathons: db.marathons.length,
+            shop_items: db.shop_items.length,
+            posts: db.channel_posts.length,
+            interactives: db.interactives.length
+        },
+        activities: {
+            total_sparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
+            total_purchases: db.purchases.length,
+            total_works: db.user_works.length,
+            pending_moderation: {
+                works: db.user_works.filter(w => w.status === 'pending').length,
+                reviews: db.post_reviews.filter(r => r.status === 'pending').length
+            }
+        },
+        completions: {
+            quizzes: db.quiz_completions.length,
+            marathons: db.marathon_completions.filter(m => m.completed).length,
+            interactives: db.interactive_completions.length
+        }
+    };
+    
+    res.json(stats);
 });
 
-app.post('/api/admin/interactives', requireAdmin, (req, res) => {
-    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake } = req.body;
+app.get('/api/admin/users-report', requireAdmin, (req, res) => {
+    const users = db.users
+        .filter(u => u.is_registered)
+        .map(user => {
+            const stats = getUserStats(user.user_id);
+            const works = db.user_works.filter(w => w.user_id === user.user_id);
+            const quizCompletions = db.quiz_completions.filter(q => q.user_id === user.user_id);
+            const marathonCompletions = db.marathon_completions.filter(m => m.user_id === user.user_id);
+            const interactiveCompletions = db.interactive_completions.filter(i => i.user_id === user.user_id);
+            
+            const totalActivities = 
+                quizCompletions.length + 
+                marathonCompletions.filter(m => m.completed).length + 
+                interactiveCompletions.length + 
+                works.length;
+            
+            return {
+                id: user.user_id,
+                name: user.tg_first_name,
+                username: user.tg_username,
+                role: user.class,
+                character: user.character_name,
+                sparks: user.sparks,
+                level: user.level,
+                total_quizzes: quizCompletions.length,
+                total_marathons: marathonCompletions.filter(m => m.completed).length,
+                total_interactives: interactiveCompletions.length,
+                total_works: works.length,
+                approved_works: works.filter(w => w.status === 'approved').length,
+                total_activities: totalActivities,
+                registration_date: user.registration_date,
+                last_active: user.last_active
+            };
+        })
+        .sort((a, b) => b.total_activities - a.total_activities);
     
-    if (!title || !type || !category) {
-        return res.status(400).json({ error: 'Title, type and category are required' });
+    res.json({ users });
+});
+
+// ==================== ADMIN MANAGEMENT ====================
+app.get('/api/admin/admins', requireAdmin, (req, res) => {
+    res.json(db.admins);
+});
+
+app.post('/api/admin/admins', requireAdmin, (req, res) => {
+    const { user_id, username, role } = req.body;
+    
+    if (!user_id) {
+        return res.status(400).json({ error: 'User ID is required' });
     }
     
-    const newInteractive = {
+    const existingAdmin = db.admins.find(a => a.user_id == user_id);
+    if (existingAdmin) {
+        return res.status(400).json({ error: 'Admin already exists' });
+    }
+    
+    const userExists = db.users.find(u => u.user_id == user_id);
+    if (!userExists) {
+        return res.status(404).json({ error: 'User not found in system' });
+    }
+    
+    const newAdmin = {
         id: Date.now(),
-        title,
-        description: description || '',
-        type,
-        category,
-        image_url: image_url || '',
-        question: question || '',
-        options: options || [],
-        correct_answer: correct_answer || 0,
-        sparks_reward: sparks_reward || SPARKS_SYSTEM.INTERACTIVE_COMPLETION,
-        allow_retake: allow_retake || false,
-        is_active: true,
+        user_id: parseInt(user_id),
+        username: username || userExists.tg_username || '',
+        role: role || 'moderator',
         created_at: new Date().toISOString()
     };
     
-    db.interactives.push(newInteractive);
+    db.admins.push(newAdmin);
     
     res.json({ 
         success: true, 
-        message: 'Интерактив успешно создан', 
-        interactiveId: newInteractive.id,
-        interactive: newInteractive
+        message: 'Админ успешно добавлен',
+        admin: newAdmin
     });
 });
 
-app.put('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
-    const interactiveId = parseInt(req.params.interactiveId);
-    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
+app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
+    const userId = parseInt(req.params.userId);
     
-    const interactive = db.interactives.find(i => i.id === interactiveId);
-    if (!interactive) {
-        return res.status(404).json({ error: 'Interactive not found' });
+    if (userId === req.admin.user_id) {
+        return res.status(400).json({ error: 'Cannot remove yourself' });
     }
     
-    if (title) interactive.title = title;
-    if (description) interactive.description = description;
-    if (type) interactive.type = type;
-    if (category) interactive.category = category;
-    if (image_url) interactive.image_url = image_url;
-    if (question) interactive.question = question;
-    if (options) interactive.options = options;
-    if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
-    if (sparks_reward !== undefined) interactive.sparks_reward = sparks_reward;
-    if (allow_retake !== undefined) interactive.allow_retake = allow_retake;
-    if (is_active !== undefined) interactive.is_active = is_active;
+    const adminIndex = db.admins.findIndex(a => a.user_id === userId);
+    if (adminIndex === -1) {
+        return res.status(404).json({ error: 'Admin not found' });
+    }
+    
+    const removedAdmin = db.admins.splice(adminIndex, 1)[0];
     
     res.json({ 
         success: true, 
-        message: 'Интерактив успешно обновлен',
-        interactive: interactive
+        message: 'Админ удален',
+        removedAdmin: removedAdmin
     });
 });
 
-app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
-    const interactiveId = parseInt(req.params.interactiveId);
-    const interactiveIndex = db.interactives.findIndex(i => i.id === interactiveId);
-    
-    if (interactiveIndex === -1) {
-        return res.status(404).json({ error: 'Interactive not found' });
-    }
-    
-    db.interactives.splice(interactiveIndex, 1);
-    res.json({ success: true, message: 'Интерактив удален' });
-});
-
-// Управление ролями
+// ==================== ROLES MANAGEMENT ====================
 app.get('/api/admin/roles', requireAdmin, (req, res) => {
     res.json(db.roles);
 });
 
 app.post('/api/admin/roles', requireAdmin, (req, res) => {
-    const { name, description, icon, available_buttons } = req.body;
+    const { name, description, icon, available_buttons, is_active } = req.body;
     
-    if (!name || !description) {
-        return res.status(400).json({ error: 'Name and description are required' });
+    if (!name) {
+        return res.status(400).json({ error: 'Role name is required' });
     }
     
     const newRole = {
         id: Date.now(),
         name,
-        description,
+        description: description || '',
         icon: icon || '🎨',
-        available_buttons: available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-        is_active: true,
+        available_buttons: available_buttons || [],
+        is_active: is_active !== undefined ? is_active : true,
         created_at: new Date().toISOString()
     };
     
@@ -1442,7 +1094,7 @@ app.post('/api/admin/roles', requireAdmin, (req, res) => {
     
     res.json({ 
         success: true, 
-        message: 'Роль успешно создана', 
+        message: 'Роль успешно создана',
         role: newRole
     });
 });
@@ -1479,30 +1131,31 @@ app.delete('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
     
     const usersWithRole = db.users.filter(u => u.class === db.roles[roleIndex].name);
     if (usersWithRole.length > 0) {
-        return res.status(400).json({ error: 'Нельзя удалить роль, у которой есть пользователи' });
+        return res.status(400).json({ error: 'Cannot delete role with assigned users' });
     }
     
     db.roles.splice(roleIndex, 1);
     res.json({ success: true, message: 'Роль удалена' });
 });
 
-// Управление персонажами
+// ==================== CHARACTERS MANAGEMENT ====================
 app.get('/api/admin/characters', requireAdmin, (req, res) => {
     const characters = db.characters.map(character => {
         const role = db.roles.find(r => r.id === character.role_id);
         return {
             ...character,
-            role_name: role?.name
+            role_name: role ? role.name : 'Unknown'
         };
     });
+    
     res.json(characters);
 });
 
 app.post('/api/admin/characters', requireAdmin, (req, res) => {
-    const { role_id, name, description, bonus_type, bonus_value } = req.body;
+    const { role_id, name, description, bonus_type, bonus_value, is_active } = req.body;
     
-    if (!role_id || !name || !bonus_type || !bonus_value) {
-        return res.status(400).json({ error: 'Role ID, name, bonus type and value are required' });
+    if (!role_id || !name) {
+        return res.status(400).json({ error: 'Role ID and name are required' });
     }
     
     const newCharacter = {
@@ -1510,9 +1163,9 @@ app.post('/api/admin/characters', requireAdmin, (req, res) => {
         role_id: parseInt(role_id),
         name,
         description: description || '',
-        bonus_type,
-        bonus_value,
-        is_active: true,
+        bonus_type: bonus_type || 'percent_bonus',
+        bonus_value: bonus_value || '10',
+        is_active: is_active !== undefined ? is_active : true,
         created_at: new Date().toISOString()
     };
     
@@ -1520,20 +1173,21 @@ app.post('/api/admin/characters', requireAdmin, (req, res) => {
     
     res.json({ 
         success: true, 
-        message: 'Персонаж успешно создан', 
+        message: 'Персонаж успешно создан',
         character: newCharacter
     });
 });
 
 app.put('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
     const characterId = parseInt(req.params.characterId);
-    const { name, description, bonus_type, bonus_value, is_active } = req.body;
+    const { role_id, name, description, bonus_type, bonus_value, is_active } = req.body;
     
     const character = db.characters.find(c => c.id === characterId);
     if (!character) {
         return res.status(404).json({ error: 'Character not found' });
     }
     
+    if (role_id) character.role_id = parseInt(role_id);
     if (name) character.name = name;
     if (description) character.description = description;
     if (bonus_type) character.bonus_type = bonus_type;
@@ -1557,20 +1211,270 @@ app.delete('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
     
     const usersWithCharacter = db.users.filter(u => u.character_id === characterId);
     if (usersWithCharacter.length > 0) {
-        return res.status(400).json({ error: 'Нельзя удалить персонажа, у которого есть пользователи' });
+        return res.status(400).json({ error: 'Cannot delete character assigned to users' });
     }
     
     db.characters.splice(characterIndex, 1);
     res.json({ success: true, message: 'Персонаж удален' });
 });
 
-// Управление магазином
+// ==================== QUIZZES MANAGEMENT ====================
+app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
+    const quizzes = db.quizzes.map(quiz => {
+        const completions = db.quiz_completions.filter(qc => qc.quiz_id === quiz.id);
+        const averageScore = completions.length > 0 ? 
+            completions.reduce((sum, c) => sum + c.score, 0) / completions.length : 0;
+        
+        return {
+            ...quiz,
+            completions_count: completions.length,
+            average_score: averageScore
+        };
+    });
+    
+    res.json(quizzes);
+});
+
+app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
+    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake, is_active } = req.body;
+    
+    if (!title || !questions || !Array.isArray(questions)) {
+        return res.status(400).json({ error: 'Title and questions array are required' });
+    }
+    
+    const newQuiz = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        questions: questions,
+        sparks_per_correct: sparks_per_correct || 1,
+        sparks_perfect_bonus: sparks_perfect_bonus || 5,
+        cooldown_hours: cooldown_hours || 24,
+        allow_retake: allow_retake !== undefined ? allow_retake : true,
+        is_active: is_active !== undefined ? is_active : true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.quizzes.push(newQuiz);
+    
+    res.json({ 
+        success: true, 
+        message: 'Квиз успешно создан',
+        quiz: newQuiz
+    });
+});
+
+app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake, is_active } = req.body;
+    
+    const quiz = db.quizzes.find(q => q.id === quizId);
+    if (!quiz) {
+        return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    if (title) quiz.title = title;
+    if (description) quiz.description = description;
+    if (questions && Array.isArray(questions)) quiz.questions = questions;
+    if (sparks_per_correct) quiz.sparks_per_correct = sparks_per_correct;
+    if (sparks_perfect_bonus) quiz.sparks_perfect_bonus = sparks_perfect_bonus;
+    if (cooldown_hours) quiz.cooldown_hours = cooldown_hours;
+    if (allow_retake !== undefined) quiz.allow_retake = allow_retake;
+    if (is_active !== undefined) quiz.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Квиз успешно обновлен',
+        quiz: quiz
+    });
+});
+
+app.delete('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const quizIndex = db.quizzes.findIndex(q => q.id === quizId);
+    
+    if (quizIndex === -1) {
+        return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    db.quizzes.splice(quizIndex, 1);
+    res.json({ success: true, message: 'Квиз удален' });
+});
+
+// ==================== MARATHONS MANAGEMENT ====================
+app.get('/api/admin/marathons', requireAdmin, (req, res) => {
+    const marathons = db.marathons.map(marathon => {
+        const completions = db.marathon_completions.filter(mc => mc.marathon_id === marathon.id);
+        const activeUsers = db.marathon_completions.filter(mc => mc.marathon_id === marathon.id && !mc.completed).length;
+        
+        return {
+            ...marathon,
+            completions_count: completions.filter(mc => mc.completed).length,
+            active_users: activeUsers
+        };
+    });
+    
+    res.json(marathons);
+});
+
+app.post('/api/admin/marathons', requireAdmin, (req, res) => {
+    const { title, description, duration_days, tasks, sparks_per_day, is_active } = req.body;
+    
+    if (!title || !duration_days || !tasks || !Array.isArray(tasks)) {
+        return res.status(400).json({ error: 'Title, duration and tasks array are required' });
+    }
+    
+    const newMarathon = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        duration_days: parseInt(duration_days),
+        tasks: tasks,
+        sparks_per_day: sparks_per_day || 7,
+        is_active: is_active !== undefined ? is_active : true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.marathons.push(newMarathon);
+    
+    res.json({ 
+        success: true, 
+        message: 'Марафон успешно создан',
+        marathon: newMarathon
+    });
+});
+
+app.put('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
+    const marathonId = parseInt(req.params.marathonId);
+    const { title, description, duration_days, tasks, sparks_per_day, is_active } = req.body;
+    
+    const marathon = db.marathons.find(m => m.id === marathonId);
+    if (!marathon) {
+        return res.status(404).json({ error: 'Marathon not found' });
+    }
+    
+    if (title) marathon.title = title;
+    if (description) marathon.description = description;
+    if (duration_days) marathon.duration_days = parseInt(duration_days);
+    if (tasks && Array.isArray(tasks)) marathon.tasks = tasks;
+    if (sparks_per_day) marathon.sparks_per_day = sparks_per_day;
+    if (is_active !== undefined) marathon.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Марафон успешно обновлен',
+        marathon: marathon
+    });
+});
+
+app.delete('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
+    const marathonId = parseInt(req.params.marathonId);
+    const marathonIndex = db.marathons.findIndex(m => m.id === marathonId);
+    
+    if (marathonIndex === -1) {
+        return res.status(404).json({ error: 'Marathon not found' });
+    }
+    
+    db.marathons.splice(marathonIndex, 1);
+    res.json({ success: true, message: 'Марафон удален' });
+});
+
+// ==================== INTERACTIVES MANAGEMENT ====================
+app.get('/api/admin/interactives', requireAdmin, (req, res) => {
+    const interactives = db.interactives.map(interactive => {
+        const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
+        const averageScore = completions.length > 0 ? 
+            completions.filter(ic => ic.is_correct).length / completions.length * 100 : 0;
+        
+        return {
+            ...interactive,
+            completions_count: completions.length,
+            average_score: averageScore
+        };
+    });
+    
+    res.json(interactives);
+});
+
+app.post('/api/admin/interactives', requireAdmin, (req, res) => {
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
+    
+    if (!title || !type || !category || !question) {
+        return res.status(400).json({ error: 'Title, type, category and question are required' });
+    }
+    
+    const newInteractive = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        type,
+        category,
+        image_url: image_url || '',
+        question,
+        options: options || [],
+        correct_answer: correct_answer || 0,
+        sparks_reward: sparks_reward || 3,
+        allow_retake: allow_retake !== undefined ? allow_retake : false,
+        is_active: is_active !== undefined ? is_active : true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.interactives.push(newInteractive);
+    
+    res.json({ 
+        success: true, 
+        message: 'Интерактив успешно создан',
+        interactive: newInteractive
+    });
+});
+
+app.put('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
+    
+    const interactive = db.interactives.find(i => i.id === interactiveId);
+    if (!interactive) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    if (title) interactive.title = title;
+    if (description) interactive.description = description;
+    if (type) interactive.type = type;
+    if (category) interactive.category = category;
+    if (image_url) interactive.image_url = image_url;
+    if (question) interactive.question = question;
+    if (options) interactive.options = options;
+    if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
+    if (sparks_reward) interactive.sparks_reward = sparks_reward;
+    if (allow_retake !== undefined) interactive.allow_retake = allow_retake;
+    if (is_active !== undefined) interactive.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Интерактив успешно обновлен',
+        interactive: interactive
+    });
+});
+
+app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const interactiveIndex = db.interactives.findIndex(i => i.id === interactiveId);
+    
+    if (interactiveIndex === -1) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    db.interactives.splice(interactiveIndex, 1);
+    res.json({ success: true, message: 'Интерактив удален' });
+});
+
+// ==================== SHOP MANAGEMENT ====================
 app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
     res.json(db.shop_items);
 });
 
 app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
-    const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data } = req.body;
+    const { title, description, type, file_url, preview_url, price, content_text, is_active } = req.body;
     
     if (!title || !price) {
         return res.status(400).json({ error: 'Title and price are required' });
@@ -1580,12 +1484,12 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
         id: Date.now(),
         title,
         description: description || '',
-        type: type || 'video',
-        file_url: file_url || file_data || '', // Поддержка base64 данных
-        preview_url: preview_url || preview_data || '', // Поддержка base64 данных
+        type: type || 'text',
+        file_url: file_url || '',
+        preview_url: preview_url || '',
         price: parseFloat(price),
         content_text: content_text || '',
-        is_active: true,
+        is_active: is_active !== undefined ? is_active : true,
         created_at: new Date().toISOString()
     };
     
@@ -1593,15 +1497,14 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
     
     res.json({ 
         success: true, 
-        message: 'Товар успешно создан', 
-        itemId: newItem.id,
+        message: 'Товар успешно создан',
         item: newItem
     });
 });
 
 app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     const itemId = parseInt(req.params.itemId);
-    const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data } = req.body;
+    const { title, description, type, file_url, preview_url, price, content_text, is_active } = req.body;
     
     const item = db.shop_items.find(i => i.id === itemId);
     if (!item) {
@@ -1611,10 +1514,8 @@ app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     if (title) item.title = title;
     if (description) item.description = description;
     if (type) item.type = type;
-    if (file_url !== undefined) item.file_url = file_url;
-    if (file_data !== undefined) item.file_url = file_data; // Обновляем base64 данные
-    if (preview_url !== undefined) item.preview_url = preview_url;
-    if (preview_data !== undefined) item.preview_url = preview_data; // Обновляем base64 данные
+    if (file_url) item.file_url = file_url;
+    if (preview_url) item.preview_url = preview_url;
     if (price) item.price = parseFloat(price);
     if (content_text) item.content_text = content_text;
     if (is_active !== undefined) item.is_active = is_active;
@@ -1638,209 +1539,7 @@ app.delete('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Товар удален' });
 });
 
-// Управление квизами
-app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
-    const quizzes = db.quizzes.map(quiz => {
-        const completions = db.quiz_completions.filter(qc => qc.quiz_id === quiz.id);
-        return {
-            ...quiz,
-            completions_count: completions.length,
-            average_score: completions.length > 0 ? 
-                completions.reduce((sum, qc) => sum + qc.score, 0) / completions.length : 0
-        };
-    });
-    res.json(quizzes);
-});
-
-app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
-    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake } = req.body;
-    
-    if (!title || !questions || !Array.isArray(questions)) {
-        return res.status(400).json({ error: 'Title and questions array are required' });
-    }
-    
-    const newQuiz = {
-        id: Date.now(),
-        title,
-        description: description || '',
-        questions: questions,
-        sparks_per_correct: sparks_per_correct || SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER,
-        sparks_perfect_bonus: sparks_perfect_bonus || SPARKS_SYSTEM.QUIZ_PERFECT_BONUS,
-        cooldown_hours: cooldown_hours || 24,
-        allow_retake: allow_retake || true,
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.quizzes.push(newQuiz);
-    
-    res.json({ 
-        success: true, 
-        message: 'Квиз успешно создан', 
-        quizId: newQuiz.id,
-        quiz: newQuiz
-    });
-});
-
-app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
-    const quizId = parseInt(req.params.quizId);
-    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake, is_active } = req.body;
-    
-    const quiz = db.quizzes.find(q => q.id === quizId);
-    if (!quiz) {
-        return res.status(404).json({ error: 'Quiz not found' });
-    }
-    
-    if (title) quiz.title = title;
-    if (description) quiz.description = description;
-    if (questions) quiz.questions = questions;
-    if (sparks_per_correct !== undefined) quiz.sparks_per_correct = sparks_per_correct;
-    if (sparks_perfect_bonus !== undefined) quiz.sparks_perfect_bonus = sparks_perfect_bonus;
-    if (cooldown_hours !== undefined) quiz.cooldown_hours = cooldown_hours;
-    if (allow_retake !== undefined) quiz.allow_retake = allow_retake;
-    if (is_active !== undefined) quiz.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Квиз успешно обновлен',
-        quiz: quiz
-    });
-});
-
-app.delete('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
-    const quizId = parseInt(req.params.quizId);
-    const quizIndex = db.quizzes.findIndex(q => q.id === quizId);
-    
-    if (quizIndex === -1) {
-        return res.status(404).json({ error: 'Quiz not found' });
-    }
-    
-    db.quizzes.splice(quizIndex, 1);
-    res.json({ success: true, message: 'Квиз удален' });
-});
-
-// Управление марафонами
-app.get('/api/admin/marathons', requireAdmin, (req, res) => {
-    const marathons = db.marathons.map(marathon => {
-        const completions = db.marathon_completions.filter(mc => mc.marathon_id === marathon.id);
-        return {
-            ...marathon,
-            completions_count: completions.length,
-            active_users: completions.filter(mc => !mc.completed).length
-        };
-    });
-    res.json(marathons);
-});
-
-app.post('/api/admin/marathons', requireAdmin, (req, res) => {
-    const { title, description, duration_days, tasks, sparks_per_day } = req.body;
-    
-    if (!title || !duration_days || !tasks || !Array.isArray(tasks)) {
-        return res.status(400).json({ error: 'Title, duration and tasks array are required' });
-    }
-    
-    const newMarathon = {
-        id: Date.now(),
-        title,
-        description: description || '',
-        duration_days: parseInt(duration_days),
-        tasks: tasks,
-        sparks_per_day: sparks_per_day || SPARKS_SYSTEM.MARATHON_DAY_COMPLETION,
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.marathons.push(newMarathon);
-    
-    res.json({ 
-        success: true, 
-        message: 'Марафон успешно создан', 
-        marathonId: newMarathon.id,
-        marathon: newMarathon
-    });
-});
-
-app.put('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
-    const marathonId = parseInt(req.params.marathonId);
-    const { title, description, duration_days, tasks, sparks_per_day, is_active } = req.body;
-    
-    const marathon = db.marathons.find(m => m.id === marathonId);
-    if (!marathon) {
-        return res.status(404).json({ error: 'Marathon not found' });
-    }
-    
-    if (title) marathon.title = title;
-    if (description) marathon.description = description;
-    if (duration_days) marathon.duration_days = parseInt(duration_days);
-    if (tasks) marathon.tasks = tasks;
-    if (sparks_per_day !== undefined) marathon.sparks_per_day = sparks_per_day;
-    if (is_active !== undefined) marathon.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Марафон успешно обновлен',
-        marathon: marathon
-    });
-});
-
-app.delete('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
-    const marathonId = parseInt(req.params.marathonId);
-    const marathonIndex = db.marathons.findIndex(m => m.id === marathonId);
-    
-    if (marathonIndex === -1) {
-        return res.status(404).json({ error: 'Marathon not found' });
-    }
-    
-    db.marathons.splice(marathonIndex, 1);
-    res.json({ success: true, message: 'Марафон удален' });
-});
-
-// Управление работами пользователей
-app.get('/api/admin/user-works', requireAdmin, (req, res) => {
-    const { status = 'pending' } = req.query;
-    
-    const works = db.user_works
-        .filter(w => w.status === status)
-        .map(work => {
-            const user = db.users.find(u => u.user_id === work.user_id);
-            return {
-                ...work,
-                user_name: user?.tg_first_name || 'Неизвестно',
-                user_username: user?.tg_username
-            };
-        })
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    
-    res.json({ works });
-});
-
-app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
-    const workId = parseInt(req.params.workId);
-    const { status, admin_comment } = req.body;
-    const adminId = req.admin.user_id;
-    
-    const work = db.user_works.find(w => w.id === workId);
-    if (!work) {
-        return res.status(404).json({ error: 'Work not found' });
-    }
-    
-    work.status = status;
-    work.moderated_at = new Date().toISOString();
-    work.moderator_id = adminId;
-    work.admin_comment = admin_comment || null;
-    
-    if (status === 'approved') {
-        addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
-    }
-    
-    res.json({ 
-        success: true, 
-        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
-        work: work
-    });
-});
-
-// Управление постами
+// ==================== POSTS MANAGEMENT ====================
 app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     const posts = db.channel_posts.map(post => {
         const admin = db.admins.find(a => a.user_id === post.admin_id);
@@ -1930,7 +1629,53 @@ app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Пост удален' });
 });
 
-// Управление отзывами
+// ==================== MODERATION ====================
+app.get('/api/admin/user-works', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    const works = db.user_works
+        .filter(w => w.status === status)
+        .map(work => {
+            const user = db.users.find(u => u.user_id === work.user_id);
+            const moderator = db.admins.find(a => a.user_id === work.moderator_id);
+            return {
+                ...work,
+                user_name: user?.tg_first_name,
+                user_username: user?.tg_username,
+                moderator_username: moderator?.username
+            };
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    res.json({ works });
+});
+
+app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
+    const workId = parseInt(req.params.workId);
+    const { status, admin_comment } = req.body;
+    const adminId = req.admin.user_id;
+    
+    const work = db.user_works.find(w => w.id === workId);
+    if (!work) {
+        return res.status(404).json({ error: 'Work not found' });
+    }
+    
+    work.status = status;
+    work.moderated_at = new Date().toISOString();
+    work.moderator_id = adminId;
+    work.admin_comment = admin_comment || null;
+    
+    if (status === 'approved') {
+        addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
+    }
+    
+    res.json({ 
+        success: true, 
+        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
+        work: work
+    });
+});
+
 app.get('/api/admin/reviews', requireAdmin, (req, res) => {
     const { status = 'pending' } = req.query;
     
@@ -1975,172 +1720,10 @@ app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     });
 });
 
-// ==================== УПРАВЛЕНИЕ АДМИНАМИ ====================
-
-app.get('/api/admin/admins', requireAdmin, (req, res) => {
-    console.log('📋 Запрос списка админов от пользователя:', req.admin.user_id);
-    res.json(db.admins);
-});
-
-app.post('/api/admin/admins', requireAdmin, (req, res) => {
-    const { user_id, username, role } = req.body;
-    
-    console.log('🔄 Попытка добавления админа:', { user_id, username, role });
-    
-    if (!user_id) {
-        console.log('❌ Ошибка: User ID не указан');
-        return res.status(400).json({ error: 'User ID is required' });
-    }
-    
-    // Проверяем, существует ли уже админ с таким user_id
-    const existingAdmin = db.admins.find(a => a.user_id == user_id);
-    if (existingAdmin) {
-        console.log('❌ Ошибка: Админ уже существует', existingAdmin);
-        return res.status(400).json({ error: 'Admin already exists' });
-    }
-    
-    // Проверяем, существует ли пользователь в базе
-    const userExists = db.users.find(u => u.user_id == user_id);
-    if (!userExists) {
-        console.log('❌ Ошибка: Пользователь не найден в системе');
-        return res.status(404).json({ error: 'User not found in system' });
-    }
-    
-    const newAdmin = {
-        id: Date.now(),
-        user_id: parseInt(user_id),
-        username: username || userExists.tg_username || '',
-        role: role || 'moderator',
-        created_at: new Date().toISOString()
-    };
-    
-    db.admins.push(newAdmin);
-    
-    console.log('✅ Админ успешно добавлен:', newAdmin);
-    console.log('📊 Текущее количество админов:', db.admins.length);
-    
-    res.json({ 
-        success: true, 
-        message: 'Админ успешно добавлен',
-        admin: newAdmin
-    });
-});
-
-app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    
-    console.log('🔄 Попытка удаления админа:', userId);
-    
-    if (userId === req.admin.user_id) {
-        console.log('❌ Ошибка: Пользователь пытается удалить себя');
-        return res.status(400).json({ error: 'Cannot remove yourself' });
-    }
-    
-    const adminIndex = db.admins.findIndex(a => a.user_id === userId);
-    if (adminIndex === -1) {
-        console.log('❌ Ошибка: Админ не найден');
-        return res.status(404).json({ error: 'Admin not found' });
-    }
-    
-    const removedAdmin = db.admins.splice(adminIndex, 1)[0];
-    
-    console.log('✅ Админ успешно удален:', removedAdmin);
-    console.log('📊 Текущее количество админов:', db.admins.length);
-    
-    res.json({ 
-        success: true, 
-        message: 'Админ удален',
-        removedAdmin: removedAdmin
-    });
-});
-
-// Отчет по пользователям
-app.get('/api/admin/users-report', requireAdmin, (req, res) => {
-    const users = db.users
-        .filter(u => u.is_registered)
-        .map(user => {
-            const stats = getUserStats(user.user_id);
-            const works = db.user_works.filter(w => w.user_id === user.user_id);
-            const quizCompletions = db.quiz_completions.filter(q => q.user_id === user.user_id);
-            const marathonCompletions = db.marathon_completions.filter(m => m.user_id === user.user_id);
-            const interactiveCompletions = db.interactive_completions.filter(i => i.user_id === user.user_id);
-            
-            const totalActivities = 
-                quizCompletions.length + 
-                marathonCompletions.filter(m => m.completed).length + 
-                interactiveCompletions.length + 
-                works.length;
-            
-            return {
-                id: user.user_id,
-                name: user.tg_first_name,
-                username: user.tg_username,
-                role: user.class,
-                character: user.character_name,
-                sparks: user.sparks,
-                level: user.level,
-                total_quizzes: quizCompletions.length,
-                total_marathons: marathonCompletions.filter(m => m.completed).length,
-                total_interactives: interactiveCompletions.length,
-                total_works: works.length,
-                approved_works: works.filter(w => w.status === 'approved').length,
-                total_activities: totalActivities,
-                registration_date: user.registration_date,
-                last_active: user.last_active
-            };
-        })
-        .sort((a, b) => b.total_activities - a.total_activities);
-    
-    res.json({ users });
-});
-
-// Полная статистика
-app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
-    const stats = {
-        users: {
-            total: db.users.length,
-            registered: db.users.filter(u => u.is_registered).length,
-            by_role: db.roles.map(role => ({
-                role: role.name,
-                count: db.users.filter(u => u.class === role.name).length
-            })),
-            active_today: db.users.filter(u => {
-                const today = new Date();
-                const lastActive = new Date(u.last_active);
-                return lastActive.toDateString() === today.toDateString();
-            }).length
-        },
-        content: {
-            quizzes: db.quizzes.length,
-            marathons: db.marathons.length,
-            shop_items: db.shop_items.length,
-            posts: db.channel_posts.length,
-            interactives: db.interactives.length
-        },
-        activities: {
-            total_sparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
-            total_purchases: db.purchases.length,
-            total_works: db.user_works.length,
-            pending_moderation: {
-                works: db.user_works.filter(w => w.status === 'pending').length,
-                reviews: db.post_reviews.filter(r => r.status === 'pending').length
-            }
-        },
-        completions: {
-            quizzes: db.quiz_completions.length,
-            marathons: db.marathon_completions.filter(m => m.completed).length,
-            interactives: db.interactive_completions.length
-        }
-    };
-    
-    res.json(stats);
-});
-
-// Telegram Bot
+// ==================== TELEGRAM BOT ====================
 let bot;
 if (process.env.BOT_TOKEN) {
     try {
-        // Добавляем опции для избежания конфликта
         bot = new TelegramBot(process.env.BOT_TOKEN, { 
             polling: {
                 timeout: 10,
@@ -2149,7 +1732,6 @@ if (process.env.BOT_TOKEN) {
             }
         });
         
-        // Запускаем polling только если нет других инстансов
         setTimeout(() => {
             bot.startPolling().catch(error => {
                 if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
@@ -2161,10 +1743,6 @@ if (process.env.BOT_TOKEN) {
         }, 1000);
         
         console.log('✅ Telegram Bot инициализирован');
-        console.log('=== НАСТРОЙКИ БОТА ===');
-        console.log('CHANNEL_ID:', process.env.CHANNEL_ID);
-        console.log('GROUP_ID:', process.env.GROUP_ID);
-        console.log('====================');
         
         bot.onText(/\/start/, (msg) => {
             const chatId = msg.chat.id;
@@ -2208,11 +1786,12 @@ if (process.env.BOT_TOKEN) {
 
 Нажмите кнопку ниже чтобы начать!`;
             
+            const baseUrl = process.env.APP_URL || `http://localhost:${PORT}`;
             const keyboard = {
                 inline_keyboard: [[
                     {
                         text: "📱 Открыть Личный Кабинет",
-                        web_app: { url: process.env.APP_URL || `https://your-domain.timeweb.cloud` }
+                        web_app: { url: baseUrl }
                     }
                 ]]
             };
@@ -2223,34 +1802,33 @@ if (process.env.BOT_TOKEN) {
             });
         });
 
-       bot.onText(/\/admin/, (msg) => {
-    const chatId = msg.chat.id;
-    const userId = msg.from.id;
-    
-    const admin = db.admins.find(a => a.user_id == userId);
-    if (!admin) {
-        bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
-        return;
-    }
-    
-    // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
-    const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
-    const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
-    
-    const keyboard = {
-        inline_keyboard: [[
-            {
-                text: "🔧 Открыть Админ Панель",
-                url: adminUrl
+        bot.onText(/\/admin/, (msg) => {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            const admin = db.admins.find(a => a.user_id == userId);
+            if (!admin) {
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+                return;
             }
-        ]]
-    };
-    
-    bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-    });
-});
+            
+            const baseUrl = process.env.APP_URL || `http://localhost:${PORT}`;
+            const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
+            
+            const keyboard = {
+                inline_keyboard: [[
+                    {
+                        text: "🔧 Открыть Админ Панель",
+                        url: adminUrl
+                    }
+                ]]
+            };
+            
+            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            });
+        });
 
         bot.onText(/\/stats/, (msg) => {
             const chatId = msg.chat.id;
@@ -2288,11 +1866,12 @@ if (process.env.BOT_TOKEN) {
     }
 }
 
+// ==================== SERVER START ====================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
     console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
-    console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
+    console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin.html`);
     console.log(`🎯 Квизов: ${db.quizzes.length}`);
     console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
     console.log(`🎮 Интерактивов: ${db.interactives.length}`);
@@ -2301,25 +1880,16 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('✅ Все системы работают!');
 });
 
-// ==================== ДЕБАГ ИНФОРМАЦИЯ ====================
-
-console.log('\n=== 🎯 ДЕБАГ ИНФОРМАЦИЯ ===');
-console.log('👥 Текущие админы в системе:');
-db.admins.forEach(admin => {
-    console.log(`   - ID: ${admin.user_id}, Роль: ${admin.role}, Имя: ${admin.username}`);
-});
-console.log('👤 Все пользователи в системе:');
-db.users.slice(0, 5).forEach(user => { // Покажем первые 5 пользователей
-    console.log(`   - ID: ${user.user_id}, Имя: ${user.tg_first_name}, Зарегистрирован: ${user.is_registered}`);
-});
-console.log('==============================\n');
-
-// Простая функция для тестирования API
-app.get('/api/debug/admins', (req, res) => {
+// Debug endpoint
+app.get('/api/debug', (req, res) => {
     res.json({
-        total_admins: db.admins.length,
+        users: db.users.length,
         admins: db.admins,
-        total_users: db.users.length,
-        sample_users: db.users.slice(0, 3).map(u => ({ id: u.user_id, name: u.tg_first_name }))
+        roles: db.roles.length,
+        characters: db.characters.length,
+        quizzes: db.quizzes.length,
+        marathons: db.marathons.length,
+        shop_items: db.shop_items.length,
+        interactives: db.interactives.length
     });
 });
