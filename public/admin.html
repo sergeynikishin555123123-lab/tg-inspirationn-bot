@@ -197,6 +197,82 @@
             font-weight: 500;
         }
         
+        .file-upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            margin: 16px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .file-upload-area:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #5a67d8;
+        }
+        
+        .file-upload-area.dragover {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #4a5568;
+        }
+        
+        .upload-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin: 12px 0;
+            border: 2px solid #e2e8f0;
+            display: none;
+        }
+        
+        .video-preview {
+            width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin: 12px 0;
+            border: 2px solid #e2e8f0;
+            display: none;
+        }
+        
+        .upload-info {
+            color: #718096;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        .hidden-file-input {
+            display: none;
+        }
+        
+        .upload-status {
+            margin-top: 12px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .upload-status.success {
+            background: #c6f6d5;
+            color: #276749;
+            border: 1px solid #9ae6b4;
+        }
+        
+        .upload-status.error {
+            background: #fed7d7;
+            color: #c53030;
+            border: 1px solid #feb2b2;
+        }
+        
+        .upload-status.uploading {
+            background: #bee3f8;
+            color: #2c5aa0;
+            border: 1px solid #90cdf4;
+        }
+
+        /* Остальные стили остаются без изменений */
         .role-card, .character-card, .quiz-card, .marathon-card, .admin-card, 
         .shop-item-card, .post-card, .review-card, .work-card, .interactive-card {
             background: rgba(255, 255, 255, 0.8);
@@ -389,29 +465,6 @@
             border-radius: 12px;
             padding: 20px; 
             margin-bottom: 16px;
-        }
-        
-        .image-upload-area {
-            border: 2px dashed #667eea; 
-            border-radius: 12px; 
-            padding: 40px 20px;
-            text-align: center; 
-            margin: 16px 0; 
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: rgba(102, 126, 234, 0.05);
-        }
-        
-        .image-upload-area:hover { 
-            background: rgba(102, 126, 234, 0.1); 
-        }
-        
-        .upload-preview {
-            max-width: 200px; 
-            max-height: 150px; 
-            border-radius: 8px;
-            margin: 12px 0; 
-            border: 2px solid #e2e8f0;
         }
         
         .tab-subnav {
@@ -854,6 +907,25 @@
                     </select>
                 </div>
                 
+                <!-- Загрузка изображения для интерактива -->
+                <div class="form-group">
+                    <label class="form-label">Изображение (опционально):</label>
+                    <div class="file-upload-area" id="interactiveImageUploadArea" onclick="document.getElementById('interactiveImageInput').click()">
+                        <div style="font-size: 48px; margin-bottom: 12px;">🖼️</div>
+                        <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки изображения</div>
+                        <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
+                        <div class="upload-info">Поддерживаются: JPG, PNG, GIF (макс. 5MB)</div>
+                    </div>
+                    <input type="file" id="interactiveImageInput" class="hidden-file-input" accept="image/*" onchange="handleInteractiveImageUpload(this.files[0])">
+                    
+                    <img id="interactiveImagePreview" class="upload-preview">
+                    <div id="interactiveImageUploadStatus" class="upload-status"></div>
+                    
+                    <button class="btn btn-danger" onclick="clearInteractiveImage()" style="margin-top: 12px; display: none;" id="clearInteractiveImageBtn">
+                        🗑️ Удалить изображение
+                    </button>
+                </div>
+                
                 <div class="form-group">
                     <label class="form-label">Вопрос:</label>
                     <input type="text" id="interactiveQuestion" class="form-control" placeholder="Вопрос для пользователя">
@@ -932,21 +1004,56 @@
                     
                     <div class="form-group">
                         <label class="form-label">Тип:</label>
-                        <select id="shopItemType" class="form-control">
+                        <select id="shopItemType" class="form-control" onchange="toggleShopItemUploads()">
                             <option value="video">🎥 Видео</option>
+                            <option value="image">🖼️ Изображение</option>
                             <option value="pdf">📚 PDF</option>
                             <option value="text">📝 Текст</option>
+                            <option value="audio">🎧 Аудио</option>
                         </select>
                     </div>
                     
-                    <div class="form-group">
-                        <label class="form-label">URL файла:</label>
-                        <input type="text" id="shopItemFileUrl" class="form-control" placeholder="https://example.com/file.mp4">
+                    <!-- Загрузка основного файла -->
+                    <div class="form-group" id="shopFileUploadGroup">
+                        <label class="form-label" id="shopFileUploadLabel">Основной файл:</label>
+                        <div class="file-upload-area" id="shopFileUploadArea" onclick="document.getElementById('shopFileInput').click()">
+                            <div style="font-size: 48px; margin-bottom: 12px;" id="shopFileIcon">📁</div>
+                            <div style="font-weight: 600; margin-bottom: 8px;" id="shopFileTitle">Нажмите для загрузки файла</div>
+                            <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
+                            <div class="upload-info" id="shopFileInfo">Поддерживаются: MP4, AVI, MOV (макс. 50MB)</div>
+                        </div>
+                        <input type="file" id="shopFileInput" class="hidden-file-input" accept="*/*" onchange="handleShopFileUpload(this.files[0])">
+                        
+                        <div id="shopFilePreviewContainer">
+                            <img id="shopImagePreview" class="upload-preview">
+                            <video id="shopVideoPreview" class="video-preview" controls></video>
+                            <div id="shopFileInfoPreview" class="upload-info" style="display: none;"></div>
+                        </div>
+                        
+                        <div id="shopFileUploadStatus" class="upload-status"></div>
+                        
+                        <button class="btn btn-danger" onclick="clearShopFile()" style="margin-top: 12px; display: none;" id="clearShopFileBtn">
+                            🗑️ Удалить файл
+                        </button>
                     </div>
                     
-                    <div class="form-group">
-                        <label class="form-label">URL превью:</label>
-                        <input type="text" id="shopItemPreviewUrl" class="form-control" placeholder="https://example.com/preview.jpg">
+                    <!-- Загрузка превью -->
+                    <div class="form-group" id="shopPreviewUploadGroup">
+                        <label class="form-label">Превью (опционально):</label>
+                        <div class="file-upload-area" id="shopPreviewUploadArea" onclick="document.getElementById('shopPreviewInput').click()">
+                            <div style="font-size: 48px; margin-bottom: 12px;">🖼️</div>
+                            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки превью</div>
+                            <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
+                            <div class="upload-info">Поддерживаются: JPG, PNG (макс. 5MB)</div>
+                        </div>
+                        <input type="file" id="shopPreviewInput" class="hidden-file-input" accept="image/*" onchange="handleShopPreviewUpload(this.files[0])">
+                        
+                        <img id="shopPreviewImage" class="upload-preview">
+                        <div id="shopPreviewUploadStatus" class="upload-status"></div>
+                        
+                        <button class="btn btn-danger" onclick="clearShopPreview()" style="margin-top: 12px; display: none;" id="clearShopPreviewBtn">
+                            🗑️ Удалить превью
+                        </button>
                     </div>
                     
                     <div class="form-group">
@@ -1023,16 +1130,35 @@
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">URL изображения:</label>
-                    <input type="text" id="postImageUrl" class="form-control" placeholder="https://example.com/image.jpg">
-                </div>
-                
-                <div class="form-group">
                     <label class="form-label">Тип медиа:</label>
-                    <select id="postMediaType" class="form-control">
+                    <select id="postMediaType" class="form-control" onchange="togglePostMediaUpload()">
                         <option value="text">📝 Текст</option>
                         <option value="image">🖼️ Изображение</option>
+                        <option value="video">🎥 Видео</option>
                     </select>
+                </div>
+                
+                <!-- Загрузка медиа для поста -->
+                <div class="form-group" id="postMediaUploadGroup" style="display: none;">
+                    <label class="form-label" id="postMediaUploadLabel">Медиафайл:</label>
+                    <div class="file-upload-area" id="postMediaUploadArea" onclick="document.getElementById('postMediaInput').click()">
+                        <div style="font-size: 48px; margin-bottom: 12px;" id="postMediaIcon">🖼️</div>
+                        <div style="font-weight: 600; margin-bottom: 8px;" id="postMediaTitle">Нажмите для загрузки медиа</div>
+                        <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
+                        <div class="upload-info" id="postMediaInfo">Поддерживаются: JPG, PNG, MP4 (макс. 50MB)</div>
+                    </div>
+                    <input type="file" id="postMediaInput" class="hidden-file-input" accept="image/*,video/*" onchange="handlePostMediaUpload(this.files[0])">
+                    
+                    <div id="postMediaPreviewContainer">
+                        <img id="postImagePreview" class="upload-preview">
+                        <video id="postVideoPreview" class="video-preview" controls></video>
+                    </div>
+                    
+                    <div id="postMediaUploadStatus" class="upload-status"></div>
+                    
+                    <button class="btn btn-danger" onclick="clearPostMedia()" style="margin-top: 12px; display: none;" id="clearPostMediaBtn">
+                        🗑️ Удалить медиа
+                    </button>
                 </div>
                 
                 <div class="form-group">
@@ -1147,6 +1273,12 @@
         let currentEditingId = null;
         let currentShopTab = 'items';
         let currentModerationTab = 'works';
+        
+        // Переменные для хранения загруженных файлов
+        let currentInteractiveImage = null;
+        let currentShopFile = null;
+        let currentShopPreview = null;
+        let currentPostMedia = null;
 
         // Инициализация админ-панели
         async function initAdminPanel() {
@@ -1184,6 +1316,9 @@
                 // Загружаем данные
                 loadAllData();
                 
+                // Инициализация drag and drop
+                initializeDragAndDrop();
+                
             } catch (error) {
                 document.body.innerHTML = `
                     <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
@@ -1196,6 +1331,627 @@
                 `;
             }
         }
+
+        // Инициализация drag and drop
+        function initializeDragAndDrop() {
+            const uploadAreas = document.querySelectorAll('.file-upload-area');
+            
+            uploadAreas.forEach(area => {
+                // Предотвращаем стандартное поведение
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    area.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                // Подсвечиваем область при перетаскивании
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    area.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    area.addEventListener(eventName, unhighlight, false);
+                });
+                
+                // Обрабатываем drop
+                area.addEventListener('drop', handleDrop, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            function highlight() {
+                this.classList.add('dragover');
+            }
+            
+            function unhighlight() {
+                this.classList.remove('dragover');
+            }
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                
+                if (files.length > 0) {
+                    const areaId = this.id;
+                    
+                    if (areaId === 'interactiveImageUploadArea') {
+                        handleInteractiveImageUpload(files[0]);
+                    } else if (areaId === 'shopFileUploadArea') {
+                        handleShopFileUpload(files[0]);
+                    } else if (areaId === 'shopPreviewUploadArea') {
+                        handleShopPreviewUpload(files[0]);
+                    } else if (areaId === 'postMediaUploadArea') {
+                        handlePostMediaUpload(files[0]);
+                    }
+                }
+            }
+        }
+
+        // ==================== ФУНКЦИИ ДЛЯ РАБОТЫ С ФАЙЛАМИ ====================
+
+        // Загрузка файла на сервер
+        async function uploadFile(file, endpoint) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = async function(e) {
+                    try {
+                        const base64Data = e.target.result;
+                        const fileName = generateFileName(file.name, file.type);
+                        
+                        const response = await fetch(`/api/upload/${endpoint}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                [`${endpoint}Data`]: base64Data,
+                                fileName: fileName,
+                                fileType: file.type
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            resolve(result);
+                        } else {
+                            reject(new Error(result.error || 'Upload failed'));
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = () => reject(new Error('File reading failed'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Генерация имени файла
+        function generateFileName(originalName, fileType) {
+            const extension = originalName.split('.').pop() || 
+                             (fileType.startsWith('image/') ? 'png' : 
+                              fileType.startsWith('video/') ? 'mp4' : 
+                              fileType.startsWith('audio/') ? 'mp3' : 'bin');
+            return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${extension}`;
+        }
+
+        // Показ статуса загрузки
+        function showUploadStatus(elementId, message, type = 'info') {
+            const statusElement = document.getElementById(elementId);
+            statusElement.textContent = message;
+            statusElement.className = `upload-status ${type}`;
+            statusElement.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusElement.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // ==================== ИНТЕРАКТИВЫ - ЗАГРУЗКА ИЗОБРАЖЕНИЙ ====================
+
+        async function handleInteractiveImageUpload(file) {
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                showUploadStatus('interactiveImageUploadStatus', '❌ Пожалуйста, выберите изображение', 'error');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                showUploadStatus('interactiveImageUploadStatus', '❌ Размер файла не должен превышать 5MB', 'error');
+                return;
+            }
+            
+            try {
+                showUploadStatus('interactiveImageUploadStatus', '⏳ Загрузка изображения...', 'uploading');
+                
+                const result = await uploadFile(file, 'image');
+                currentInteractiveImage = result.imageUrl;
+                
+                // Показываем превью
+                const preview = document.getElementById('interactiveImagePreview');
+                preview.src = result.imageUrl;
+                preview.style.display = 'block';
+                
+                // Показываем кнопку удаления
+                document.getElementById('clearInteractiveImageBtn').style.display = 'block';
+                
+                showUploadStatus('interactiveImageUploadStatus', '✅ Изображение успешно загружено', 'success');
+                
+            } catch (error) {
+                console.error('Ошибка загрузки изображения:', error);
+                showUploadStatus('interactiveImageUploadStatus', '❌ Ошибка загрузки изображения', 'error');
+            }
+        }
+
+        function clearInteractiveImage() {
+            currentInteractiveImage = null;
+            document.getElementById('interactiveImagePreview').style.display = 'none';
+            document.getElementById('interactiveImageInput').value = '';
+            document.getElementById('clearInteractiveImageBtn').style.display = 'none';
+            document.getElementById('interactiveImageUploadStatus').style.display = 'none';
+        }
+
+        // ==================== МАГАЗИН - ЗАГРУЗКА ФАЙЛОВ ====================
+
+        // Переключение видимости полей загрузки в зависимости от типа товара
+        function toggleShopItemUploads() {
+            const type = document.getElementById('shopItemType').value;
+            const fileGroup = document.getElementById('shopFileUploadGroup');
+            const previewGroup = document.getElementById('shopPreviewUploadGroup');
+            
+            // Всегда показываем основную загрузку файла
+            fileGroup.style.display = 'block';
+            
+            // Настраиваем в зависимости от типа
+            switch(type) {
+                case 'video':
+                    document.getElementById('shopFileIcon').textContent = '🎥';
+                    document.getElementById('shopFileTitle').textContent = 'Нажмите для загрузки видео';
+                    document.getElementById('shopFileInfo').textContent = 'Поддерживаются: MP4, AVI, MOV (макс. 50MB)';
+                    document.getElementById('shopFileInput').accept = 'video/*';
+                    previewGroup.style.display = 'block';
+                    break;
+                case 'image':
+                    document.getElementById('shopFileIcon').textContent = '🖼️';
+                    document.getElementById('shopFileTitle').textContent = 'Нажмите для загрузки изображения';
+                    document.getElementById('shopFileInfo').textContent = 'Поддерживаются: JPG, PNG, GIF (макс. 10MB)';
+                    document.getElementById('shopFileInput').accept = 'image/*';
+                    previewGroup.style.display = 'none';
+                    break;
+                case 'pdf':
+                    document.getElementById('shopFileIcon').textContent = '📚';
+                    document.getElementById('shopFileTitle').textContent = 'Нажмите для загрузки PDF';
+                    document.getElementById('shopFileInfo').textContent = 'Поддерживаются: PDF (макс. 20MB)';
+                    document.getElementById('shopFileInput').accept = '.pdf';
+                    previewGroup.style.display = 'block';
+                    break;
+                case 'audio':
+                    document.getElementById('shopFileIcon').textContent = '🎧';
+                    document.getElementById('shopFileTitle').textContent = 'Нажмите для загрузки аудио';
+                    document.getElementById('shopFileInfo').textContent = 'Поддерживаются: MP3, WAV, OGG (макс. 30MB)';
+                    document.getElementById('shopFileInput').accept = 'audio/*';
+                    previewGroup.style.display = 'block';
+                    break;
+                case 'text':
+                    document.getElementById('shopFileIcon').textContent = '📝';
+                    document.getElementById('shopFileTitle').textContent = 'Нажмите для загрузки текстового файла';
+                    document.getElementById('shopFileInfo').textContent = 'Поддерживаются: TXT, DOC, DOCX (макс. 5MB)';
+                    document.getElementById('shopFileInput').accept = '.txt,.doc,.docx';
+                    previewGroup.style.display = 'none';
+                    break;
+            }
+            
+            // Очищаем предыдущие загрузки при смене типа
+            clearShopFile();
+            clearShopPreview();
+        }
+
+        async function handleShopFileUpload(file) {
+            if (!file) return;
+            
+            const type = document.getElementById('shopItemType').value;
+            let maxSize = 50 * 1024 * 1024; // 50MB по умолчанию
+            
+            switch(type) {
+                case 'image': maxSize = 10 * 1024 * 1024; break;
+                case 'pdf': maxSize = 20 * 1024 * 1024; break;
+                case 'audio': maxSize = 30 * 1024 * 1024; break;
+                case 'text': maxSize = 5 * 1024 * 1024; break;
+            }
+            
+            if (file.size > maxSize) {
+                showUploadStatus('shopFileUploadStatus', `❌ Размер файла не должен превышать ${maxSize / (1024 * 1024)}MB`, 'error');
+                return;
+            }
+            
+            try {
+                showUploadStatus('shopFileUploadStatus', '⏳ Загрузка файла...', 'uploading');
+                
+                const result = await uploadFile(file, 'file');
+                currentShopFile = result.filePath;
+                
+                // Показываем превью в зависимости от типа
+                const imagePreview = document.getElementById('shopImagePreview');
+                const videoPreview = document.getElementById('shopVideoPreview');
+                const fileInfo = document.getElementById('shopFileInfoPreview');
+                
+                imagePreview.style.display = 'none';
+                videoPreview.style.display = 'none';
+                fileInfo.style.display = 'none';
+                
+                if (type === 'image') {
+                    imagePreview.src = result.filePath;
+                    imagePreview.style.display = 'block';
+                } else if (type === 'video') {
+                    videoPreview.src = result.filePath;
+                    videoPreview.style.display = 'block';
+                } else {
+                    fileInfo.textContent = `Файл: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`;
+                    fileInfo.style.display = 'block';
+                }
+                
+                // Показываем кнопку удаления
+                document.getElementById('clearShopFileBtn').style.display = 'block';
+                
+                showUploadStatus('shopFileUploadStatus', '✅ Файл успешно загружен', 'success');
+                
+            } catch (error) {
+                console.error('Ошибка загрузки файла:', error);
+                showUploadStatus('shopFileUploadStatus', '❌ Ошибка загрузки файла', 'error');
+            }
+        }
+
+        function clearShopFile() {
+            currentShopFile = null;
+            document.getElementById('shopImagePreview').style.display = 'none';
+            document.getElementById('shopVideoPreview').style.display = 'none';
+            document.getElementById('shopFileInfoPreview').style.display = 'none';
+            document.getElementById('shopFileInput').value = '';
+            document.getElementById('clearShopFileBtn').style.display = 'none';
+            document.getElementById('shopFileUploadStatus').style.display = 'none';
+        }
+
+        async function handleShopPreviewUpload(file) {
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                showUploadStatus('shopPreviewUploadStatus', '❌ Пожалуйста, выберите изображение', 'error');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                showUploadStatus('shopPreviewUploadStatus', '❌ Размер файла не должен превышать 5MB', 'error');
+                return;
+            }
+            
+            try {
+                showUploadStatus('shopPreviewUploadStatus', '⏳ Загрузка превью...', 'uploading');
+                
+                const result = await uploadFile(file, 'image');
+                currentShopPreview = result.imageUrl;
+                
+                // Показываем превью
+                const preview = document.getElementById('shopPreviewImage');
+                preview.src = result.imageUrl;
+                preview.style.display = 'block';
+                
+                // Показываем кнопку удаления
+                document.getElementById('clearShopPreviewBtn').style.display = 'block';
+                
+                showUploadStatus('shopPreviewUploadStatus', '✅ Превью успешно загружено', 'success');
+                
+            } catch (error) {
+                console.error('Ошибка загрузки превью:', error);
+                showUploadStatus('shopPreviewUploadStatus', '❌ Ошибка загрузки превью', 'error');
+            }
+        }
+
+        function clearShopPreview() {
+            currentShopPreview = null;
+            document.getElementById('shopPreviewImage').style.display = 'none';
+            document.getElementById('shopPreviewInput').value = '';
+            document.getElementById('clearShopPreviewBtn').style.display = 'none';
+            document.getElementById('shopPreviewUploadStatus').style.display = 'none';
+        }
+
+        // ==================== ПОСТЫ - ЗАГРУЗКА МЕДИА ====================
+
+        function togglePostMediaUpload() {
+            const mediaType = document.getElementById('postMediaType').value;
+            const mediaGroup = document.getElementById('postMediaUploadGroup');
+            
+            if (mediaType === 'text') {
+                mediaGroup.style.display = 'none';
+                clearPostMedia();
+            } else {
+                mediaGroup.style.display = 'block';
+                
+                if (mediaType === 'image') {
+                    document.getElementById('postMediaIcon').textContent = '🖼️';
+                    document.getElementById('postMediaTitle').textContent = 'Нажмите для загрузки изображения';
+                    document.getElementById('postMediaInfo').textContent = 'Поддерживаются: JPG, PNG, GIF (макс. 10MB)';
+                    document.getElementById('postMediaInput').accept = 'image/*';
+                } else if (mediaType === 'video') {
+                    document.getElementById('postMediaIcon').textContent = '🎥';
+                    document.getElementById('postMediaTitle').textContent = 'Нажмите для загрузки видео';
+                    document.getElementById('postMediaInfo').textContent = 'Поддерживаются: MP4, AVI, MOV (макс. 50MB)';
+                    document.getElementById('postMediaInput').accept = 'video/*';
+                }
+            }
+        }
+
+        async function handlePostMediaUpload(file) {
+            if (!file) return;
+            
+            const mediaType = document.getElementById('postMediaType').value;
+            let maxSize = mediaType === 'image' ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
+            
+            if (file.size > maxSize) {
+                showUploadStatus('postMediaUploadStatus', `❌ Размер файла не должен превышать ${maxSize / (1024 * 1024)}MB`, 'error');
+                return;
+            }
+            
+            // Проверяем тип файла
+            if (mediaType === 'image' && !file.type.startsWith('image/')) {
+                showUploadStatus('postMediaUploadStatus', '❌ Пожалуйста, выберите изображение', 'error');
+                return;
+            }
+            
+            if (mediaType === 'video' && !file.type.startsWith('video/')) {
+                showUploadStatus('postMediaUploadStatus', '❌ Пожалуйста, выберите видео', 'error');
+                return;
+            }
+            
+            try {
+                showUploadStatus('postMediaUploadStatus', '⏳ Загрузка медиа...', 'uploading');
+                
+                const endpoint = mediaType === 'image' ? 'image' : 'video';
+                const result = await uploadFile(file, endpoint);
+                currentPostMedia = mediaType === 'image' ? result.imageUrl : result.videoUrl;
+                
+                // Показываем превью
+                const imagePreview = document.getElementById('postImagePreview');
+                const videoPreview = document.getElementById('postVideoPreview');
+                
+                imagePreview.style.display = 'none';
+                videoPreview.style.display = 'none';
+                
+                if (mediaType === 'image') {
+                    imagePreview.src = result.imageUrl;
+                    imagePreview.style.display = 'block';
+                } else {
+                    videoPreview.src = result.videoUrl;
+                    videoPreview.style.display = 'block';
+                }
+                
+                // Показываем кнопку удаления
+                document.getElementById('clearPostMediaBtn').style.display = 'block';
+                
+                showUploadStatus('postMediaUploadStatus', '✅ Медиа успешно загружено', 'success');
+                
+            } catch (error) {
+                console.error('Ошибка загрузки медиа:', error);
+                showUploadStatus('postMediaUploadStatus', '❌ Ошибка загрузки медиа', 'error');
+            }
+        }
+
+        function clearPostMedia() {
+            currentPostMedia = null;
+            document.getElementById('postImagePreview').style.display = 'none';
+            document.getElementById('postVideoPreview').style.display = 'none';
+            document.getElementById('postMediaInput').value = '';
+            document.getElementById('clearPostMediaBtn').style.display = 'none';
+            document.getElementById('postMediaUploadStatus').style.display = 'none';
+        }
+
+        // ==================== ОБНОВЛЕННЫЕ ФУНКЦИИ СОХРАНЕНИЯ ====================
+
+        // Сохранение интерактива с изображением
+        async function saveInteractive() {
+            const title = document.getElementById('interactiveTitle').value.trim();
+            const description = document.getElementById('interactiveDescription').value.trim();
+            const type = document.getElementById('interactiveType').value;
+            const category = document.getElementById('interactiveCategory').value;
+            const question = document.getElementById('interactiveQuestion').value.trim();
+            const correct_answer = parseInt(document.getElementById('interactiveCorrectAnswer').value);
+            const sparks_reward = parseFloat(document.getElementById('interactiveSparksReward').value);
+            const allow_retake = document.getElementById('interactiveAllowRetake').checked;
+            const is_active = document.getElementById('interactiveActive').checked;
+            
+            if (!title || !question) {
+                alert('Заполните название и вопрос');
+                return;
+            }
+            
+            const options = [];
+            const optionElements = document.querySelectorAll('.interactive-option');
+            optionElements.forEach(input => {
+                if (input.value.trim()) {
+                    options.push(input.value.trim());
+                }
+            });
+            
+            if (options.length === 0) {
+                alert('Добавьте варианты ответов');
+                return;
+            }
+            
+            if (correct_answer >= options.length) {
+                alert('Правильный ответ должен быть в пределах количества вариантов');
+                return;
+            }
+            
+            try {
+                const interactiveData = {
+                    title,
+                    description,
+                    type,
+                    category,
+                    image_url: currentInteractiveImage || '',
+                    question,
+                    options,
+                    correct_answer,
+                    sparks_reward,
+                    allow_retake,
+                    is_active
+                };
+                
+                let response;
+                if (currentEditingId) {
+                    response = await fetch(`/api/admin/interactives/${currentEditingId}?userId=${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(interactiveData)
+                    });
+                } else {
+                    response = await fetch(`/api/admin/interactives?userId=${currentUserId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(interactiveData)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Интерактив успешно сохранен', 'success');
+                    hideInteractiveForm();
+                    loadInteractives();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка сохранения интерактива', 'error');
+            }
+        }
+
+        // Сохранение товара с файлами
+        async function saveShopItem() {
+            const title = document.getElementById('shopItemTitle').value.trim();
+            const description = document.getElementById('shopItemDescription').value.trim();
+            const type = document.getElementById('shopItemType').value;
+            const price = parseFloat(document.getElementById('shopItemPrice').value);
+            const content_text = document.getElementById('shopItemContent').value.trim();
+            const is_active = document.getElementById('shopItemActive').checked;
+            
+            if (!title || !price) {
+                alert('Заполните название и цену');
+                return;
+            }
+            
+            if (!currentShopFile && type !== 'text') {
+                alert('Загрузите основной файл для товара');
+                return;
+            }
+            
+            try {
+                const itemData = {
+                    title,
+                    description,
+                    type,
+                    file_url: currentShopFile || '',
+                    preview_url: currentShopPreview || '',
+                    price,
+                    content_text,
+                    is_active
+                };
+                
+                let response;
+                if (currentEditingId) {
+                    response = await fetch(`/api/admin/shop/items/${currentEditingId}?userId=${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(itemData)
+                    });
+                } else {
+                    response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(itemData)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Товар успешно сохранен', 'success');
+                    hideShopItemForm();
+                    loadShopItems();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка сохранения товара', 'error');
+            }
+        }
+
+        // Сохранение поста с медиа
+        async function savePost() {
+            const post_id = document.getElementById('postId').value.trim();
+            const title = document.getElementById('postTitle').value.trim();
+            const content = document.getElementById('postContent').value.trim();
+            const media_type = document.getElementById('postMediaType').value;
+            const is_active = document.getElementById('postActive').checked;
+            
+            if (!post_id || !title) {
+                alert('Заполните ID и заголовок поста');
+                return;
+            }
+            
+            // Для медиа-постов проверяем загрузку файла
+            if (media_type !== 'text' && !currentPostMedia) {
+                alert('Загрузите медиафайл для поста');
+                return;
+            }
+            
+            try {
+                const postData = {
+                    post_id,
+                    title,
+                    content,
+                    image_url: media_type === 'image' ? currentPostMedia : '',
+                    video_url: media_type === 'video' ? currentPostMedia : '',
+                    media_type,
+                    is_active
+                };
+                
+                let response;
+                if (currentEditingId) {
+                    response = await fetch(`/api/admin/channel-posts/${currentEditingId}?userId=${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(postData)
+                    });
+                } else {
+                    response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(postData)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Пост успешно сохранен', 'success');
+                    hidePostForm();
+                    loadPosts();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка сохранения поста', 'error');
+            }
+        }
+
+        // ==================== ОСТАЛЬНЫЕ ФУНКЦИИ (без изменений) ====================
 
         // Загрузка всех данных
         async function loadAllData() {
@@ -1267,2195 +2023,18 @@
             document.getElementById('shopItemForm').style.display = 'none';
             document.getElementById('postForm').style.display = 'none';
             document.getElementById('adminForm').style.display = 'none';
+            
+            // Очищаем загруженные файлы
+            currentInteractiveImage = null;
+            currentShopFile = null;
+            currentShopPreview = null;
+            currentPostMedia = null;
+            
             currentEditingId = null;
         }
 
-        // ==================== СТАТИСТИКА ====================
-        async function loadStats() {
-            try {
-                const response = await fetch(`/api/admin/stats?userId=${currentUserId}`);
-                const stats = await response.json();
-                
-                document.getElementById('statsGrid').innerHTML = `
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.totalUsers}</div>
-                        <div class="stat-label">👥 Всего пользователей</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.registeredUsers}</div>
-                        <div class="stat-label">✅ Зарегистрировано</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.activeQuizzes}</div>
-                        <div class="stat-label">🎯 Активных квизов</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.activeMarathons}</div>
-                        <div class="stat-label">🏃‍♂️ Активных марафонов</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.shopItems}</div>
-                        <div class="stat-label">🛒 Товаров в магазине</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.totalSparks.toFixed(1)}</div>
-                        <div class="stat-label">✨ Всего искр в системе</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.totalAdmins}</div>
-                        <div class="stat-label">🔧 Администраторов</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.pendingReviews}</div>
-                        <div class="stat-label">💬 Отзывов на модерации</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.pendingWorks}</div>
-                        <div class="stat-label">🖼️ Работ на модерации</div>
-                    </div>
-                `;
-                
-            } catch (error) {
-                document.getElementById('statsGrid').innerHTML = '<div class="message error">Ошибка загрузки статистики</div>';
-            }
-        }
+        // ... (остальные функции остаются без изменений)
 
-        // ==================== ПОЛЬЗОВАТЕЛИ ====================
-        async function loadUsers() {
-            try {
-                const response = await fetch(`/api/admin/users-report?userId=${currentUserId}`);
-                const data = await response.json();
-                
-                displayUsers(data.users);
-                populateRoleFilter(data.users);
-                
-            } catch (error) {
-                document.getElementById('usersList').innerHTML = '<div class="message error">Ошибка загрузки пользователей</div>';
-            }
-        }
-
-        function displayUsers(users) {
-            const usersList = document.getElementById('usersList');
-            
-            if (users.length === 0) {
-                usersList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div>Пользователей не найдено</div></div>';
-                return;
-            }
-            
-            let html = `
-                <div style="overflow-x: auto;">
-                    <table class="users-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Имя</th>
-                                <th>Роль</th>
-                                <th>Уровень</th>
-                                <th>Искры</th>
-                                <th>Активность</th>
-                                <th>Статистика</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            users.forEach(user => {
-                html += `
-                    <tr>
-                        <td>${user.id}</td>
-                        <td>
-                            <strong>${user.name}</strong>
-                            ${user.username ? `<br><small>@${user.username}</small>` : ''}
-                        </td>
-                        <td>${user.role || 'Не выбрана'}</td>
-                        <td><span class="badge badge-info">${user.level}</span></td>
-                        <td><strong>${user.sparks.toFixed(1)}</strong>✨</td>
-                        <td>
-                            <small>Рег: ${new Date(user.registration_date).toLocaleDateString('ru-RU')}</small><br>
-                            <small>Акт: ${new Date(user.last_active).toLocaleDateString('ru-RU')}</small>
-                        </td>
-                        <td>
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;">
-                                <div style="padding: 8px; background: #f7fafc; border-radius: 8px;">
-                                    <div style="font-size: 16px; font-weight: bold; color: #667eea;">${user.total_quizzes}</div>
-                                    <div style="font-size: 12px; color: #718096;">Квизов</div>
-                                </div>
-                                <div style="padding: 8px; background: #f7fafc; border-radius: 8px;">
-                                    <div style="font-size: 16px; font-weight: bold; color: #667eea;">${user.total_works}</div>
-                                    <div style="font-size: 12px; color: #718096;">Работ</div>
-                                </div>
-                                <div style="padding: 8px; background: #f7fafc; border-radius: 8px;">
-                                    <div style="font-size: 16px; font-weight: bold; color: #667eea;">${user.total_activities}</div>
-                                    <div style="font-size: 12px; color: #718096;">Актив.</div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            html += '</tbody></table></div>';
-            usersList.innerHTML = html;
-        }
-
-        function populateRoleFilter(users) {
-            const roles = [...new Set(users.map(user => user.role).filter(role => role))];
-            const roleFilter = document.getElementById('roleFilter');
-            
-            roleFilter.innerHTML = '<option value="">Все роли</option>';
-            roles.forEach(role => {
-                const option = document.createElement('option');
-                option.value = role;
-                option.textContent = role;
-                roleFilter.appendChild(option);
-            });
-        }
-
-        function filterUsers() {
-            // В реальном приложении здесь был бы запрос к серверу
-            loadUsers();
-        }
-
-        // ==================== РОЛИ ====================
-        async function loadRoles() {
-            try {
-                const response = await fetch(`/api/admin/roles?userId=${currentUserId}`);
-                const roles = await response.json();
-                
-                displayRoles(roles);
-                
-            } catch (error) {
-                document.getElementById('rolesList').innerHTML = '<div class="message error">Ошибка загрузки ролей</div>';
-            }
-        }
-
-        function displayRoles(roles) {
-            const rolesList = document.getElementById('rolesList');
-            
-            if (roles.length === 0) {
-                rolesList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎭</div><div>Ролей не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            roles.forEach(role => {
-                html += `
-                    <div class="role-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${role.icon} ${role.name}</h3>
-                                <p style="color: #718096; margin-bottom: 12px;">${role.description}</p>
-                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                    ${role.available_buttons.map(btn => `<span class="badge badge-secondary">${btn}</span>`).join('')}
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <span class="badge ${role.is_active ? 'badge-success' : 'badge-danger'}">
-                                    <span class="status-indicator ${role.is_active ? 'status-active' : 'status-inactive'}"></span>
-                                    ${role.is_active ? 'Активна' : 'Неактивна'}
-                                </span>
-                            </div>
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Создана: ${new Date(role.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-warning" onclick="editRole(${role.id})">✏️ Редактировать</button>
-                            <button class="btn btn-danger" onclick="deleteRole(${role.id})">🗑️ Удалить</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            rolesList.innerHTML = html;
-        }
-
-        function showRoleForm() {
-            document.getElementById('roleForm').style.display = 'block';
-            document.getElementById('roleFormTitle').textContent = 'Добавление новой роли';
-            currentEditingId = null;
-            
-            document.getElementById('roleName').value = '';
-            document.getElementById('roleDescription').value = '';
-            document.getElementById('roleIcon').value = '🎨';
-            document.getElementById('roleActive').checked = true;
-        }
-
-        async function saveRole() {
-            const name = document.getElementById('roleName').value.trim();
-            const description = document.getElementById('roleDescription').value.trim();
-            const icon = document.getElementById('roleIcon').value.trim();
-            const is_active = document.getElementById('roleActive').checked;
-            
-            if (!name) {
-                alert('Введите название роли');
-                return;
-            }
-            
-            try {
-                const roleData = {
-                    name,
-                    description,
-                    icon,
-                    available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-                    is_active
-                };
-                
-                let response;
-                if (currentEditingId) {
-                    response = await fetch(`/api/admin/roles/${currentEditingId}?userId=${currentUserId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(roleData)
-                    });
-                } else {
-                    response = await fetch(`/api/admin/roles?userId=${currentUserId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(roleData)
-                    });
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Роль успешно сохранена', 'success');
-                    hideRoleForm();
-                    loadRoles();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка сохранения роли', 'error');
-            }
-        }
-
-        async function editRole(roleId) {
-            try {
-                const response = await fetch(`/api/admin/roles?userId=${currentUserId}`);
-                const roles = await response.json();
-                const role = roles.find(r => r.id === roleId);
-                
-                if (!role) {
-                    showMessage('❌ Роль не найдена', 'error');
-                    return;
-                }
-                
-                document.getElementById('roleForm').style.display = 'block';
-                document.getElementById('roleFormTitle').textContent = 'Редактирование роли';
-                currentEditingId = roleId;
-                
-                document.getElementById('roleName').value = role.name;
-                document.getElementById('roleDescription').value = role.description;
-                document.getElementById('roleIcon').value = role.icon;
-                document.getElementById('roleActive').checked = role.is_active;
-                
-            } catch (error) {
-                showMessage('❌ Ошибка загрузки роли', 'error');
-            }
-        }
-
-        async function deleteRole(roleId) {
-            if (!confirm('Вы уверены, что хотите удалить эту роль?')) return;
-            
-            try {
-                const response = await fetch(`/api/admin/roles/${roleId}?userId=${currentUserId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Роль успешно удалена', 'success');
-                    loadRoles();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка удаления роли', 'error');
-            }
-        }
-
-        function hideRoleForm() {
-            document.getElementById('roleForm').style.display = 'none';
-            currentEditingId = null;
-        }
-
-        // ==================== ПЕРСОНАЖИ ====================
-        async function loadCharacters() {
-            try {
-                const response = await fetch(`/api/admin/characters?userId=${currentUserId}`);
-                const characters = await response.json();
-                
-                displayCharacters(characters);
-                populateCharacterRoles(characters);
-                
-            } catch (error) {
-                document.getElementById('charactersList').innerHTML = '<div class="message error">Ошибка загрузки персонажей</div>';
-            }
-        }
-
-        function displayCharacters(characters) {
-            const charactersList = document.getElementById('charactersList');
-            
-            if (characters.length === 0) {
-                charactersList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👤</div><div>Персонажей не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            characters.forEach(character => {
-                const bonusDescriptions = {
-                    'percent_bonus': `+${character.bonus_value}% к наградам`,
-                    'forgiveness': `${character.bonus_value} право на ошибку`,
-                    'random_gift': `Случайный подарок`,
-                    'secret_advice': `Секретные советы`
-                };
-                
-                html += `
-                    <div class="character-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${character.name}</h3>
-                                <p style="color: #718096; margin-bottom: 8px;">${character.description}</p>
-                                <div style="margin-bottom: 8px;">
-                                    <span class="badge badge-info">${character.role_name}</span>
-                                    <span class="badge badge-success">${bonusDescriptions[character.bonus_type]}</span>
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <span class="badge ${character.is_active ? 'badge-success' : 'badge-danger'}">
-                                    <span class="status-indicator ${character.is_active ? 'status-active' : 'status-inactive'}"></span>
-                                    ${character.is_active ? 'Активен' : 'Неактивен'}
-                                </span>
-                            </div>
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Создан: ${new Date(character.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-warning" onclick="editCharacter(${character.id})">✏️ Редактировать</button>
-                            <button class="btn btn-danger" onclick="deleteCharacter(${character.id})">🗑️ Удалить</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            charactersList.innerHTML = html;
-        }
-
-        function populateCharacterRoles(characters) {
-            const roleSelect = document.getElementById('characterRole');
-            const roles = [...new Set(characters.map(char => char.role_id).filter(id => id))];
-            
-            roleSelect.innerHTML = '<option value="">Выберите роль</option>';
-            roles.forEach(roleId => {
-                const character = characters.find(c => c.role_id === roleId);
-                if (character) {
-                    const option = document.createElement('option');
-                    option.value = roleId;
-                    option.textContent = character.role_name;
-                    roleSelect.appendChild(option);
-                }
-            });
-        }
-
-        function showCharacterForm() {
-            document.getElementById('characterForm').style.display = 'block';
-            document.getElementById('characterFormTitle').textContent = 'Добавление нового персонажа';
-            currentEditingId = null;
-            
-            document.getElementById('characterRole').value = '';
-            document.getElementById('characterName').value = '';
-            document.getElementById('characterDescription').value = '';
-            document.getElementById('characterBonusType').value = 'percent_bonus';
-            document.getElementById('characterBonusValue').value = '';
-            document.getElementById('characterActive').checked = true;
-        }
-
-        async function saveCharacter() {
-            const role_id = document.getElementById('characterRole').value;
-            const name = document.getElementById('characterName').value.trim();
-            const description = document.getElementById('characterDescription').value.trim();
-            const bonus_type = document.getElementById('characterBonusType').value;
-            const bonus_value = document.getElementById('characterBonusValue').value.trim();
-            const is_active = document.getElementById('characterActive').checked;
-            
-            if (!role_id || !name || !bonus_value) {
-                alert('Заполните все обязательные поля');
-                return;
-            }
-            
-            try {
-                const characterData = {
-                    role_id: parseInt(role_id),
-                    name,
-                    description,
-                    bonus_type,
-                    bonus_value,
-                    is_active
-                };
-                
-                let response;
-                if (currentEditingId) {
-                    response = await fetch(`/api/admin/characters/${currentEditingId}?userId=${currentUserId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(characterData)
-                    });
-                } else {
-                    response = await fetch(`/api/admin/characters?userId=${currentUserId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(characterData)
-                    });
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Персонаж успешно сохранен', 'success');
-                    hideCharacterForm();
-                    loadCharacters();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка сохранения персонажа', 'error');
-            }
-        }
-
-        async function editCharacter(characterId) {
-            try {
-                const response = await fetch(`/api/admin/characters?userId=${currentUserId}`);
-                const characters = await response.json();
-                const character = characters.find(c => c.id === characterId);
-                
-                if (!character) {
-                    showMessage('❌ Персонаж не найден', 'error');
-                    return;
-                }
-                
-                document.getElementById('characterForm').style.display = 'block';
-                document.getElementById('characterFormTitle').textContent = 'Редактирование персонажа';
-                currentEditingId = characterId;
-                
-                document.getElementById('characterRole').value = character.role_id;
-                document.getElementById('characterName').value = character.name;
-                document.getElementById('characterDescription').value = character.description;
-                document.getElementById('characterBonusType').value = character.bonus_type;
-                document.getElementById('characterBonusValue').value = character.bonus_value;
-                document.getElementById('characterActive').checked = character.is_active;
-                
-            } catch (error) {
-                showMessage('❌ Ошибка загрузки персонажа', 'error');
-            }
-        }
-
-        async function deleteCharacter(characterId) {
-            if (!confirm('Вы уверены, что хотите удалить этого персонажа?')) return;
-            
-            try {
-                const response = await fetch(`/api/admin/characters/${characterId}?userId=${currentUserId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Персонаж успешно удален', 'success');
-                    loadCharacters();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка удаления персонажа', 'error');
-            }
-        }
-
-        function hideCharacterForm() {
-            document.getElementById('characterForm').style.display = 'none';
-            currentEditingId = null;
-        }
-
-        // ==================== КВИЗЫ ====================
-        async function loadQuizzes() {
-            try {
-                const response = await fetch(`/api/admin/quizzes?userId=${currentUserId}`);
-                const quizzes = await response.json();
-                
-                displayQuizzes(quizzes);
-                
-            } catch (error) {
-                document.getElementById('quizzesList').innerHTML = '<div class="message error">Ошибка загрузки квизов</div>';
-            }
-        }
-
-        function displayQuizzes(quizzes) {
-            const quizzesList = document.getElementById('quizzesList');
-            
-            if (quizzes.length === 0) {
-                quizzesList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎯</div><div>Квизов не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            quizzes.forEach(quiz => {
-                html += `
-                    <div class="quiz-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${quiz.title}</h3>
-                                <p style="color: #718096; margin-bottom: 12px;">${quiz.description}</p>
-                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
-                                    <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                                        <div style="font-size: 14px; color: #718096;">Прохождений</div>
-                                        <div style="font-size: 18px; font-weight: bold; color: #667eea;">${quiz.completions_count}</div>
-                                    </div>
-                                    <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                                        <div style="font-size: 14px; color: #718096;">Средний балл</div>
-                                        <div style="font-size: 18px; font-weight: bold; color: #667eea;">${quiz.average_score.toFixed(1)}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <span class="badge ${quiz.is_active ? 'badge-success' : 'badge-danger'}">
-                                    <span class="status-indicator ${quiz.is_active ? 'status-active' : 'status-inactive'}"></span>
-                                    ${quiz.is_active ? 'Активен' : 'Неактивен'}
-                                </span>
-                            </div>
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Вопросов: ${quiz.questions.length} • 
-                            Ожидание: ${quiz.cooldown_hours}ч • 
-                            Повтор: ${quiz.allow_retake ? 'Да' : 'Нет'} •
-                            Создан: ${new Date(quiz.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-warning" onclick="editQuiz(${quiz.id})">✏️ Редактировать</button>
-                            <button class="btn btn-danger" onclick="deleteQuiz(${quiz.id})">🗑️ Удалить</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            quizzesList.innerHTML = html;
-        }
-
-        function showQuizForm() {
-            document.getElementById('quizForm').style.display = 'block';
-            document.getElementById('quizFormTitle').textContent = 'Создание нового квиза';
-            currentEditingId = null;
-            
-            document.getElementById('quizTitle').value = '';
-            document.getElementById('quizDescription').value = '';
-            document.getElementById('quizSparksPerCorrect').value = '1';
-            document.getElementById('quizPerfectBonus').value = '5';
-            document.getElementById('quizCooldown').value = '24';
-            document.getElementById('quizAllowRetake').checked = true;
-            document.getElementById('quizActive').checked = true;
-            
-            document.getElementById('quizQuestions').innerHTML = '';
-            addQuestion();
-        }
-
-        function addQuestion() {
-            const questionsContainer = document.getElementById('quizQuestions');
-            const questionIndex = questionsContainer.children.length;
-            
-            const questionHtml = `
-                <div class="question-item" data-index="${questionIndex}">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h4 style="margin: 0;">Вопрос ${questionIndex + 1}</h4>
-                        <button class="btn btn-danger" onclick="removeQuestion(${questionIndex})">🗑️ Удалить</button>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Текст вопроса:</label>
-                        <input type="text" class="form-control question-text" placeholder="Введите вопрос">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Варианты ответов:</label>
-                        <div class="option-item">
-                            <input type="radio" name="correct_${questionIndex}" value="0" checked>
-                            <input type="text" class="form-control option-text" placeholder="Вариант ответа 1">
-                        </div>
-                        <div class="option-item">
-                            <input type="radio" name="correct_${questionIndex}" value="1">
-                            <input type="text" class="form-control option-text" placeholder="Вариант ответа 2">
-                        </div>
-                        <div class="option-item">
-                            <input type="radio" name="correct_${questionIndex}" value="2">
-                            <input type="text" class="form-control option-text" placeholder="Вариант ответа 3">
-                        </div>
-                        <div class="option-item">
-                            <input type="radio" name="correct_${questionIndex}" value="3">
-                            <input type="text" class="form-control option-text" placeholder="Вариант ответа 4">
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            questionsContainer.innerHTML += questionHtml;
-        }
-
-        function removeQuestion(index) {
-            const questionElement = document.querySelector(`.question-item[data-index="${index}"]`);
-            if (questionElement && document.getElementById('quizQuestions').children.length > 1) {
-                questionElement.remove();
-                renumberQuestions();
-            }
-        }
-
-        function renumberQuestions() {
-            const questions = document.querySelectorAll('.question-item');
-            questions.forEach((question, index) => {
-                question.setAttribute('data-index', index);
-                question.querySelector('h4').textContent = `Вопрос ${index + 1}`;
-                
-                const radioName = `correct_${index}`;
-                question.querySelectorAll('input[type="radio"]').forEach((radio, radioIndex) => {
-                    radio.name = radioName;
-                    radio.value = radioIndex;
-                });
-            });
-        }
-
-        async function saveQuiz() {
-            const title = document.getElementById('quizTitle').value.trim();
-            const description = document.getElementById('quizDescription').value.trim();
-            const sparks_per_correct = parseFloat(document.getElementById('quizSparksPerCorrect').value);
-            const sparks_perfect_bonus = parseFloat(document.getElementById('quizPerfectBonus').value);
-            const cooldown_hours = parseInt(document.getElementById('quizCooldown').value);
-            const allow_retake = document.getElementById('quizAllowRetake').checked;
-            const is_active = document.getElementById('quizActive').checked;
-            
-            if (!title) {
-                alert('Введите название квиза');
-                return;
-            }
-            
-            const questions = [];
-            const questionElements = document.querySelectorAll('.question-item');
-            
-            if (questionElements.length === 0) {
-                alert('Добавьте хотя бы один вопрос');
-                return;
-            }
-            
-            questionElements.forEach(questionElement => {
-                const questionText = questionElement.querySelector('.question-text').value.trim();
-                const options = Array.from(questionElement.querySelectorAll('.option-text')).map(input => input.value.trim());
-                const correctAnswer = parseInt(questionElement.querySelector('input[type="radio"]:checked').value);
-                
-                if (questionText && options.every(opt => opt)) {
-                    questions.push({
-                        question: questionText,
-                        options: options,
-                        correctAnswer: correctAnswer
-                    });
-                }
-            });
-            
-            if (questions.length === 0) {
-                alert('Заполните все вопросы и варианты ответов');
-                return;
-            }
-            
-            try {
-                const quizData = {
-                    title,
-                    description,
-                    questions,
-                    sparks_per_correct,
-                    sparks_perfect_bonus,
-                    cooldown_hours,
-                    allow_retake,
-                    is_active
-                };
-                
-                let response;
-                if (currentEditingId) {
-                    response = await fetch(`/api/admin/quizzes/${currentEditingId}?userId=${currentUserId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(quizData)
-                    });
-                } else {
-                    response = await fetch(`/api/admin/quizzes?userId=${currentUserId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(quizData)
-                    });
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Квиз успешно сохранен', 'success');
-                    hideQuizForm();
-                    loadQuizzes();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка сохранения квиза', 'error');
-            }
-        }
-
-        async function editQuiz(quizId) {
-            try {
-                const response = await fetch(`/api/admin/quizzes?userId=${currentUserId}`);
-                const quizzes = await response.json();
-                const quiz = quizzes.find(q => q.id === quizId);
-                
-                if (!quiz) {
-                    showMessage('❌ Квиз не найден', 'error');
-                    return;
-                }
-                
-                document.getElementById('quizForm').style.display = 'block';
-                document.getElementById('quizFormTitle').textContent = 'Редактирование квиза';
-                currentEditingId = quizId;
-                
-                document.getElementById('quizTitle').value = quiz.title;
-                document.getElementById('quizDescription').value = quiz.description;
-                document.getElementById('quizSparksPerCorrect').value = quiz.sparks_per_correct;
-                document.getElementById('quizPerfectBonus').value = quiz.sparks_perfect_bonus;
-                document.getElementById('quizCooldown').value = quiz.cooldown_hours;
-                document.getElementById('quizAllowRetake').checked = quiz.allow_retake;
-                document.getElementById('quizActive').checked = quiz.is_active;
-                
-                const questionsContainer = document.getElementById('quizQuestions');
-                questionsContainer.innerHTML = '';
-
-                quiz.questions.forEach((question, index) => {
-                    const questionHtml = `
-                        <div class="question-item" data-index="${index}">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <h4 style="margin: 0;">Вопрос ${index + 1}</h4>
-                                <button class="btn btn-danger" onclick="removeQuestion(${index})">🗑️ Удалить</button>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Текст вопроса:</label>
-                                <input type="text" class="form-control question-text" value="${question.question}" placeholder="Введите вопрос">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Варианты ответов:</label>
-                                ${question.options.map((option, optIndex) => `
-                                    <div class="option-item">
-                                        <input type="radio" name="correct_${index}" value="${optIndex}" ${optIndex === question.correctAnswer ? 'checked' : ''}>
-                                        <input type="text" class="form-control option-text" value="${option}" placeholder="Вариант ответа ${optIndex + 1}">
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `;
-                    questionsContainer.innerHTML += questionHtml;
-                });
-                
-            } catch (error) {
-                showMessage('❌ Ошибка загрузки квиза', 'error');
-            }
-        }
-
-        async function deleteQuiz(quizId) {
-            if (!confirm('Вы уверены, что хотите удалить этот квиз?')) return;
-            
-            try {
-                const response = await fetch(`/api/admin/quizzes/${quizId}?userId=${currentUserId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Квиз успешно удален', 'success');
-                    loadQuizzes();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка удаления квиза', 'error');
-            }
-        }
-
-        function hideQuizForm() {
-            document.getElementById('quizForm').style.display = 'none';
-            currentEditingId = null;
-        }
-
-        // ==================== МАРАФОНЫ ====================
-        async function loadMarathons() {
-            try {
-                const response = await fetch(`/api/admin/marathons?userId=${currentUserId}`);
-                const marathons = await response.json();
-                
-                displayMarathons(marathons);
-                
-            } catch (error) {
-                document.getElementById('marathonsList').innerHTML = '<div class="message error">Ошибка загрузки марафонов</div>';
-            }
-        }
-
-        function displayMarathons(marathons) {
-            const marathonsList = document.getElementById('marathonsList');
-            
-            if (marathons.length === 0) {
-                marathonsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏃‍♂️</div><div>Марафонов не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            marathons.forEach(marathon => {
-                const completedCount = marathon.completions_count || 0;
-                const activeUsers = marathon.active_users || 0;
-                
-                html += `
-                    <div class="marathon-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${marathon.title}</h3>
-                                <p style="color: #718096; margin-bottom: 12px;">${marathon.description}</p>
-                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
-                                    <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                                        <div style="font-size: 14px; color: #718096;">Завершили</div>
-                                        <div style="font-size: 18px; font-weight: bold; color: #667eea;">${completedCount}</div>
-                                    </div>
-                                    <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                                        <div style="font-size: 14px; color: #718096;">Активных</div>
-                                        <div style="font-size: 18px; font-weight: bold; color: #667eea;">${activeUsers}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <span class="badge ${marathon.is_active ? 'badge-success' : 'badge-danger'}">
-                                    <span class="status-indicator ${marathon.is_active ? 'status-active' : 'status-inactive'}"></span>
-                                    ${marathon.is_active ? 'Активен' : 'Неактивен'}
-                                </span>
-                            </div>
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Заданий: ${marathon.tasks.length} • 
-                            Создан: ${new Date(marathon.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-warning" onclick="editMarathon(${marathon.id})">✏️ Редактировать</button>
-                            <button class="btn btn-danger" onclick="deleteMarathon(${marathon.id})">🗑️ Удалить</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            marathonsList.innerHTML = html;
-        }
-
-        function showMarathonForm() {
-            document.getElementById('marathonForm').style.display = 'block';
-            document.getElementById('marathonFormTitle').textContent = 'Создание нового марафона';
-            currentEditingId = null;
-            
-            document.getElementById('marathonTitle').value = '';
-            document.getElementById('marathonDescription').value = '';
-            document.getElementById('marathonDuration').value = '7';
-            document.getElementById('marathonSparksPerDay').value = '7';
-            document.getElementById('marathonActive').checked = true;
-            
-            document.getElementById('marathonTasks').innerHTML = '';
-            addMarathonTask();
-        }
-
-        function addMarathonTask() {
-            const tasksContainer = document.getElementById('marathonTasks');
-            const taskIndex = tasksContainer.children.length;
-            
-            const taskHtml = `
-                <div class="task-item" data-index="${taskIndex}">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h4 style="margin: 0;">День ${taskIndex + 1}</h4>
-                        <button class="btn btn-danger" onclick="removeMarathonTask(${taskIndex})">🗑️ Удалить</button>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Название дня:</label>
-                        <input type="text" class="form-control task-title" placeholder="Название задания">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Описание:</label>
-                        <textarea class="form-control task-description" rows="3" placeholder="Описание задания..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">
-                            <input type="checkbox" class="task-requires-submission" checked> Требует отправки работы
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Тип отправки:</label>
-                        <select class="form-control task-submission-type">
-                            <option value="text">📝 Текст</option>
-                            <option value="image">🖼️ Изображение</option>
-                        </select>
-                    </div>
-                </div>
-            `;
-            
-            tasksContainer.innerHTML += taskHtml;
-        }
-
-        function removeMarathonTask(index) {
-            const taskElement = document.querySelector(`.task-item[data-index="${index}"]`);
-            if (taskElement && document.getElementById('marathonTasks').children.length > 1) {
-                taskElement.remove();
-                renumberMarathonTasks();
-            }
-        }
-
-        function renumberMarathonTasks() {
-            const tasks = document.querySelectorAll('.task-item');
-            tasks.forEach((task, index) => {
-                task.setAttribute('data-index', index);
-                task.querySelector('h4').textContent = `День ${index + 1}`;
-            });
-        }
-
-        async function saveMarathon() {
-            const title = document.getElementById('marathonTitle').value.trim();
-            const description = document.getElementById('marathonDescription').value.trim();
-            const duration_days = parseInt(document.getElementById('marathonDuration').value);
-            const sparks_per_day = parseFloat(document.getElementById('marathonSparksPerDay').value);
-            const is_active = document.getElementById('marathonActive').checked;
-            
-            if (!title) {
-                alert('Введите название марафона');
-                return;
-            }
-            
-            const tasks = [];
-            const taskElements = document.querySelectorAll('.task-item');
-            
-            if (taskElements.length === 0) {
-                alert('Добавьте хотя бы одно задание');
-                return;
-            }
-            
-            taskElements.forEach((taskElement, index) => {
-                const taskTitle = taskElement.querySelector('.task-title').value.trim();
-                const taskDescription = taskElement.querySelector('.task-description').value.trim();
-                const requires_submission = taskElement.querySelector('.task-requires-submission').checked;
-                const submission_type = taskElement.querySelector('.task-submission-type').value;
-                
-                if (taskTitle && taskDescription) {
-                    tasks.push({
-                        day: index + 1,
-                        title: taskTitle,
-                        description: taskDescription,
-                        requires_submission: requires_submission,
-                        submission_type: submission_type
-                    });
-                }
-            });
-            
-            if (tasks.length === 0) {
-                alert('Заполните все задания');
-                return;
-            }
-            
-            try {
-                const marathonData = {
-                    title,
-                    description,
-                    duration_days,
-                    tasks,
-                    sparks_per_day,
-                    is_active
-                };
-                
-                let response;
-                if (currentEditingId) {
-                    response = await fetch(`/api/admin/marathons/${currentEditingId}?userId=${currentUserId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(marathonData)
-                    });
-                } else {
-                    response = await fetch(`/api/admin/marathons?userId=${currentUserId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(marathonData)
-                    });
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Марафон успешно сохранен', 'success');
-                    hideMarathonForm();
-                    loadMarathons();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка сохранения марафона', 'error');
-            }
-        }
-
-        async function editMarathon(marathonId) {
-            try {
-                const response = await fetch(`/api/admin/marathons?userId=${currentUserId}`);
-                const marathons = await response.json();
-                const marathon = marathons.find(m => m.id === marathonId);
-                
-                if (!marathon) {
-                    showMessage('❌ Марафон не найден', 'error');
-                    return;
-                }
-                
-                document.getElementById('marathonForm').style.display = 'block';
-                document.getElementById('marathonFormTitle').textContent = 'Редактирование марафона';
-                currentEditingId = marathonId;
-                
-                document.getElementById('marathonTitle').value = marathon.title;
-                document.getElementById('marathonDescription').value = marathon.description;
-                document.getElementById('marathonDuration').value = marathon.duration_days;
-                document.getElementById('marathonSparksPerDay').value = marathon.sparks_per_day;
-                document.getElementById('marathonActive').checked = marathon.is_active;
-                
-                const tasksContainer = document.getElementById('marathonTasks');
-                tasksContainer.innerHTML = '';
-                
-                marathon.tasks.forEach((task, index) => {
-                    const taskHtml = `
-                        <div class="task-item" data-index="${index}">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <h4 style="margin: 0;">День ${task.day}</h4>
-                                <button class="btn btn-danger" onclick="removeMarathonTask(${index})">🗑️ Удалить</button>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Название дня:</label>
-                                <input type="text" class="form-control task-title" value="${task.title}" placeholder="Название задания">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Описание:</label>
-                                <textarea class="form-control task-description" rows="3" placeholder="Описание задания...">${task.description}</textarea>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <input type="checkbox" class="task-requires-submission" ${task.requires_submission ? 'checked' : ''}> Требует отправки работы
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Тип отправки:</label>
-                                <select class="form-control task-submission-type">
-                                    <option value="text" ${task.submission_type === 'text' ? 'selected' : ''}>📝 Текст</option>
-                                    <option value="image" ${task.submission_type === 'image' ? 'selected' : ''}>🖼️ Изображение</option>
-                                </select>
-                            </div>
-                        </div>
-                    `;
-                    tasksContainer.innerHTML += taskHtml;
-                });
-                
-            } catch (error) {
-                showMessage('❌ Ошибка загрузки марафона', 'error');
-            }
-        }
-
-        async function deleteMarathon(marathonId) {
-            if (!confirm('Вы уверены, что хотите удалить этот марафон?')) return;
-            
-            try {
-                const response = await fetch(`/api/admin/marathons/${marathonId}?userId=${currentUserId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Марафон успешно удален', 'success');
-                    loadMarathons();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка удаления марафона', 'error');
-            }
-        }
-
-        function hideMarathonForm() {
-            document.getElementById('marathonForm').style.display = 'none';
-            currentEditingId = null;
-        }
-
-        // ==================== ИНТЕРАКТИВЫ ====================
-        async function loadInteractives() {
-            try {
-                const response = await fetch(`/api/admin/interactives?userId=${currentUserId}`);
-                const interactives = await response.json();
-                
-                displayInteractives(interactives);
-                
-            } catch (error) {
-                document.getElementById('interactivesList').innerHTML = '<div class="message error">Ошибка загрузки интерактивов</div>';
-            }
-        }
-
-        function displayInteractives(interactives) {
-            const interactivesList = document.getElementById('interactivesList');
-            
-            if (interactives.length === 0) {
-                interactivesList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎮</div><div>Интерактивов не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            interactives.forEach(interactive => {
-                const categoryNames = {
-                    'history': '🏛️ История',
-                    'style': '👗 Стиль',
-                    'art': '🎨 Искусство'
-                };
-                
-                const typeNames = {
-                    'guess_era': 'Угадай эпоху',
-                    'style_match': 'Подбери стиль',
-                    'drawing_challenge': 'Рисовальный челлендж'
-                };
-                
-                html += `
-                    <div class="interactive-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${interactive.title}</h3>
-                                <p style="color: #718096; margin-bottom: 12px;">${interactive.description}</p>
-                                <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                                    <span class="badge badge-info">${categoryNames[interactive.category]}</span>
-                                    <span class="badge badge-secondary">${typeNames[interactive.type]}</span>
-                                    <span class="badge badge-success">${interactive.sparks_reward}✨</span>
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <span class="badge ${interactive.is_active ? 'badge-success' : 'badge-danger'}">
-                                    <span class="status-indicator ${interactive.is_active ? 'status-active' : 'status-inactive'}"></span>
-                                    ${interactive.is_active ? 'Активен' : 'Неактивен'}
-                                </span>
-                            </div>
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Вопрос: "${interactive.question}" •
-                            Повтор: ${interactive.allow_retake ? 'Да' : 'Нет'} •
-                            Создан: ${new Date(interactive.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-warning" onclick="editInteractive(${interactive.id})">✏️ Редактировать</button>
-                            <button class="btn btn-danger" onclick="deleteInteractive(${interactive.id})">🗑️ Удалить</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            interactivesList.innerHTML = html;
-        }
-
-        function showInteractiveForm() {
-            document.getElementById('interactiveForm').style.display = 'block';
-            document.getElementById('interactiveFormTitle').textContent = 'Создание нового интерактива';
-            currentEditingId = null;
-            
-            document.getElementById('interactiveTitle').value = '';
-            document.getElementById('interactiveDescription').value = '';
-            document.getElementById('interactiveType').value = 'guess_era';
-            document.getElementById('interactiveCategory').value = 'history';
-            document.getElementById('interactiveQuestion').value = '';
-            document.getElementById('interactiveCorrectAnswer').value = '0';
-            document.getElementById('interactiveSparksReward').value = '3';
-            document.getElementById('interactiveAllowRetake').checked = false;
-            document.getElementById('interactiveActive').checked = true;
-            
-            document.getElementById('interactiveOptions').innerHTML = '';
-            addInteractiveOption();
-        }
-
-        function addInteractiveOption() {
-            const optionsContainer = document.getElementById('interactiveOptions');
-            const optionIndex = optionsContainer.children.length;
-            
-            const optionHtml = `
-                <div class="option-item">
-                    <input type="text" class="form-control interactive-option" placeholder="Вариант ответа ${optionIndex + 1}">
-                    <button class="btn btn-danger" onclick="removeInteractiveOption(this)" style="margin-left: 8px;">🗑️</button>
-                </div>
-            `;
-            
-            optionsContainer.innerHTML += optionHtml;
-        }
-
-        function removeInteractiveOption(button) {
-            const optionItem = button.parentElement;
-            if (document.getElementById('interactiveOptions').children.length > 1) {
-                optionItem.remove();
-            }
-        }
-
-        async function saveInteractive() {
-            const title = document.getElementById('interactiveTitle').value.trim();
-            const description = document.getElementById('interactiveDescription').value.trim();
-            const type = document.getElementById('interactiveType').value;
-            const category = document.getElementById('interactiveCategory').value;
-            const question = document.getElementById('interactiveQuestion').value.trim();
-            const correct_answer = parseInt(document.getElementById('interactiveCorrectAnswer').value);
-            const sparks_reward = parseFloat(document.getElementById('interactiveSparksReward').value);
-            const allow_retake = document.getElementById('interactiveAllowRetake').checked;
-            const is_active = document.getElementById('interactiveActive').checked;
-            
-            if (!title || !question) {
-                alert('Заполните название и вопрос');
-                return;
-            }
-            
-            const options = [];
-            const optionElements = document.querySelectorAll('.interactive-option');
-            optionElements.forEach(input => {
-                if (input.value.trim()) {
-                    options.push(input.value.trim());
-                }
-            });
-            
-            if (options.length === 0) {
-                alert('Добавьте варианты ответов');
-                return;
-            }
-            
-            if (correct_answer >= options.length) {
-                alert('Правильный ответ должен быть в пределах количества вариантов');
-                return;
-            }
-            
-            try {
-                const interactiveData = {
-                    title,
-                    description,
-                    type,
-                    category,
-                    image_url: '',
-                    question,
-                    options,
-                    correct_answer,
-                    sparks_reward,
-                    allow_retake,
-                    is_active
-                };
-                
-                let response;
-                if (currentEditingId) {
-                    response = await fetch(`/api/admin/interactives/${currentEditingId}?userId=${currentUserId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(interactiveData)
-                    });
-                } else {
-                    response = await fetch(`/api/admin/interactives?userId=${currentUserId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(interactiveData)
-                    });
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Интерактив успешно сохранен', 'success');
-                    hideInteractiveForm();
-                    loadInteractives();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка сохранения интерактива', 'error');
-            }
-        }
-
-        async function editInteractive(interactiveId) {
-            try {
-                const response = await fetch(`/api/admin/interactives?userId=${currentUserId}`);
-                const interactives = await response.json();
-                const interactive = interactives.find(i => i.id === interactiveId);
-                
-                if (!interactive) {
-                    showMessage('❌ Интерактив не найден', 'error');
-                    return;
-                }
-                
-                document.getElementById('interactiveForm').style.display = 'block';
-                document.getElementById('interactiveFormTitle').textContent = 'Редактирование интерактива';
-                currentEditingId = interactiveId;
-                
-                document.getElementById('interactiveTitle').value = interactive.title;
-                document.getElementById('interactiveDescription').value = interactive.description;
-                document.getElementById('interactiveType').value = interactive.type;
-                document.getElementById('interactiveCategory').value = interactive.category;
-                document.getElementById('interactiveQuestion').value = interactive.question;
-                document.getElementById('interactiveCorrectAnswer').value = interactive.correct_answer;
-                document.getElementById('interactiveSparksReward').value = interactive.sparks_reward;
-                document.getElementById('interactiveAllowRetake').checked = interactive.allow_retake;
-                document.getElementById('interactiveActive').checked = interactive.is_active;
-                
-                const optionsContainer = document.getElementById('interactiveOptions');
-                optionsContainer.innerHTML = '';
-                
-                interactive.options.forEach((option, index) => {
-                    const optionHtml = `
-                        <div class="option-item">
-                            <input type="text" class="form-control interactive-option" value="${option}" placeholder="Вариант ответа ${index + 1}">
-                            <button class="btn btn-danger" onclick="removeInteractiveOption(this)" style="margin-left: 8px;">🗑️</button>
-                        </div>
-                    `;
-                    optionsContainer.innerHTML += optionHtml;
-                });
-                
-            } catch (error) {
-                showMessage('❌ Ошибка загрузки интерактива', 'error');
-            }
-        }
-
-        async function deleteInteractive(interactiveId) {
-            if (!confirm('Вы уверены, что хотите удалить этот интерактив?')) return;
-            
-            try {
-                const response = await fetch(`/api/admin/interactives/${interactiveId}?userId=${currentUserId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Интерактив успешно удален', 'success');
-                    loadInteractives();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка удаления интерактива', 'error');
-            }
-        }
-
-        function hideInteractiveForm() {
-            document.getElementById('interactiveForm').style.display = 'none';
-            currentEditingId = null;
-        }
-
-        // ==================== МАГАЗИН ====================
-        function showShopTab(tab) {
-            currentShopTab = tab;
-            
-            document.querySelectorAll('.tab-subnav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            document.getElementById('shopItemsTab').style.display = 'none';
-            document.getElementById('shopPurchasesTab').style.display = 'none';
-            
-            if (tab === 'items') {
-                document.querySelector('.tab-subnav-item[onclick="showShopTab(\'items\')"]').classList.add('active');
-                document.getElementById('shopItemsTab').style.display = 'block';
-            } else if (tab === 'purchases') {
-                document.querySelector('.tab-subnav-item[onclick="showShopTab(\'purchases\')"]').classList.add('active');
-                document.getElementById('shopPurchasesTab').style.display = 'block';
-                loadPurchases();
-            }
-        }
-
-        async function loadShopItems() {
-            try {
-                const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`);
-                const items = await response.json();
-                
-                displayShopItems(items);
-                
-            } catch (error) {
-                document.getElementById('shopItemsList').innerHTML = '<div class="message error">Ошибка загрузки товаров</div>';
-            }
-        }
-
-        function displayShopItems(items) {
-            const shopItemsList = document.getElementById('shopItemsList');
-            
-            if (items.length === 0) {
-                shopItemsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛒</div><div>Товаров не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            items.forEach(item => {
-                const typeIcons = {
-                    'video': '🎥',
-                    'pdf': '📚',
-                    'text': '📝'
-                };
-                
-                html += `
-                    <div class="shop-item-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${typeIcons[item.type]} ${item.title}</h3>
-                                <p style="color: #718096; margin-bottom: 12px;">${item.description}</p>
-                                <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                                    <span class="badge badge-info">${item.type}</span>
-                                    <span class="badge badge-success">${item.price}✨</span>
-                                </div>
-                                ${item.content_text ? `
-                                    <div class="content-preview">
-                                        ${item.content_text}
-                                    </div>
-                                ` : ''}
-                            </div>
-                            <div style="text-align: right;">
-                                <span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">
-                                    <span class="status-indicator ${item.is_active ? 'status-active' : 'status-inactive'}"></span>
-                                    ${item.is_active ? 'Активен' : 'Неактивен'}
-                                </span>
-                            </div>
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Создан: ${new Date(item.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-warning" onclick="editShopItem(${item.id})">✏️ Редактировать</button>
-                            <button class="btn btn-danger" onclick="deleteShopItem(${item.id})">🗑️ Удалить</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            shopItemsList.innerHTML = html;
-        }
-
-        function showShopItemForm() {
-            document.getElementById('shopItemForm').style.display = 'block';
-            document.getElementById('shopItemFormTitle').textContent = 'Добавление нового товара';
-            currentEditingId = null;
-            
-            document.getElementById('shopItemTitle').value = '';
-            document.getElementById('shopItemDescription').value = '';
-            document.getElementById('shopItemType').value = 'video';
-            document.getElementById('shopItemFileUrl').value = '';
-            document.getElementById('shopItemPreviewUrl').value = '';
-            document.getElementById('shopItemPrice').value = '10';
-            document.getElementById('shopItemContent').value = '';
-            document.getElementById('shopItemActive').checked = true;
-        }
-
-        async function saveShopItem() {
-            const title = document.getElementById('shopItemTitle').value.trim();
-            const description = document.getElementById('shopItemDescription').value.trim();
-            const type = document.getElementById('shopItemType').value;
-            const file_url = document.getElementById('shopItemFileUrl').value.trim();
-            const preview_url = document.getElementById('shopItemPreviewUrl').value.trim();
-            const price = parseFloat(document.getElementById('shopItemPrice').value);
-            const content_text = document.getElementById('shopItemContent').value.trim();
-            const is_active = document.getElementById('shopItemActive').checked;
-            
-            if (!title || !price) {
-                alert('Заполните название и цену');
-                return;
-            }
-            
-            try {
-                const itemData = {
-                    title,
-                    description,
-                    type,
-                    file_url,
-                    preview_url,
-                    price,
-                    content_text,
-                    is_active
-                };
-                
-                let response;
-                if (currentEditingId) {
-                    response = await fetch(`/api/admin/shop/items/${currentEditingId}?userId=${currentUserId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(itemData)
-                    });
-                } else {
-                    response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(itemData)
-                    });
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Товар успешно сохранен', 'success');
-                    hideShopItemForm();
-                    loadShopItems();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка сохранения товара', 'error');
-            }
-        }
-
-        async function editShopItem(itemId) {
-            try {
-                const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`);
-                const items = await response.json();
-                const item = items.find(i => i.id === itemId);
-                
-                if (!item) {
-                    showMessage('❌ Товар не найден', 'error');
-                    return;
-                }
-                
-                document.getElementById('shopItemForm').style.display = 'block';
-                document.getElementById('shopItemFormTitle').textContent = 'Редактирование товара';
-                currentEditingId = itemId;
-                
-                document.getElementById('shopItemTitle').value = item.title;
-                document.getElementById('shopItemDescription').value = item.description;
-                document.getElementById('shopItemType').value = item.type;
-                document.getElementById('shopItemFileUrl').value = item.file_url || '';
-                document.getElementById('shopItemPreviewUrl').value = item.preview_url || '';
-                document.getElementById('shopItemPrice').value = item.price;
-                document.getElementById('shopItemContent').value = item.content_text || '';
-                document.getElementById('shopItemActive').checked = item.is_active;
-                
-            } catch (error) {
-                showMessage('❌ Ошибка загрузки товара', 'error');
-            }
-        }
-
-        async function deleteShopItem(itemId) {
-            if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
-            
-            try {
-                const response = await fetch(`/api/admin/shop/items/${itemId}?userId=${currentUserId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Товар успешно удален', 'success');
-                    loadShopItems();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка удаления товара', 'error');
-            }
-        }
-
-        function hideShopItemForm() {
-            document.getElementById('shopItemForm').style.display = 'none';
-            currentEditingId = null;
-        }
-
-        async function loadPurchases() {
-            try {
-                // В реальном приложении здесь был бы запрос к API покупок
-                document.getElementById('purchasesList').innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📦</div>
-                        <div>История покупок</div>
-                        <div style="color: #718096; margin-top: 12px; font-size: 14px;">
-                            Функция будет реализована в следующей версии
-                        </div>
-                    </div>
-                `;
-                
-            } catch (error) {
-                document.getElementById('purchasesList').innerHTML = '<div class="message error">Ошибка загрузки покупок</div>';
-            }
-        }
-
-        function filterPurchases() {
-            // Фильтрация покупок
-            loadPurchases();
-        }
-
-        // ==================== ПОСТЫ ====================
-        async function loadPosts() {
-            try {
-                const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
-                const data = await response.json();
-                
-                displayPosts(data.posts);
-                
-            } catch (error) {
-                document.getElementById('postsList').innerHTML = '<div class="message error">Ошибка загрузки постов</div>';
-            }
-        }
-
-        function displayPosts(posts) {
-            const postsList = document.getElementById('postsList');
-            
-            if (posts.length === 0) {
-                postsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📰</div><div>Постов не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            posts.forEach(post => {
-                const mediaTypes = {
-                    'text': '📝',
-                    'image': '🖼️',
-                    'video': '🎥'
-                };
-                
-                html += `
-                    <div class="post-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${mediaTypes[post.media_type]} ${post.title}</h3>
-                                <div style="color: #718096; margin-bottom: 12px;">
-                                    ID: ${post.post_id} • Автор: ${post.admin_username || post.admin_id}
-                                </div>
-                                <div class="content-preview">
-                                    ${post.content}
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <span class="badge ${post.is_active ? 'badge-success' : 'badge-danger'}">
-                                    <span class="status-indicator ${post.is_active ? 'status-active' : 'status-inactive'}"></span>
-                                    ${post.is_active ? 'Активен' : 'Неактивен'}
-                                </span>
-                            </div>
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Отзывов: ${post.reviews_count} • 
-                            Создан: ${new Date(post.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-warning" onclick="editPost(${post.id})">✏️ Редактировать</button>
-                            <button class="btn btn-danger" onclick="deletePost(${post.id})">🗑️ Удалить</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            postsList.innerHTML = html;
-        }
-
-        function showPostForm() {
-            document.getElementById('postForm').style.display = 'block';
-            document.getElementById('postFormTitle').textContent = 'Создание нового поста';
-            currentEditingId = null;
-            
-            document.getElementById('postId').value = '';
-            document.getElementById('postTitle').value = '';
-            document.getElementById('postContent').value = '';
-            document.getElementById('postImageUrl').value = '';
-            document.getElementById('postMediaType').value = 'text';
-            document.getElementById('postActive').checked = true;
-        }
-
-        async function savePost() {
-            const post_id = document.getElementById('postId').value.trim();
-            const title = document.getElementById('postTitle').value.trim();
-            const content = document.getElementById('postContent').value.trim();
-            const image_url = document.getElementById('postImageUrl').value.trim();
-            const media_type = document.getElementById('postMediaType').value;
-            const is_active = document.getElementById('postActive').checked;
-            
-            if (!post_id || !title) {
-                alert('Заполните ID и заголовок поста');
-                return;
-            }
-            
-            try {
-                const postData = {
-                    post_id,
-                    title,
-                    content,
-                    image_url,
-                    media_type,
-                    is_active
-                };
-                
-                let response;
-                if (currentEditingId) {
-                    response = await fetch(`/api/admin/channel-posts/${currentEditingId}?userId=${currentUserId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(postData)
-                    });
-                } else {
-                    response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(postData)
-                    });
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Пост успешно сохранен', 'success');
-                    hidePostForm();
-                    loadPosts();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка сохранения поста', 'error');
-            }
-        }
-
-        async function editPost(postId) {
-            try {
-                const response = await fetch(`/api/admin/channel-posts?userId=${currentUserId}`);
-                const data = await response.json();
-                const post = data.posts.find(p => p.id === postId);
-                
-                if (!post) {
-                    showMessage('❌ Пост не найден', 'error');
-                    return;
-                }
-                
-                document.getElementById('postForm').style.display = 'block';
-                document.getElementById('postFormTitle').textContent = 'Редактирование поста';
-                currentEditingId = postId;
-                
-                document.getElementById('postId').value = post.post_id;
-                document.getElementById('postTitle').value = post.title;
-                document.getElementById('postContent').value = post.content;
-                document.getElementById('postImageUrl').value = post.image_url || '';
-                document.getElementById('postMediaType').value = post.media_type;
-                document.getElementById('postActive').checked = post.is_active;
-                
-            } catch (error) {
-                showMessage('❌ Ошибка загрузки поста', 'error');
-            }
-        }
-
-        async function deletePost(postId) {
-            if (!confirm('Вы уверены, что хотите удалить этот пост?')) return;
-            
-            try {
-                const response = await fetch(`/api/admin/channel-posts/${postId}?userId=${currentUserId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Пост успешно удален', 'success');
-                    loadPosts();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка удаления поста', 'error');
-            }
-        }
-
-        function hidePostForm() {
-            document.getElementById('postForm').style.display = 'none';
-            currentEditingId = null;
-        }
-
-        // ==================== МОДЕРАЦИЯ ====================
-        function showModerationTab(tab) {
-            currentModerationTab = tab;
-            
-            document.querySelectorAll('.tab-subnav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            document.getElementById('moderationWorksTab').style.display = 'none';
-            document.getElementById('moderationReviewsTab').style.display = 'none';
-            
-            if (tab === 'works') {
-                document.querySelector('.tab-subnav-item[onclick="showModerationTab(\'works\')"]').classList.add('active');
-                document.getElementById('moderationWorksTab').style.display = 'block';
-                loadWorksForModeration();
-            } else if (tab === 'reviews') {
-                document.querySelector('.tab-subnav-item[onclick="showModerationTab(\'reviews\')"]').classList.add('active');
-                document.getElementById('moderationReviewsTab').style.display = 'block';
-                loadReviewsForModeration();
-            }
-        }
-
-        async function loadWorksForModeration() {
-            try {
-                const status = document.getElementById('workStatusFilter').value;
-                const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
-                const data = await response.json();
-                
-                displayWorksForModeration(data.works);
-                
-            } catch (error) {
-                document.getElementById('worksModerationList').innerHTML = '<div class="message error">Ошибка загрузки работ</div>';
-            }
-        }
-
-        function displayWorksForModeration(works) {
-            const worksList = document.getElementById('worksModerationList');
-            
-            if (works.length === 0) {
-                worksList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🖼️</div><div>Работ не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            works.forEach(work => {
-                const statusBadges = {
-                    'pending': 'badge-warning',
-                    'approved': 'badge-success',
-                    'rejected': 'badge-danger'
-                };
-                
-                const statusTexts = {
-                    'pending': '⏳ На модерации',
-                    'approved': '✅ Одобрено',
-                    'rejected': '❌ Отклонено'
-                };
-                
-                html += `
-                    <div class="work-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${work.title}</h3>
-                                <p style="color: #718096; margin-bottom: 12px;">${work.description || 'Без описания'}</p>
-                                <div style="margin-bottom: 12px;">
-                                    <span class="badge ${statusBadges[work.status]}">${statusTexts[work.status]}</span>
-                                    <span class="badge badge-secondary">Автор: ${work.user_name}</span>
-                                </div>
-                                ${work.admin_comment ? `
-                                    <div style="background: #f7fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-                                        <strong>💬 Комментарий модератора:</strong><br>
-                                        ${work.admin_comment}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Загружена: ${new Date(work.created_at).toLocaleString('ru-RU')}
-                            ${work.moderated_at ? ` • Модерирована: ${new Date(work.moderated_at).toLocaleString('ru-RU')}` : ''}
-                        </div>
-                        ${work.status === 'pending' ? `
-                            <div style="display: flex; gap: 12px;">
-                                <button class="btn btn-success" onclick="moderateWork(${work.id}, 'approved')">✅ Одобрить</button>
-                                <button class="btn btn-danger" onclick="showRejectWorkForm(${work.id})">❌ Отклонить</button>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            });
-            
-            worksList.innerHTML = html;
-        }
-
-        async function moderateWork(workId, status, comment = '') {
-            try {
-                const response = await fetch(`/api/admin/user-works/${workId}/moderate?userId=${currentUserId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        status,
-                        admin_comment: comment
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage(`✅ Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`, 'success');
-                    loadWorksForModeration();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка модерации работы', 'error');
-            }
-        }
-
-        function showRejectWorkForm(workId) {
-            const comment = prompt('Введите причину отклонения работы:');
-            if (comment !== null) {
-                moderateWork(workId, 'rejected', comment);
-            }
-        }
-
-        async function loadReviewsForModeration() {
-            try {
-                const status = document.getElementById('reviewStatusFilter').value;
-                const response = await fetch(`/api/admin/reviews?userId=${currentUserId}&status=${status}`);
-                const data = await response.json();
-                
-                displayReviewsForModeration(data.reviews);
-                
-            } catch (error) {
-                document.getElementById('reviewsModerationList').innerHTML = '<div class="message error">Ошибка загрузки отзывов</div>';
-            }
-        }
-
-        function displayReviewsForModeration(reviews) {
-            const reviewsList = document.getElementById('reviewsModerationList');
-            
-            if (reviews.length === 0) {
-                reviewsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💬</div><div>Отзывов не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            reviews.forEach(review => {
-                const statusBadges = {
-                    'pending': 'badge-warning',
-                    'approved': 'badge-success',
-                    'rejected': 'badge-danger'
-                };
-                
-                const statusTexts = {
-                    'pending': '⏳ На модерации',
-                    'approved': '✅ Одобрен',
-                    'rejected': '❌ Отклонен'
-                };
-                
-                html += `
-                    <div class="review-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">Отзыв к посту: "${review.post_title}"</h3>
-                                <div style="margin-bottom: 12px;">
-                                    <span class="badge ${statusBadges[review.status]}">${statusTexts[review.status]}</span>
-                                    <span class="badge badge-secondary">Автор: ${review.tg_first_name}</span>
-                                    <span class="badge badge-info">Рейтинг: ${'★'.repeat(review.rating)}</span>
-                                </div>
-                                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-                                    ${review.review_text}
-                                </div>
-                                ${review.admin_comment ? `
-                                    <div style="background: #f7fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-                                        <strong>💬 Комментарий модератора:</strong><br>
-                                        ${review.admin_comment}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Написан: ${new Date(review.created_at).toLocaleString('ru-RU')}
-                            ${review.moderated_at ? ` • Модерирован: ${new Date(review.moderated_at).toLocaleString('ru-RU')}` : ''}
-                        </div>
-                        ${review.status === 'pending' ? `
-                            <div style="display: flex; gap: 12px;">
-                                <button class="btn btn-success" onclick="moderateReview(${review.id}, 'approved')">✅ Одобрить</button>
-                                <button class="btn btn-danger" onclick="showRejectReviewForm(${review.id})">❌ Отклонить</button>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            });
-            
-            reviewsList.innerHTML = html;
-        }
-
-        async function moderateReview(reviewId, status, comment = '') {
-            try {
-                const response = await fetch(`/api/admin/reviews/${reviewId}/moderate?userId=${currentUserId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        status,
-                        admin_comment: comment
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage(`✅ Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`, 'success');
-                    loadReviewsForModeration();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка модерации отзыва', 'error');
-            }
-        }
-
-        function showRejectReviewForm(reviewId) {
-            const comment = prompt('Введите причину отклонения отзыва:');
-            if (comment !== null) {
-                moderateReview(reviewId, 'rejected', comment);
-            }
-        }
-
-        // ==================== АДМИНЫ ====================
-        async function loadAdmins() {
-            try {
-                const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
-                const admins = await response.json();
-                
-                displayAdmins(admins);
-                
-            } catch (error) {
-                document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов</div>';
-            }
-        }
-
-        function displayAdmins(admins) {
-            const adminsList = document.getElementById('adminsList');
-            
-            if (admins.length === 0) {
-                adminsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔧</div><div>Администраторов не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            admins.forEach(admin => {
-                const roleBadges = {
-                    'moderator': 'badge-info',
-                    'admin': 'badge-warning', 
-                    'superadmin': 'badge-danger'
-                };
-                
-                const roleTexts = {
-                    'moderator': 'Модератор',
-                    'admin': 'Администратор',
-                    'superadmin': 'Супер-админ'
-                };
-                
-                html += `
-                    <div class="admin-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">
-                                    ${admin.username || `Пользователь ${admin.user_id}`}
-                                </h3>
-                                <div style="margin-bottom: 12px;">
-                                    <span class="badge ${roleBadges[admin.role] || 'badge-secondary'}">
-                                        ${roleTexts[admin.role] || admin.role}
-                                    </span>
-                                    <span class="badge badge-secondary">ID: ${admin.user_id}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Добавлен: ${new Date(admin.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                        ${admin.user_id != currentUserId ? `
-                            <div class="action-buttons">
-                                <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">
-                                    🗑️ Удалить
-                                </button>
-                            </div>
-                        ` : `
-                            <div style="color: #718096; font-style: italic;">
-                                👆 Это ваша учетная запись
-                            </div>
-                        `}
-                    </div>
-                `;
-            });
-            
-            adminsList.innerHTML = html;
-        }
-
-        function showAdminForm() {
-            document.getElementById('adminForm').style.display = 'block';
-        }
-
-        async function saveAdmin() {
-            const user_id = document.getElementById('adminUserId').value.trim();
-            const username = document.getElementById('adminUsername').value.trim();
-            const role = document.getElementById('adminRole').value;
-            
-            if (!user_id) {
-                showMessage('❌ Введите ID пользователя', 'error');
-                return;
-            }
-            
-            try {
-                const adminData = {
-                    user_id: parseInt(user_id),
-                    username: username || undefined,
-                    role: role
-                };
-                
-                const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(adminData)
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Администратор успешно добавлен', 'success');
-                    hideAdminForm();
-                    loadAdmins();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка добавления администратора', 'error');
-            }
-        }
-
-        async function deleteAdmin(userId) {
-            if (!confirm('Вы уверены, что хотите удалить этого администратора?')) return;
-            
-            try {
-                const response = await fetch(`/api/admin/admins/${userId}?userId=${currentUserId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Администратор успешно удален', 'success');
-                    loadAdmins();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка удаления администратора', 'error');
-            }
-        }
-
-        function hideAdminForm() {
-            document.getElementById('adminForm').style.display = 'none';
-            document.getElementById('adminUserId').value = '';
-            document.getElementById('adminUsername').value = '';
-            document.getElementById('adminRole').value = 'moderator';
-        }
-
-        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
         function showMessage(message, type) {
             const messageArea = document.getElementById('messageArea');
             const messageDiv = document.createElement('div');
