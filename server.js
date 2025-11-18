@@ -1274,8 +1274,84 @@ app.post('/api/webapp/quizzes/:quizId/submit', requireAuth, (req, res) => {
     if (todayAttempts >= maxAttempts) {
         return res.status(400).json({ 
             error: `Превышено максимальное количество попыток на сегодня (${maxAttempts})` 
-        });
+       app.get('/api/webapp/quizzes/:quizId/results', requireAuth, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const userId = parseInt(req.user.user_id);
+    
+    const quiz = db.quizzes.find(q => q.id === quizId);
+    const completion = db.quiz_completions.find(qc => qc.user_id === userId && qc.quiz_id === quizId);
+    
+    if (!quiz) {
+        return res.status(404).json({ error: 'Quiz not found' });
     }
+    
+    if (!completion) {
+        return res.status(404).json({ error: 'Quiz results not found' });
+    }
+    
+    // Формируем детальные результаты
+    const detailedResults = completion.results.map((result, index) => {
+        const question = quiz.questions.find(q => q.id === result.questionId);
+        return {
+            question: result.question,
+            userAnswer: result.userAnswer,
+            correctAnswer: result.correctAnswer,
+            isCorrect: result.isCorrect,
+            userAnswerText: question ? question.options[result.userAnswer] : 'Unknown',
+            correctAnswerText: question ? question.options[result.correctAnswer] : 'Unknown',
+            explanation: result.explanation,
+            points: result.points
+        };
+    });
+    
+    const results = {
+        quizId: quizId,
+        quizTitle: quiz.title,
+        correctAnswers: completion.score,
+        totalQuestions: completion.total_questions,
+        scorePercentage: Math.round((completion.score / completion.total_questions) * 100),
+        sparksEarned: completion.sparks_earned,
+        perfectScore: completion.perfect_score,
+        timeSpent: completion.time_spent,
+        completedAt: completion.completed_at,
+        detailedResults: detailedResults,
+        character_bonus: req.user.character_id ? 
+            db.characters.find(c => c.id == req.user.character_id)?.bonus_description : null
+    };
+    
+    res.json({
+        success: true,
+        results: results
+    });
+});
+
+app.get('/api/webapp/quizzes/:quizId', requireAuth, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const userId = parseInt(req.user.user_id);
+    
+    const quiz = db.quizzes.find(q => q.id === quizId && q.is_active);
+    
+    if (!quiz) {
+        return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    // Не показываем правильные ответы в деталях
+    const quizDetails = {
+        ...quiz,
+        questions: quiz.questions.map(q => ({
+            id: q.id,
+            question: q.question,
+            options: q.options,
+            points: q.points,
+            time_limit: q.time_limit,
+            image_url: q.image_url
+            // Не включаем correctAnswer и explanation
+        }))
+    };
+    
+    res.json(quizDetails);
+});
+      }  
     
     const existingCompletion = db.quiz_completions.find(
         qc => qc.user_id === userId && qc.quiz_id === quizId
@@ -1488,6 +1564,8 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', requireAuth, (req, res)
                 feedback: null,
                 points_earned: 0
             });
+        
+        
         }
     }
     
@@ -1497,6 +1575,38 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', requireAuth, (req, res)
         day: day,
         task_title: task.title
     });
+
+app.get('/api/webapp/marathons/:marathonId', requireAuth, (req, res) => {
+    const marathonId = parseInt(req.params.marathonId);
+    const userId = parseInt(req.user.user_id);
+    
+    const marathon = db.marathons.find(m => m.id === marathonId && m.is_active);
+    
+    if (!marathon) {
+        return res.status(404).json({ error: 'Marathon not found' });
+    }
+    
+    const completion = db.marathon_completions.find(
+        mc => mc.user_id === userId && mc.marathon_id === marathonId
+    );
+    
+    const submissions = db.marathon_submissions.filter(
+        ms => ms.user_id === userId && ms.marathon_id === marathonId
+    );
+    
+    const marathonWithStatus = {
+        ...marathon,
+        completed: completion ? completion.completed : false,
+        current_day: completion ? completion.current_day : 1,
+        progress: completion ? completion.progress : 0,
+        started_at: completion ? completion.started_at : null,
+        completed_at: completion ? completion.completed_at : null,
+        submissions: submissions,
+        total_sparks_earned: completion ? completion.total_sparks_earned : 0
+    };
+    
+    res.json(marathonWithStatus);
+});
     
     completion.current_day = day + 1;
     completion.progress = Math.round((day / marathon.duration_days) * 100);
@@ -1655,6 +1765,78 @@ app.get('/api/webapp/users/:userId/purchases', requireAuth, (req, res) => {
         .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
         
     res.json({ purchases: userPurchases });
+});
+
+app.get('/api/webapp/shop/items/:itemId', (req, res) => {
+    const itemId = parseInt(req.params.itemId);
+    const item = db.shop_items.find(i => i.id === itemId && i.is_active);
+    
+    if (!item) {
+        return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    res.json(item);
+});
+
+app.get('/api/webapp/purchases/:purchaseId/download', requireAuth, (req, res) => {
+    const purchaseId = parseInt(req.params.purchaseId);
+    const userId = parseInt(req.user.user_id);
+    
+    const purchase = db.purchases.find(p => p.id === purchaseId && p.user_id === userId);
+    
+    if (!purchase) {
+        return res.status(404).json({ error: 'Purchase not found' });
+    }
+    
+    const item = db.shop_items.find(i => i.id === purchase.item_id);
+    
+    if (!item) {
+        return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    // Увеличиваем счетчик скачиваний
+    purchase.download_count = (purchase.download_count || 0) + 1;
+    
+    res.json({
+        success: true,
+        download_url: item.file_url,
+        filename: `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${item.type === 'ebook' ? 'pdf' : 'zip'}`,
+        message: 'Download prepared successfully'
+    });
+});
+
+app.get('/api/webapp/purchases/:purchaseId/content', requireAuth, (req, res) => {
+    const purchaseId = parseInt(req.params.purchaseId);
+    const userId = parseInt(req.user.user_id);
+    
+    const purchase = db.purchases.find(p => p.id === purchaseId && p.user_id === userId);
+    
+    if (!purchase) {
+        return res.status(404).json({ error: 'Purchase not found' });
+    }
+    
+    const item = db.shop_items.find(i => i.id === purchase.item_id);
+    
+    if (!item) {
+        return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    const purchaseWithContent = {
+        ...purchase,
+        title: item.title,
+        description: item.description,
+        type: item.type,
+        content_text: item.content_text,
+        file_url: item.file_url,
+        instructor: item.instructor,
+        duration: item.duration,
+        features: item.features
+    };
+    
+    res.json({
+        success: true,
+        purchase: purchaseWithContent
+    });
 });
 
 app.get('/api/webapp/users/:userId/activities', requireAuth, (req, res) => {
@@ -1834,6 +2016,31 @@ app.post('/api/webapp/posts/:postId/review', requireAuth, (req, res) => {
             date: new Date().toISOString(),
             type: 'daily_comment'
         });
+  
+    app.get('/api/webapp/channel-posts/:postId', (req, res) => {
+    const postId = req.params.postId;
+    const userId = req.query.userId ? parseInt(req.query.userId) : null;
+    
+    const post = db.channel_posts.find(p => (p.id == postId || p.post_id === postId) && p.is_active);
+    
+    if (!post) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
+    const userReview = userId ? 
+        db.post_reviews.find(r => r.user_id === userId && r.post_id === post.post_id) : null;
+    
+    const postWithReviews = {
+        ...post,
+        reviews_count: reviews.length,
+        average_rating: reviews.length > 0 ? 
+            reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0,
+        user_review: userReview
+    };
+    
+    res.json(postWithReviews);
+});
     }
     
     const newReview = {
