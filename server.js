@@ -13,6 +13,110 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
+// ДОБАВИТЬ в server.js перед маршрутами
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Создаем папку для загрузок если ее нет
+const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Настройка multer для загрузки файлов
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'work-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB limit
+    },
+    fileFilter: function (req, file, cb) {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Разрешены только изображения!'), false);
+        }
+    }
+});
+
+// ИСПРАВИТЬ маршрут загрузки работ
+app.post('/api/webapp/upload-work', upload.single('image'), requireAuth, (req, res) => {
+    const { userId, title, description, type, category, tags } = req.body;
+    
+    if (!userId || !title || !req.file) {
+        return res.status(400).json({ error: 'User ID, title and image are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    // Проверяем ограничение на количество работ в день
+    const today = new Date().toDateString();
+    const todayWorks = db.user_works.filter(w => 
+        w.user_id === userId && 
+        new Date(w.created_at).toDateString() === today
+    ).length;
+    
+    const maxWorksPerDay = 5;
+    if (todayWorks >= maxWorksPerDay) {
+        return res.status(400).json({ error: `Превышено максимальное количество работ в день (${maxWorksPerDay})` });
+    }
+    
+    // Создаем URL для доступа к файлу
+    const imageUrl = `/uploads/${req.file.filename}`;
+    
+    const newWork = {
+        id: Date.now(),
+        user_id: userId,
+        title,
+        description: description || '',
+        image_url: imageUrl,
+        type: type || 'image',
+        category: category || 'other',
+        tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        moderated_at: null,
+        moderator_id: null,
+        admin_comment: null,
+        likes_count: 0,
+        comments_count: 0,
+        views_count: 0,
+        metadata: {},
+        featured: false,
+        allow_comments: true
+    };
+    
+    db.user_works.push(newWork);
+    
+    user.uploaded_works = db.user_works.filter(w => w.user_id === userId).length;
+    
+    // Начисляем искры за загрузку работы
+    addSparks(userId, 5, 'upload_work', `Загрузка работы: ${title}`, {
+        work_id: newWork.id,
+        category: category
+    });
+    
+    res.json({
+        success: true,
+        message: `Работа успешно загружена! Получено +5✨. После одобрения вы получите +15✨`,
+        workId: newWork.id,
+        work: newWork
+    });
+});
+
+// ДОБАВИТЬ статическую раздачу файлов
+app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
 // Автоматическое определение пути для TimeWeb
 const APP_ROOT = process.cwd();
@@ -1538,10 +1642,61 @@ app.get('/api/webapp/marathons/:marathonId', requireAuth, (req, res) => {
     res.json(marathonWithStatus);
 });
 
-// НОВЫЙ МЕТОД ДЛЯ ОТПРАВКИ РАБОТЫ В МАРАФОНЕ
+// ИСПРАВИТЬ API для марафонов в server.js
+app.post('/api/webapp/marathons/:marathonId/start', requireAuth, (req, res) => {
+    const marathonId = parseInt(req.params.marathonId);
+    const { userId } = req.body;
+    
+    if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    const marathon = db.marathons.find(m => m.id === marathonId);
+    if (!marathon) {
+        return res.status(404).json({ error: 'Marathon not found' });
+    }
+    
+    // Проверяем, не начал ли пользователь уже марафон
+    let completion = db.marathon_completions.find(
+        mc => mc.user_id === userId && mc.marathon_id === marathonId
+    );
+    
+    if (completion) {
+        return res.status(400).json({ error: 'Вы уже начали этот марафон' });
+    }
+    
+    // Создаем запись о начале марафона
+    completion = {
+        id: Date.now(),
+        user_id: userId,
+        marathon_id: marathonId,
+        current_day: 1,
+        progress: 0,
+        completed: false,
+        started_at: new Date().toISOString(),
+        last_activity: new Date().toISOString(),
+        total_sparks_earned: 0
+    };
+    
+    db.marathon_completions.push(completion);
+    
+    // Начисляем искры за начало марафона
+    addSparks(userId, 5, 'marathon_start', `Начало марафона: ${marathon.title}`, {
+        marathon_id: marathonId
+    });
+    
+    res.json({
+        success: true,
+        message: 'Марафон начат!',
+        currentDay: 1,
+        marathon: marathon
+    });
+});
+
+// ИСПРАВИТЬ отправку дня марафона
 app.post('/api/webapp/marathons/:marathonId/submit-day', requireAuth, (req, res) => {
     const marathonId = parseInt(req.params.marathonId);
-    const { userId, day, submission_text, submission_image, submission_data } = req.body;
+    const { userId, day, submission_text, submission_image } = req.body;
     
     if (!userId || !day) {
         return res.status(400).json({ error: 'User ID and day are required' });
@@ -1552,13 +1707,9 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', requireAuth, (req, res)
         return res.status(404).json({ error: 'Marathon not found' });
     }
     
-    const task = marathon.tasks.find(t => t.day === day);
+    const task = marathon.tasks.find(t => t.day === parseInt(day));
     if (!task) {
         return res.status(404).json({ error: 'Task not found' });
-    }
-    
-    if (task.requires_submission && !submission_text && !submission_image && !submission_data) {
-        return res.status(400).json({ error: 'Это задание требует отправки работы' });
     }
     
     let completion = db.marathon_completions.find(
@@ -1566,66 +1717,51 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', requireAuth, (req, res)
     );
     
     if (!completion) {
-        completion = {
-            id: Date.now(),
-            user_id: userId,
-            marathon_id: marathonId,
-            current_day: 1,
-            progress: 0,
-            completed: false,
-            started_at: new Date().toISOString(),
-            last_activity: new Date().toISOString(),
-            total_sparks_earned: 0
-        };
-        db.marathon_completions.push(completion);
+        return res.status(400).json({ error: 'Сначала начните марафон' });
     }
     
-    if (completion.current_day !== day) {
+    if (completion.current_day !== parseInt(day)) {
         return res.status(400).json({ error: 'Неверный день марафона' });
     }
     
-    if (submission_text || submission_image || submission_data) {
-        const existingSubmission = db.marathon_submissions.find(
-            ms => ms.user_id === userId && ms.marathon_id === marathonId && ms.day === day
-        );
-        
-        if (!existingSubmission) {
-            db.marathon_submissions.push({
-                id: Date.now(),
-                user_id: userId,
-                marathon_id: marathonId,
-                day: day,
-                submission_text: submission_text,
-                submission_image: submission_image,
-                submission_data: submission_data,
-                submitted_at: new Date().toISOString(),
-                status: 'pending',
-                reviewed_at: null,
-                reviewer_id: null,
-                feedback: null,
-                points_earned: 0
-            });
-        }
+    // Сохраняем submission если требуется
+    if (task.requires_submission && (submission_text || submission_image)) {
+        const submission = {
+            id: Date.now(),
+            user_id: userId,
+            marathon_id: marathonId,
+            day: parseInt(day),
+            submission_text: submission_text,
+            submission_image: submission_image,
+            submitted_at: new Date().toISOString(),
+            status: 'submitted'
+        };
+        db.marathon_submissions.push(submission);
     }
     
-    const sparksEarned = task.sparks_reward || marathon.sparks_per_day;
+    // Начисляем искры за выполнение дня
+    const sparksEarned = task.sparks_reward || marathon.sparks_per_day || 10;
     addSparks(userId, sparksEarned, 'marathon_day', `Марафон: ${marathon.title} - день ${day}`, {
         marathon_id: marathonId,
         day: day,
         task_title: task.title
     });
     
-    completion.current_day = day + 1;
+    // Обновляем прогресс
+    completion.current_day = parseInt(day) + 1;
     completion.progress = Math.round((day / marathon.duration_days) * 100);
     completion.last_activity = new Date().toISOString();
     completion.total_sparks_earned = (completion.total_sparks_earned || 0) + sparksEarned;
     
-    if (day >= marathon.duration_days) {
+    // Проверяем завершение марафона
+    const isCompleted = completion.current_day > marathon.duration_days;
+    
+    if (isCompleted) {
         completion.completed = true;
         completion.progress = 100;
         completion.completed_at = new Date().toISOString();
         
-        const marathonBonus = marathon.sparks_completion_bonus;
+        const marathonBonus = marathon.sparks_completion_bonus || 50;
         addSparks(userId, marathonBonus, 'marathon_completion', `Завершение марафона: ${marathon.title}`, {
             marathon_id: marathonId,
             total_days: marathon.duration_days
@@ -1633,27 +1769,22 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', requireAuth, (req, res)
         
         completion.total_sparks_earned += marathonBonus;
         
+        // Обновляем статистику пользователя
         const user = db.users.find(u => u.user_id == userId);
         if (user) {
-            user.completed_marathons = db.marathon_completions.filter(mc => mc.user_id === userId && mc.completed).length;
+            user.completed_marathons = (user.completed_marathons || 0) + 1;
         }
-        
-        // Обновляем статистику марафона
-        marathon.participants_count = (marathon.participants_count || 0) + 1;
-        const completions = db.marathon_completions.filter(mc => mc.marathon_id === marathonId && mc.completed).length;
-        marathon.completion_rate = Math.round((completions / marathon.participants_count) * 100);
     }
     
     res.json({
         success: true,
-        sparksEarned,
+        sparksEarned: sparksEarned,
         currentDay: completion.current_day,
         progress: completion.progress,
         completed: completion.completed,
-        completionBonus: completion.completed ? marathon.sparks_completion_bonus : 0,
-        totalSparksEarned: completion.total_sparks_earned,
-        message: completion.completed ? 
-            `🎉 Марафон завершен! +${sparksEarned}✨ (день) + ${marathon.sparks_completion_bonus}✨ (бонус)` : 
+        completionBonus: isCompleted ? (marathon.sparks_completion_bonus || 50) : 0,
+        message: isCompleted ? 
+            `🎉 Марафон завершен! +${sparksEarned}✨ (день) + ${marathon.sparks_completion_bonus || 50}✨ (бонус)` : 
             `День ${day} завершен! +${sparksEarned}✨`
     });
 });
@@ -2214,24 +2345,27 @@ app.get('/api/webapp/users/:userId/achievements', requireAuth, (req, res) => {
     });
 });
 
-app.post('/api/webapp/achievements/:achievementId/claim', requireAuth, (req, res) => {
-    const achievementId = parseInt(req.params.achievementId);
+// ИСПРАВИТЬ API для марафонов в server.js
+app.post('/api/webapp/marathons/:marathonId/start', requireAuth, (req, res) => {
+    const marathonId = parseInt(req.params.marathonId);
     const { userId } = req.body;
     
     if (!userId) {
         return res.status(400).json({ error: 'User ID is required' });
     }
     
-    const userAchievement = db.user_achievements.find(
-        ua => ua.user_id === userId && ua.achievement_id === achievementId
-    );
-    
-    if (!userAchievement) {
-        return res.status(404).json({ error: 'Достижение не найдено' });
+    const marathon = db.marathons.find(m => m.id === marathonId);
+    if (!marathon) {
+        return res.status(404).json({ error: 'Marathon not found' });
     }
     
-    if (userAchievement.sparks_claimed) {
-        return res.status(400).json({ error: 'Награда уже получена' });
+    // Проверяем, не начал ли пользователь уже марафон
+    let completion = db.marathon_completions.find(
+        mc => mc.user_id === userId && mc.marathon_id === marathonId
+    );
+    
+    if (completion) {
+        return res.status(400).json({ error: 'Вы уже начали этот марафон' });
     }
     
     const achievement = db.achievements.find(a => a.id === achievementId);
