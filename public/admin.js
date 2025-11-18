@@ -2397,6 +2397,489 @@ createModerationManagementHTML(worksData, reviewsData) {
         </div>
     `;
 }
+
+async loadAdmins() {
+    try {
+        const response = await fetch(`/api/admin/admins?userId=${this.userId}`);
+        const data = await response.json();
+        
+        const adminsSection = document.getElementById('adminsSection');
+        adminsSection.innerHTML = this.createAdminsManagementHTML(data.admins || []);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки администраторов:', error);
+        this.showMessage('Ошибка загрузки администраторов', 'error');
+    }
+}
+
+createAdminsManagementHTML(admins) {
+    const superAdmins = admins.filter(a => a.role === 'superadmin').length;
+    const moderators = admins.filter(a => a.role === 'moderator').length;
+    const activeAdmins = admins.filter(a => a.is_active).length;
+
+    return `
+        <div class="stats-grid" style="margin-bottom: 24px;">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">🔧</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        2%
+                    </div>
+                </div>
+                <div class="stat-value">${admins.length}</div>
+                <div class="stat-label">Всего администраторов</div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-header">
+                    <div class="stat-icon">👑</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        0%
+                    </div>
+                </div>
+                <div class="stat-value">${superAdmins}</div>
+                <div class="stat-label">Суперадминов</div>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-header">
+                    <div class="stat-icon">🛡️</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        5%
+                    </div>
+                </div>
+                <div class="stat-value">${moderators}</div>
+                <div class="stat-label">Модераторов</div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Управление администраторами</h3>
+                <div class="table-actions">
+                    <button class="btn btn-primary" onclick="adminApp.showCreateAdminForm()">
+                        <i class="fas fa-plus"></i>
+                        Добавить администратора
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Администратор</th>
+                            <th>Роль</th>
+                            <th>Разрешения</th>
+                            <th>Активность</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminsTable">
+                        ${admins.length === 0 ? `
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="empty-state" style="padding: 20px;">
+                                    <div class="empty-state-icon">🔧</div>
+                                    <div class="empty-state-title">Администраторы не найдены</div>
+                                    <div class="empty-state-description">Добавьте первого администратора</div>
+                                </div>
+                            </td>
+                        </tr>
+                        ` : admins.map(admin => `
+                        <tr>
+                            <td>${admin.user_id}</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div class="admin-avatar" style="width: 32px; height: 32px; font-size: 14px;">
+                                        ${admin.tg_first_name ? admin.tg_first_name.charAt(0).toUpperCase() : 'A'}
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 600;">${admin.tg_first_name || admin.username}</div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">
+                                            @${admin.username}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge ${admin.role === 'superadmin' ? 'status-completed' : 'status-active'}">
+                                    ${this.getAdminRoleLabel(admin.role)}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="font-size: 12px;">
+                                    ${admin.permissions ? admin.permissions.slice(0, 3).join(', ') : 'Нет'}${admin.permissions && admin.permissions.length > 3 ? '...' : ''}
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-size: 12px;">
+                                    <div>Создан: ${this.formatTime(admin.created_at)}</div>
+                                    <div>Активность: ${admin.last_login ? this.formatTime(admin.last_login) : 'Никогда'}</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge ${admin.is_active ? 'status-active' : 'status-inactive'}">
+                                    ${admin.is_active ? 'Активен' : 'Неактивен'}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px;">
+                                    ${admin.user_id !== this.userId ? `
+                                    <button class="btn btn-warning btn-sm" onclick="adminApp.editAdmin(${admin.user_id})" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-${admin.is_active ? 'danger' : 'success'} btn-sm" 
+                                            onclick="adminApp.toggleAdminStatus(${admin.user_id}, ${!admin.is_active})">
+                                        <i class="fas fa-${admin.is_active ? 'pause' : 'play'}"></i>
+                                    </button>
+                                    ${admin.role !== 'superadmin' ? `
+                                    <button class="btn btn-danger btn-sm" onclick="adminApp.deleteAdmin(${admin.user_id})" title="Удалить">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    ` : ''}
+                                    ` : `
+                                    <span style="color: var(--text-muted); font-size: 12px;">Это вы</span>
+                                    `}
+                                </div>
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4 style="margin-bottom: 16px;">📊 Распределение по ролям</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                <div style="text-align: center; padding: 16px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border-radius: var(--radius-md);">
+                    <div style="font-size: 20px; margin-bottom: 8px;">👑</div>
+                    <div style="font-size: var(--font-lg); font-weight: 800; color: var(--primary-color);">
+                        ${superAdmins}
+                    </div>
+                    <div style="font-size: var(--font-sm); color: var(--text-muted);">
+                        Суперадмины
+                    </div>
+                </div>
+                
+                <div style="text-align: center; padding: 16px; background: linear-gradient(135deg, rgba(72, 187, 120, 0.1), rgba(56, 178, 172, 0.1)); border-radius: var(--radius-md);">
+                    <div style="font-size: 20px; margin-bottom: 8px;">🛡️</div>
+                    <div style="font-size: var(--font-lg); font-weight: 800; color: var(--success-color);">
+                        ${moderators}
+                    </div>
+                    <div style="font-size: var(--font-sm); color: var(--text-muted);">
+                        Модераторы
+                    </div>
+                </div>
+                
+                <div style="text-align: center; padding: 16px; background: linear-gradient(135deg, rgba(237, 137, 54, 0.1), rgba(231, 108, 84, 0.1)); border-radius: var(--radius-md);">
+                    <div style="font-size: 20px; margin-bottom: 8px;">👁️</div>
+                    <div style="font-size: var(--font-lg); font-weight: 800; color: var(--warning-color);">
+                        ${admins.length - superAdmins - moderators}
+                    </div>
+                    <div style="font-size: var(--font-sm); color: var(--text-muted);">
+                        Обычные админы
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async loadSettings() {
+    try {
+        const response = await fetch(`/api/admin/settings?userId=${this.userId}`);
+        const settings = await response.json();
+        
+        const settingsSection = document.getElementById('settingsSection');
+        settingsSection.innerHTML = this.createSettingsManagementHTML(settings);
+        
+        this.initSettingsEventListeners();
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки настроек:', error);
+        this.showMessage('Ошибка загрузки настроек', 'error');
+    }
+}
+
+createSettingsManagementHTML(settings) {
+    return `
+        <div class="tabs" id="settingsTabs">
+            <button class="tab active" data-tab="general">Основные настройки</button>
+            <button class="tab" data-tab="sparks">Система искр</button>
+            <button class="tab" data-tab="content">Настройки контента</button>
+            <button class="tab" data-tab="system">Системные настройки</button>
+            <button class="tab" data-tab="danger">Опасные настройки</button>
+        </div>
+
+        <div class="tab-content active" id="generalTab">
+            <div class="form-card">
+                <h3 class="form-title">Основные настройки приложения</h3>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Название приложения</label>
+                        <input type="text" class="form-control" id="appName" 
+                               value="${this.getSettingValue(settings, 'app_name', 'Мастерская Вдохновения')}">
+                        <div class="form-hint">Отображается в заголовке и уведомлениях</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Версия приложения</label>
+                        <input type="text" class="form-control" id="appVersion" 
+                               value="${this.getSettingValue(settings, 'app_version', '9.0.0')}">
+                        <div class="form-hint">Текущая версия системы</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Контактный email</label>
+                        <input type="email" class="form-control" id="contactEmail" 
+                               value="${this.getSettingValue(settings, 'contact_email', 'support@inspiration.ru')}">
+                        <div class="form-hint">Для связи с пользователями</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Максимальный размер загрузки (МБ)</label>
+                        <input type="number" class="form-control" id="maxUploadSize" 
+                               value="${this.getSettingValue(settings, 'max_upload_size', '10')}">
+                        <div class="form-hint">Максимальный размер загружаемых файлов</div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="adminApp.saveSettings('general')">
+                        <i class="fas fa-save"></i>
+                        Сохранить настройки
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="sparksTab">
+            <div class="form-card">
+                <h3 class="form-title">Настройки системы искр</h3>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Искры при регистрации</label>
+                        <input type="number" class="form-control" id="registrationSparks" 
+                               value="${this.getSettingValue(settings, 'default_sparks', '10')}">
+                        <div class="form-hint">Количество искр при регистрации нового пользователя</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Искры за правильный ответ</label>
+                        <input type="number" class="form-control" id="quizCorrectSparks" 
+                               value="${this.getSettingValue(settings, 'quiz_sparks_correct', '2')}">
+                        <div class="form-hint">Награда за каждый правильный ответ в квизе</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Бонус за идеальный квиз</label>
+                        <input type="number" class="form-control" id="quizPerfectSparks" 
+                               value="${this.getSettingValue(settings, 'quiz_sparks_perfect', '10')}">
+                        <div class="form-hint">Дополнительная награда за все правильные ответы</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Искры за загрузку работы</label>
+                        <input type="number" class="form-control" id="workUploadSparks" 
+                               value="${this.getSettingValue(settings, 'work_upload_sparks', '5')}">
+                        <div class="form-hint">Награда за загрузку новой работы</div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="adminApp.saveSettings('sparks')">
+                        <i class="fas fa-save"></i>
+                        Сохранить настройки
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="contentTab">
+            <div class="form-card">
+                <h3 class="form-title">Настройки контента</h3>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Максимум работ в день</label>
+                        <input type="number" class="form-control" id="maxWorksPerDay" 
+                               value="${this.getSettingValue(settings, 'max_works_per_day', '5')}">
+                        <div class="form-hint">Максимальное количество работ, которые пользователь может загрузить за день</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Максимум попыток квиза в день</label>
+                        <input type="number" class="form-control" id="maxQuizAttempts" 
+                               value="${this.getSettingValue(settings, 'max_quiz_attempts', '3')}">
+                        <div class="form-hint">Максимальное количество попыток прохождения квиза за день</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Время охлаждения квиза (часы)</label>
+                        <input type="number" class="form-control" id="quizCooldown" 
+                               value="${this.getSettingValue(settings, 'quiz_cooldown_hours', '24')}">
+                        <div class="form-hint">Время до возможности повторного прохождения квиза</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Разрешена регистрация</label>
+                        <select class="form-control" id="registrationEnabled">
+                            <option value="true" ${this.getSettingValue(settings, 'registration_enabled', 'true') === 'true' ? 'selected' : ''}>Да</option>
+                            <option value="false" ${this.getSettingValue(settings, 'registration_enabled', 'true') === 'false' ? 'selected' : ''}>Нет</option>
+                        </select>
+                        <div class="form-hint">Разрешить новым пользователям регистрироваться</div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="adminApp.saveSettings('content')">
+                        <i class="fas fa-save"></i>
+                        Сохранить настройки
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="systemTab">
+            <div class="form-card">
+                <h3 class="form-title">Системные настройки</h3>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Режим обслуживания</label>
+                        <select class="form-control" id="maintenanceMode">
+                            <option value="false" ${this.getSettingValue(settings, 'maintenance_mode', 'false') === 'false' ? 'selected' : ''}>Выключен</option>
+                            <option value="true" ${this.getSettingValue(settings, 'maintenance_mode', 'false') === 'true' ? 'selected' : ''}>Включен</option>
+                        </select>
+                        <div class="form-hint">При включении пользователи увидят сообщение о техобслуживании</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Логирование действий</label>
+                        <select class="form-control" id="activityLogging">
+                            <option value="true" selected>Включено</option>
+                            <option value="false">Выключено</option>
+                        </select>
+                        <div class="form-hint">Записывать все действия пользователей и администраторов</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Автоочистка логов (дни)</label>
+                        <input type="number" class="form-control" id="logRetention" value="30">
+                        <div class="form-hint">Автоматически удалять логи старше указанного количества дней</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Лимит запросов в минуту</label>
+                        <input type="number" class="form-control" id="rateLimit" value="100">
+                        <div class="form-hint">Максимальное количество запросов от одного пользователя в минуту</div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="adminApp.saveSettings('system')">
+                        <i class="fas fa-save"></i>
+                        Сохранить настройки
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="dangerTab">
+            <div class="card danger" style="border-color: var(--danger-color);">
+                <h3 style="color: var(--danger-color); margin-bottom: 16px;">⚠️ Опасные операции</h3>
+                <p style="margin-bottom: 20px; color: var(--text-muted);">
+                    Эти операции могут привести к необратимому удалению данных. 
+                    Выполняйте их только если полностью понимаете последствия.
+                </p>
+                
+                <div style="display: grid; gap: 16px;">
+                    <div style="padding: 16px; background: rgba(245, 101, 101, 0.1); border-radius: var(--radius-md);">
+                        <h4 style="margin-bottom: 8px; color: var(--danger-color);">Очистка активностей</h4>
+                        <p style="margin-bottom: 12px; color: var(--text-muted); font-size: 14px;">
+                            Удалить всю историю активностей пользователей. Это освободит место в базе данных.
+                        </p>
+                        <button class="btn btn-danger" onclick="adminApp.showResetConfirmation('activities')">
+                            <i class="fas fa-trash"></i>
+                            Очистить активности
+                        </button>
+                    </div>
+                    
+                    <div style="padding: 16px; background: rgba(245, 101, 101, 0.1); border-radius: var(--radius-md);">
+                        <h4 style="margin-bottom: 8px; color: var(--danger-color);">Сброс пользователей</h4>
+                        <p style="margin-bottom: 12px; color: var(--text-muted); font-size: 14px;">
+                            Удалить всех пользователей кроме администраторов. Все данные пользователей будут потеряны.
+                        </p>
+                        <button class="btn btn-danger" onclick="adminApp.showResetConfirmation('users')">
+                            <i class="fas fa-users-slash"></i>
+                            Сбросить пользователей
+                        </button>
+                    </div>
+                    
+                    <div style="padding: 16px; background: rgba(245, 101, 101, 0.1); border-radius: var(--radius-md);">
+                        <h4 style="margin-bottom: 8px; color: var(--danger-color);">Сброс контента</h4>
+                        <p style="margin-bottom: 12px; color: var(--text-muted); font-size: 14px;">
+                            Удалить весь пользовательский контент и вернуть систему к базовому состоянию.
+                        </p>
+                        <button class="btn btn-danger" onclick="adminApp.showResetConfirmation('content')">
+                            <i class="fas fa-undo"></i>
+                            Сбросить контент
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Вспомогательные методы для настроек
+getSettingValue(settings, key, defaultValue) {
+    const setting = settings.find(s => s.key === key);
+    return setting ? setting.value : defaultValue;
+}
+
+initSettingsEventListeners() {
+    // Инициализация вкладок настроек
+    document.querySelectorAll('#settingsTabs .tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            const tabName = e.currentTarget.getAttribute('data-tab');
+            this.switchSettingsTab(tabName);
+        });
+    });
+}
+
+switchSettingsTab(tabName) {
+    // Переключение вкладок настроек
+    document.querySelectorAll('#settingsTabs .tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    document.getElementById(`${tabName}Tab`).classList.add('active');
+}
+    
+getAdminRoleLabel(role) {
+    const labels = {
+        'superadmin': 'Суперадмин',
+        'admin': 'Администратор',
+        'moderator': 'Модератор',
+        'content_manager': 'Менеджер контента'
+    };
+    return labels[role] || role;
+}
+
     
 // Вспомогательные методы для админки
 getDifficultyBadgeClass(difficulty) {
