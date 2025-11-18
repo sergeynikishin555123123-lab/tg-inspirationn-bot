@@ -211,19 +211,37 @@ class InspirationWorkshop {
         document.getElementById('mainContent').classList.add('active');
     }
 
-    showSection(sectionName) {
-        // Скрываем все секции
-        document.querySelectorAll('.content-section').forEach(section => {
-            section.classList.remove('active');
-        });
+// НАХОДИМ в app.js функцию showSection и ЗАМЕНЯЕМ её:
+showSection(sectionName) {
+    // Скрываем все секции
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Показываем выбранную секцию
+    const section = document.getElementById(sectionName + 'Section');
+    if (section) {
+        section.classList.add('active');
+        this.currentSection = sectionName;
         
-        // Показываем выбранную секцию
-        const section = document.getElementById(sectionName + 'Section');
-        if (section) {
-            section.classList.add('active');
-            this.loadSectionData(sectionName);
-        }
+        // Загружаем данные для секции
+        this.loadSectionData(sectionName);
     }
+    
+    // Всегда скрываем регистрационную секцию при переключении разделов
+    document.getElementById('registrationSection').classList.remove('active');
+}
+
+// ДОБАВЛЯЕМ функцию для показа главной панели:
+showDashboard() {
+    // Скрываем все секции
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Показываем главную панель
+    document.getElementById('mainContent').classList.add('active');
+}
 
     loadSectionData(sectionName) {
         switch (sectionName) {
