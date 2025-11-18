@@ -1087,7 +1087,7 @@ function findMarathonDuplicate(title) {
     );
 }
 
-// Middleware
+// ИСПРАВИТЬ middleware requireAdmin в server.js
 const requireAdmin = (req, res, next) => {
     const userId = req.query.userId || req.body.userId;
     
@@ -1103,6 +1103,44 @@ const requireAdmin = (req, res, next) => {
     req.admin = admin;
     next();
 };
+
+// ДОБАВИТЬ проверку админа для всех админских маршрутов
+app.get('/api/admin/*', requireAdmin);
+app.post('/api/admin/*', requireAdmin);
+app.put('/api/admin/*', requireAdmin);
+app.delete('/api/admin/*', requireAdmin);
+
+// ИСПРАВИТЬ маршрут админ статистики
+app.get('/api/admin/stats', requireAdmin, (req, res) => {
+    const stats = {
+        totalUsers: db.users.length,
+        registeredUsers: db.users.filter(u => u.is_registered).length,
+        activeUsers: db.users.filter(u => {
+            const lastActive = new Date(u.last_active);
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            return lastActive > thirtyDaysAgo;
+        }).length,
+        newUsersToday: db.users.filter(u => {
+            const today = new Date().toDateString();
+            return new Date(u.registration_date).toDateString() === today;
+        }).length,
+        activeQuizzes: db.quizzes.filter(q => q.is_active).length,
+        activeMarathons: db.marathons.filter(m => m.is_active).length,
+        shopItems: db.shop_items.filter(i => i.is_active).length,
+        totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
+        totalAdmins: db.admins.filter(a => a.is_active).length,
+        pendingReviews: db.post_reviews.filter(r => r.status === 'pending').length,
+        pendingWorks: db.user_works.filter(w => w.status === 'pending').length,
+        totalPosts: db.channel_posts.filter(p => p.is_active).length,
+        totalPurchases: db.purchases.length,
+        totalActivities: db.activities.length,
+        interactives: db.interactives.filter(i => i.is_active).length,
+        totalEarnedSparks: db.activities.reduce((sum, a) => sum + a.sparks_earned, 0),
+        totalSpentSparks: db.purchases.reduce((sum, p) => sum + p.price_paid, 0),
+        premiumUsers: db.users.filter(u => u.is_premium).length
+    };
+    res.json(stats);
+});
 
 const requireAuth = (req, res, next) => {
     const userId = req.query.userId || req.body.userId;
@@ -4223,33 +4261,35 @@ if (process.env.BOT_TOKEN) {
             });
         });
 
-        bot.onText(/\/admin/, (msg) => {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
-            
-            const admin = db.admins.find(a => a.user_id == userId && a.is_active);
-            if (!admin) {
-                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
-                return;
+// ИСПРАВИТЬ команду /admin в server.js
+bot.onText(/\/admin/, (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    
+    const admin = db.admins.find(a => a.user_id == userId && a.is_active);
+    if (!admin) {
+        bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+        return;
+    }
+    
+    // ИСПРАВЛЕННАЯ ссылка
+    const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-9cd9.twc1.net';
+    const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
+    
+    const keyboard = {
+        inline_keyboard: [[
+            {
+                text: "🔧 Открыть Админ Панель",
+                url: adminUrl
             }
-            
-            const baseUrl = process.env.APP_URL || 'https://your-domain.timeweb.cloud';
-            const adminUrl = `${baseUrl}/admin?userId=${userId}`;
-            
-            const keyboard = {
-                inline_keyboard: [[
-                    {
-                        text: "🔧 Открыть Админ Панель",
-                        url: adminUrl
-                    }
-                ]]
-            };
-            
-            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            });
-        });
+        ]]
+    };
+    
+    bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:\n${adminUrl}`, {
+        parse_mode: 'Markdown',
+        reply_markup: keyboard
+    });
+});
 
         bot.onText(/\/stats/, (msg) => {
             const chatId = msg.chat.id;
