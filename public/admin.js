@@ -53,29 +53,6 @@ class AdminPanel {
             });
         });
 
-        // Поиск пользователей
-        const userSearch = document.getElementById('userSearch');
-        if (userSearch) {
-            userSearch.addEventListener('input', (e) => {
-                this.filterUsers(e.target.value);
-            });
-        }
-
-        // Фильтры
-        const roleFilter = document.getElementById('roleFilter');
-        const levelFilter = document.getElementById('levelFilter');
-        const statusFilter = document.getElementById('statusFilter');
-        
-        if (roleFilter) {
-            roleFilter.addEventListener('change', () => this.filterUsers());
-        }
-        if (levelFilter) {
-            levelFilter.addEventListener('change', () => this.filterUsers());
-        }
-        if (statusFilter) {
-            statusFilter.addEventListener('change', () => this.filterUsers());
-        }
-
         // Вкладки модерации
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -154,42 +131,42 @@ class AdminPanel {
         if (!statsGrid) return;
 
         statsGrid.innerHTML = `
-            <div class="stat-card">
+            <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                 <div class="stat-icon">👥</div>
                 <div class="stat-number">${stats.totalUsers}</div>
                 <div class="stat-label">Всего пользователей</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white;">
                 <div class="stat-icon">✅</div>
                 <div class="stat-number">${stats.registeredUsers}</div>
                 <div class="stat-label">Зарегистрировано</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); color: white;">
                 <div class="stat-icon">🎯</div>
                 <div class="stat-number">${stats.activeQuizzes}</div>
                 <div class="stat-label">Активных квизов</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" style="background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%); color: white;">
                 <div class="stat-icon">🏃‍♂️</div>
                 <div class="stat-number">${stats.activeMarathons}</div>
                 <div class="stat-label">Активных марафонов</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" style="background: linear-gradient(135deg, #ed64a6 0%, #d53f8c 100%); color: white;">
                 <div class="stat-icon">🛒</div>
                 <div class="stat-number">${stats.shopItems}</div>
                 <div class="stat-label">Товаров в магазине</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" style="background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%); color: white;">
                 <div class="stat-icon">✨</div>
                 <div class="stat-number">${stats.totalSparks.toFixed(0)}</div>
                 <div class="stat-label">Всего искр</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" style="background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); color: white;">
                 <div class="stat-icon">📊</div>
                 <div class="stat-number">${stats.totalActivities}</div>
                 <div class="stat-label">Всего активностей</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" style="background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%); color: white;">
                 <div class="stat-icon">⚖️</div>
                 <div class="stat-number">${stats.pendingReviews + stats.pendingWorks}</div>
                 <div class="stat-label">На модерации</div>
@@ -215,29 +192,94 @@ class AdminPanel {
         if (!container) return;
 
         container.innerHTML = `
-            <div class="grid-2">
-                <div class="chart-container">
-                    <h3>📈 Активность пользователей</h3>
-                    <p>Активных сегодня: ${stats.users.active_today}</p>
-                    <p>Активных за неделю: ${stats.users.active_week}</p>
-                    <p>Новых сегодня: ${stats.users.new_today}</p>
+            <div class="grid-3">
+                <div class="content-card">
+                    <h3>👥 Пользователи</h3>
+                    <div class="stats-grid" style="grid-template-columns: 1fr;">
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.users.active_today}</div>
+                            <div class="stat-label">Активных сегодня</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.users.active_week}</div>
+                            <div class="stat-label">Активных за неделю</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.users.new_today}</div>
+                            <div class="stat-label">Новых сегодня</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="chart-container">
+                
+                <div class="content-card">
                     <h3>💰 Финансы</h3>
-                    <p>Всего заработано искр: ${stats.activities.earned_sparks}</p>
-                    <p>Всего потрачено искр: ${stats.activities.spent_sparks}</p>
-                    <p>Общий доход: ${stats.revenue.total}✨</p>
+                    <div class="stats-grid" style="grid-template-columns: 1fr;">
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.activities.earned_sparks}</div>
+                            <div class="stat-label">Заработано искр</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.activities.spent_sparks}</div>
+                            <div class="stat-label">Потрачено искр</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.revenue.total}</div>
+                            <div class="stat-label">Общий доход</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-card">
+                    <h3>📊 Контент</h3>
+                    <div class="stats-grid" style="grid-template-columns: 1fr;">
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.content.quizzes}</div>
+                            <div class="stat-label">Всего квизов</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.content.marathons}</div>
+                            <div class="stat-label">Всего марафонов</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.content.shop_items}</div>
+                            <div class="stat-label">Товаров</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="chart-container mt-3">
-                <h3>📊 Распределение по ролям</h3>
+            
+            <div class="content-card mt-3">
+                <h3>📈 Распределение по ролям</h3>
                 <div class="grid-4">
                     ${stats.users.by_role.map(role => `
-                        <div>
+                        <div class="text-center">
+                            <div style="font-size: 24px; margin-bottom: 8px;">${this.getRoleIcon(role.role)}</div>
                             <strong>${role.role}</strong>
                             <div class="text-muted">${role.count} пользователей</div>
                         </div>
                     `).join('')}
+                </div>
+            </div>
+            
+            <div class="content-card mt-3">
+                <h3>🚀 Быстрая навигация</h3>
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="adminPanel.showTab('users')">
+                        <span>👥</span>
+                        Управление пользователями
+                    </button>
+                    <button class="btn btn-info" onclick="adminPanel.showTab('moderation')">
+                        <span>⚖️</span>
+                        Модерация
+                    </button>
+                    <button class="btn btn-warning" onclick="adminPanel.showTab('quizzes')">
+                        <span>🎯</span>
+                        Квизы
+                    </button>
+                    <button class="btn btn-purple" onclick="adminPanel.showTab('marathons')">
+                        <span>🏃‍♂️</span>
+                        Марафоны
+                    </button>
                 </div>
             </div>
         `;
@@ -316,23 +358,39 @@ class AdminPanel {
         if (!container) return;
 
         if (this.data.users.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">👥</div>
-                    <h3>Пользователи не найдены</h3>
-                    <p>В системе пока нет зарегистрированных пользователей.</p>
-                </div>
-            `;
+            container.innerHTML = this.createEmptyState('👥', 'Пользователи не найдены', 'В системе пока нет зарегистрированных пользователей.');
             return;
         }
 
-        let html = `
+        // Добавляем фильтры и поиск
+        container.innerHTML = `
+            <div class="filters">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="userSearch" class="search-input" placeholder="Поиск по имени или username..." oninput="adminPanel.filterUsers()">
+                </div>
+                <select class="filter-select" id="userRoleFilter" onchange="adminPanel.filterUsers()">
+                    <option value="">Все роли</option>
+                    ${[...new Set(this.data.users.map(u => u.role))].filter(r => r).map(role => 
+                        `<option value="${role}">${role}</option>`
+                    ).join('')}
+                </select>
+                <select class="filter-select" id="userLevelFilter" onchange="adminPanel.filterUsers()">
+                    <option value="">Все уровни</option>
+                    <option value="Ученик">Ученик</option>
+                    <option value="Искатель">Искатель</option>
+                    <option value="Знаток">Знаток</option>
+                    <option value="Мастер">Мастер</option>
+                    <option value="Наставник">Наставник</option>
+                    <option value="Легенда">Легенда</option>
+                </select>
+            </div>
             <div class="table-responsive">
                 <table class="data-table">
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Имя</th>
+                            <th>Пользователь</th>
                             <th>Роль</th>
                             <th>Уровень</th>
                             <th>Искры</th>
@@ -340,170 +398,80 @@ class AdminPanel {
                             <th>Действия</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="usersTableBody">
+                        ${this.data.users.map(user => this.createUserRow(user)).join('')}
+                    </tbody>
+                </table>
+            </div>
         `;
-
-        this.data.users.forEach(user => {
-            const lastActive = new Date(user.last_active);
-            const now = new Date();
-            const daysAgo = Math.floor((now - lastActive) / (1000 * 60 * 60 * 24));
-            const isActive = daysAgo <= 7;
-            
-            html += `
-                <tr>
-                    <td>${user.id}</td>
-                    <td>
-                        <strong>${user.name}</strong>
-                        ${user.username ? `<br><small class="text-muted">@${user.username}</small>` : ''}
-                    </td>
-                    <td>
-                        <span class="badge badge-info">${user.role || 'Не указана'}</span>
-                    </td>
-                    <td>
-                        <span class="badge badge-secondary">${user.level}</span>
-                    </td>
-                    <td>
-                        <strong>${user.sparks.toFixed(1)}</strong> ✨
-                    </td>
-                    <td>
-                        <span class="badge ${isActive ? 'badge-success' : 'badge-warning'}">
-                            ${isActive ? 'Активен' : `Неактивен ${daysAgo}д`}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn btn-sm btn-info" onclick="adminPanel.viewUserDetails(${user.id})">
-                                👁️ Просмотр
-                            </button>
-                            <button class="btn btn-sm btn-warning" onclick="adminPanel.editUser(${user.id})">
-                                ✏️ Редактировать
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-
-        html += `</tbody></table>`;
-        container.innerHTML = html;
     }
 
-    filterUsers(searchTerm = '') {
-        const roleFilter = document.getElementById('roleFilter').value;
-        const levelFilter = document.getElementById('levelFilter').value;
-        const statusFilter = document.getElementById('statusFilter').value;
-
-        let filteredUsers = this.data.users;
-
-        if (searchTerm) {
-            filteredUsers = filteredUsers.filter(user => 
-                user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase()))
-            );
-        }
-
-        if (roleFilter) {
-            filteredUsers = filteredUsers.filter(user => user.role === roleFilter);
-        }
-
-        if (levelFilter) {
-            filteredUsers = filteredUsers.filter(user => user.level === levelFilter);
-        }
-
-        if (statusFilter === 'active') {
-            filteredUsers = filteredUsers.filter(user => {
-                const lastActive = new Date(user.last_active);
-                const now = new Date();
-                const daysAgo = Math.floor((now - lastActive) / (1000 * 60 * 60 * 24));
-                return daysAgo <= 7;
-            });
-        } else if (statusFilter === 'inactive') {
-            filteredUsers = filteredUsers.filter(user => {
-                const lastActive = new Date(user.last_active);
-                const now = new Date();
-                const daysAgo = Math.floor((now - lastActive) / (1000 * 60 * 60 * 24));
-                return daysAgo > 7;
-            });
-        }
-
-        this.updateFilteredUsersDisplay(filteredUsers);
+    createUserRow(user) {
+        const lastActive = new Date(user.last_active);
+        const now = new Date();
+        const daysAgo = Math.floor((now - lastActive) / (1000 * 60 * 60 * 24));
+        const isActive = daysAgo <= 7;
+        
+        return `
+            <tr>
+                <td>${user.id}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                            ${user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <strong>${user.name}</strong>
+                            ${user.username ? `<br><small class="text-muted">@${user.username}</small>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge badge-info">${user.role || 'Не указана'}</span>
+                </td>
+                <td>
+                    <span class="badge badge-secondary">${user.level}</span>
+                </td>
+                <td>
+                    <strong>${user.sparks.toFixed(1)}</strong> ✨
+                </td>
+                <td>
+                    <span class="badge ${isActive ? 'badge-success' : 'badge-warning'}">
+                        ${isActive ? 'Активен' : `Неактивен ${daysAgo}д`}
+                    </span>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-info" onclick="adminPanel.viewUserDetails(${user.id})" title="Просмотр">
+                            👁️
+                        </button>
+                        <button class="btn btn-sm btn-warning" onclick="adminPanel.editUser(${user.id})" title="Редактировать">
+                            ✏️
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
     }
 
-    updateFilteredUsersDisplay(users) {
-        const container = document.getElementById('usersList');
-        if (!container) return;
+    filterUsers() {
+        const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+        const roleFilter = document.getElementById('userRoleFilter').value;
+        const levelFilter = document.getElementById('userLevelFilter').value;
 
-        if (users.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">🔍</div>
-                    <h3>Пользователи не найдены</h3>
-                    <p>Попробуйте изменить параметры поиска или фильтры.</p>
-                </div>
-            `;
-            return;
-        }
-
-        let html = `
-            <div class="table-responsive">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Имя</th>
-                            <th>Роль</th>
-                            <th>Уровень</th>
-                            <th>Искры</th>
-                            <th>Активность</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-
-        users.forEach(user => {
-            const lastActive = new Date(user.last_active);
-            const now = new Date();
-            const daysAgo = Math.floor((now - lastActive) / (1000 * 60 * 60 * 24));
-            const isActive = daysAgo <= 7;
+        const filteredUsers = this.data.users.filter(user => {
+            const matchesSearch = user.name.toLowerCase().includes(searchTerm) ||
+                                 (user.username && user.username.toLowerCase().includes(searchTerm));
+            const matchesRole = !roleFilter || user.role === roleFilter;
+            const matchesLevel = !levelFilter || user.level === levelFilter;
             
-            html += `
-                <tr>
-                    <td>${user.id}</td>
-                    <td>
-                        <strong>${user.name}</strong>
-                        ${user.username ? `<br><small class="text-muted">@${user.username}</small>` : ''}
-                    </td>
-                    <td>
-                        <span class="badge badge-info">${user.role || 'Не указана'}</span>
-                    </td>
-                    <td>
-                        <span class="badge badge-secondary">${user.level}</span>
-                    </td>
-                    <td>
-                        <strong>${user.sparks.toFixed(1)}</strong> ✨
-                    </td>
-                    <td>
-                        <span class="badge ${isActive ? 'badge-success' : 'badge-warning'}">
-                            ${isActive ? 'Активен' : `Неактивен ${daysAgo}д`}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn btn-sm btn-info" onclick="adminPanel.viewUserDetails(${user.id})">
-                                👁️ Просмотр
-                            </button>
-                            <button class="btn btn-sm btn-warning" onclick="adminPanel.editUser(${user.id})">
-                                ✏️ Редактировать
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
+            return matchesSearch && matchesRole && matchesLevel;
         });
 
-        html += `</tbody></table>`;
-        container.innerHTML = html;
+        const tbody = document.getElementById('usersTableBody');
+        if (tbody) {
+            tbody.innerHTML = filteredUsers.map(user => this.createUserRow(user)).join('');
+        }
     }
 
     viewUserDetails(userId) {
@@ -561,11 +529,65 @@ class AdminPanel {
         document.body.appendChild(modal);
     }
 
-    editUser(userId) {
+    async editUser(userId) {
         const user = this.data.users.find(u => u.id === userId);
         if (!user) return;
 
-        this.showMessage('Функционал редактирования пользователей в разработке', 'info');
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">✏️ Редактирование пользователя</h3>
+                    <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <div class="form-group">
+                            <label class="form-label">Имя:</label>
+                            <input type="text" class="form-control" id="editUserName" value="${user.name}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Искры:</label>
+                            <input type="number" class="form-control" id="editUserSparks" value="${user.sparks}" step="0.1" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Уровень:</label>
+                            <select class="form-control" id="editUserLevel">
+                                <option value="Ученик" ${user.level === 'Ученик' ? 'selected' : ''}>Ученик</option>
+                                <option value="Искатель" ${user.level === 'Искатель' ? 'selected' : ''}>Искатель</option>
+                                <option value="Знаток" ${user.level === 'Знаток' ? 'selected' : ''}>Знаток</option>
+                                <option value="Мастер" ${user.level === 'Мастер' ? 'selected' : ''}>Мастер</option>
+                                <option value="Наставник" ${user.level === 'Наставник' ? 'selected' : ''}>Наставник</option>
+                                <option value="Легенда" ${user.level === 'Легенда' ? 'selected' : ''}>Легенда</option>
+                            </select>
+                        </div>
+                        <div class="action-buttons" style="justify-content: flex-end; margin-top: 24px;">
+                            <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Отмена</button>
+                            <button type="button" class="btn btn-primary" onclick="adminPanel.saveUser(${user.id})">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    async saveUser(userId) {
+        const name = document.getElementById('editUserName').value;
+        const sparks = parseFloat(document.getElementById('editUserSparks').value);
+        const level = document.getElementById('editUserLevel').value;
+
+        try {
+            // В реальной системе здесь будет вызов API для обновления пользователя
+            // Покажем сообщение об успехе
+            this.showMessage('Функционал редактирования пользователей будет доступен в следующем обновлении', 'info');
+            document.querySelector('#editUserForm').closest('.modal').remove();
+            
+        } catch (error) {
+            console.error('Ошибка сохранения пользователя:', error);
+            this.showError('Ошибка сохранения пользователя: ' + error.message);
+        }
     }
 
     async loadRoles() {
@@ -576,9 +598,6 @@ class AdminPanel {
             const data = await response.json();
             this.data.roles = data;
             this.updateRolesDisplay();
-            
-            // Обновляем фильтр ролей
-            this.updateRoleFilter();
         } catch (error) {
             console.error('Ошибка загрузки ролей:', error);
         }
@@ -589,13 +608,7 @@ class AdminPanel {
         if (!container) return;
 
         if (this.data.roles.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">🎭</div>
-                    <h3>Роли не найдены</h3>
-                    <p>Создайте первую роль для пользователей.</p>
-                </div>
-            `;
+            container.innerHTML = this.createEmptyState('🎭', 'Роли не найдены', 'Создайте первую роль для пользователей.');
             return;
         }
 
@@ -643,18 +656,6 @@ class AdminPanel {
         });
 
         container.innerHTML = html;
-    }
-
-    updateRoleFilter() {
-        const roleFilter = document.getElementById('roleFilter');
-        if (!roleFilter) return;
-
-        let html = '<option value="">Все роли</option>';
-        this.data.roles.forEach(role => {
-            html += `<option value="${role.name}">${role.name}</option>`;
-        });
-
-        roleFilter.innerHTML = html;
     }
 
     showRoleForm(roleId = null) {
@@ -817,13 +818,7 @@ class AdminPanel {
         if (!container) return;
 
         if (this.data.characters.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">👤</div>
-                    <h3>Персонажи не найдены</h3>
-                    <p>Создайте первого персонажа для пользователей.</p>
-                </div>
-            `;
+            container.innerHTML = this.createEmptyState('👤', 'Персонажи не найдены', 'Создайте первого персонажа для пользователей.');
             return;
         }
 
@@ -1006,13 +1001,7 @@ class AdminPanel {
         if (!container) return;
 
         if (this.data.quizzes.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">🎯</div>
-                    <h3>Квизы не найдены</h3>
-                    <p>Создайте первый квиз для пользователей.</p>
-                </div>
-            `;
+            container.innerHTML = this.createEmptyState('🎯', 'Квизы не найдены', 'Создайте первый квиз для пользователей.');
             return;
         }
 
@@ -1065,169 +1054,117 @@ class AdminPanel {
     }
 
     showQuizForm(quizId = null) {
-        const modal = document.getElementById('quizModal');
-        const title = document.getElementById('quizModalTitle');
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
         
         if (quizId) {
             // Редактирование существующего квиза
             const quiz = this.data.quizzes.find(q => q.id === quizId);
             if (!quiz) return;
             
-            title.textContent = 'Редактирование квиза';
-            document.getElementById('quizId').value = quiz.id;
-            document.getElementById('quizTitle').value = quiz.title;
-            document.getElementById('quizDescription').value = quiz.description;
-            document.getElementById('quizSparksPerCorrect').value = quiz.sparks_per_correct;
-            document.getElementById('quizSparksPerfectBonus').value = quiz.sparks_perfect_bonus;
-            document.getElementById('quizCooldownHours').value = quiz.cooldown_hours;
-            document.getElementById('quizDurationMinutes').value = quiz.duration_minutes;
-            document.getElementById('quizDifficulty').value = quiz.difficulty;
-            document.getElementById('quizCategory').value = quiz.category;
-            document.getElementById('quizAllowRetake').checked = quiz.allow_retake;
-            document.getElementById('quizActive').checked = quiz.is_active;
-            
-            // Заполняем вопросы
-            this.updateQuizQuestions(quiz.questions);
-        } else {
-            // Создание нового квиза
-            title.textContent = 'Создание нового квиза';
-            document.getElementById('quizForm').reset();
-            document.getElementById('quizId').value = '';
-            document.getElementById('quizAllowRetake').checked = true;
-            document.getElementById('quizActive').checked = true;
-            this.updateQuizQuestions([]);
-        }
-        
-        modal.classList.add('active');
-    }
-
-    updateQuizQuestions(questions) {
-        const container = document.getElementById('quizQuestions');
-        let html = '';
-
-        questions.forEach((question, index) => {
-            html += this.createQuestionHtml(question, index);
-        });
-
-        container.innerHTML = html || '<div class="text-muted">Вопросы не добавлены</div>';
-    }
-
-    createQuestionHtml(question, index) {
-        const questionNumber = index + 1;
-        let optionsHtml = '';
-
-        question.options.forEach((option, optIndex) => {
-            const isCorrect = optIndex === question.correctAnswer;
-            optionsHtml += `
-                <div class="form-group">
-                    <label class="form-label">Вариант ${optIndex + 1} ${isCorrect ? '(правильный)' : ''}</label>
-                    <input type="text" class="form-control" value="${option}" 
-                           onchange="adminPanel.updateQuestionOption(${index}, ${optIndex}, this.value)">
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">✏️ Редактирование квиза</h3>
+                        <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="quizForm">
+                            <input type="hidden" id="quizId" value="${quiz.id}">
+                            <div class="form-group">
+                                <label class="form-label">Название квиза:</label>
+                                <input type="text" id="quizTitle" class="form-control" value="${quiz.title}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Описание:</label>
+                                <textarea id="quizDescription" class="form-control" rows="3" required>${quiz.description}</textarea>
+                            </div>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label class="form-label">Искр за правильный ответ:</label>
+                                    <input type="number" id="quizSparksPerCorrect" class="form-control" value="${quiz.sparks_per_correct}" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Бонус за идеальный результат:</label>
+                                    <input type="number" id="quizSparksPerfectBonus" class="form-control" value="${quiz.sparks_perfect_bonus}" min="0" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="quizActive" ${quiz.is_active ? 'checked' : ''}> Активный квиз
+                                </label>
+                            </div>
+                            <div class="action-buttons" style="justify-content: flex-end; margin-top: 24px;">
+                                <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Отмена</button>
+                                <button type="button" class="btn btn-primary" onclick="adminPanel.saveQuiz()">Сохранить</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             `;
-        });
-
-        return `
-            <div class="content-card mb-3">
-                <div class="card-header">
-                    <h4>Вопрос ${questionNumber}</h4>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="adminPanel.removeQuestion(${index})">
-                        🗑️ Удалить
-                    </button>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Текст вопроса:</label>
-                    <input type="text" class="form-control" value="${question.question}" 
-                           onchange="adminPanel.updateQuestionText(${index}, this.value)">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Объяснение:</label>
-                    <textarea class="form-control" rows="2" 
-                              onchange="adminPanel.updateQuestionExplanation(${index}, this.value)">${question.explanation}</textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Правильный ответ:</label>
-                    <select class="form-control" onchange="adminPanel.updateCorrectAnswer(${index}, this.value)">
-                        ${question.options.map((_, optIndex) => `
-                            <option value="${optIndex}" ${optIndex === question.correctAnswer ? 'selected' : ''}>
-                                Вариант ${optIndex + 1}
-                            </option>
-                        `).join('')}
-                    </select>
-                </div>
-                <div class="options-container">
-                    ${optionsHtml}
-                </div>
-            </div>
-        `;
-    }
-
-    addQuestion() {
-        const newQuestion = {
-            id: Date.now(),
-            question: 'Новый вопрос',
-            options: ['Вариант 1', 'Вариант 2', 'Вариант 3', 'Вариант 4'],
-            correctAnswer: 0,
-            explanation: 'Объяснение правильного ответа'
-        };
-
-        const container = document.getElementById('quizQuestions');
-        const questionHtml = this.createQuestionHtml(newQuestion, this.getCurrentQuestions().length);
-        
-        if (container.innerHTML.includes('Вопросы не добавлены')) {
-            container.innerHTML = questionHtml;
         } else {
-            container.innerHTML += questionHtml;
+            // Создание нового квиза
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">➕ Создание нового квиза</h3>
+                        <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="quizForm">
+                            <input type="hidden" id="quizId" value="">
+                            <div class="form-group">
+                                <label class="form-label">Название квиза:</label>
+                                <input type="text" id="quizTitle" class="form-control" placeholder="Основы живописи" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Описание:</label>
+                                <textarea id="quizDescription" class="form-control" rows="3" placeholder="Описание квиза..." required></textarea>
+                            </div>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label class="form-label">Искр за правильный ответ:</label>
+                                    <input type="number" id="quizSparksPerCorrect" class="form-control" value="2" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Бонус за идеальный результат:</label>
+                                    <input type="number" id="quizSparksPerfectBonus" class="form-control" value="10" min="0" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="quizActive" checked> Активный квиз
+                                </label>
+                            </div>
+                            <div class="action-buttons" style="justify-content: flex-end; margin-top: 24px;">
+                                <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Отмена</button>
+                                <button type="button" class="btn btn-primary" onclick="adminPanel.saveQuiz()">Создать квиз</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
         }
-    }
-
-    getCurrentQuestions() {
-        // Этот метод должен собирать вопросы из DOM
-        // В реальной реализации здесь будет логика сбора данных из формы
-        return [];
-    }
-
-    updateQuestionText(index, value) {
-        // Обновление текста вопроса
-    }
-
-    updateQuestionOption(questionIndex, optionIndex, value) {
-        // Обновление варианта ответа
-    }
-
-    updateQuestionExplanation(questionIndex, value) {
-        // Обновление объяснения
-    }
-
-    updateCorrectAnswer(questionIndex, value) {
-        // Обновление правильного ответа
-    }
-
-    removeQuestion(index) {
-        // Удаление вопроса
-        const questions = document.querySelectorAll('#quizQuestions > .content-card');
-        if (questions[index]) {
-            questions[index].remove();
-        }
-    }
-
-    closeQuizModal() {
-        document.getElementById('quizModal').classList.remove('active');
+        
+        document.body.appendChild(modal);
     }
 
     async saveQuiz() {
-        const formData = {
+        const quizData = {
             title: document.getElementById('quizTitle').value,
             description: document.getElementById('quizDescription').value,
-            questions: this.getCurrentQuestions(),
             sparks_per_correct: parseInt(document.getElementById('quizSparksPerCorrect').value),
             sparks_perfect_bonus: parseInt(document.getElementById('quizSparksPerfectBonus').value),
-            cooldown_hours: parseInt(document.getElementById('quizCooldownHours').value),
-            duration_minutes: parseInt(document.getElementById('quizDurationMinutes').value),
-            difficulty: document.getElementById('quizDifficulty').value,
-            category: document.getElementById('quizCategory').value,
-            allow_retake: document.getElementById('quizAllowRetake').checked,
-            is_active: document.getElementById('quizActive').checked
+            is_active: document.getElementById('quizActive').checked,
+            questions: [
+                {
+                    id: 1,
+                    question: "Пример вопроса",
+                    options: ["Вариант 1", "Вариант 2", "Вариант 3", "Вариант 4"],
+                    correctAnswer: 0,
+                    explanation: "Объяснение правильного ответа"
+                }
+            ]
         };
 
         const quizId = document.getElementById('quizId').value;
@@ -1240,14 +1177,14 @@ class AdminPanel {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(quizData)
             });
 
             const data = await response.json();
 
             if (data.success) {
                 this.showMessage(data.message, 'success');
-                this.closeQuizModal();
+                document.querySelector('#quizForm').closest('.modal').remove();
                 this.loadQuizzes();
             } else {
                 throw new Error(data.error);
@@ -1284,7 +1221,6 @@ class AdminPanel {
         }
     }
 
-    // Аналогичные методы для других разделов (marathons, interactives, shop, posts, etc.)
     async loadMarathons() {
         try {
             const response = await fetch(`/api/admin/marathons?userId=${this.currentAdmin.user_id}`);
@@ -1303,13 +1239,7 @@ class AdminPanel {
         if (!container) return;
 
         if (this.data.marathons.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">🏃‍♂️</div>
-                    <h3>Марафоны не найдены</h3>
-                    <p>Создайте первый марафон для пользователей.</p>
-                </div>
-            `;
+            container.innerHTML = this.createEmptyState('🏃‍♂️', 'Марафоны не найдены', 'Создайте первый марафон для пользователей.');
             return;
         }
 
@@ -1335,10 +1265,10 @@ class AdminPanel {
                     </div>
                     <div class="item-footer">
                         <div class="action-buttons">
-                            <button class="btn btn-sm btn-info">
+                            <button class="btn btn-sm btn-info" onclick="adminPanel.editMarathon(${marathon.id})">
                                 ✏️ Редактировать
                             </button>
-                            <button class="btn btn-sm btn-danger">
+                            <button class="btn btn-sm btn-danger" onclick="adminPanel.deleteMarathon(${marathon.id})">
                                 🗑️ Удалить
                             </button>
                         </div>
@@ -1348,6 +1278,175 @@ class AdminPanel {
         });
 
         container.innerHTML = html;
+    }
+
+    async showMarathonForm(marathonId = null) {
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        
+        if (marathonId) {
+            // Редактирование существующего марафона
+            const marathon = this.data.marathons.find(m => m.id === marathonId);
+            if (!marathon) return;
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">✏️ Редактирование марафона</h3>
+                        <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="marathonForm">
+                            <input type="hidden" id="marathonId" value="${marathon.id}">
+                            <div class="form-group">
+                                <label class="form-label">Название марафона:</label>
+                                <input type="text" id="marathonTitle" class="form-control" value="${marathon.title}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Описание:</label>
+                                <textarea id="marathonDescription" class="form-control" rows="3" required>${marathon.description}</textarea>
+                            </div>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label class="form-label">Длительность (дней):</label>
+                                    <input type="number" id="marathonDuration" class="form-control" value="${marathon.duration_days}" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Искр за день:</label>
+                                    <input type="number" id="marathonSparksPerDay" class="form-control" value="${marathon.sparks_per_day}" min="1" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="marathonActive" ${marathon.is_active ? 'checked' : ''}> Активный марафон
+                                </label>
+                            </div>
+                            <div class="action-buttons" style="justify-content: flex-end; margin-top: 24px;">
+                                <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Отмена</button>
+                                <button type="button" class="btn btn-primary" onclick="adminPanel.saveMarathon()">Сохранить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Создание нового марафона
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">➕ Создание нового марафона</h3>
+                        <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="marathonForm">
+                            <input type="hidden" id="marathonId" value="">
+                            <div class="form-group">
+                                <label class="form-label">Название марафона:</label>
+                                <input type="text" id="marathonTitle" class="form-control" placeholder="7-дневный марафон акварели" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Описание:</label>
+                                <textarea id="marathonDescription" class="form-control" rows="3" placeholder="Описание марафона..." required></textarea>
+                            </div>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label class="form-label">Длительность (дней):</label>
+                                    <input type="number" id="marathonDuration" class="form-control" value="7" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Искр за день:</label>
+                                    <input type="number" id="marathonSparksPerDay" class="form-control" value="10" min="1" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="marathonActive" checked> Активный марафон
+                                </label>
+                            </div>
+                            <div class="action-buttons" style="justify-content: flex-end; margin-top: 24px;">
+                                <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Отмена</button>
+                                <button type="button" class="btn btn-primary" onclick="adminPanel.saveMarathon()">Создать марафон</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+        
+        document.body.appendChild(modal);
+    }
+
+    async saveMarathon() {
+        const marathonData = {
+            title: document.getElementById('marathonTitle').value,
+            description: document.getElementById('marathonDescription').value,
+            duration_days: parseInt(document.getElementById('marathonDuration').value),
+            sparks_per_day: parseInt(document.getElementById('marathonSparksPerDay').value),
+            sparks_completion_bonus: 50,
+            is_active: document.getElementById('marathonActive').checked,
+            tasks: [
+                {
+                    day: 1,
+                    title: "День 1",
+                    description: "Первое задание марафона",
+                    requires_submission: true,
+                    submission_type: "image"
+                }
+            ]
+        };
+
+        const marathonId = document.getElementById('marathonId').value;
+        const url = marathonId ? `/api/admin/marathons/${marathonId}?userId=${this.currentAdmin.user_id}` : `/api/admin/marathons?userId=${this.currentAdmin.user_id}`;
+        const method = marathonId ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(marathonData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showMessage(data.message, 'success');
+                document.querySelector('#marathonForm').closest('.modal').remove();
+                this.loadMarathons();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка сохранения марафона:', error);
+            this.showError('Ошибка сохранения марафона: ' + error.message);
+        }
+    }
+
+    editMarathon(marathonId) {
+        this.showMarathonForm(marathonId);
+    }
+
+    async deleteMarathon(marathonId) {
+        if (!confirm('Вы уверены, что хотите удалить этот марафон?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/marathons/${marathonId}?userId=${this.currentAdmin.user_id}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showMessage(data.message, 'success');
+                this.loadMarathons();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка удаления марафона:', error);
+            this.showError('Ошибка удаления марафона: ' + error.message);
+        }
     }
 
     async loadInteractives() {
@@ -1368,13 +1467,7 @@ class AdminPanel {
         if (!container) return;
 
         if (this.data.interactives.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">🎮</div>
-                    <h3>Интерактивы не найдены</h3>
-                    <p>Создайте первый интерактив для пользователей.</p>
-                </div>
-            `;
+            container.innerHTML = this.createEmptyState('🎮', 'Интерактивы не найдены', 'Создайте первый интерактив для пользователей.');
             return;
         }
 
@@ -1400,10 +1493,10 @@ class AdminPanel {
                     </div>
                     <div class="item-footer">
                         <div class="action-buttons">
-                            <button class="btn btn-sm btn-info">
+                            <button class="btn btn-sm btn-info" onclick="adminPanel.editInteractive(${interactive.id})">
                                 ✏️ Редактировать
                             </button>
-                            <button class="btn btn-sm btn-danger">
+                            <button class="btn btn-sm btn-danger" onclick="adminPanel.deleteInteractive(${interactive.id})">
                                 🗑️ Удалить
                             </button>
                         </div>
@@ -1413,6 +1506,158 @@ class AdminPanel {
         });
 
         container.innerHTML = html;
+    }
+
+    async showInteractiveForm(interactiveId = null) {
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        
+        if (interactiveId) {
+            // Редактирование существующего интерактива
+            const interactive = this.data.interactives.find(i => i.id === interactiveId);
+            if (!interactive) return;
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">✏️ Редактирование интерактива</h3>
+                        <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="interactiveForm">
+                            <input type="hidden" id="interactiveId" value="${interactive.id}">
+                            <div class="form-group">
+                                <label class="form-label">Название интерактива:</label>
+                                <input type="text" id="interactiveTitle" class="form-control" value="${interactive.title}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Описание:</label>
+                                <textarea id="interactiveDescription" class="form-control" rows="3" required>${interactive.description}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Награда (искры):</label>
+                                <input type="number" id="interactiveSparks" class="form-control" value="${interactive.sparks_reward}" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="interactiveActive" ${interactive.is_active ? 'checked' : ''}> Активный интерактив
+                                </label>
+                            </div>
+                            <div class="action-buttons" style="justify-content: flex-end; margin-top: 24px;">
+                                <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Отмена</button>
+                                <button type="button" class="btn btn-primary" onclick="adminPanel.saveInteractive()">Сохранить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Создание нового интерактива
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">➕ Создание нового интерактива</h3>
+                        <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="interactiveForm">
+                            <input type="hidden" id="interactiveId" value="">
+                            <div class="form-group">
+                                <label class="form-label">Название интерактива:</label>
+                                <input type="text" id="interactiveTitle" class="form-control" placeholder="Угадай эпоху картины" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Описание:</label>
+                                <textarea id="interactiveDescription" class="form-control" rows="3" placeholder="Описание интерактива..." required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Награда (искры):</label>
+                                <input type="number" id="interactiveSparks" class="form-control" value="5" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="interactiveActive" checked> Активный интерактив
+                                </label>
+                            </div>
+                            <div class="action-buttons" style="justify-content: flex-end; margin-top: 24px;">
+                                <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Отмена</button>
+                                <button type="button" class="btn btn-primary" onclick="adminPanel.saveInteractive()">Создать интерактив</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+        
+        document.body.appendChild(modal);
+    }
+
+    async saveInteractive() {
+        const interactiveData = {
+            title: document.getElementById('interactiveTitle').value,
+            description: document.getElementById('interactiveDescription').value,
+            sparks_reward: parseInt(document.getElementById('interactiveSparks').value),
+            is_active: document.getElementById('interactiveActive').checked,
+            type: "guess_era",
+            category: "art_history",
+            question: "Какой эпохе принадлежит этот фрагмент?",
+            options: ["Ренессанс", "Барокко", "Импрессионизм", "Кубизм"],
+            correct_answer: 0,
+            allow_retake: false
+        };
+
+        const interactiveId = document.getElementById('interactiveId').value;
+        const url = interactiveId ? `/api/admin/interactives/${interactiveId}?userId=${this.currentAdmin.user_id}` : `/api/admin/interactives?userId=${this.currentAdmin.user_id}`;
+        const method = interactiveId ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(interactiveData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showMessage(data.message, 'success');
+                document.querySelector('#interactiveForm').closest('.modal').remove();
+                this.loadInteractives();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка сохранения интерактива:', error);
+            this.showError('Ошибка сохранения интерактива: ' + error.message);
+        }
+    }
+
+    editInteractive(interactiveId) {
+        this.showInteractiveForm(interactiveId);
+    }
+
+    async deleteInteractive(interactiveId) {
+        if (!confirm('Вы уверены, что хотите удалить этот интерактив?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/interactives/${interactiveId}?userId=${this.currentAdmin.user_id}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showMessage(data.message, 'success');
+                this.loadInteractives();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка удаления интерактива:', error);
+            this.showError('Ошибка удаления интерактива: ' + error.message);
+        }
     }
 
     async loadShopItems() {
@@ -1433,13 +1678,7 @@ class AdminPanel {
         if (!container) return;
 
         if (this.data.shopItems.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">🛒</div>
-                    <h3>Товары не найдены</h3>
-                    <p>Добавьте первый товар в магазин.</p>
-                </div>
-            `;
+            container.innerHTML = this.createEmptyState('🛒', 'Товары не найдены', 'Добавьте первый товар в магазин.');
             return;
         }
 
@@ -1465,10 +1704,10 @@ class AdminPanel {
                     </div>
                     <div class="item-footer">
                         <div class="action-buttons">
-                            <button class="btn btn-sm btn-info">
+                            <button class="btn btn-sm btn-info" onclick="adminPanel.editShopItem(${item.id})">
                                 ✏️ Редактировать
                             </button>
-                            <button class="btn btn-sm btn-danger">
+                            <button class="btn btn-sm btn-danger" onclick="adminPanel.deleteShopItem(${item.id})">
                                 🗑️ Удалить
                             </button>
                         </div>
@@ -1478,6 +1717,154 @@ class AdminPanel {
         });
 
         container.innerHTML = html;
+    }
+
+    async showShopItemForm(shopItemId = null) {
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        
+        if (shopItemId) {
+            // Редактирование существующего товара
+            const item = this.data.shopItems.find(i => i.id === shopItemId);
+            if (!item) return;
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">✏️ Редактирование товара</h3>
+                        <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="shopItemForm">
+                            <input type="hidden" id="shopItemId" value="${item.id}">
+                            <div class="form-group">
+                                <label class="form-label">Название товара:</label>
+                                <input type="text" id="shopItemTitle" class="form-control" value="${item.title}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Описание:</label>
+                                <textarea id="shopItemDescription" class="form-control" rows="3" required>${item.description}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Цена (искры):</label>
+                                <input type="number" id="shopItemPrice" class="form-control" value="${item.price}" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="shopItemActive" ${item.is_active ? 'checked' : ''}> Активный товар
+                                </label>
+                            </div>
+                            <div class="action-buttons" style="justify-content: flex-end; margin-top: 24px;">
+                                <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Отмена</button>
+                                <button type="button" class="btn btn-primary" onclick="adminPanel.saveShopItem()">Сохранить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Создание нового товара
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">➕ Добавление нового товара</h3>
+                        <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="shopItemForm">
+                            <input type="hidden" id="shopItemId" value="">
+                            <div class="form-group">
+                                <label class="form-label">Название товара:</label>
+                                <input type="text" id="shopItemTitle" class="form-control" placeholder="Курс акварели для начинающих" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Описание:</label>
+                                <textarea id="shopItemDescription" class="form-control" rows="3" placeholder="Описание товара..." required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Цена (искры):</label>
+                                <input type="number" id="shopItemPrice" class="form-control" value="45" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="shopItemActive" checked> Активный товар
+                                </label>
+                            </div>
+                            <div class="action-buttons" style="justify-content: flex-end; margin-top: 24px;">
+                                <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Отмена</button>
+                                <button type="button" class="btn btn-primary" onclick="adminPanel.saveShopItem()">Добавить товар</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+        
+        document.body.appendChild(modal);
+    }
+
+    async saveShopItem() {
+        const shopItemData = {
+            title: document.getElementById('shopItemTitle').value,
+            description: document.getElementById('shopItemDescription').value,
+            price: parseInt(document.getElementById('shopItemPrice').value),
+            is_active: document.getElementById('shopItemActive').checked,
+            type: "video_course",
+            category: "painting"
+        };
+
+        const shopItemId = document.getElementById('shopItemId').value;
+        const url = shopItemId ? `/api/admin/shop/items/${shopItemId}?userId=${this.currentAdmin.user_id}` : `/api/admin/shop/items?userId=${this.currentAdmin.user_id}`;
+        const method = shopItemId ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(shopItemData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showMessage(data.message, 'success');
+                document.querySelector('#shopItemForm').closest('.modal').remove();
+                this.loadShopItems();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка сохранения товара:', error);
+            this.showError('Ошибка сохранения товара: ' + error.message);
+        }
+    }
+
+    editShopItem(shopItemId) {
+        this.showShopItemForm(shopItemId);
+    }
+
+    async deleteShopItem(shopItemId) {
+        if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/shop/items/${shopItemId}?userId=${this.currentAdmin.user_id}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showMessage(data.message, 'success');
+                this.loadShopItems();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка удаления товара:', error);
+            this.showError('Ошибка удаления товара: ' + error.message);
+        }
     }
 
     async loadPosts() {
@@ -1498,13 +1885,7 @@ class AdminPanel {
         if (!container) return;
 
         if (this.data.posts.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">📰</div>
-                    <h3>Посты не найдены</h3>
-                    <p>Создайте первый пост для канала.</p>
-                </div>
-            `;
+            container.innerHTML = this.createEmptyState('📰', 'Посты не найдены', 'Создайте первый пост для канала.');
             return;
         }
 
@@ -1530,10 +1911,10 @@ class AdminPanel {
                     </div>
                     <div class="item-footer">
                         <div class="action-buttons">
-                            <button class="btn btn-sm btn-info">
+                            <button class="btn btn-sm btn-info" onclick="adminPanel.editPost(${post.id})">
                                 ✏️ Редактировать
                             </button>
-                            <button class="btn btn-sm btn-danger">
+                            <button class="btn btn-sm btn-danger" onclick="adminPanel.deletePost(${post.id})">
                                 🗑️ Удалить
                             </button>
                         </div>
@@ -1543,6 +1924,145 @@ class AdminPanel {
         });
 
         container.innerHTML = html;
+    }
+
+    async showPostForm(postId = null) {
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        
+        if (postId) {
+            // Редактирование существующего поста
+            const post = this.data.posts.find(p => p.id === postId);
+            if (!post) return;
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">✏️ Редактирование поста</h3>
+                        <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="postForm">
+                            <input type="hidden" id="postId" value="${post.id}">
+                            <div class="form-group">
+                                <label class="form-label">Заголовок поста:</label>
+                                <input type="text" id="postTitle" class="form-control" value="${post.title}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Содержание:</label>
+                                <textarea id="postContent" class="form-control" rows="6" required>${post.content}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="postActive" ${post.is_active ? 'checked' : ''}> Активный пост
+                                </label>
+                            </div>
+                            <div class="action-buttons" style="justify-content: flex-end; margin-top: 24px;">
+                                <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Отмена</button>
+                                <button type="button" class="btn btn-primary" onclick="adminPanel.savePost()">Сохранить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Создание нового поста
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">➕ Создание нового поста</h3>
+                        <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="postForm">
+                            <input type="hidden" id="postId" value="">
+                            <div class="form-group">
+                                <label class="form-label">Заголовок поста:</label>
+                                <input type="text" id="postTitle" class="form-control" placeholder="Новый пост в канале" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Содержание:</label>
+                                <textarea id="postContent" class="form-control" rows="6" placeholder="Содержание поста..." required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="postActive" checked> Активный пост
+                                </label>
+                            </div>
+                            <div class="action-buttons" style="justify-content: flex-end; margin-top: 24px;">
+                                <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Отмена</button>
+                                <button type="button" class="btn btn-primary" onclick="adminPanel.savePost()">Создать пост</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+        
+        document.body.appendChild(modal);
+    }
+
+    async savePost() {
+        const postData = {
+            title: document.getElementById('postTitle').value,
+            content: document.getElementById('postContent').value,
+            is_active: document.getElementById('postActive').checked,
+            post_id: `post_${Date.now()}`,
+            media_type: 'text'
+        };
+
+        const postId = document.getElementById('postId').value;
+        const url = postId ? `/api/admin/channel-posts/${postId}?userId=${this.currentAdmin.user_id}` : `/api/admin/channel-posts?userId=${this.currentAdmin.user_id}`;
+        const method = postId ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(postData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showMessage(data.message, 'success');
+                document.querySelector('#postForm').closest('.modal').remove();
+                this.loadPosts();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка сохранения поста:', error);
+            this.showError('Ошибка сохранения поста: ' + error.message);
+        }
+    }
+
+    editPost(postId) {
+        this.showPostForm(postId);
+    }
+
+    async deletePost(postId) {
+        if (!confirm('Вы уверены, что хотите удалить этот пост?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/channel-posts/${postId}?userId=${this.currentAdmin.user_id}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showMessage(data.message, 'success');
+                this.loadPosts();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка удаления поста:', error);
+            this.showError('Ошибка удаления поста: ' + error.message);
+        }
     }
 
     async loadAdmins() {
@@ -1563,13 +2083,7 @@ class AdminPanel {
         if (!container) return;
 
         if (this.data.admins.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">🔧</div>
-                    <h3>Администраторы не найдены</h3>
-                    <p>Добавьте первого администратора.</p>
-                </div>
-            `;
+            container.innerHTML = this.createEmptyState('🔧', 'Администраторы не найдены', 'Добавьте первого администратора.');
             return;
         }
 
@@ -1608,6 +2122,161 @@ class AdminPanel {
         container.innerHTML = html;
     }
 
+    async showAdminForm() {
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">➕ Добавить администратора</h3>
+                    <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="adminForm">
+                        <div class="form-group">
+                            <label class="form-label">ID пользователя:</label>
+                            <input type="number" id="adminUserId" class="form-control" placeholder="Введите Telegram ID пользователя" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Роль:</label>
+                            <select id="adminRole" class="form-control" required>
+                                <option value="moderator">Модератор</option>
+                                <option value="admin">Администратор</option>
+                                <option value="superadmin">Супер администратор</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Права доступа:</label>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="perm_users" value="users" checked>
+                                    <div class="checkbox-label">
+                                        <div class="checkbox-title">👥 Управление пользователями</div>
+                                        <div class="checkbox-description">Просмотр и редактирование пользователей</div>
+                                    </div>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="perm_content" value="content" checked>
+                                    <div class="checkbox-label">
+                                        <div class="checkbox-title">🎯 Управление контентом</div>
+                                        <div class="checkbox-description">Квизы, марафоны, интерактивы</div>
+                                    </div>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="perm_shop" value="shop" checked>
+                                    <div class="checkbox-label">
+                                        <div class="checkbox-title">🛒 Управление магазином</div>
+                                        <div class="checkbox-description">Товары и категории</div>
+                                    </div>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="perm_moderation" value="moderation" checked>
+                                    <div class="checkbox-label">
+                                        <div class="checkbox-title">⚖️ Модерация</div>
+                                        <div class="checkbox-description">Работы и отзывы</div>
+                                    </div>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="perm_admins" value="admins">
+                                    <div class="checkbox-label">
+                                        <div class="checkbox-title">🔧 Управление админами</div>
+                                        <div class="checkbox-description">Добавление и удаление администраторов</div>
+                                    </div>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="perm_settings" value="settings">
+                                    <div class="checkbox-label">
+                                        <div class="checkbox-title">⚙️ Настройки системы</div>
+                                        <div class="checkbox-description">Системные настройки</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="action-buttons" style="justify-content: flex-end; margin-top: 24px;">
+                            <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Отмена</button>
+                            <button type="button" class="btn btn-primary" onclick="adminPanel.saveAdmin()">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    async saveAdmin() {
+        const userId = document.getElementById('adminUserId').value;
+        const role = document.getElementById('adminRole').value;
+        
+        if (!userId) {
+            this.showError('Введите ID пользователя');
+            return;
+        }
+
+        // Собираем выбранные права доступа
+        const permissions = [];
+        const checkboxes = document.querySelectorAll('#adminForm input[type="checkbox"]:checked');
+        checkboxes.forEach(checkbox => {
+            permissions.push(checkbox.value);
+        });
+
+        const adminData = {
+            user_id: parseInt(userId),
+            username: '', // Будет заполнено на сервере
+            role: role,
+            permissions: permissions
+        };
+
+        try {
+            const response = await fetch(`/api/admin/admins?userId=${this.currentAdmin.user_id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(adminData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showMessage(data.message, 'success');
+                document.querySelector('#adminForm').closest('.modal').remove();
+                this.loadAdmins();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка добавления администратора:', error);
+            this.showError('Ошибка добавления администратора: ' + error.message);
+        }
+    }
+
+    async removeAdmin(userId) {
+        if (userId === this.currentAdmin.user_id) {
+            this.showError('Нельзя удалить самого себя');
+            return;
+        }
+
+        if (!confirm('Вы уверены, что хотите удалить этого администратора?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/admins/${userId}?userId=${this.currentAdmin.user_id}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showMessage(data.message, 'success');
+                this.loadAdmins();
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error('Ошибка удаления администратора:', error);
+            this.showError('Ошибка удаления администратора: ' + error.message);
+        }
+    }
+
     async loadModerationData() {
         try {
             const [worksResponse, reviewsResponse] = await Promise.all([
@@ -1632,11 +2301,10 @@ class AdminPanel {
     }
 
     updateModerationDisplay() {
-        // Обновляем счетчики
-        document.getElementById('pendingWorksCount').textContent = `${this.data.moderation.works.length} на модерации`;
-        document.getElementById('pendingReviewsCount').textContent = `${this.data.moderation.reviews.length} на модерации`;
+        // Обновляем счетчики с иконками
+        document.getElementById('pendingWorksCount').innerHTML = `🖼️ ${this.data.moderation.works.length} работ`;
+        document.getElementById('pendingReviewsCount').innerHTML = `💬 ${this.data.moderation.reviews.length} отзывов`;
 
-        // Обновляем списки
         this.updateWorksModerationList();
         this.updateReviewsModerationList();
     }
@@ -1646,13 +2314,7 @@ class AdminPanel {
         if (!container) return;
 
         if (this.data.moderation.works.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">🖼️</div>
-                    <h3>Нет работ для модерации</h3>
-                    <p>Все работы проверены.</p>
-                </div>
-            `;
+            container.innerHTML = this.createEmptyState('🖼️', 'Нет работ для модерации', 'Все работы проверены.');
             return;
         }
 
@@ -1701,13 +2363,7 @@ class AdminPanel {
         if (!container) return;
 
         if (this.data.moderation.reviews.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">💬</div>
-                    <h3>Нет отзывов для модерации</h3>
-                    <p>Все отзывы проверены.</p>
-                </div>
-            `;
+            container.innerHTML = this.createEmptyState('💬', 'Нет отзывов для модерации', 'Все отзывы проверены.');
             return;
         }
 
@@ -1804,6 +2460,38 @@ class AdminPanel {
             console.error('Ошибка модерации отзыва:', error);
             this.showError('Ошибка модерации отзыва: ' + error.message);
         }
+    }
+
+    async viewWork(workId) {
+        const work = this.data.moderation.works.find(w => w.id === workId);
+        if (!work) return;
+
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">🖼️ Просмотр работы</h3>
+                    <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="content-card">
+                        <h3>${work.title}</h3>
+                        <p><strong>Автор:</strong> ${work.user_name} (${work.user_username ? '@' + work.user_username : 'без username'})</p>
+                        <p><strong>Категория:</strong> ${work.category}</p>
+                        <p><strong>Описание:</strong> ${work.description}</p>
+                        <p><strong>Дата загрузки:</strong> ${new Date(work.created_at).toLocaleString()}</p>
+                        
+                        ${work.image_url && (
+                            `<div style="margin-top: 16px;">
+                                <img src="${work.image_url}" alt="${work.title}" style="max-width: 100%; border-radius: 8px;">
+                            </div>`
+                        )}
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
     }
 
     async loadSettings() {
@@ -1950,6 +2638,28 @@ class AdminPanel {
         return titles[tab] || 'Админ панель';
     }
 
+    getRoleIcon(roleName) {
+        const icons = {
+            'Художники': '🎨',
+            'Стилисты': '👗',
+            'Фотографы': '📷',
+            'Дизайнеры': '✏️',
+            'Блогеры': '📱',
+            'Рукодельники': '🧵'
+        };
+        return icons[roleName] || '👤';
+    }
+
+    createEmptyState(icon, title, description) {
+        return `
+            <div class="empty-state">
+                <div class="empty-state-icon">${icon}</div>
+                <h3>${title}</h3>
+                <p>${description}</p>
+            </div>
+        `;
+    }
+
     showMessage(message, type = 'info') {
         const messageArea = document.getElementById('messageArea');
         const messageEl = document.createElement('div');
@@ -2007,41 +2717,147 @@ class AdminPanel {
     }
 
     exportUsers() {
-        this.showMessage('Функционал экспорта в разработке', 'info');
+        // Создаем CSV содержимое
+        const headers = ['ID', 'Имя', 'Username', 'Роль', 'Уровень', 'Искры', 'Квизы', 'Марафоны', 'Работы', 'Дата регистрации'];
+        const csvContent = [
+            headers.join(','),
+            ...this.data.users.map(user => [
+                user.id,
+                `"${user.name}"`,
+                `"${user.username || ''}"`,
+                `"${user.role || ''}"`,
+                `"${user.level}"`,
+                user.sparks,
+                user.total_quizzes,
+                user.total_marathons,
+                user.total_works,
+                new Date(user.registration_date).toLocaleDateString()
+            ].join(','))
+        ].join('\n');
+
+        // Создаем и скачиваем файл
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `users_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.showMessage('Экспорт пользователей завершен!', 'success');
     }
 
     showUserStats() {
-        this.showMessage('Функционал статистики пользователей в разработке', 'info');
+        const stats = this.calculateUserStats();
+        
+        const statsHtml = `
+            <div class="content-card">
+                <h2>📈 Статистика пользователей</h2>
+                <div class="grid-3">
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.totalUsers}</div>
+                        <div class="stat-label">Всего пользователей</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.activeUsers}</div>
+                        <div class="stat-label">Активных пользователей</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.newUsersToday}</div>
+                        <div class="stat-label">Новых сегодня</div>
+                    </div>
+                </div>
+                
+                <div class="content-card mt-3">
+                    <h3>📊 Распределение по уровням</h3>
+                    <div class="grid-4">
+                        ${Object.entries(stats.levels).map(([level, count]) => `
+                            <div class="text-center">
+                                <div class="stat-number">${count}</div>
+                                <div class="stat-label">${level}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="content-card mt-3">
+                    <h3>🎯 Активность пользователей</h3>
+                    <div class="grid-2">
+                        <div>
+                            <p><strong>Среднее количество искр:</strong> ${stats.avgSparks.toFixed(1)}</p>
+                            <p><strong>Среднее количество квизов:</strong> ${stats.avgQuizzes.toFixed(1)}</p>
+                            <p><strong>Среднее количество марафонов:</strong> ${stats.avgMarathons.toFixed(1)}</p>
+                        </div>
+                        <div>
+                            <p><strong>Среднее количество работ:</strong> ${stats.avgWorks.toFixed(1)}</p>
+                            <p><strong>Процент завершенных марафонов:</strong> ${stats.marathonCompletionRate}%</p>
+                            <p><strong>Процент активных пользователей:</strong> ${stats.activeUserPercentage}%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">📈 Статистика пользователей</h3>
+                    <button class="modal-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    ${statsHtml}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
     }
 
-    // Заглушки для остальных методов форм
-    showMarathonForm() {
-        this.showMessage('Функционал создания марафонов в разработке', 'info');
-    }
+    calculateUserStats() {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        const activeUsers = this.data.users.filter(user => {
+            const lastActive = new Date(user.last_active);
+            const daysAgo = (now - lastActive) / (1000 * 60 * 60 * 24);
+            return daysAgo <= 7;
+        }).length;
 
-    showInteractiveForm() {
-        this.showMessage('Функционал создания интерактивов в разработке', 'info');
-    }
+        const newUsersToday = this.data.users.filter(user => {
+            const regDate = new Date(user.registration_date);
+            return regDate >= today;
+        }).length;
 
-    showShopItemForm() {
-        this.showMessage('Функционал добавления товаров в разработке', 'info');
-    }
+        const levels = {};
+        this.data.users.forEach(user => {
+            levels[user.level] = (levels[user.level] || 0) + 1;
+        });
 
-    showPostForm() {
-        this.showMessage('Функционал создания постов в разработке', 'info');
-    }
+        const avgSparks = this.data.users.reduce((sum, user) => sum + user.sparks, 0) / this.data.users.length;
+        const avgQuizzes = this.data.users.reduce((sum, user) => sum + user.total_quizzes, 0) / this.data.users.length;
+        const avgMarathons = this.data.users.reduce((sum, user) => sum + user.total_marathons, 0) / this.data.users.length;
+        const avgWorks = this.data.users.reduce((sum, user) => sum + user.total_works, 0) / this.data.users.length;
 
-    showAdminForm() {
-        this.showMessage('Функционал добавления администраторов в разработке', 'info');
-    }
+        const marathonCompletionRate = this.data.users.length > 0 ? 
+            (this.data.users.filter(user => user.total_marathons > 0).length / this.data.users.length * 100).toFixed(1) : 0;
 
-    removeAdmin(userId) {
-        if (!confirm('Вы уверены, что хотите удалить этого администратора?')) return;
-        this.showMessage('Функционал удаления администраторов в разработке', 'info');
-    }
+        const activeUserPercentage = (activeUsers / this.data.users.length * 100).toFixed(1);
 
-    viewWork(workId) {
-        this.showMessage('Функционал просмотра работ в разработке', 'info');
+        return {
+            totalUsers: this.data.users.length,
+            activeUsers,
+            newUsersToday,
+            levels,
+            avgSparks,
+            avgQuizzes,
+            avgMarathons,
+            avgWorks,
+            marathonCompletionRate,
+            activeUserPercentage
+        };
     }
 }
 
