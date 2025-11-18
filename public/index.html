@@ -1156,144 +1156,129 @@
 </head>
 <body>
     <div class="container">
-        <!-- Main Dashboard -->
-        <div id="mainContent" class="content-section active">
-            <!-- Header -->
-            <div class="header">
-                <div class="logo-section">
-                    <div class="logo">🎨</div>
-                    <div class="app-info">
-                        <h1>Мастерская Вдохновения</h1>
-                        <p>Творите, развивайтесь, получайте награды!</p>
-                    </div>
-                </div>
+<!-- ЗАМЕНИТЬ весь блок mainContent в public/index.html -->
+<div id="mainContent" class="content-section active">
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo">🎨</div>
+            <div class="app-info">
+                <h1>Мастерская Вдохновения</h1>
+                <p>Творите, развивайтесь, получайте награды!</p>
+            </div>
+        </div>
 
-                <!-- Message Area -->
-                <div id="messageArea"></div>
+        <!-- Message Area -->
+        <div id="messageArea"></div>
 
-                <!-- User Card -->
-                <div class="user-card">
-                    <div class="user-header">
-                        <div class="user-avatar" id="userAvatar">U</div>
-                        <div class="user-info">
-                            <div class="user-name" id="userName">Загрузка...</div>
-                            <div class="user-role" id="userRole">Выберите роль</div>
-                            <div class="user-level" id="userLevel">Ученик</div>
-                        </div>
-                    </div>
-
-                    <!-- Sparks Display -->
-                    <div class="sparks-display">
-                        <div class="sparks-amount" id="sparksAmount">0</div>
-                        <div class="sparks-label">Ваши искры</div>
-                    </div>
-
-                    <!-- Stats Grid -->
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-number" id="quizzesCount">0</div>
-                            <div class="stat-label">Квизов</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" id="marathonsCount">0</div>
-                            <div class="stat-label">Марафонов</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" id="worksCount">0</div>
-                            <div class="stat-label">Работ</div>
-                        </div>
-                    </div>
-
-                    <!-- Level Progress -->
-                    <div class="level-container">
-                        <div class="level-display" id="userLevelDisplay">Ученик</div>
-                        <div class="level-label">Ваш текущий уровень</div>
-                        <div class="progress-container">
-                            <div class="progress-label">
-                                <span>Прогресс до следующего уровня</span>
-                                <span id="levelProgressPercent">0%</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="levelProgressBar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
+        <!-- User Card -->
+        <div class="user-card">
+            <div class="user-header">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-info">
+                    <div class="user-name" id="userName">Загрузка...</div>
+                    <div class="user-role" id="userRole">Выберите роль</div>
+                    <div class="user-level" id="userLevel">Ученик</div>
                 </div>
             </div>
 
-            <!-- Navigation -->
-            <div class="nav-section">
-                <h2 class="section-title">
-                    <i class="fas fa-compass"></i>
-                    Основные разделы
-                </h2>
-                <div class="nav-grid">
-                    <div class="nav-item" onclick="app.showSection('quizzes')">
-                        <span class="nav-icon">🎯</span>
-                        <span class="nav-text">Квизы</span>
-                    </div>
-                    <div class="nav-item" onclick="app.showSection('marathons')">
-                        <span class="nav-icon">🏃‍♂️</span>
-                        <span class="nav-text">Марафоны</span>
-                    </div>
-                    <div class="nav-item" onclick="app.showSection('interactives')">
-                        <span class="nav-icon">🎮</span>
-                        <span class="nav-text">Интерактивы</span>
-                    </div>
-                    <div class="nav-item" onclick="app.showSection('works')">
-                        <span class="nav-icon">🖼️</span>
-                        <span class="nav-text">Мои работы</span>
-                    </div>
-                    <div class="nav-item" onclick="app.showSection('shop')">
-                        <span class="nav-icon">🛒</span>
-                        <span class="nav-text">Магазин</span>
-                    </div>
-                    <div class="nav-item" onclick="app.showSection('posts')">
-                        <span class="nav-icon">📰</span>
-                        <span class="nav-text">Посты</span>
-                    </div>
-                    <div class="nav-item" onclick="app.showSection('achievements')">
-                        <span class="nav-icon">🏆</span>
-                        <span class="nav-text">Достижения</span>
-                    </div>
-                    <div class="nav-item" onclick="app.showSection('activities')">
-                        <span class="nav-icon">📊</span>
-                        <span class="nav-text">Активность</span>
-                    </div>
-                    <div class="nav-item" onclick="app.showSection('purchases')">
-                        <span class="nav-icon">📦</span>
-                        <span class="nav-text">Покупки</span>
-                    </div>
-                    <div class="nav-item" onclick="app.showSection('changeRole')">
-                        <span class="nav-icon">🔄</span>
-                        <span class="nav-text">Сменить роль</span>
-                    </div>
-                    <div class="nav-item" onclick="app.showNotifications()">
-                        <span class="nav-icon">🔔</span>
-                        <span class="nav-text">Уведомления</span>
-                        <div id="notificationBadge" class="badge hidden">0</div>
-                    </div>
-                    <div class="nav-item" onclick="app.showSection('profile')">
-                        <span class="nav-icon">👤</span>
-                        <span class="nav-text">Профиль</span>
-                    </div>
+            <!-- Sparks Display -->
+            <div class="sparks-display">
+                <div class="sparks-amount" id="sparksAmount">0</div>
+                <div class="sparks-label">Ваши искры</div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number" id="quizzesCount">0</div>
+                    <div class="stat-label">Квизов</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="marathonsCount">0</div>
+                    <div class="stat-label">Марафонов</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="worksCount">0</div>
+                    <div class="stat-label">Работ</div>
                 </div>
             </div>
 
-            <!-- Recent Activities -->
-            <div class="activities-section">
-                <div class="activities-header">
-                    <h3 class="activities-title">Последняя активность</h3>
-                    <a href="#" class="view-all" onclick="app.showSection('activities')">Все</a>
-                </div>
-                <div id="recentActivities" class="activities-list">
-                    <div class="loading">
-                        <div class="loading-spinner"></div>
-                        <div>Загрузка активностей...</div>
+            <!-- Level Progress -->
+            <div class="level-container">
+                <div class="level-display" id="userLevelDisplay">Ученик</div>
+                <div class="level-label">Ваш текущий уровень</div>
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Прогресс до следующего уровня</span>
+                        <span id="levelProgressPercent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="levelProgressBar" style="width: 0%"></div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-section">
+        <h2 class="section-title">
+            <i class="fas fa-compass"></i>
+            Основные разделы
+        </h2>
+        <div class="nav-grid">
+            <div class="nav-item" onclick="app.showSection('quizzes')">
+                <span class="nav-icon">🎯</span>
+                <span class="nav-text">Квизы</span>
+            </div>
+            <div class="nav-item" onclick="app.showSection('marathons')">
+                <span class="nav-icon">🏃‍♂️</span>
+                <span class="nav-text">Марафоны</span>
+            </div>
+            <div class="nav-item" onclick="app.showSection('interactives')">
+                <span class="nav-icon">🎮</span>
+                <span class="nav-text">Интерактивы</span>
+            </div>
+            <div class="nav-item" onclick="app.showSection('works')">
+                <span class="nav-icon">🖼️</span>
+                <span class="nav-text">Мои работы</span>
+            </div>
+            <div class="nav-item" onclick="app.showSection('shop')">
+                <span class="nav-icon">🛒</span>
+                <span class="nav-text">Магазин</span>
+            </div>
+            <div class="nav-item" onclick="app.showSection('posts')">
+                <span class="nav-icon">📰</span>
+                <span class="nav-text">Посты</span>
+            </div>
+            <div class="nav-item" onclick="app.showSection('achievements')">
+                <span class="nav-icon">🏆</span>
+                <span class="nav-text">Достижения</span>
+            </div>
+            <div class="nav-item" onclick="app.showSection('activities')">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Активность</span>
+            </div>
+            <div class="nav-item" onclick="app.showSection('purchases')">
+                <span class="nav-icon">📦</span>
+                <span class="nav-text">Покупки</span>
+            </div>
+            <div class="nav-item" onclick="app.showSection('changeRole')">
+                <span class="nav-icon">🔄</span>
+                <span class="nav-text">Сменить роль</span>
+            </div>
+            <div class="nav-item" onclick="app.showNotifications()">
+                <span class="nav-icon">🔔</span>
+                <span class="nav-text">Уведомления</span>
+                <div id="notificationBadge" class="badge hidden">0</div>
+            </div>
+            <div class="nav-item" onclick="app.showSection('profile')">
+                <span class="nav-icon">👤</span>
+                <span class="nav-text">Профиль</span>
+            </div>
+        </div>
+    </div>
 
         <!-- Registration Section -->
         <div id="registrationSection" class="registration-section">
