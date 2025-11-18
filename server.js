@@ -1,11 +1,10 @@
-// server.js - Полная версия сервера Мастерской Вдохновения v9.0
+// server.js - Полная исправленная версия сервера Мастерской Вдохновения v9.0
 import express from 'express';
 import TelegramBot from 'node-telegram-bot-api';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -739,6 +738,35 @@ function checkAchievements(userId) {
                 break;
         }
 
+        if (conditionMet) {
+            const userAchievement = {
+                id: Date.now(),
+                user_id: userId,
+                achievement_id: achievement.id,
+                earned_at: new Date().toISOString(),
+                sparks_claimed: false
+            };
+            
+            db.user_achievements.push(userAchievement);
+            
+            const notification = {
+                id: Date.now(),
+                user_id: userId,
+                title: "🏆 Новое достижение!",
+                message: `Вы получили достижение "${achievement.title}"!`,
+                type: "achievement",
+                is_read: false,
+                created_at: new Date().toISOString(),
+                action_url: "/achievements",
+                action_text: "Посмотреть достижения",
+                priority: "medium"
+            };
+            
+            db.notifications.push(notification);
+        }
+    });
+}
+
 function validateUserData(userData) {
     const errors = [];
     
@@ -783,35 +811,6 @@ function validateQuizData(quizData) {
     });
     
     return errors;
-}
-        
-        if (conditionMet) {
-            const userAchievement = {
-                id: Date.now(),
-                user_id: userId,
-                achievement_id: achievement.id,
-                earned_at: new Date().toISOString(),
-                sparks_claimed: false
-            };
-            
-            db.user_achievements.push(userAchievement);
-            
-            const notification = {
-                id: Date.now(),
-                user_id: userId,
-                title: "🏆 Новое достижение!",
-                message: `Вы получили достижение "${achievement.title}"!`,
-                type: "achievement",
-                is_read: false,
-                created_at: new Date().toISOString(),
-                action_url: "/achievements",
-                action_text: "Посмотреть достижения",
-                priority: "medium"
-            };
-            
-            db.notifications.push(notification);
-        }
-    });
 }
 
 function getUserStats(userId) {
@@ -1248,33 +1247,7 @@ app.get('/api/webapp/quizzes', requireAuth, (req, res) => {
     res.json(quizzesWithStatus);
 });
 
-// ИСПРАВЛЕННОЕ ОТПРАВЛЕНИЕ РЕЗУЛЬТАТОВ КВИЗА
-app.post('/api/webapp/quizzes/:quizId/submit', requireAuth, (req, res) => {
-    const quizId = parseInt(req.params.quizId);
-    const { userId, answers, timeSpent } = req.body;
-    
-    if (!userId) {
-        return res.status(400).json({ error: 'User ID is required' });
-    }
-    
-    const quiz = db.quizzes.find(q => q.id === quizId);
-    if (!quiz) {
-        return res.status(404).json({ error: 'Quiz not found' });
-    }
-    
-    // Проверяем ограничения по попыткам
-    const today = new Date().toDateString();
-    const todayAttempts = db.quiz_completions.filter(
-        qc => qc.user_id === userId && 
-              qc.quiz_id === quizId &&
-              new Date(qc.completed_at).toDateString() === today
-    ).length;
-    
-    const maxAttempts = quiz.requirements?.max_attempts_per_day || 3;
-    if (todayAttempts >= maxAttempts) {
-        return res.status(400).json({ 
-            error: `Превышено максимальное количество попыток на сегодня (${maxAttempts})` 
-       app.get('/api/webapp/quizzes/:quizId/results', requireAuth, (req, res) => {
+app.get('/api/webapp/quizzes/:quizId/results', requireAuth, (req, res) => {
     const quizId = parseInt(req.params.quizId);
     const userId = parseInt(req.user.user_id);
     
@@ -1351,7 +1324,35 @@ app.get('/api/webapp/quizzes/:quizId', requireAuth, (req, res) => {
     
     res.json(quizDetails);
 });
-      }  
+
+// ИСПРАВЛЕННОЕ ОТПРАВЛЕНИЕ РЕЗУЛЬТАТОВ КВИЗА
+app.post('/api/webapp/quizzes/:quizId/submit', requireAuth, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const { userId, answers, timeSpent } = req.body;
+    
+    if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    const quiz = db.quizzes.find(q => q.id === quizId);
+    if (!quiz) {
+        return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    // Проверяем ограничения по попыткам
+    const today = new Date().toDateString();
+    const todayAttempts = db.quiz_completions.filter(
+        qc => qc.user_id === userId && 
+              qc.quiz_id === quizId &&
+              new Date(qc.completed_at).toDateString() === today
+    ).length;
+    
+    const maxAttempts = quiz.requirements?.max_attempts_per_day || 3;
+    if (todayAttempts >= maxAttempts) {
+        return res.status(400).json({ 
+            error: `Превышено максимальное количество попыток на сегодня (${maxAttempts})` 
+        });
+    }
     
     const existingCompletion = db.quiz_completions.find(
         qc => qc.user_id === userId && qc.quiz_id === quizId
@@ -1497,6 +1498,38 @@ app.get('/api/webapp/marathons', requireAuth, (req, res) => {
     res.json(marathonsWithStatus);
 });
 
+app.get('/api/webapp/marathons/:marathonId', requireAuth, (req, res) => {
+    const marathonId = parseInt(req.params.marathonId);
+    const userId = parseInt(req.user.user_id);
+    
+    const marathon = db.marathons.find(m => m.id === marathonId && m.is_active);
+    
+    if (!marathon) {
+        return res.status(404).json({ error: 'Marathon not found' });
+    }
+    
+    const completion = db.marathon_completions.find(
+        mc => mc.user_id === userId && mc.marathon_id === marathonId
+    );
+    
+    const submissions = db.marathon_submissions.filter(
+        ms => ms.user_id === userId && ms.marathon_id === marathonId
+    );
+    
+    const marathonWithStatus = {
+        ...marathon,
+        completed: completion ? completion.completed : false,
+        current_day: completion ? completion.current_day : 1,
+        progress: completion ? completion.progress : 0,
+        started_at: completion ? completion.started_at : null,
+        completed_at: completion ? completion.completed_at : null,
+        submissions: submissions,
+        total_sparks_earned: completion ? completion.total_sparks_earned : 0
+    };
+    
+    res.json(marathonWithStatus);
+});
+
 // НОВЫЙ МЕТОД ДЛЯ ОТПРАВКИ РАБОТЫ В МАРАФОНЕ
 app.post('/api/webapp/marathons/:marathonId/submit-day', requireAuth, (req, res) => {
     const marathonId = parseInt(req.params.marathonId);
@@ -1564,8 +1597,6 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', requireAuth, (req, res)
                 feedback: null,
                 points_earned: 0
             });
-        
-        
         }
     }
     
@@ -1575,38 +1606,6 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', requireAuth, (req, res)
         day: day,
         task_title: task.title
     });
-
-app.get('/api/webapp/marathons/:marathonId', requireAuth, (req, res) => {
-    const marathonId = parseInt(req.params.marathonId);
-    const userId = parseInt(req.user.user_id);
-    
-    const marathon = db.marathons.find(m => m.id === marathonId && m.is_active);
-    
-    if (!marathon) {
-        return res.status(404).json({ error: 'Marathon not found' });
-    }
-    
-    const completion = db.marathon_completions.find(
-        mc => mc.user_id === userId && mc.marathon_id === marathonId
-    );
-    
-    const submissions = db.marathon_submissions.filter(
-        ms => ms.user_id === userId && ms.marathon_id === marathonId
-    );
-    
-    const marathonWithStatus = {
-        ...marathon,
-        completed: completion ? completion.completed : false,
-        current_day: completion ? completion.current_day : 1,
-        progress: completion ? completion.progress : 0,
-        started_at: completion ? completion.started_at : null,
-        completed_at: completion ? completion.completed_at : null,
-        submissions: submissions,
-        total_sparks_earned: completion ? completion.total_sparks_earned : 0
-    };
-    
-    res.json(marathonWithStatus);
-});
     
     completion.current_day = day + 1;
     completion.progress = Math.round((day / marathon.duration_days) * 100);
@@ -1979,6 +1978,31 @@ app.get('/api/webapp/channel-posts', (req, res) => {
     });
 });
 
+app.get('/api/webapp/channel-posts/:postId', (req, res) => {
+    const postId = req.params.postId;
+    const userId = req.query.userId ? parseInt(req.query.userId) : null;
+    
+    const post = db.channel_posts.find(p => (p.id == postId || p.post_id === postId) && p.is_active);
+    
+    if (!post) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
+    const userReview = userId ? 
+        db.post_reviews.find(r => r.user_id === userId && r.post_id === post.post_id) : null;
+    
+    const postWithReviews = {
+        ...post,
+        reviews_count: reviews.length,
+        average_rating: reviews.length > 0 ? 
+            reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0,
+        user_review: userReview
+    };
+    
+    res.json(postWithReviews);
+});
+
 app.post('/api/webapp/posts/:postId/review', requireAuth, (req, res) => {
     const postId = req.params.postId;
     const { userId, reviewText, rating } = req.body;
@@ -2016,31 +2040,6 @@ app.post('/api/webapp/posts/:postId/review', requireAuth, (req, res) => {
             date: new Date().toISOString(),
             type: 'daily_comment'
         });
-  
-    app.get('/api/webapp/channel-posts/:postId', (req, res) => {
-    const postId = req.params.postId;
-    const userId = req.query.userId ? parseInt(req.query.userId) : null;
-    
-    const post = db.channel_posts.find(p => (p.id == postId || p.post_id === postId) && p.is_active);
-    
-    if (!post) {
-        return res.status(404).json({ error: 'Post not found' });
-    }
-    
-    const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
-    const userReview = userId ? 
-        db.post_reviews.find(r => r.user_id === userId && r.post_id === post.post_id) : null;
-    
-    const postWithReviews = {
-        ...post,
-        reviews_count: reviews.length,
-        average_rating: reviews.length > 0 ? 
-            reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0,
-        user_review: userReview
-    };
-    
-    res.json(postWithReviews);
-});
     }
     
     const newReview = {
@@ -3910,6 +3909,100 @@ app.put('/api/admin/settings', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Настройки обновлены' });
 });
 
+// Обновление настроек системы
+app.post('/api/admin/settings/update', requireAdmin, (req, res) => {
+    const { settings } = req.body;
+    
+    if (!settings || !Array.isArray(settings)) {
+        return res.status(400).json({ error: 'Settings array is required' });
+    }
+    
+    const results = [];
+    
+    settings.forEach(setting => {
+        const existingSetting = db.settings.find(s => s.key === setting.key);
+        if (existingSetting) {
+            existingSetting.value = setting.value;
+            if (setting.description) {
+                existingSetting.description = setting.description;
+            }
+            results.push({
+                key: setting.key,
+                success: true,
+                action: 'updated'
+            });
+        } else {
+            db.settings.push({
+                key: setting.key,
+                value: setting.value,
+                description: setting.description || `Setting for ${setting.key}`
+            });
+            results.push({
+                key: setting.key,
+                success: true,
+                action: 'created'
+            });
+        }
+    });
+    
+    res.json({
+        success: true,
+        message: `Updated ${results.length} settings`,
+        results: results
+    });
+});
+
+// Сброс системы (только для суперадминов)
+app.post('/api/admin/system/reset', requireAdmin, (req, res) => {
+    // Проверяем, что пользователь суперадмин
+    if (req.admin.role !== 'superadmin') {
+        return res.status(403).json({ error: 'Only superadmins can reset the system' });
+    }
+    
+    const { reset_type, confirmation } = req.body;
+    
+    if (confirmation !== 'I understand this will delete all data') {
+        return res.status(400).json({ error: 'Confirmation phrase is required' });
+    }
+    
+    let resetData = {};
+    
+    switch (reset_type) {
+        case 'activities':
+            db.activities = [];
+            resetData.activities = 'All activities cleared';
+            break;
+            
+        case 'users':
+            // Сохраняем только админов
+            const admins = db.admins;
+            db.users = db.users.filter(u => admins.some(a => a.user_id === u.user_id));
+            db.activities = [];
+            db.quiz_completions = [];
+            db.marathon_completions = [];
+            db.user_works = [];
+            resetData.users = 'All user data cleared (admins preserved)';
+            break;
+            
+        case 'content':
+            db.quizzes = db.quizzes.filter(q => q.id <= 2); // Сохраняем базовые квизы
+            db.marathons = db.marathons.filter(m => m.id <= 1); // Сохраняем базовые марафоны
+            db.interactives = db.interactives.filter(i => i.id <= 1); // Сохраняем базовые интерактивы
+            db.channel_posts = db.channel_posts.filter(p => p.id <= 1); // Сохраняем базовые посты
+            resetData.content = 'All content reset to default';
+            break;
+            
+        default:
+            return res.status(400).json({ error: 'Invalid reset type' });
+    }
+    
+    res.json({
+        success: true,
+        message: `System reset completed: ${reset_type}`,
+        reset_data: resetData
+    });
+});
+
 // Telegram Bot
 let bot;
 if (process.env.BOT_TOKEN) {
@@ -3957,8 +4050,6 @@ if (process.env.BOT_TOKEN) {
                 user.last_active = new Date().toISOString();
             }
 
-
-            
             const welcomeText = `🎨 Привет, ${name}!
 
 Добро пожаловать в **Мастерскую Вдохновения** v9.0!
@@ -4085,100 +4176,6 @@ if (process.env.BOT_TOKEN) {
         console.error('❌ Ошибка инициализации бота:', error);
     }
 }
-
-// Обновление настроек системы
-app.post('/api/admin/settings/update', requireAdmin, (req, res) => {
-    const { settings } = req.body;
-    
-    if (!settings || !Array.isArray(settings)) {
-        return res.status(400).json({ error: 'Settings array is required' });
-    }
-    
-    const results = [];
-    
-    settings.forEach(setting => {
-        const existingSetting = db.settings.find(s => s.key === setting.key);
-        if (existingSetting) {
-            existingSetting.value = setting.value;
-            if (setting.description) {
-                existingSetting.description = setting.description;
-            }
-            results.push({
-                key: setting.key,
-                success: true,
-                action: 'updated'
-            });
-        } else {
-            db.settings.push({
-                key: setting.key,
-                value: setting.value,
-                description: setting.description || `Setting for ${setting.key}`
-            });
-            results.push({
-                key: setting.key,
-                success: true,
-                action: 'created'
-            });
-        }
-    });
-    
-    res.json({
-        success: true,
-        message: `Updated ${results.length} settings`,
-        results: results
-    });
-});
-
-// Сброс системы (только для суперадминов)
-app.post('/api/admin/system/reset', requireAdmin, (req, res) => {
-    // Проверяем, что пользователь суперадмин
-    if (req.admin.role !== 'superadmin') {
-        return res.status(403).json({ error: 'Only superadmins can reset the system' });
-    }
-    
-    const { reset_type, confirmation } = req.body;
-    
-    if (confirmation !== 'I understand this will delete all data') {
-        return res.status(400).json({ error: 'Confirmation phrase is required' });
-    }
-    
-    let resetData = {};
-    
-    switch (reset_type) {
-        case 'activities':
-            db.activities = [];
-            resetData.activities = 'All activities cleared';
-            break;
-            
-        case 'users':
-            // Сохраняем только админов
-            const admins = db.admins;
-            db.users = db.users.filter(u => admins.some(a => a.user_id === u.user_id));
-            db.activities = [];
-            db.quiz_completions = [];
-            db.marathon_completions = [];
-            db.user_works = [];
-            resetData.users = 'All user data cleared (admins preserved)';
-            break;
-            
-        case 'content':
-            db.quizzes = db.quizzes.filter(q => q.id <= 2); // Сохраняем базовые квизы
-            db.marathons = db.marathons.filter(m => m.id <= 1); // Сохраняем базовые марафоны
-            db.interactives = db.interactives.filter(i => i.id <= 1); // Сохраняем базовые интерактивы
-            db.channel_posts = db.channel_posts.filter(p => p.id <= 1); // Сохраняем базовые посты
-            resetData.content = 'All content reset to default';
-            break;
-            
-        default:
-            return res.status(400).json({ error: 'Invalid reset type' });
-    }
-    
-    res.json({
-        success: true,
-        message: `System reset completed: ${reset_type}`,
-        reset_data: resetData
-    });
-});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
