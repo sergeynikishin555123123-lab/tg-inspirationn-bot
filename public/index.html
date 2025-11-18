@@ -71,6 +71,22 @@
             min-height: 100vh;
         }
 
+        /* Page System */
+        .page {
+            display: none;
+            min-height: 100vh;
+        }
+
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
         /* Header Styles */
         .header {
             background: var(--card-bg);
@@ -133,6 +149,57 @@
             color: var(--text-muted);
             font-size: var(--font-sm);
             margin-top: 4px;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 80px 24px 24px;
+            position: relative;
+            border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+        }
+
+        .back-button {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .page-title {
+            font-size: var(--font-3xl);
+            font-weight: 800;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .page-subtitle {
+            font-size: var(--font-md);
+            opacity: 0.9;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .page-content {
+            padding: 24px;
+            margin-top: -40px;
+            position: relative;
+            z-index: 2;
         }
 
         /* User Card */
@@ -464,73 +531,6 @@
             font-size: var(--font-sm);
         }
 
-        /* Content Sections */
-        .content-section {
-            display: none;
-            background: var(--card-bg);
-            min-height: 100vh;
-            padding: 0;
-        }
-
-        .content-section.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .content-header {
-            background: var(--primary-gradient);
-            color: white;
-            padding: 80px 24px 24px;
-            position: relative;
-        }
-
-        .back-button {
-            position: absolute;
-            top: 24px;
-            left: 24px;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            color: white;
-            font-size: 18px;
-            cursor: pointer;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-
-        .back-button:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
-        }
-
-        .content-title {
-            font-size: var(--font-3xl);
-            font-weight: 800;
-            margin-bottom: 8px;
-            text-align: center;
-        }
-
-        .content-subtitle {
-            font-size: var(--font-md);
-            opacity: 0.9;
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .content-body {
-            padding: 24px;
-            margin-top: -40px;
-            position: relative;
-            z-index: 2;
-        }
-
         /* Cards */
         .card {
             background: var(--card-bg);
@@ -704,11 +704,6 @@
             background: var(--card-bg);
             min-height: 100vh;
             padding: 24px;
-            display: none;
-        }
-
-        .registration-section.active {
-            display: block;
         }
 
         .role-grid {
@@ -928,11 +923,11 @@
                 grid-template-columns: 1fr;
             }
             
-            .content-header {
+            .page-header {
                 padding: 70px 20px 20px;
             }
             
-            .content-title {
+            .page-title {
                 font-size: var(--font-2xl);
             }
         }
@@ -956,166 +951,9 @@
                 text-align: center;
             }
             
-            .content-body {
+            .page-content {
                 padding: 16px;
             }
-        }
-
-        /* Premium Badge */
-        .premium-badge {
-            background: var(--premium-gradient);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: var(--font-xs);
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        /* Level Progress */
-        .level-container {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .level-display {
-            font-size: var(--font-2xl);
-            font-weight: 800;
-            color: var(--primary-color);
-            margin-bottom: 8px;
-        }
-
-        .level-label {
-            font-size: var(--font-sm);
-            color: var(--text-muted);
-            margin-bottom: 12px;
-        }
-
-        /* Achievement Styles */
-        .achievement-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
-        }
-
-        .achievement-card {
-            background: var(--light-color);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            text-align: center;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-
-        .achievement-card.earned {
-            border-color: var(--success-color);
-            background: linear-gradient(135deg, rgba(72, 187, 120, 0.1), rgba(72, 187, 120, 0.05));
-        }
-
-        .achievement-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
-
-        .achievement-title {
-            font-weight: 700;
-            margin-bottom: 8px;
-            font-size: var(--font-lg);
-        }
-
-        .achievement-description {
-            color: var(--text-muted);
-            margin-bottom: 12px;
-            font-size: var(--font-sm);
-            line-height: 1.4;
-        }
-
-        .achievement-reward {
-            font-weight: 700;
-            color: var(--success-color);
-            font-size: var(--font-md);
-        }
-
-        /* Quiz Styles */
-        .quiz-container {
-            background: var(--card-bg);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            margin-bottom: 16px;
-        }
-
-        .quiz-progress {
-            height: 6px;
-            background: var(--light-color);
-            border-radius: 3px;
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-
-        .quiz-progress-bar {
-            height: 100%;
-            background: var(--primary-gradient);
-            transition: width 0.3s ease;
-        }
-
-        .question-number {
-            color: var(--text-muted);
-            font-size: var(--font-sm);
-            margin-bottom: 12px;
-        }
-
-        .question-text {
-            font-size: var(--font-lg);
-            font-weight: 600;
-            margin-bottom: 20px;
-            line-height: 1.4;
-        }
-
-        .options-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .option-item {
-            padding: 16px 20px;
-            border: 2px solid var(--border-color);
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: var(--font-md);
-        }
-
-        .option-item:hover {
-            border-color: var(--primary-color);
-            background: rgba(102, 126, 234, 0.05);
-        }
-
-        .option-item.selected {
-            border-color: var(--primary-color);
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-        /* Results */
-        .results-container {
-            text-align: center;
-            padding: 40px 20px;
-        }
-
-        .results-score {
-            font-size: var(--font-4xl);
-            font-weight: 800;
-            color: var(--primary-color);
-            margin-bottom: 16px;
-        }
-
-        .results-message {
-            font-size: var(--font-lg);
-            margin-bottom: 24px;
-            line-height: 1.4;
         }
 
         /* Hidden Utility */
@@ -1123,41 +961,73 @@
             display: none !important;
         }
 
-        /* Smooth Scrolling */
-        html {
-            scroll-behavior: smooth;
+        /* Image Preview */
+        .image-preview {
+            margin-top: 10px;
+            display: none;
         }
 
-        /* Focus Styles */
-        button:focus-visible,
-        .nav-item:focus-visible,
-        .option-item:focus-visible {
-            outline: 2px solid var(--primary-color);
-            outline-offset: 2px;
+        .preview-image {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
         }
 
-        /* High Contrast Support */
-        @media (prefers-contrast: high) {
-            :root {
-                --border-color: #000;
-                --text-muted: #666;
-            }
-        }
-
-        /* Reduced Motion */
-        @media (prefers-reduced-motion: reduce) {
-            * {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
+        .form-hint {
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+            margin-top: 4px;
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Main Dashboard -->
-        <div id="mainContent" class="content-section active">
+        <!-- Message Area -->
+        <div id="messageArea"></div>
+
+        <!-- Registration Page -->
+        <div id="registrationPage" class="page active">
+            <div class="registration-section">
+                <div class="logo-section" style="justify-content: center; text-align: center;">
+                    <div class="logo">🎨</div>
+                    <div class="app-info">
+                        <h1>Мастерская Вдохновения</h1>
+                        <p>Начните свое творческое путешествие</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 style="text-align: center; margin-bottom: 16px;">🎯 Выберите свою роль</h2>
+                    <p style="text-align: center; color: var(--text-muted); margin-bottom: 24px;">
+                        Выберите направление, которое лучше всего соответствует вашим интересам
+                    </p>
+                    
+                    <div id="roleSelection" class="role-grid">
+                        <!-- Roles will be loaded dynamically -->
+                    </div>
+
+                    <div id="characterSection" class="hidden">
+                        <h3 style="text-align: center; margin: 32px 0 16px;">👤 Выберите персонажа</h3>
+                        <p style="text-align: center; color: var(--text-muted); margin-bottom: 24px;">
+                            Каждый персонаж дает уникальные бонусы и будет сопровождать вас в обучении
+                        </p>
+                        <div id="characterSelection" class="character-grid">
+                            <!-- Characters will be loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <button id="registerBtn" class="btn btn-primary hidden" onclick="app.completeRegistration()" style="width: 100%; margin-top: 24px;">
+                        <i class="fas fa-rocket"></i>
+                        Начать путешествие!
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Page -->
+        <div id="mainPage" class="page">
             <!-- Header -->
             <div class="header">
                 <div class="logo-section">
@@ -1167,9 +1037,6 @@
                         <p>Творите, развивайтесь, получайте награды!</p>
                     </div>
                 </div>
-
-                <!-- Message Area -->
-                <div id="messageArea"></div>
 
                 <!-- User Card -->
                 <div class="user-card">
@@ -1228,52 +1095,52 @@
                     Основные разделы
                 </h2>
                 <div class="nav-grid">
-                    <div class="nav-item" onclick="app.showSection('quizzes')">
+                    <div class="nav-item" onclick="app.navigateTo('quizzes')">
                         <span class="nav-icon">🎯</span>
                         <span class="nav-text">Квизы</span>
                     </div>
-                    <div class="nav-item" onclick="app.showSection('marathons')">
+                    <div class="nav-item" onclick="app.navigateTo('marathons')">
                         <span class="nav-icon">🏃‍♂️</span>
                         <span class="nav-text">Марафоны</span>
                     </div>
-                    <div class="nav-item" onclick="app.showSection('interactives')">
+                    <div class="nav-item" onclick="app.navigateTo('interactives')">
                         <span class="nav-icon">🎮</span>
                         <span class="nav-text">Интерактивы</span>
                     </div>
-                    <div class="nav-item" onclick="app.showSection('works')">
+                    <div class="nav-item" onclick="app.navigateTo('works')">
                         <span class="nav-icon">🖼️</span>
                         <span class="nav-text">Мои работы</span>
                     </div>
-                    <div class="nav-item" onclick="app.showSection('shop')">
+                    <div class="nav-item" onclick="app.navigateTo('shop')">
                         <span class="nav-icon">🛒</span>
                         <span class="nav-text">Магазин</span>
                     </div>
-                    <div class="nav-item" onclick="app.showSection('posts')">
+                    <div class="nav-item" onclick="app.navigateTo('posts')">
                         <span class="nav-icon">📰</span>
                         <span class="nav-text">Посты</span>
                     </div>
-                    <div class="nav-item" onclick="app.showSection('achievements')">
+                    <div class="nav-item" onclick="app.navigateTo('achievements')">
                         <span class="nav-icon">🏆</span>
                         <span class="nav-text">Достижения</span>
                     </div>
-                    <div class="nav-item" onclick="app.showSection('activities')">
+                    <div class="nav-item" onclick="app.navigateTo('activities')">
                         <span class="nav-icon">📊</span>
                         <span class="nav-text">Активность</span>
                     </div>
-                    <div class="nav-item" onclick="app.showSection('purchases')">
+                    <div class="nav-item" onclick="app.navigateTo('purchases')">
                         <span class="nav-icon">📦</span>
                         <span class="nav-text">Покупки</span>
                     </div>
-                    <div class="nav-item" onclick="app.showSection('changeRole')">
+                    <div class="nav-item" onclick="app.navigateTo('changeRole')">
                         <span class="nav-icon">🔄</span>
                         <span class="nav-text">Сменить роль</span>
                     </div>
-                    <div class="nav-item" onclick="app.showNotifications()">
+                    <div class="nav-item" onclick="app.navigateTo('notifications')">
                         <span class="nav-icon">🔔</span>
                         <span class="nav-text">Уведомления</span>
                         <div id="notificationBadge" class="badge hidden">0</div>
                     </div>
-                    <div class="nav-item" onclick="app.showSection('profile')">
+                    <div class="nav-item" onclick="app.navigateTo('profile')">
                         <span class="nav-icon">👤</span>
                         <span class="nav-text">Профиль</span>
                     </div>
@@ -1284,7 +1151,7 @@
             <div class="activities-section">
                 <div class="activities-header">
                     <h3 class="activities-title">Последняя активность</h3>
-                    <a href="#" class="view-all" onclick="app.showSection('activities')">Все</a>
+                    <a href="#" class="view-all" onclick="app.navigateTo('activities')">Все</a>
                 </div>
                 <div id="recentActivities" class="activities-list">
                     <div class="loading">
@@ -1295,46 +1162,16 @@
             </div>
         </div>
 
-        <!-- Registration Section -->
-        <div id="registrationSection" class="registration-section">
-            <div class="content-header">
-                <h1 class="content-title">🎯 Выберите свою роль</h1>
-                <p class="content-subtitle">Начните свое творческое путешествие с выбора направления</p>
-            </div>
-            <div class="content-body">
-                <div id="roleSelection" class="role-grid">
-                    <!-- Roles will be loaded dynamically -->
-                </div>
-
-                <div id="characterSection" class="hidden">
-                    <h2 class="section-title">👤 Выберите персонажа</h2>
-                    <p style="text-align: center; color: var(--text-muted); margin-bottom: 24px;">
-                        Каждый персонаж дает уникальные бонусы и будет сопровождать вас в обучении
-                    </p>
-                    <div id="characterSelection" class="character-grid">
-                        <!-- Characters will be loaded dynamically -->
-                    </div>
-                </div>
-
-                <button id="registerBtn" class="btn btn-primary hidden" onclick="app.completeRegistration()" style="width: 100%; margin-top: 24px;">
-                    <i class="fas fa-rocket"></i>
-                    Начать путешествие!
-                </button>
-            </div>
-        </div>
-
-        <!-- Content Sections -->
-        
-        <!-- Quizzes Section -->
-        <div id="quizzesSection" class="content-section">
-            <div class="content-header">
-                <button class="back-button" onclick="app.showDashboard()">
+        <!-- Quizzes Page -->
+        <div id="quizzesPage" class="page">
+            <div class="page-header">
+                <button class="back-button" onclick="app.navigateTo('main')">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <h1 class="content-title">🎯 Квизы</h1>
-                <p class="content-subtitle">Проверяйте знания и получайте искры</p>
+                <h1 class="page-title">🎯 Квизы</h1>
+                <p class="page-subtitle">Проверяйте знания и получайте искры</p>
             </div>
-            <div class="content-body">
+            <div class="page-content">
                 <div id="quizzesList">
                     <div class="loading">
                         <div class="loading-spinner"></div>
@@ -1344,16 +1181,16 @@
             </div>
         </div>
 
-        <!-- Marathons Section -->
-        <div id="marathonsSection" class="content-section">
-            <div class="content-header">
-                <button class="back-button" onclick="app.showDashboard()">
+        <!-- Marathons Page -->
+        <div id="marathonsPage" class="page">
+            <div class="page-header">
+                <button class="back-button" onclick="app.navigateTo('main')">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <h1 class="content-title">🏃‍♂️ Марафоны</h1>
-                <p class="content-subtitle">Многодневные творческие вызовы</p>
+                <h1 class="page-title">🏃‍♂️ Марафоны</h1>
+                <p class="page-subtitle">Многодневные творческие вызовы</p>
             </div>
-            <div class="content-body">
+            <div class="page-content">
                 <div id="marathonsList">
                     <div class="loading">
                         <div class="loading-spinner"></div>
@@ -1363,16 +1200,16 @@
             </div>
         </div>
 
-        <!-- Interactives Section -->
-        <div id="interactivesSection" class="content-section">
-            <div class="content-header">
-                <button class="back-button" onclick="app.showDashboard()">
+        <!-- Interactives Page -->
+        <div id="interactivesPage" class="page">
+            <div class="page-header">
+                <button class="back-button" onclick="app.navigateTo('main')">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <h1 class="content-title">🎮 Интерактивы</h1>
-                <p class="content-subtitle">Увлекательные задания и головоломки</p>
+                <h1 class="page-title">🎮 Интерактивы</h1>
+                <p class="page-subtitle">Увлекательные задания и головоломки</p>
             </div>
-            <div class="content-body">
+            <div class="page-content">
                 <div id="interactivesList">
                     <div class="loading">
                         <div class="loading-spinner"></div>
@@ -1382,44 +1219,46 @@
             </div>
         </div>
 
-        <!-- Works Section -->
-        <div id="worksSection" class="content-section">
-            <div class="content-header">
-                <button class="back-button" onclick="app.showDashboard()">
+        <!-- Works Page -->
+        <div id="worksPage" class="page">
+            <div class="page-header">
+                <button class="back-button" onclick="app.navigateTo('main')">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <h1 class="content-title">🖼️ Мои работы</h1>
-                <p class="content-subtitle">Ваше творческое портфолио</p>
+                <h1 class="page-title">🖼️ Мои работы</h1>
+                <p class="page-subtitle">Ваше творческое портфолио</p>
             </div>
-            <div class="content-body">
-                <div class="card" style="text-align: center;">
-                    <button class="btn btn-primary" onclick="app.showUploadWorkForm()" style="margin-bottom: 16px;">
-                        <i class="fas fa-plus"></i>
-                        Загрузить новую работу
-                    </button>
-                    <p style="color: var(--text-muted); font-size: var(--font-sm);">
-                        Покажите свои творения сообществу и получайте отзывы
-                    </p>
-                </div>
-                <div id="worksList">
-                    <div class="loading">
-                        <div class="loading-spinner"></div>
-                        <div>Загрузка работ...</div>
+            <div class="page-content">
+                <div id="worksContent">
+                    <div class="card" style="text-align: center;">
+                        <button class="btn btn-primary" onclick="app.showUploadWorkForm()" style="margin-bottom: 16px;">
+                            <i class="fas fa-plus"></i>
+                            Загрузить новую работу
+                        </button>
+                        <p style="color: var(--text-muted); font-size: var(--font-sm);">
+                            Покажите свои творения сообществу и получайте отзывы
+                        </p>
+                    </div>
+                    <div id="worksList">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            <div>Загрузка работ...</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Shop Section -->
-        <div id="shopSection" class="content-section">
-            <div class="content-header">
-                <button class="back-button" onclick="app.showDashboard()">
+        <!-- Shop Page -->
+        <div id="shopPage" class="page">
+            <div class="page-header">
+                <button class="back-button" onclick="app.navigateTo('main')">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <h1 class="content-title">🛒 Магазин</h1>
-                <p class="content-subtitle">Полезные материалы и курсы</p>
+                <h1 class="page-title">🛒 Магазин</h1>
+                <p class="page-subtitle">Полезные материалы и курсы</p>
             </div>
-            <div class="content-body">
+            <div class="page-content">
                 <div id="shopItemsList">
                     <div class="loading">
                         <div class="loading-spinner"></div>
@@ -1429,16 +1268,16 @@
             </div>
         </div>
 
-        <!-- Posts Section -->
-        <div id="postsSection" class="content-section">
-            <div class="content-header">
-                <button class="back-button" onclick="app.showDashboard()">
+        <!-- Posts Page -->
+        <div id="postsPage" class="page">
+            <div class="page-header">
+                <button class="back-button" onclick="app.navigateTo('main')">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <h1 class="content-title">📰 Посты</h1>
-                <p class="content-subtitle">Новости и интересные материалы</p>
+                <h1 class="page-title">📰 Посты</h1>
+                <p class="page-subtitle">Новости и интересные материалы</p>
             </div>
-            <div class="content-body">
+            <div class="page-content">
                 <div id="postsList">
                     <div class="loading">
                         <div class="loading-spinner"></div>
@@ -1448,16 +1287,16 @@
             </div>
         </div>
 
-        <!-- Achievements Section -->
-        <div id="achievementsSection" class="content-section">
-            <div class="content-header">
-                <button class="back-button" onclick="app.showDashboard()">
+        <!-- Achievements Page -->
+        <div id="achievementsPage" class="page">
+            <div class="page-header">
+                <button class="back-button" onclick="app.navigateTo('main')">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <h1 class="content-title">🏆 Достижения</h1>
-                <p class="content-subtitle">Ваши успехи и награды</p>
+                <h1 class="page-title">🏆 Достижения</h1>
+                <p class="page-subtitle">Ваши успехи и награды</p>
             </div>
-            <div class="content-body">
+            <div class="page-content">
                 <div id="achievementsList">
                     <div class="loading">
                         <div class="loading-spinner"></div>
@@ -1467,16 +1306,16 @@
             </div>
         </div>
 
-        <!-- Activities Section -->
-        <div id="activitiesSection" class="content-section">
-            <div class="content-header">
-                <button class="back-button" onclick="app.showDashboard()">
+        <!-- Activities Page -->
+        <div id="activitiesPage" class="page">
+            <div class="page-header">
+                <button class="back-button" onclick="app.navigateTo('main')">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <h1 class="content-title">📊 История активностей</h1>
-                <p class="content-subtitle">Все ваши действия и награды</p>
+                <h1 class="page-title">📊 История активностей</h1>
+                <p class="page-subtitle">Все ваши действия и награды</p>
             </div>
-            <div class="content-body">
+            <div class="page-content">
                 <div id="activitiesList">
                     <div class="loading">
                         <div class="loading-spinner"></div>
@@ -1486,16 +1325,16 @@
             </div>
         </div>
 
-        <!-- Purchases Section -->
-        <div id="purchasesSection" class="content-section">
-            <div class="content-header">
-                <button class="back-button" onclick="app.showDashboard()">
+        <!-- Purchases Page -->
+        <div id="purchasesPage" class="page">
+            <div class="page-header">
+                <button class="back-button" onclick="app.navigateTo('main')">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <h1 class="content-title">📦 Мои покупки</h1>
-                <p class="content-subtitle">Приобретенные курсы и материалы</p>
+                <h1 class="page-title">📦 Мои покупки</h1>
+                <p class="page-subtitle">Приобретенные курсы и материалы</p>
             </div>
-            <div class="content-body">
+            <div class="page-content">
                 <div id="purchasesList">
                     <div class="loading">
                         <div class="loading-spinner"></div>
@@ -1505,16 +1344,16 @@
             </div>
         </div>
 
-        <!-- Change Role Section -->
-        <div id="changeRoleSection" class="content-section">
-            <div class="content-header">
-                <button class="back-button" onclick="app.showDashboard()">
+        <!-- Change Role Page -->
+        <div id="changeRolePage" class="page">
+            <div class="page-header">
+                <button class="back-button" onclick="app.navigateTo('main')">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <h1 class="content-title">🔄 Смена роли</h1>
-                <p class="content-subtitle">Измените направление развития</p>
+                <h1 class="page-title">🔄 Смена роли</h1>
+                <p class="page-subtitle">Измените направление развития</p>
             </div>
-            <div class="content-body">
+            <div class="page-content">
                 <div class="card">
                     <h3 style="margin-bottom: 12px;">Текущая роль: <span id="currentRole">Не выбрана</span></h3>
                     <p style="color: var(--text-muted); margin-bottom: 20px;">
@@ -1541,16 +1380,16 @@
             </div>
         </div>
 
-        <!-- Notifications Section -->
-        <div id="notificationsSection" class="content-section">
-            <div class="content-header">
-                <button class="back-button" onclick="app.showDashboard()">
+        <!-- Notifications Page -->
+        <div id="notificationsPage" class="page">
+            <div class="page-header">
+                <button class="back-button" onclick="app.navigateTo('main')">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <h1 class="content-title">🔔 Уведомления</h1>
-                <p class="content-subtitle">Ваши оповещения и сообщения</p>
+                <h1 class="page-title">🔔 Уведомления</h1>
+                <p class="page-subtitle">Ваши оповещения и сообщения</p>
             </div>
-            <div class="content-body">
+            <div class="page-content">
                 <div class="card" style="text-align: center;">
                     <button class="btn btn-secondary" onclick="app.markAllNotificationsRead()" style="margin-bottom: 12px;">
                         <i class="fas fa-check-double"></i>
@@ -1566,16 +1405,16 @@
             </div>
         </div>
 
-        <!-- Profile Section -->
-        <div id="profileSection" class="content-section">
-            <div class="content-header">
-                <button class="back-button" onclick="app.showDashboard()">
+        <!-- Profile Page -->
+        <div id="profilePage" class="page">
+            <div class="page-header">
+                <button class="back-button" onclick="app.navigateTo('main')">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <h1 class="content-title">👤 Профиль</h1>
-                <p class="content-subtitle">Управление вашим аккаунтом</p>
+                <h1 class="page-title">👤 Профиль</h1>
+                <p class="page-subtitle">Управление вашим аккаунтом</p>
             </div>
-            <div class="content-body">
+            <div class="page-content">
                 <div class="card">
                     <h3 style="margin-bottom: 16px;">Основная информация</h3>
                     <div class="form-group">
