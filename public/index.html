@@ -19,10 +19,19 @@
             --success-color: #48bb78;
             --warning-color: #ed8936;
             --danger-color: #f56565;
+            --info-color: #4299e1;
+            --purple-color: #9f7aea;
+            --pink-color: #ed64a6;
+            --teal-color: #38b2ac;
             --dark-color: #2d3748;
             --light-color: #f7fafc;
             --text-color: #2d3748;
             --text-muted: #718096;
+            --border-color: #e2e8f0;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --radius: 16px;
+            --radius-sm: 12px;
         }
 
         body {
@@ -48,6 +57,12 @@
         .logo {
             font-size: 48px;
             margin-bottom: 10px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
         }
 
         .title {
@@ -64,12 +79,18 @@
 
         .user-card {
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
+            border-radius: var(--radius);
             padding: 24px;
             margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .user-header {
@@ -90,6 +111,7 @@
             color: white;
             font-size: 24px;
             font-weight: bold;
+            flex-shrink: 0;
         }
 
         .user-info {
@@ -113,7 +135,7 @@
             background: var(--primary-color);
             color: white;
             padding: 4px 12px;
-            border-radius: 12px;
+            border-radius: var(--radius-sm);
             font-size: 12px;
             font-weight: 600;
         }
@@ -122,20 +144,43 @@
             text-align: center;
             padding: 16px;
             background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
-            border-radius: 16px;
+            border-radius: var(--radius);
             color: white;
             margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sparks-display::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
         }
 
         .sparks-amount {
             font-size: 32px;
             font-weight: bold;
             margin-bottom: 4px;
+            position: relative;
+            z-index: 1;
         }
 
         .sparks-label {
             font-size: 14px;
             opacity: 0.9;
+            position: relative;
+            z-index: 1;
         }
 
         .stats-grid {
@@ -149,7 +194,12 @@
             text-align: center;
             padding: 12px;
             background: rgba(255, 255, 255, 0.5);
-            border-radius: 12px;
+            border-radius: var(--radius-sm);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
         }
 
         .stat-number {
@@ -172,7 +222,7 @@
 
         .menu-item {
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 16px;
+            border-radius: var(--radius);
             padding: 20px 12px;
             text-align: center;
             text-decoration: none;
@@ -180,6 +230,23 @@
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.2);
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .menu-item:hover::before {
+            left: 100%;
         }
 
         .menu-item:hover {
@@ -197,6 +264,10 @@
             box-shadow: none;
         }
 
+        .menu-item.disabled::before {
+            display: none;
+        }
+
         .menu-icon {
             font-size: 24px;
             margin-bottom: 8px;
@@ -209,10 +280,10 @@
 
         .section {
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
+            border-radius: var(--radius);
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
@@ -237,6 +308,12 @@
             align-items: center;
             padding: 12px 0;
             border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         .activity-item:last-child {
@@ -268,13 +345,30 @@
             background: var(--primary-color);
             color: white;
             text-decoration: none;
-            border-radius: 12px;
+            border-radius: var(--radius-sm);
             text-align: center;
             font-weight: 600;
             transition: all 0.3s ease;
             border: none;
             cursor: pointer;
             width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
         }
 
         .btn:hover {
@@ -294,6 +388,26 @@
             background: var(--warning-color);
         }
 
+        .btn-danger {
+            background: var(--danger-color);
+        }
+
+        .btn-info {
+            background: var(--info-color);
+        }
+
+        .btn-purple {
+            background: var(--purple-color);
+        }
+
+        .btn-pink {
+            background: var(--pink-color);
+        }
+
+        .btn-teal {
+            background: var(--teal-color);
+        }
+
         .loading {
             text-align: center;
             padding: 40px 20px;
@@ -303,7 +417,7 @@
         .loading-spinner {
             width: 40px;
             height: 40px;
-            border: 4px solid #e2e8f0;
+            border: 4px solid var(--border-color);
             border-top: 4px solid var(--primary-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -321,6 +435,7 @@
 
         .registration-section {
             text-align: center;
+            animation: fadeIn 0.5s ease;
         }
 
         .role-selection {
@@ -332,16 +447,23 @@
 
         .role-option {
             padding: 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-sm);
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
+            background: white;
+        }
+
+        .role-option:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
         }
 
         .role-option.selected {
             border-color: var(--primary-color);
             background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
         }
 
         .role-icon {
@@ -367,15 +489,22 @@
 
         .character-option {
             padding: 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-sm);
             cursor: pointer;
             transition: all 0.3s ease;
+            background: white;
+        }
+
+        .character-option:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
         }
 
         .character-option.selected {
             border-color: var(--primary-color);
             background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
         }
 
         .character-name {
@@ -399,9 +528,15 @@
 
         .message {
             padding: 12px 16px;
-            border-radius: 12px;
+            border-radius: var(--radius-sm);
             margin-bottom: 16px;
             text-align: center;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .message.success {
@@ -422,6 +557,200 @@
             border: 1px solid #90cdf4;
         }
 
+        .message.warning {
+            background: #feebc8;
+            color: #dd6b20;
+            border: 1px solid #fbd38d;
+        }
+
+        /* Стили для разделов контента */
+        .content-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .content-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 8px;
+        }
+
+        .quiz-card, .marathon-card, .interactive-card, .shop-item-card {
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .quiz-card:hover, .marathon-card:hover, .interactive-card:hover, .shop-item-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .quiz-title, .marathon-title, .interactive-title, .shop-item-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .quiz-description, .marathon-description, .interactive-description, .shop-item-description {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .quiz-meta, .marathon-meta, .interactive-meta, .shop-item-meta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-success { background: #c6f6d5; color: #276749; }
+        .badge-warning { background: #feebc8; color: #dd6b20; }
+        .badge-info { background: #bee3f8; color: #2c5aa0; }
+        .badge-secondary { background: #e2e8f0; color: #4a5568; }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .action-btn.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .action-btn.success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Стили для вопросов квиза */
+        .quiz-container {
+            background: white;
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .question-number {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .question-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .option-item {
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option-item:hover {
+            border-color: var(--primary-color);
+        }
+
+        .option-item.selected {
+            border-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .option-item.correct {
+            border-color: var(--success-color);
+            background: rgba(72, 187, 120, 0.1);
+        }
+
+        .option-item.incorrect {
+            border-color: var(--danger-color);
+            background: rgba(245, 101, 101, 0.1);
+        }
+
+        .quiz-progress {
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .quiz-progress-bar {
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.3s ease;
+        }
+
+        /* Стили для уведомлений */
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Адаптивность */
         @media (max-width: 480px) {
             .container {
                 padding: 16px;
@@ -434,6 +763,167 @@
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
+            
+            .role-selection {
+                grid-template-columns: 1fr;
+            }
+            
+            .title {
+                font-size: 24px;
+            }
+            
+            .subtitle {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Анимации для переходов */
+        .fade-enter {
+            opacity: 0;
+        }
+
+        .fade-enter-active {
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .fade-exit {
+            opacity: 1;
+        }
+
+        .fade-exit-active {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Стили для достижений */
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .achievement-card {
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .achievement-card.earned {
+            border-color: var(--success-color);
+            background: rgba(72, 187, 120, 0.05);
+        }
+
+        .achievement-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .achievement-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .achievement-description {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .achievement-reward {
+            font-size: 11px;
+            color: var(--success-color);
+            font-weight: 600;
+        }
+
+        /* Стили для загрузки работ */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Стили для постов */
+        .post-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .post-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .post-content {
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .post-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Стили для интерактивов */
+        .interactive-container {
+            background: white;
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .interactive-image {
+            width: 100%;
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+        }
+
+        /* Стили для таймера */
+        .timer {
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .timer-value {
+            font-weight: 600;
+            color: var(--primary-color);
         }
     </style>
 </head>
@@ -460,7 +950,7 @@
         <!-- Регистрация -->
         <div id="registrationSection" class="section registration-section hidden">
             <h2 class="section-title">🎯 Выберите свою роль</h2>
-            <p>Выберите направление, которое вам ближе всего:</p>
+            <p>Выберите направление, которое вам ближе всего. Это определит доступные активности и персонажей:</p>
             
             <div id="roleSelection" class="role-selection">
                 <!-- Роли загружаются динамически -->
@@ -468,14 +958,14 @@
 
             <div id="characterSection" class="hidden">
                 <h2 class="section-title">👤 Выберите персонажа</h2>
-                <p>Каждый персонаж дает уникальные бонусы:</p>
+                <p>Каждый персонаж дает уникальные бонусы и будет сопровождать вас в обучении:</p>
                 
                 <div id="characterSelection" class="character-selection">
                     <!-- Персонажи загружаются динамически -->
                 </div>
             </div>
 
-            <button id="registerBtn" class="btn btn-success hidden" onclick="completeRegistration()">
+            <button id="registerBtn" class="btn btn-success hidden" onclick="app.completeRegistration()">
                 🎉 Начать путешествие!
             </button>
         </div>
@@ -526,15 +1016,180 @@
                     <!-- Активности загружаются динамически -->
                 </div>
             </div>
+
+            <!-- Уведомления -->
+            <div class="section hidden" id="notificationsSection">
+                <h2 class="section-title">🔔 Уведомления <span class="badge badge-warning" id="notificationsCount">0</span></h2>
+                <div id="notificationsList">
+                    <!-- Уведомления загружаются динамически -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Разделы контента -->
+        <div id="contentSections" class="hidden">
+            <!-- Квизы -->
+            <div id="quizzesSection" class="hidden">
+                <div class="content-header">
+                    <button class="back-btn" onclick="app.showDashboard()">← Назад</button>
+                    <h2 class="content-title">🎯 Квизы</h2>
+                </div>
+                <div id="quizzesList">
+                    <!-- Список квизов -->
+                </div>
+            </div>
+
+            <!-- Марафоны -->
+            <div id="marathonsSection" class="hidden">
+                <div class="content-header">
+                    <button class="back-btn" onclick="app.showDashboard()">← Назад</button>
+                    <h2 class="content-title">🏃‍♂️ Марафоны</h2>
+                </div>
+                <div id="marathonsList">
+                    <!-- Список марафонов -->
+                </div>
+            </div>
+
+            <!-- Мои работы -->
+            <div id="worksSection" class="hidden">
+                <div class="content-header">
+                    <button class="back-btn" onclick="app.showDashboard()">← Назад</button>
+                    <h2 class="content-title">🖼️ Мои работы</h2>
+                </div>
+                <div id="worksList">
+                    <!-- Список работ -->
+                </div>
+                <button class="btn btn-primary" onclick="app.showUploadWorkForm()">
+                    📤 Загрузить новую работу
+                </button>
+            </div>
+
+            <!-- Магазин -->
+            <div id="shopSection" class="hidden">
+                <div class="content-header">
+                    <button class="back-btn" onclick="app.showDashboard()">← Назад</button>
+                    <h2 class="content-title">🛒 Магазин</h2>
+                </div>
+                <div id="shopItemsList">
+                    <!-- Список товаров -->
+                </div>
+            </div>
+
+            <!-- Интерактивы -->
+            <div id="interactivesSection" class="hidden">
+                <div class="content-header">
+                    <button class="back-btn" onclick="app.showDashboard()">← Назад</button>
+                    <h2 class="content-title">🎮 Интерактивы</h2>
+                </div>
+                <div id="interactivesList">
+                    <!-- Список интерактивов -->
+                </div>
+            </div>
+
+            <!-- Достижения -->
+            <div id="achievementsSection" class="hidden">
+                <div class="content-header">
+                    <button class="back-btn" onclick="app.showDashboard()">← Назад</button>
+                    <h2 class="content-title">🏆 Достижения</h2>
+                </div>
+                <div id="achievementsList">
+                    <!-- Список достижений -->
+                </div>
+            </div>
+
+            <!-- Смена роли -->
+            <div id="changeRoleSection" class="hidden">
+                <div class="content-header">
+                    <button class="back-btn" onclick="app.showDashboard()">← Назад</button>
+                    <h2 class="content-title">🎭 Смена роли</h2>
+                </div>
+                <div class="section">
+                    <p>Вы можете сменить свою роль. Это повлияет на доступные активности и персонажей.</p>
+                    <div id="changeRoleSelection" class="role-selection">
+                        <!-- Роли для смены -->
+                    </div>
+                    <button class="btn btn-primary mt-2" onclick="app.changeRole()">
+                        🔄 Сменить роль
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Форма загрузки работы -->
+        <div id="uploadWorkForm" class="section hidden">
+            <div class="content-header">
+                <button class="back-btn" onclick="app.showWorksSection()">← Назад</button>
+                <h2 class="content-title">📤 Загрузка работы</h2>
+            </div>
+            
+            <form id="workForm">
+                <div class="form-group">
+                    <label class="form-label">Название работы:</label>
+                    <input type="text" id="workTitle" class="form-control" placeholder="Например: Мой первый пейзаж" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Описание:</label>
+                    <textarea id="workDescription" class="form-control" rows="3" placeholder="Опишите вашу работу..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Категория:</label>
+                    <select id="workCategory" class="form-control" required>
+                        <option value="painting">Живопись</option>
+                        <option value="illustration">Иллюстрация</option>
+                        <option value="sketch">Скетч</option>
+                        <option value="design">Дизайн</option>
+                        <option value="photography">Фотография</option>
+                        <option value="other">Другое</option>
+                    </select>
+                </div>
+                
+                <div class="upload-area" onclick="document.getElementById('workImage').click()">
+                    <div class="upload-icon">📷</div>
+                    <div>Нажмите для загрузки изображения</div>
+                    <div class="text-muted" style="font-size: 12px; margin-top: 8px;">
+                        Поддерживаются JPG, PNG (макс. 5MB)
+                    </div>
+                </div>
+                <input type="file" id="workImage" accept="image/*" class="hidden">
+                
+                <div id="imagePreview" class="hidden">
+                    <img id="previewImage" style="max-width: 100%; border-radius: 8px; margin-top: 12px;">
+                </div>
+                
+                <button type="button" class="btn btn-success mt-2" onclick="app.uploadWork()">
+                    📤 Загрузить работу
+                </button>
+            </form>
+        </div>
+
+        <!-- Контейнер для квизов -->
+        <div id="quizContainer" class="hidden">
+            <!-- Контент квиза загружается динамически -->
+        </div>
+
+        <!-- Контейнер для марафонов -->
+        <div id="marathonContainer" class="hidden">
+            <!-- Контент марафона загружается динамически -->
+        </div>
+
+        <!-- Контейнер для интерактивов -->
+        <div id="interactiveContainer" class="hidden">
+            <!-- Контент интерактива загружается динамически -->
         </div>
     </div>
 
     <script>
+        // Главный класс приложения
         class InspirationApp {
             constructor() {
                 this.tg = window.Telegram.WebApp;
                 this.user = null;
                 this.userId = null;
+                this.currentSection = null;
+                this.selectedRoleId = null;
+                this.selectedCharacterId = null;
                 this.init();
             }
 
@@ -542,6 +1197,9 @@
                 // Инициализация Telegram Web App
                 this.tg.expand();
                 this.tg.enableClosingConfirmation();
+                this.tg.BackButton.onClick(() => {
+                    this.showDashboard();
+                });
                 
                 this.userId = this.tg.initDataUnsafe.user?.id;
                 if (!this.userId) {
@@ -557,7 +1215,7 @@
                     const response = await fetch(`/api/users/${this.userId}`);
                     const data = await response.json();
                     
-                    if (data.exists) {
+                    if (data.exists && data.user.is_registered) {
                         this.user = data.user;
                         this.showDashboard();
                     } else {
@@ -570,13 +1228,15 @@
             }
 
             showDashboard() {
-                document.getElementById('mainContent').classList.add('hidden');
-                document.getElementById('registrationSection').classList.add('hidden');
+                this.hideAllSections();
+                this.tg.BackButton.hide();
+                this.currentSection = 'dashboard';
+                
                 document.getElementById('dashboardSection').classList.remove('hidden');
-
                 this.updateUserInfo();
                 this.loadMenu();
                 this.loadActivities();
+                this.loadNotifications();
             }
 
             updateUserInfo() {
@@ -608,15 +1268,65 @@
                 const availableButtons = this.user.available_buttons || [];
 
                 const menuItems = [
-                    { id: 'quiz', icon: '🎯', text: 'Квизы', enabled: availableButtons.includes('quiz') },
-                    { id: 'marathon', icon: '🏃‍♂️', text: 'Марафоны', enabled: availableButtons.includes('marathon') },
-                    { id: 'works', icon: '🖼️', text: 'Мои работы', enabled: availableButtons.includes('works') },
-                    { id: 'activities', icon: '📊', text: 'Активности', enabled: availableButtons.includes('activities') },
-                    { id: 'posts', icon: '📰', text: 'Посты', enabled: availableButtons.includes('posts') },
-                    { id: 'shop', icon: '🛒', text: 'Магазин', enabled: availableButtons.includes('shop') },
-                    { id: 'invite', icon: '👥', text: 'Пригласить', enabled: availableButtons.includes('invite') },
-                    { id: 'interactives', icon: '🎮', text: 'Интерактивы', enabled: availableButtons.includes('interactives') },
-                    { id: 'change_role', icon: '🎭', text: 'Смена роли', enabled: availableButtons.includes('change_role') }
+                    { 
+                        id: 'quiz', 
+                        icon: '🎯', 
+                        text: 'Квизы', 
+                        enabled: availableButtons.includes('quiz'),
+                        notification: this.user.stats?.totalQuizzesCompleted > 0 ? this.user.stats.totalQuizzesCompleted : null
+                    },
+                    { 
+                        id: 'marathon', 
+                        icon: '🏃‍♂️', 
+                        text: 'Марафоны', 
+                        enabled: availableButtons.includes('marathon'),
+                        notification: this.user.stats?.totalMarathonsCompleted > 0 ? this.user.stats.totalMarathonsCompleted : null
+                    },
+                    { 
+                        id: 'works', 
+                        icon: '🖼️', 
+                        text: 'Мои работы', 
+                        enabled: availableButtons.includes('works'),
+                        notification: this.user.stats?.totalWorks > 0 ? this.user.stats.totalWorks : null
+                    },
+                    { 
+                        id: 'activities', 
+                        icon: '📊', 
+                        text: 'Активности', 
+                        enabled: availableButtons.includes('activities') 
+                    },
+                    { 
+                        id: 'posts', 
+                        icon: '📰', 
+                        text: 'Посты', 
+                        enabled: availableButtons.includes('posts') 
+                    },
+                    { 
+                        id: 'shop', 
+                        icon: '🛒', 
+                        text: 'Магазин', 
+                        enabled: availableButtons.includes('shop') 
+                    },
+                    { 
+                        id: 'interactives', 
+                        icon: '🎮', 
+                        text: 'Интерактивы', 
+                        enabled: availableButtons.includes('interactives'),
+                        notification: this.user.stats?.totalInteractivesCompleted > 0 ? this.user.stats.totalInteractivesCompleted : null
+                    },
+                    { 
+                        id: 'achievements', 
+                        icon: '🏆', 
+                        text: 'Достижения', 
+                        enabled: true,
+                        notification: this.user.stats?.totalAchievements > 0 ? this.user.stats.totalAchievements : null
+                    },
+                    { 
+                        id: 'change_role', 
+                        icon: '🎭', 
+                        text: 'Смена роли', 
+                        enabled: availableButtons.includes('change_role') 
+                    }
                 ];
 
                 let html = '';
@@ -626,6 +1336,7 @@
                             <div class="menu-item" onclick="app.showSection('${item.id}')">
                                 <div class="menu-icon">${item.icon}</div>
                                 <div class="menu-text">${item.text}</div>
+                                ${item.notification ? `<div class="notification-badge">${item.notification}</div>` : ''}
                             </div>
                         `;
                     } else {
@@ -655,13 +1366,14 @@
                     let html = '';
                     data.activities.slice(0, 5).forEach(activity => {
                         const date = new Date(activity.created_at).toLocaleDateString();
+                        const sparks = activity.sparks_earned > 0 ? `+${activity.sparks_earned}✨` : '';
                         html += `
                             <div class="activity-item">
                                 <div class="activity-info">
                                     <div class="activity-title">${activity.description}</div>
                                     <div class="activity-date">${date}</div>
                                 </div>
-                                <div class="activity-sparks">+${activity.sparks_earned}✨</div>
+                                <div class="activity-sparks">${sparks}</div>
                             </div>
                         `;
                     });
@@ -672,11 +1384,58 @@
                 }
             }
 
-            showRegistration() {
-                document.getElementById('mainContent').classList.add('hidden');
-                document.getElementById('dashboardSection').classList.add('hidden');
-                document.getElementById('registrationSection').classList.remove('hidden');
+            async loadNotifications() {
+                try {
+                    const response = await fetch(`/api/webapp/users/${this.userId}/notifications?unread_only=true`);
+                    const data = await response.json();
+                    
+                    const notificationsSection = document.getElementById('notificationsSection');
+                    const notificationsCount = document.getElementById('notificationsCount');
+                    const notificationsList = document.getElementById('notificationsList');
+                    
+                    if (data.notifications.length === 0) {
+                        notificationsSection.classList.add('hidden');
+                        return;
+                    }
+                    
+                    notificationsSection.classList.remove('hidden');
+                    notificationsCount.textContent = data.notifications.length;
+                    
+                    let html = '';
+                    data.notifications.forEach(notification => {
+                        html += `
+                            <div class="activity-item" onclick="app.markNotificationAsRead(${notification.id})">
+                                <div class="activity-info">
+                                    <div class="activity-title">${notification.title}</div>
+                                    <div class="activity-date">${new Date(notification.created_at).toLocaleDateString()}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    notificationsList.innerHTML = html;
+                } catch (error) {
+                    console.error('Ошибка загрузки уведомлений:', error);
+                }
+            }
 
+            async markNotificationAsRead(notificationId) {
+                try {
+                    await fetch(`/api/webapp/notifications/${notificationId}/read`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: this.userId })
+                    });
+                    
+                    this.loadNotifications();
+                } catch (error) {
+                    console.error('Ошибка отметки уведомления:', error);
+                }
+            }
+
+            showRegistration() {
+                this.hideAllSections();
+                document.getElementById('registrationSection').classList.remove('hidden');
                 this.loadRoles();
             }
 
@@ -737,7 +1496,7 @@
                             <div class="character-option" onclick="app.selectCharacter(${character.id})">
                                 <div class="character-name">${character.name}</div>
                                 <div class="character-description">${character.description}</div>
-                                <div class="character-bonus">Бонус: ${this.getBonusText(character)}</div>
+                                <div class="character-bonus">🎁 ${this.getBonusText(character)}</div>
                             </div>
                         `;
                     });
@@ -811,8 +1570,616 @@
             }
 
             showSection(section) {
-                // Здесь будет логика показа разных разделов
-                this.showMessage(`Раздел "${section}" в разработке`, 'info');
+                this.hideAllSections();
+                this.tg.BackButton.show();
+                this.currentSection = section;
+
+                const sectionMap = {
+                    'quiz': 'quizzesSection',
+                    'marathon': 'marathonsSection',
+                    'works': 'worksSection',
+                    'shop': 'shopSection',
+                    'interactives': 'interactivesSection',
+                    'achievements': 'achievementsSection',
+                    'change_role': 'changeRoleSection'
+                };
+
+                const sectionId = sectionMap[section];
+                if (sectionId) {
+                    document.getElementById('contentSections').classList.remove('hidden');
+                    document.getElementById(sectionId).classList.remove('hidden');
+                    this.loadSectionContent(section);
+                }
+            }
+
+            async loadSectionContent(section) {
+                switch (section) {
+                    case 'quiz':
+                        await this.loadQuizzes();
+                        break;
+                    case 'marathon':
+                        await this.loadMarathons();
+                        break;
+                    case 'works':
+                        await this.loadWorks();
+                        break;
+                    case 'shop':
+                        await this.loadShopItems();
+                        break;
+                    case 'interactives':
+                        await this.loadInteractives();
+                        break;
+                    case 'achievements':
+                        await this.loadAchievements();
+                        break;
+                    case 'change_role':
+                        await this.loadRolesForChange();
+                        break;
+                }
+            }
+
+            async loadQuizzes() {
+                try {
+                    const response = await fetch(`/api/webapp/quizzes?userId=${this.userId}`);
+                    const quizzes = await response.json();
+                    
+                    const quizzesList = document.getElementById('quizzesList');
+                    
+                    if (quizzes.length === 0) {
+                        quizzesList.innerHTML = `
+                            <div class="section">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">🎯</div>
+                                    <h3>Квизы пока недоступны</h3>
+                                    <p>Скоро здесь появятся интересные квизы для проверки ваших знаний!</p>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let html = '';
+                    quizzes.forEach(quiz => {
+                        const completed = quiz.completed;
+                        const perfect = quiz.user_perfect_score;
+                        const canRetake = quiz.can_retake;
+                        
+                        html += `
+                            <div class="quiz-card">
+                                <div class="quiz-title">${quiz.title}</div>
+                                <div class="quiz-description">${quiz.description}</div>
+                                <div class="quiz-meta">
+                                    <span class="badge ${quiz.difficulty === 'beginner' ? 'badge-success' : quiz.difficulty === 'intermediate' ? 'badge-warning' : 'badge-danger'}">
+                                        ${quiz.difficulty === 'beginner' ? 'Начинающий' : quiz.difficulty === 'intermediate' ? 'Средний' : 'Продвинутый'}
+                                    </span>
+                                    <span class="badge badge-info">${quiz.questions.length} вопросов</span>
+                                    <span class="badge badge-secondary">${quiz.duration_minutes} мин</span>
+                                    ${completed ? `
+                                        <span class="badge ${perfect ? 'badge-success' : 'badge-warning'}">
+                                            ${perfect ? '🎉 Идеально!' : `Пройден: ${quiz.user_score}/${quiz.total_questions}`}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                                <button class="action-btn ${completed && !canRetake ? 'secondary' : 'primary'}" 
+                                        onclick="app.startQuiz(${quiz.id})"
+                                        ${completed && !canRetake ? 'disabled' : ''}>
+                                    ${completed ? (canRetake ? '🔄 Пройти снова' : '✅ Пройден') : '🎯 Начать квиз'}
+                                </button>
+                            </div>
+                        `;
+                    });
+
+                    quizzesList.innerHTML = html;
+                } catch (error) {
+                    console.error('Ошибка загрузки квизов:', error);
+                    this.showError('Ошибка загрузки квизов');
+                }
+            }
+
+            async startQuiz(quizId) {
+                try {
+                    const response = await fetch(`/api/webapp/quizzes/${quizId}?userId=${this.userId}`);
+                    const quiz = await response.json();
+                    
+                    this.showQuiz(quiz);
+                } catch (error) {
+                    console.error('Ошибка начала квиза:', error);
+                    this.showError('Ошибка начала квиза');
+                }
+            }
+
+            showQuiz(quiz) {
+                this.hideAllSections();
+                document.getElementById('quizContainer').classList.remove('hidden');
+                this.tg.BackButton.show();
+                
+                // Здесь будет реализация интерфейса квиза
+                this.showMessage(`Начинаем квиз: ${quiz.title}`, 'info');
+                // В реальной реализации здесь будет полный интерфейс квиза
+            }
+
+            async loadMarathons() {
+                try {
+                    const response = await fetch(`/api/webapp/marathons?userId=${this.userId}`);
+                    const marathons = await response.json();
+                    
+                    const marathonsList = document.getElementById('marathonsList');
+                    
+                    if (marathons.length === 0) {
+                        marathonsList.innerHTML = `
+                            <div class="section">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">🏃‍♂️</div>
+                                    <h3>Марафоны пока недоступны</h3>
+                                    <p>Скоро здесь появятся увлекательные марафоны для развития ваших навыков!</p>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let html = '';
+                    marathons.forEach(marathon => {
+                        const progress = marathon.progress || 0;
+                        const currentDay = marathon.current_day || 1;
+                        const completed = marathon.completed;
+                        
+                        html += `
+                            <div class="marathon-card">
+                                <div class="marathon-title">${marathon.title}</div>
+                                <div class="marathon-description">${marathon.description}</div>
+                                <div class="marathon-meta">
+                                    <span class="badge ${marathon.difficulty === 'beginner' ? 'badge-success' : marathon.difficulty === 'intermediate' ? 'badge-warning' : 'badge-danger'}">
+                                        ${marathon.difficulty === 'beginner' ? 'Начинающий' : marathon.difficulty === 'intermediate' ? 'Средний' : 'Продвинутый'}
+                                    </span>
+                                    <span class="badge badge-info">${marathon.duration_days} дней</span>
+                                    <span class="badge badge-secondary">${marathon.sparks_per_day}✨/день</span>
+                                </div>
+                                ${progress > 0 ? `
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: ${progress}%"></div>
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-muted); text-align: center;">
+                                        ${completed ? '🎉 Завершено!' : `День ${currentDay-1} из ${marathon.duration_days}`}
+                                    </div>
+                                ` : ''}
+                                <button class="action-btn ${completed ? 'secondary' : 'primary'}" 
+                                        onclick="app.startMarathon(${marathon.id})"
+                                        ${completed ? 'disabled' : ''}>
+                                    ${progress > 0 ? (completed ? '✅ Завершено' : '➡️ Продолжить') : '🚀 Начать марафон'}
+                                </button>
+                            </div>
+                        `;
+                    });
+
+                    marathonsList.innerHTML = html;
+                } catch (error) {
+                    console.error('Ошибка загрузки марафонов:', error);
+                    this.showError('Ошибка загрузки марафонов');
+                }
+            }
+
+            async startMarathon(marathonId) {
+                this.showMessage('Функционал марафонов в разработке', 'info');
+            }
+
+            async loadWorks() {
+                try {
+                    const response = await fetch(`/api/webapp/users/${this.userId}/works`);
+                    const data = await response.json();
+                    
+                    const worksList = document.getElementById('worksList');
+                    
+                    if (data.works.length === 0) {
+                        worksList.innerHTML = `
+                            <div class="section">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">🖼️</div>
+                                    <h3>Работ пока нет</h3>
+                                    <p>Загрузите свою первую работу и получите искры!</p>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let html = '';
+                    data.works.forEach(work => {
+                        html += `
+                            <div class="section">
+                                <div style="font-weight: 600; margin-bottom: 8px;">${work.title}</div>
+                                <div style="color: var(--text-muted); margin-bottom: 8px;">${work.description}</div>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <span class="badge ${work.status === 'approved' ? 'badge-success' : work.status === 'rejected' ? 'badge-danger' : 'badge-warning'}">
+                                        ${work.status === 'approved' ? '✅ Одобрено' : work.status === 'rejected' ? '❌ Отклонено' : '⏳ На модерации'}
+                                    </span>
+                                    <span class="badge badge-info">${work.category}</span>
+                                    <span class="badge badge-secondary">${new Date(work.created_at).toLocaleDateString()}</span>
+                                </div>
+                                ${work.admin_comment ? `
+                                    <div style="margin-top: 8px; padding: 8px; background: var(--border-color); border-radius: 4px; font-size: 12px;">
+                                        <strong>Комментарий модератора:</strong> ${work.admin_comment}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    });
+
+                    worksList.innerHTML = html;
+                } catch (error) {
+                    console.error('Ошибка загрузки работ:', error);
+                    this.showError('Ошибка загрузки работ');
+                }
+            }
+
+            showUploadWorkForm() {
+                this.hideAllSections();
+                document.getElementById('uploadWorkForm').classList.remove('hidden');
+                this.tg.BackButton.show();
+                
+                // Настройка загрузки изображения
+                const imageInput = document.getElementById('workImage');
+                imageInput.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            document.getElementById('imagePreview').classList.remove('hidden');
+                            document.getElementById('previewImage').src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+            }
+
+            async uploadWork() {
+                const title = document.getElementById('workTitle').value;
+                const description = document.getElementById('workDescription').value;
+                const category = document.getElementById('workCategory').value;
+                const imageInput = document.getElementById('workImage');
+                
+                if (!title || !imageInput.files[0]) {
+                    this.showError('Заполните название и загрузите изображение');
+                    return;
+                }
+
+                try {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const imageData = e.target.result;
+                        
+                        const response = await fetch('/api/webapp/upload-work', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                userId: this.userId,
+                                title: title,
+                                description: description,
+                                imageUrl: imageData,
+                                type: 'image',
+                                category: category
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            this.showMessage(data.message, 'success');
+                            setTimeout(() => {
+                                this.showWorksSection();
+                            }, 2000);
+                        } else {
+                            throw new Error(data.error);
+                        }
+                    };
+                    reader.readAsDataURL(imageInput.files[0]);
+                } catch (error) {
+                    console.error('Ошибка загрузки работы:', error);
+                    this.showError('Ошибка загрузки работы: ' + error.message);
+                }
+            }
+
+            showWorksSection() {
+                this.hideAllSections();
+                document.getElementById('contentSections').classList.remove('hidden');
+                document.getElementById('worksSection').classList.remove('hidden');
+                this.loadWorks();
+            }
+
+            async loadShopItems() {
+                try {
+                    const response = await fetch('/api/webapp/shop/items');
+                    const items = await response.json();
+                    
+                    const shopItemsList = document.getElementById('shopItemsList');
+                    
+                    if (items.length === 0) {
+                        shopItemsList.innerHTML = `
+                            <div class="section">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">🛒</div>
+                                    <h3>Магазин пуст</h3>
+                                    <p>Скоро здесь появятся интересные товары!</p>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let html = '';
+                    items.forEach(item => {
+                        const canAfford = this.user.sparks >= item.price;
+                        
+                        html += `
+                            <div class="shop-item-card">
+                                <div class="shop-item-title">${item.title}</div>
+                                <div class="shop-item-description">${item.description}</div>
+                                <div class="shop-item-meta">
+                                    <span class="badge ${item.difficulty === 'beginner' ? 'badge-success' : item.difficulty === 'intermediate' ? 'badge-warning' : 'badge-danger'}">
+                                        ${item.difficulty === 'beginner' ? 'Начинающий' : item.difficulty === 'intermediate' ? 'Средний' : 'Продвинутый'}
+                                    </span>
+                                    <span class="badge badge-info">${item.type === 'video_course' ? '🎥 Видеокурс' : item.type === 'ebook' ? '📚 Книга' : '📄 Материал'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+                                    <div style="font-weight: 600; color: var(--primary-color);">
+                                        ${item.price} ✨
+                                    </div>
+                                    <button class="action-btn ${canAfford ? 'success' : 'secondary'}" 
+                                            onclick="app.purchaseItem(${item.id})"
+                                            ${!canAfford ? 'disabled' : ''}>
+                                        ${canAfford ? '🛒 Купить' : '❌ Не хватает искр'}
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    shopItemsList.innerHTML = html;
+                } catch (error) {
+                    console.error('Ошибка загрузки товаров:', error);
+                    this.showError('Ошибка загрузки товаров');
+                }
+            }
+
+            async purchaseItem(itemId) {
+                try {
+                    const response = await fetch('/api/webapp/shop/purchase', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId: this.userId,
+                            itemId: itemId
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.showMessage(data.message, 'success');
+                        this.user.sparks = data.remainingSparks;
+                        this.updateUserInfo();
+                        this.loadShopItems();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Ошибка покупки:', error);
+                    this.showError('Ошибка покупки: ' + error.message);
+                }
+            }
+
+            async loadInteractives() {
+                try {
+                    const response = await fetch(`/api/webapp/interactives?userId=${this.userId}`);
+                    const interactives = await response.json();
+                    
+                    const interactivesList = document.getElementById('interactivesList');
+                    
+                    if (interactives.length === 0) {
+                        interactivesList.innerHTML = `
+                            <div class="section">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">🎮</div>
+                                    <h3>Интерактивы пока недоступны</h3>
+                                    <p>Скоро здесь появятся интересные интерактивные задания!</p>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let html = '';
+                    interactives.forEach(interactive => {
+                        const completed = interactive.completed;
+                        const canRetake = interactive.can_retake;
+                        
+                        html += `
+                            <div class="interactive-card">
+                                <div class="interactive-title">${interactive.title}</div>
+                                <div class="interactive-description">${interactive.description}</div>
+                                <div class="interactive-meta">
+                                    <span class="badge ${interactive.difficulty === 'beginner' ? 'badge-success' : interactive.difficulty === 'intermediate' ? 'badge-warning' : 'badge-danger'}">
+                                        ${interactive.difficulty === 'beginner' ? 'Начинающий' : interactive.difficulty === 'intermediate' ? 'Средний' : 'Продвинутый'}
+                                    </span>
+                                    <span class="badge badge-info">${interactive.sparks_reward}✨</span>
+                                    ${completed ? `
+                                        <span class="badge badge-success">✅ Пройдено</span>
+                                    ` : ''}
+                                </div>
+                                <button class="action-btn ${completed && !canRetake ? 'secondary' : 'primary'}" 
+                                        onclick="app.startInteractive(${interactive.id})"
+                                        ${completed && !canRetake ? 'disabled' : ''}>
+                                    ${completed ? (canRetake ? '🔄 Повторить' : '✅ Пройдено') : '🎮 Начать'}
+                                </button>
+                            </div>
+                        `;
+                    });
+
+                    interactivesList.innerHTML = html;
+                } catch (error) {
+                    console.error('Ошибка загрузки интерактивов:', error);
+                    this.showError('Ошибка загрузки интерактивов');
+                }
+            }
+
+            async startInteractive(interactiveId) {
+                this.showMessage('Функционал интерактивов в разработке', 'info');
+            }
+
+            async loadAchievements() {
+                try {
+                    const response = await fetch(`/api/webapp/users/${this.userId}/achievements`);
+                    const data = await response.json();
+                    
+                    const achievementsList = document.getElementById('achievementsList');
+                    
+                    let html = '<div class="achievements-grid">';
+                    
+                    data.available.forEach(achievement => {
+                        html += `
+                            <div class="achievement-card ${achievement.earned ? 'earned' : ''}">
+                                <div class="achievement-icon">${achievement.icon}</div>
+                                <div class="achievement-title">${achievement.title}</div>
+                                <div class="achievement-description">${achievement.description}</div>
+                                <div class="achievement-reward">${achievement.sparks_reward} ✨</div>
+                                ${achievement.earned && !achievement.sparks_claimed ? `
+                                    <button class="action-btn success mt-1" onclick="app.claimAchievement(${achievement.id})">
+                                        🎁 Получить награду
+                                    </button>
+                                ` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    achievementsList.innerHTML = html;
+                } catch (error) {
+                    console.error('Ошибка загрузки достижений:', error);
+                    this.showError('Ошибка загрузки достижений');
+                }
+            }
+
+            async claimAchievement(achievementId) {
+                try {
+                    const response = await fetch(`/api/webapp/achievements/${achievementId}/claim`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId: this.userId
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.showMessage(data.message, 'success');
+                        this.user.sparks += data.sparksEarned;
+                        this.updateUserInfo();
+                        this.loadAchievements();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Ошибка получения награды:', error);
+                    this.showError('Ошибка получения награды: ' + error.message);
+                }
+            }
+
+            async loadRolesForChange() {
+                try {
+                    const response = await fetch('/api/webapp/roles');
+                    const roles = await response.json();
+                    
+                    const roleSelection = document.getElementById('changeRoleSelection');
+                    let html = '';
+
+                    roles.forEach(role => {
+                        const isCurrent = role.name === this.user.class;
+                        html += `
+                            <div class="role-option ${isCurrent ? 'selected' : ''}" onclick="app.selectRoleForChange(${role.id})">
+                                <div class="role-icon">${role.icon}</div>
+                                <div class="role-name">${role.name} ${isCurrent ? '(текущая)' : ''}</div>
+                                <div class="role-description">${role.description}</div>
+                            </div>
+                        `;
+                    });
+
+                    roleSelection.innerHTML = html;
+                } catch (error) {
+                    console.error('Ошибка загрузки ролей:', error);
+                    this.showError('Ошибка загрузки ролей');
+                }
+            }
+
+            selectRoleForChange(roleId) {
+                this.selectedRoleId = roleId;
+                
+                // Снимаем выделение со всех ролей
+                document.querySelectorAll('.role-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+
+                // Выделяем выбранную роль
+                event.currentTarget.classList.add('selected');
+            }
+
+            async changeRole() {
+                if (!this.selectedRoleId) {
+                    this.showError('Пожалуйста, выберите новую роль');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/users/change-role', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId: this.userId,
+                            roleId: this.selectedRoleId,
+                            characterId: this.user.character_id // Сохраняем текущего персонажа
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.showMessage(data.message, 'success');
+                        this.user = data.user;
+                        this.updateUserInfo();
+                        setTimeout(() => {
+                            this.showDashboard();
+                        }, 2000);
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Ошибка смены роли:', error);
+                    this.showError('Ошибка смены роли: ' + error.message);
+                }
+            }
+
+            hideAllSections() {
+                // Скрываем все основные секции
+                document.getElementById('mainContent').classList.add('hidden');
+                document.getElementById('registrationSection').classList.add('hidden');
+                document.getElementById('dashboardSection').classList.add('hidden');
+                document.getElementById('contentSections').classList.add('hidden');
+                document.getElementById('uploadWorkForm').classList.add('hidden');
+                document.getElementById('quizContainer').classList.add('hidden');
+                document.getElementById('marathonContainer').classList.add('hidden');
+                document.getElementById('interactiveContainer').classList.add('hidden');
+                
+                // Скрываем все подсекции
+                const sections = document.querySelectorAll('#contentSections > div');
+                sections.forEach(section => section.classList.add('hidden'));
             }
 
             showMessage(message, type = 'info') {
