@@ -1,12 +1,13 @@
 {
   "name": "tg-inspiration-bot",
   "version": "8.0.0",
-  "description": "Telegram bot with Mini App for inspiration workshop",
+  "description": "Telegram bot with Mini App for inspiration workshop - полностью переработанная версия",
   "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node --watch server.js",
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -15,14 +16,28 @@
     "dotenv": "^16.3.1",
     "body-parser": "^1.20.2"
   },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
   "keywords": [
     "telegram",
     "bot",
-    "mini-app"
+    "mini-app",
+    "inspiration",
+    "creative",
+    "education"
   ],
   "author": "Мастерская Вдохновения",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/tg-inspiration-bot"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/tg-inspiration-bot/issues"
+  },
+  "homepage": "https://github.com/your-username/tg-inspiration-bot#readme"
 }
