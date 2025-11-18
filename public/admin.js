@@ -1146,6 +1146,495 @@ createInteractivesManagementHTML(interactives) {
     `;
 }
 
+async loadPosts() {
+    try {
+        const response = await fetch(`/api/admin/posts?userId=${this.userId}`);
+        const data = await response.json();
+        
+        const postsSection = document.getElementById('postsSection');
+        postsSection.innerHTML = this.createPostsManagementHTML(data.posts);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки постов:', error);
+        this.showMessage('Ошибка загрузки постов', 'error');
+    }
+}
+
+createPostsManagementHTML(posts) {
+    return `
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Управление постами</h3>
+                <div class="table-actions">
+                    <button class="btn btn-primary" onclick="adminApp.showCreatePostForm()">
+                        <i class="fas fa-plus"></i>
+                        Создать пост
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Заголовок</th>
+                            <th>Тип</th>
+                            <th>Просмотры</th>
+                            <th>Лайки</th>
+                            <th>Отзывы</th>
+                            <th>Рейтинг</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="postsTable">
+                        ${posts.length === 0 ? `
+                        <tr>
+                            <td colspan="9" class="text-center">
+                                <div class="empty-state" style="padding: 20px;">
+                                    <div class="empty-state-icon">📰</div>
+                                    <div class="empty-state-title">Посты не найдены</div>
+                                    <div class="empty-state-description">Создайте первый пост</div>
+                                </div>
+                            </td>
+                        </tr>
+                        ` : posts.map(post => `
+                        <tr>
+                            <td>${post.id}</td>
+                            <td>
+                                <div style="font-weight: 600;">${post.title}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">
+                                    ${post.excerpt}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge ${post.media_type === 'text' ? 'status-active' : 'status-completed'}">
+                                    ${post.media_type}
+                                </span>
+                            </td>
+                            <td>${post.views_count}</td>
+                            <td>${post.likes_count}</td>
+                            <td>${post.reviews_count}</td>
+                            <td>
+                                ${post.average_rating > 0 ? `
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <i class="fas fa-star" style="color: var(--warning-color);"></i>
+                                    ${post.average_rating.toFixed(1)}
+                                </div>
+                                ` : 'Нет оценок'}
+                            </td>
+                            <td>
+                                <span class="status-badge ${post.is_active ? 'status-active' : 'status-inactive'}">
+                                    ${post.is_active ? 'Активен' : 'Неактивен'}
+                                </span>
+                                ${post.featured ? '<br><span class="status-badge status-completed" style="margin-top: 4px;">⭐ Избранный</span>' : ''}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="adminApp.viewPost(${post.id})" title="Просмотр">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-warning btn-sm" onclick="adminApp.editPost(${post.id})" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-${post.is_active ? 'danger' : 'success'} btn-sm" 
+                                            onclick="adminApp.togglePostStatus(${post.id}, ${!post.is_active})">
+                                        <i class="fas fa-${post.is_active ? 'pause' : 'play'}"></i>
+                                    </button>
+                                    ${!post.featured ? `
+                                    <button class="btn btn-info btn-sm" onclick="adminApp.featurePost(${post.id})" title="В избранное">
+                                        <i class="fas fa-star"></i>
+                                    </button>
+                                    ` : ''}
+                                </div>
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+async loadShopItems() {
+    try {
+        const response = await fetch(`/api/admin/shop/items?userId=${this.userId}`);
+        const items = await response.json();
+        
+        const shopSection = document.getElementById('shopSection');
+        shopSection.innerHTML = this.createShopManagementHTML(items);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки товаров:', error);
+        this.showMessage('Ошибка загрузки товаров', 'error');
+    }
+}
+
+createShopManagementHTML(items) {
+    const totalRevenue = items.reduce((sum, item) => sum + item.total_revenue, 0);
+    const totalItems = items.length;
+    const activeItems = items.filter(item => item.is_active).length;
+
+    return `
+        <div class="stats-grid" style="margin-bottom: 24px;">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">🛒</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        8%
+                    </div>
+                </div>
+                <div class="stat-value">${totalItems}</div>
+                <div class="stat-label">Всего товаров</div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-header">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        15%
+                    </div>
+                </div>
+                <div class="stat-value">${Math.round(totalRevenue)}✨</div>
+                <div class="stat-label">Общий доход</div>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-header">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        5%
+                    </div>
+                </div>
+                <div class="stat-value">${activeItems}</div>
+                <div class="stat-label">Активных товаров</div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Управление товарами</h3>
+                <div class="table-actions">
+                    <button class="btn btn-primary" onclick="adminApp.showCreateItemForm()">
+                        <i class="fas fa-plus"></i>
+                        Создать товар
+                    </button>
+                    <button class="btn btn-secondary" onclick="adminApp.exportShopData()">
+                        <i class="fas fa-download"></i>
+                        Экспорт
+                    </button>
+                </div>
+            </div>
+
+            <div class="search-filters">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" id="shopSearch" placeholder="Поиск товаров...">
+                </div>
+                <div class="filter-group">
+                    <select class="form-control" id="shopCategoryFilter">
+                        <option value="">Все категории</option>
+                        <option value="painting">Живопись</option>
+                        <option value="art_history">История искусства</option>
+                        <option value="fashion">Мода</option>
+                        <option value="photography">Фотография</option>
+                        <option value="general">Общее</option>
+                    </select>
+                    <select class="form-control" id="shopStatusFilter">
+                        <option value="">Все статусы</option>
+                        <option value="active">Активные</option>
+                        <option value="inactive">Неактивные</option>
+                        <option value="featured">Избранные</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Тип</th>
+                            <th>Цена</th>
+                            <th>Покупки</th>
+                            <th>Доход</th>
+                            <th>Студенты</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="shopTable">
+                        ${items.length === 0 ? `
+                        <tr>
+                            <td colspan="9" class="text-center">
+                                <div class="empty-state" style="padding: 20px;">
+                                    <div class="empty-state-icon">🛒</div>
+                                    <div class="empty-state-title">Товары не найдены</div>
+                                    <div class="empty-state-description">Создайте первый товар</div>
+                                </div>
+                            </td>
+                        </tr>
+                        ` : items.map(item => `
+                        <tr>
+                            <td>${item.id}</td>
+                            <td>
+                                <div style="font-weight: 600;">${item.title}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">
+                                    ${item.category} • ${item.difficulty}
+                                </div>
+                            </td>
+                            <td>${this.getShopItemType(item.type)}</td>
+                            <td>
+                                <div style="font-weight: 600;">${item.price}✨</div>
+                                ${item.discount_percent > 0 ? `
+                                <div style="font-size: 12px; color: var(--success-color);">
+                                    -${item.discount_percent}%
+                                </div>
+                                ` : ''}
+                            </td>
+                            <td>${item.purchases_count}</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--success-color);">
+                                    ${item.total_revenue}✨
+                                </div>
+                            </td>
+                            <td>${item.students_count}</td>
+                            <td>
+                                <span class="status-badge ${item.is_active ? 'status-active' : 'status-inactive'}">
+                                    ${item.is_active ? 'Активен' : 'Неактивен'}
+                                </span>
+                                ${item.featured ? '<br><span class="status-badge status-completed" style="margin-top: 4px;">⭐ Избранный</span>' : ''}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="adminApp.viewItem(${item.id})" title="Просмотр">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-warning btn-sm" onclick="adminApp.editItem(${item.id})" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-${item.is_active ? 'danger' : 'success'} btn-sm" 
+                                            onclick="adminApp.toggleItemStatus(${item.id}, ${!item.is_active})">
+                                        <i class="fas fa-${item.is_active ? 'pause' : 'play'}"></i>
+                                    </button>
+                                    <button class="btn btn-info btn-sm" onclick="adminApp.viewItemStats(${item.id})" title="Статистика">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+async loadPurchases() {
+    try {
+        const response = await fetch(`/api/admin/full-stats?userId=${this.userId}`);
+        const stats = await response.json();
+        
+        const purchasesSection = document.getElementById('purchasesSection');
+        purchasesSection.innerHTML = this.createPurchasesManagementHTML(stats);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки покупок:', error);
+        this.showMessage('Ошибка загрузки покупок', 'error');
+    }
+}
+
+createPurchasesManagementHTML(stats) {
+    const revenueByItem = stats.revenue.by_item || [];
+    const totalPurchases = stats.activities.total_purchases;
+
+    return `
+        <div class="stats-grid" style="margin-bottom: 24px;">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        12%
+                    </div>
+                </div>
+                <div class="stat-value">${totalPurchases}</div>
+                <div class="stat-label">Всего покупок</div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-header">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        18%
+                    </div>
+                </div>
+                <div class="stat-value">${Math.round(stats.revenue.total)}✨</div>
+                <div class="stat-label">Общий доход</div>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-header">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        7%
+                    </div>
+                </div>
+                <div class="stat-value">${revenueByItem.length}</div>
+                <div class="stat-label">Товаров с продажами</div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Статистика продаж по товарам</h3>
+                <div class="table-actions">
+                    <button class="btn btn-secondary" onclick="adminApp.exportSalesReport()">
+                        <i class="fas fa-download"></i>
+                        Отчет по продажам
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Товар</th>
+                            <th>Тип</th>
+                            <th>Цена</th>
+                            <th>Покупки</th>
+                            <th>Доход</th>
+                            <th>Средний чек</th>
+                            <th>Популярность</th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchasesTable">
+                        ${revenueByItem.length === 0 ? `
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="empty-state" style="padding: 20px;">
+                                    <div class="empty-state-icon">💰</div>
+                                    <div class="empty-state-title">Продажи не найдены</div>
+                                    <div class="empty-state-description">Пока нет данных о продажах</div>
+                                </div>
+                            </td>
+                        </tr>
+                        ` : revenueByItem.map(item => `
+                        <tr>
+                            <td>
+                                <div style="font-weight: 600;">${item.item}</div>
+                            </td>
+                            <td>
+                                <span class="status-badge status-active">
+                                    ${this.getShopItemType(item.type)}
+                                </span>
+                            </td>
+                            <td>${item.price || 'N/A'}✨</td>
+                            <td>${item.purchases}</td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--success-color);">
+                                    ${item.revenue}✨
+                                </div>
+                            </td>
+                            <td>${item.purchases > 0 ? Math.round(item.revenue / item.purchases) : 0}✨</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 100px; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden;">
+                                        <div style="width: ${(item.purchases / totalPurchases) * 100}%; height: 100%; background: var(--primary-color);"></div>
+                                    </div>
+                                    <span style="font-size: 12px; color: var(--text-muted);">
+                                        ${Math.round((item.purchases / totalPurchases) * 100)}%
+                                    </span>
+                                </div>
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Последние покупки</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Пользователь</th>
+                            <th>Товар</th>
+                            <th>Цена</th>
+                            <th>Дата</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${stats.purchases && stats.purchases.slice(0, 10).map(purchase => `
+                        <tr>
+                            <td>${purchase.id}</td>
+                            <td>
+                                <div style="font-weight: 600;">User #${purchase.user_id}</div>
+                            </td>
+                            <td>${purchase.item_title || 'Unknown Item'}</td>
+                            <td>${purchase.price_paid}✨</td>
+                            <td>${this.formatTime(purchase.purchased_at)}</td>
+                            <td>
+                                <span class="status-badge status-completed">
+                                    ✅ Завершено
+                                </span>
+                            </td>
+                        </tr>
+                        `).join('') || `
+                        <tr>
+                            <td colspan="6" class="text-center">
+                                <div class="empty-state" style="padding: 20px;">
+                                    <div class="empty-state-icon">📦</div>
+                                    <div class="empty-state-title">Покупки не найдены</div>
+                                </div>
+                            </td>
+                        </tr>
+                        `}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+// Вспомогательные методы для админки
+getDifficultyBadgeClass(difficulty) {
+    const classes = {
+        'beginner': 'status-active',
+        'intermediate': 'status-completed',
+        'advanced': 'status-pending',
+        'expert': 'status-inactive'
+    };
+    return classes[difficulty] || 'status-active';
+}
+
+getShopItemType(type) {
+    const types = {
+        'video_course': 'Видеокурс',
+        'ebook': 'Электронная книга',
+        'course': 'Курс',
+        'material': 'Материалы',
+        'tool': 'Инструмент'
+    };
+    return types[type] || type;
+}
+    
     // Вспомогательные методы
     showMessage(message, type = 'info') {
         const messageArea = document.getElementById('messageArea');
