@@ -4,7 +4,6 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -20,7 +19,7 @@ const APP_ROOT = process.cwd();
 console.log('🎨 Мастерская Вдохновения - Запуск системы...');
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 
-// In-memory база данных с улучшенной структурой
+// Улучшенная in-memory база данных
 let db = {
     users: [
         {
@@ -159,49 +158,6 @@ let db = {
                     question: "Какие цвета являются основными?",
                     options: ["Красный, синий, зеленый", "Красный, желтый, синий", "Фиолетовый, оранжевый, зеленый", "Черный, белый, серый"],
                     correctAnswer: 1
-                },
-                {
-                    question: "Что такое акварель?",
-                    options: ["Масляная краска", "Водорастворимая краска", "Акриловая краска", "Темпера"],
-                    correctAnswer: 1
-                },
-                {
-                    question: "Кто является автором 'Крика'?",
-                    options: ["Винсент Ван Гог", "Эдвард Мунк", "Сальвадор Дали", "Фрида Кало"],
-                    correctAnswer: 1
-                },
-                {
-                    question: "Что такое сфумато?",
-                    options: ["Техника резких контрастов", "Техника мягких переходов", "Техника точечного нанесения", "Техника ярких цветов"],
-                    correctAnswer: 1
-                }
-            ],
-            sparks_per_correct: 1,
-            sparks_perfect_bonus: 5,
-            cooldown_hours: 24,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            title: "🏛️ История искусства",
-            description: "Тест по истории мирового искусства",
-            questions: [
-                {
-                    question: "В какой стране возникло искусство эпохи Возрождения?",
-                    options: ["Франция", "Италия", "Испания", "Германия"],
-                    correctAnswer: 1
-                },
-                {
-                    question: "Кто является автором фрески 'Тайная вечеря'?",
-                    options: ["Микеланджело", "Рафаэль", "Леонардо да Винчи", "Боттичелли"],
-                    correctAnswer: 2
-                },
-                {
-                    question: "Какой стиль характеризуется асимметрией и изогнутыми линиями?",
-                    options: ["Ренессанс", "Барокко", "Готика", "Классицизм"],
-                    correctAnswer: 1
                 }
             ],
             sparks_per_correct: 1,
@@ -222,100 +178,12 @@ let db = {
                 { 
                     day: 1, 
                     title: "Основные техники", 
-                    description: "Изучите основные техники работы с акварелью и напишите о своих впечатлениях",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 2, 
-                    title: "Смешивание цветов", 
-                    description: "Практикуйтесь в смешивании цветов и загрузите фото своей палитры",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 3, 
-                    title: "Работа с светом", 
-                    description: "Научитесь передавать свет и тень в акварели",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 4, 
-                    title: "Пейзаж акварелью", 
-                    description: "Нарисуйте свой первый пейзаж и загрузите фото работы",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 5, 
-                    title: "Портрет акварелью", 
-                    description: "Освойте технику портрета акварелью",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 6, 
-                    title: "Натюрморт", 
-                    description: "Создайте композицию с натуры и загрузите фото",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 7, 
-                    title: "Финальная работа", 
-                    description: "Завершите марафон итоговой работой и поделитесь впечатлениями",
+                    description: "Изучите основные техники работы с акварелью",
                     requires_submission: true,
                     submission_type: "text"
                 }
             ],
             sparks_per_day: 7,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            title: "👗 Марафон стиля",
-            description: "5-дневный марафон по созданию гармоничного образа",
-            duration_days: 5,
-            tasks: [
-                { 
-                    day: 1, 
-                    title: "Анализ цветотипа", 
-                    description: "Определите свой цветотип и опишите результаты",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 2, 
-                    title: "Базовая капсула", 
-                    description: "Создайте базовый гардероб и загрузите фото своих вещей",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 3, 
-                    title: "Акценты и аксессуары", 
-                    description: "Научитесь дополнять образ аксессуарами",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 4, 
-                    title: "Стилизация", 
-                    description: "Создайте несколько образов и загрузите фото",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 5, 
-                    title: "Итоговый образ", 
-                    description: "Подберите идеальный образ для мероприятия и опишите его",
-                    requires_submission: true,
-                    submission_type: "text"
-                }
-            ],
-            sparks_per_day: 5,
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -326,46 +194,10 @@ let db = {
             title: "🎨 Урок акварели для начинающих",
             description: "Полный видеоурок по основам акварельной живописи",
             type: "video",
-            file_url: "https://example.com/watercolor-course.mp4",
-            preview_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=300&h=200&fit=crop",
-            price: 15,
-            content_text: "В этом уроке вы научитесь основам работы с акварелью, смешиванию цветов и созданию первых работ. Материал подойдет для начинающих художников.\n\nСодержание:\n- Подготовка материалов\n- Основные техники\n- Смешивание цветов\n- Создание простых работ\n- Советы по улучшению",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            title: "📚 Основы композиции",
-            description: "PDF руководство по основам композиции в живописи",
-            type: "pdf",
-            file_url: "https://example.com/composition-guide.pdf",
-            preview_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=200&fit=crop",
-            price: 10,
-            content_text: "Подробное руководство по построению композиции в художественных работах. Золотое сечение, правило третей, баланс и ритм.\n\nТемы:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с цветом",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 3,
-            title: "👗 Гид по стилю",
-            description: "Полное руководство по созданию гармоничного образа",
-            type: "text",
             file_url: "",
-            preview_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=300&h=200&fit=crop",
-            price: 12,
-            content_text: "Как определить свой цветотип, подобрать базовый гардероб, сочетать цвета и аксессуары. Практические советы от стилиста.\n\nРазделы:\n- Определение цветотипа\n- Базовый гардероб\n- Сочетание цветов\n- Выбор аксессуаров\n- Создание образов",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 4,
-            title: "🧵 Основы вышивки",
-            description: "Видеокурс по основам вышивки для начинающих",
-            type: "video",
-            file_url: "https://example.com/embroidery-course.mp4",
-            preview_url: "https://images.unsplash.com/photo-1576588676125-c6d68cf48b5c?w=300&h=200&fit=crop",
-            price: 18,
-            content_text: "Полный курс по основам вышивки. От простых стежков до сложных техник.\n\nСодержание:\n- Необходимые материалы\n- Основные стежки\n- Техники вышивки\n- Создание узоров\n- Завершение работы",
+            preview_url: "",
+            price: 15,
+            content_text: "В этом уроке вы научитесь основам работы с акварелью",
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -386,40 +218,10 @@ let db = {
             id: 1,
             post_id: "post_art_basics",
             title: "🎨 Основы композиции в живописи",
-            content: "Сегодня поговорим о фундаментальных принципах построения композиции. Золотое сечение, правило третей и многое другое! Композиция - это основа любого художественного произведения, которая помогает направлять взгляд зрителя и создавать гармоничное изображение.\n\n💡 Практический совет: Попробуйте использовать правило третей в своей следующей работе - разделите холст на 9 равных частей и размещайте ключевые элементы на пересечениях линий.",
-            image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
+            content: "Сегодня поговорим о фундаментальных принципах построения композиции.",
+            image_url: "",
             video_url: null,
-            media_type: 'image',
-            admin_id: 898508164,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            telegram_message_id: null,
-            action_type: null,
-            action_target: null
-        },
-        {
-            id: 2,
-            post_id: "post_style_tips",
-            title: "👗 5 советов по созданию стильного образа",
-            content: "1. Определите свой цветотип\n2. Создайте базовую капсулу\n3. Не бойтесь аксессуаров\n4. Учитывайте мероприятие\n5. Будьте уверены в себе!\n\n✨ Помните: Стиль - это не следование трендам, а умение выражать свою индивидуальность через одежду.",
-            image_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop",
-            video_url: null,
-            media_type: 'image',
-            admin_id: 898508164,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            telegram_message_id: null,
-            action_type: null,
-            action_target: null
-        },
-        {
-            id: 3,
-            post_id: "post_history_art",
-            title: "🏛️ Интересные факты о Ренессансе",
-            content: "Эпоха Возрождения подарила миру множество шедевров. Знаете ли вы, что:\n\n• Леонардо да Винчи был вегетарианцем\n• Микеланджело считал себя в первую очередь скульптором\n• Рафаэль умер в день своего рождения\n• Боттичелли сжег многие свои работы\n\n🎯 Интересный факт: Картины того времени часто содержали скрытые символы и послания.",
-            image_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
-            video_url: null,
-            media_type: 'image',
+            media_type: 'text',
             admin_id: 898508164,
             is_active: true,
             created_at: new Date().toISOString(),
@@ -441,86 +243,11 @@ let db = {
             description: "Определите эпоху по фрагменту картины",
             type: "guess_era",
             category: "history",
-            image_url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=300&fit=crop",
+            image_url: "",
             question: "Какой эпохе принадлежит этот фрагмент?",
             options: ["Ренессанс", "Барокко", "Импрессионизм", "Кубизм"],
             correct_answer: 0,
             sparks_reward: 3,
-            allow_retake: false,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            title: "👗 Подбери образ для мероприятия",
-            description: "Создай гармоничный образ для конкретного события",
-            type: "style_match",
-            category: "style",
-            image_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop",
-            question: "Какое сочетание цветов подойдет для деловой встречи?",
-            options: ["Черный + белый + красный акцент", "Ярко-красный + зеленый", "Фиолетовый + оранжевый", "Розовый + голубой"],
-            correct_answer: 0,
-            sparks_reward: 2,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 3,
-            title: "✏️ Продолжи рисунок",
-            description: "Дорисуйте предложенный контур и создайте свою работу",
-            type: "drawing_challenge",
-            category: "art",
-            image_url: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop",
-            question: "Дорисуйте этот контур и создайте свою уникальную работу",
-            options: [],
-            correct_answer: null,
-            sparks_reward: 5,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 4,
-            title: "🔍 Найди отличия",
-            description: "Найдите все отличия между двумя изображениями",
-            type: "find_difference",
-            category: "art",
-            image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
-            question: "Сколько отличий вы нашли между изображениями?",
-            options: ["2 отличия", "3 отличия", "4 отличия", "5 отличий"],
-            correct_answer: 2,
-            sparks_reward: 3,
-            allow_retake: false,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 5,
-            title: "🧩 Исторический пазл",
-            description: "Соберите пазл из фрагментов известной картины",
-            type: "puzzle",
-            category: "history",
-            image_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
-            question: "Из скольких фрагментов состоит этот пазл?",
-            options: ["6 фрагментов", "9 фрагментов", "12 фрагментов", "16 фрагментов"],
-            correct_answer: 1,
-            sparks_reward: 2,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 6,
-            title: "🎭 Определи стиль художника",
-            description: "По фрагменту картины определите авторский стиль",
-            type: "guess_era",
-            category: "history",
-            image_url: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=400&h=300&fit=crop",
-            question: "Какому художнику принадлежит этот стиль?",
-            options: ["Ван Гог", "Моне", "Пикассо", "Дали"],
-            correct_answer: 0,
-            sparks_reward: 4,
             allow_retake: false,
             is_active: true,
             created_at: new Date().toISOString()
@@ -580,7 +307,7 @@ function calculateLevel(sparks) {
 function addSparks(userId, sparks, activityType, description) {
     const user = db.users.find(u => u.user_id == userId);
     if (user) {
-        user.sparks = Math.max(0, user.sparks + sparks); // Защита от отрицательных значений
+        user.sparks = Math.max(0, user.sparks + sparks);
         user.level = calculateLevel(user.sparks);
         user.last_active = new Date().toISOString();
         
@@ -644,7 +371,7 @@ app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
-        version: '7.0.0',
+        version: '8.0.0',
         database: 'In-Memory',
         users: db.users.length,
         quizzes: db.quizzes.length,
@@ -1080,10 +807,7 @@ app.get('/api/webapp/users/:userId/purchases', (req, res) => {
                 type: item?.type,
                 file_url: item?.file_url,
                 content_text: item?.content_text,
-                preview_url: item?.preview_url,
-                // ДОБАВЛЯЕМ ВСЕ ДАННЫЕ ДЛЯ ОТОБРАЖЕНИЯ
-                file_data: item?.file_url?.startsWith('data:') ? item.file_url : null,
-                preview_data: item?.preview_url?.startsWith('data:') ? item.preview_url : null
+                preview_url: item?.preview_url
             };
         })
         .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
@@ -1570,7 +1294,7 @@ app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
 });
 
 app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
-    const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data } = req.body;
+    const { title, description, type, file_url, preview_url, price, content_text } = req.body;
     
     if (!title || !price) {
         return res.status(400).json({ error: 'Title and price are required' });
@@ -1581,8 +1305,8 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
         title,
         description: description || '',
         type: type || 'video',
-        file_url: file_url || file_data || '', // Поддержка base64 данных
-        preview_url: preview_url || preview_data || '', // Поддержка base64 данных
+        file_url: file_url || '',
+        preview_url: preview_url || '',
         price: parseFloat(price),
         content_text: content_text || '',
         is_active: true,
@@ -1601,7 +1325,7 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
 
 app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     const itemId = parseInt(req.params.itemId);
-    const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data } = req.body;
+    const { title, description, type, file_url, preview_url, price, content_text, is_active } = req.body;
     
     const item = db.shop_items.find(i => i.id === itemId);
     if (!item) {
@@ -1612,9 +1336,7 @@ app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     if (description) item.description = description;
     if (type) item.type = type;
     if (file_url !== undefined) item.file_url = file_url;
-    if (file_data !== undefined) item.file_url = file_data; // Обновляем base64 данные
     if (preview_url !== undefined) item.preview_url = preview_url;
-    if (preview_data !== undefined) item.preview_url = preview_data; // Обновляем base64 данные
     if (price) item.price = parseFloat(price);
     if (content_text) item.content_text = content_text;
     if (is_active !== undefined) item.is_active = is_active;
@@ -2113,10 +1835,6 @@ if (process.env.BOT_TOKEN) {
         bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
         
         console.log('✅ Telegram Bot инициализирован');
-        console.log('=== НАСТРОЙКИ БОТА ===');
-        console.log('CHANNEL_ID:', process.env.CHANNEL_ID);
-        console.log('GROUP_ID:', process.env.GROUP_ID);
-        console.log('====================');
         
         bot.onText(/\/start/, (msg) => {
             const chatId = msg.chat.id;
@@ -2175,34 +1893,33 @@ if (process.env.BOT_TOKEN) {
             });
         });
 
-       bot.onText(/\/admin/, (msg) => {
-    const chatId = msg.chat.id;
-    const userId = msg.from.id;
-    
-    const admin = db.admins.find(a => a.user_id == userId);
-    if (!admin) {
-        bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
-        return;
-    }
-    
-    // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
-    const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
-    const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
-    
-    const keyboard = {
-        inline_keyboard: [[
-            {
-                text: "🔧 Открыть Админ Панель",
-                url: adminUrl
+        bot.onText(/\/admin/, (msg) => {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            const admin = db.admins.find(a => a.user_id == userId);
+            if (!admin) {
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+                return;
             }
-        ]]
-    };
-    
-    bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-    });
-});
+            
+            const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
+            const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
+            
+            const keyboard = {
+                inline_keyboard: [[
+                    {
+                        text: "🔧 Открыть Админ Панель",
+                        url: adminUrl
+                    }
+                ]]
+            };
+            
+            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            });
+        });
 
         bot.onText(/\/stats/, (msg) => {
             const chatId = msg.chat.id;
