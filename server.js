@@ -667,12 +667,16 @@ function calculateLevel(sparks) {
     return 'Ученик';
 }
 
+// УЛУЧШЕННАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР
 function addSparks(userId, sparks, activityType, description, metadata = {}) {
     const user = db.users.find(u => u.user_id == userId);
     if (user) {
         user.sparks = Math.max(0, user.sparks + sparks);
         user.level = calculateLevel(user.sparks);
         user.last_active = new Date().toISOString();
+        
+        // Обновляем статистику пользователя
+        user.total_activities = (user.total_activities || 0) + 1;
         
         const activity = {
             id: Date.now(),
@@ -689,6 +693,7 @@ function addSparks(userId, sparks, activityType, description, metadata = {}) {
         // Проверяем достижения
         checkAchievements(userId);
         
+        console.log(`✨ Начислено ${sparks} искр пользователю ${userId} за ${activityType}`);
         return activity;
     }
     return null;
@@ -1325,7 +1330,7 @@ app.get('/api/webapp/quizzes/:quizId', requireAuth, (req, res) => {
     res.json(quizDetails);
 });
 
-// ИСПРАВЛЕННОЕ ОТПРАВЛЕНИЕ РЕЗУЛЬТАТОВ КВИЗА
+// ИСПРАВИТЬ функцию submitQuiz в server.js
 app.post('/api/webapp/quizzes/:quizId/submit', requireAuth, (req, res) => {
     const quizId = parseInt(req.params.quizId);
     const { userId, answers, timeSpent } = req.body;
@@ -1393,6 +1398,7 @@ app.post('/api/webapp/quizzes/:quizId/submit', requireAuth, (req, res) => {
     let sparksEarned = 0;
     const perfectScore = correctAnswers === quiz.questions.length;
     
+    // ПРАВИЛЬНОЕ начисление искр
     sparksEarned = correctAnswers * quiz.sparks_per_correct;
     
     if (perfectScore) {
@@ -1405,7 +1411,9 @@ app.post('/api/webapp/quizzes/:quizId/submit', requireAuth, (req, res) => {
         const character = db.characters.find(c => c.id == user.character_id);
         if (character && character.bonus_type === 'percent_bonus') {
             const bonus = parseInt(character.bonus_value);
-            sparksEarned = Math.floor(sparksEarned * (1 + bonus / 100));
+            const bonusAmount = Math.floor(sparksEarned * (bonus / 100));
+            sparksEarned += bonusAmount;
+            console.log(`🎁 Применен бонус персонажа: +${bonusAmount} искр`);
         }
     }
     
