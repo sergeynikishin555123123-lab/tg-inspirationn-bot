@@ -739,6 +739,52 @@ function checkAchievements(userId) {
                 break;
         }
 
+function validateUserData(userData) {
+    const errors = [];
+    
+    if (!userData.user_id || userData.user_id < 1) {
+        errors.push('Invalid user ID');
+    }
+    
+    if (!userData.tg_first_name || userData.tg_first_name.length < 2) {
+        errors.push('First name must be at least 2 characters');
+    }
+    
+    if (userData.sparks < 0) {
+        errors.push('Sparks cannot be negative');
+    }
+    
+    return errors;
+}
+
+function validateQuizData(quizData) {
+    const errors = [];
+    
+    if (!quizData.title || quizData.title.length < 5) {
+        errors.push('Quiz title must be at least 5 characters');
+    }
+    
+    if (!quizData.questions || !Array.isArray(quizData.questions) || quizData.questions.length === 0) {
+        errors.push('Quiz must have at least one question');
+    }
+    
+    quizData.questions.forEach((question, index) => {
+        if (!question.question || question.question.length < 10) {
+            errors.push(`Question ${index + 1} must be at least 10 characters`);
+        }
+        
+        if (!question.options || !Array.isArray(question.options) || question.options.length < 2) {
+            errors.push(`Question ${index + 1} must have at least 2 options`);
+        }
+        
+        if (question.correctAnswer === undefined || question.correctAnswer < 0) {
+            errors.push(`Question ${index + 1} must have a correct answer`);
+        }
+    });
+    
+    return errors;
+}
+        
         if (conditionMet) {
             const userAchievement = {
                 id: Date.now(),
@@ -865,6 +911,72 @@ function calculateLevelProgress(sparks) {
     const progress = ((sparks - currentLevelMin) / (nextLevelMin - currentLevelMin)) * 100;
     
     return Math.min(Math.max(progress, 0), 100);
+}
+
+const rateLimit = new Map();
+
+function checkRateLimit(userId, action, limit = 10, windowMs = 60000) {
+    const key = `${userId}_${action}`;
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    
+    if (!rateLimit.has(key)) {
+        rateLimit.set(key, []);
+    }
+    
+    const requests = rateLimit.get(key).filter(time => time > windowStart);
+    rateLimit.set(key, requests);
+    
+    if (requests.length >= limit) {
+        return false;
+    }
+    
+    requests.push(now);
+    return true;
+}
+
+// Middleware для rate limiting
+const requireRateLimit = (action, limit = 10, windowMs = 60000) => {
+    return (req, res, next) => {
+        const userId = req.query.userId || req.body.userId;
+        
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID required for rate limiting' });
+        }
+        
+        if (!checkRateLimit(userId, action, limit, windowMs)) {
+            return res.status(429).json({ 
+                error: `Too many requests. Please try again in ${Math.ceil(windowMs/1000/60)} minutes.` 
+            });
+        }
+        
+        next();
+    };
+};
+
+function findUserDuplicate(userId, username) {
+    return db.users.find(u => 
+        u.user_id === userId || 
+        (username && u.tg_username === username)
+    );
+}
+
+function findQuizDuplicate(title) {
+    return db.quizzes.find(q => 
+        q.title.toLowerCase() === title.toLowerCase() && q.is_active
+    );
+}
+
+function findShopItemDuplicate(title) {
+    return db.shop_items.find(i => 
+        i.title.toLowerCase() === title.toLowerCase() && i.is_active
+    );
+}
+
+function findMarathonDuplicate(title) {
+    return db.marathons.find(m => 
+        m.title.toLowerCase() === title.toLowerCase() && m.is_active
+    );
 }
 
 // Middleware
