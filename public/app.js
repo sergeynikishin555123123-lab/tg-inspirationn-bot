@@ -1,472 +1,495 @@
-// Мастерская Вдохновения - WebApp v8.0
-class InspirationApp {
+// app.js - Полная версия клиентского приложения Мастерской Вдохновения v9.0
+
+class InspirationWorkshop {
     constructor() {
-        this.tg = null;
         this.user = null;
-        this.currentSection = 'main';
-        this.selectedRole = null;
-        this.selectedCharacter = null;
-        this.quizAnswers = [];
+        this.userId = null;
+        this.initData = null;
+        this.sections = {};
         this.currentQuiz = null;
         this.currentQuestionIndex = 0;
-        this.marathonData = null;
-        this.isLoading = false;
+        this.quizAnswers = [];
+        this.quizStartTime = null;
         
         this.init();
     }
 
     async init() {
+        console.log('🎨 Мастерская Вдохновения - Инициализация приложения v9.0');
+        
         try {
-            console.log('🚀 Инициализация приложения...');
-            
             // Инициализация Telegram WebApp
-            this.tg = window.Telegram.WebApp;
-            this.tg.expand();
-            this.tg.enableClosingConfirmation();
-            
-            // Устанавливаем цветовую схему
-            this.tg.setHeaderColor('#6366f1');
-            this.tg.setBackgroundColor('#6366f1');
-            
-            // Создаем анимированный фон
-            this.createAnimatedBackground();
-            
-            // Получаем данные пользователя
-            const userData = this.tg.initDataUnsafe?.user;
-            if (userData) {
-                console.log('👤 Получены данные пользователя:', userData);
-                await this.loadUserData(userData.id);
+            if (window.Telegram && Telegram.WebApp) {
+                this.initData = Telegram.WebApp.initData;
+                this.userId = Telegram.WebApp.initDataUnsafe.user?.id;
+                Telegram.WebApp.expand();
+                Telegram.WebApp.enableClosingConfirmation();
+                
+                console.log('✅ Telegram WebApp инициализирован');
+                console.log('👤 User ID:', this.userId);
             } else {
-                console.warn('⚠️ Данные пользователя не получены');
-                this.showError('Не удалось получить данные пользователя. Пожалуйста, перезагрузите приложение.');
+                // Режим разработки - используем тестовый ID
+                this.userId = 12345;
+                console.log('🔧 Режим разработки - тестовый User ID:', this.userId);
             }
+
+            // Загрузка пользователя
+            await this.loadUser();
             
+            // Инициализация интерфейса
+            this.initEventListeners();
+            this.updateUI();
+            
+            // Загрузка начальных данных
+            this.loadInitialData();
+
         } catch (error) {
             console.error('❌ Ошибка инициализации:', error);
-            this.showError('Ошибка загрузки приложения: ' + error.message);
+            this.showMessage('Ошибка загрузки приложения. Пожалуйста, перезагрузите страницу.', 'error');
         }
     }
 
-    createAnimatedBackground() {
-        const bgAnimation = document.getElementById('bgAnimation');
-        const particlesCount = 15;
-        
-        for (let i = 0; i < particlesCount; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'bg-particle';
-            
-            // Случайные параметры
-            const size = Math.random() * 60 + 20;
-            const left = Math.random() * 100;
-            const top = Math.random() * 100;
-            const delay = Math.random() * 5;
-            const duration = Math.random() * 10 + 10;
-            
-            particle.style.width = `${size}px`;
-            particle.style.height = `${size}px`;
-            particle.style.left = `${left}%`;
-            particle.style.top = `${top}%`;
-            particle.style.animationDelay = `${delay}s`;
-            particle.style.animationDuration = `${duration}s`;
-            particle.style.opacity = Math.random() * 0.3 + 0.1;
-            
-            bgAnimation.appendChild(particle);
-        }
-    }
-
-    async loadUserData(userId) {
+    async loadUser() {
         try {
-            this.showLoading('Загрузка данных пользователя...');
-            
-            const response = await fetch(`/api/users/${userId}`);
-            if (!response.ok) throw new Error('Ошибка сети');
-            
+            const response = await fetch(`/api/users/${this.userId}`);
             const data = await response.json();
             
             if (data.exists) {
-                console.log('✅ Пользователь найден:', data.user);
                 this.user = data.user;
-                this.showDashboard();
+                console.log('✅ Пользователь загружен:', this.user);
+                
+                if (!this.user.is_registered) {
+                    this.showRegistration();
+                }
             } else {
-                console.log('🆕 Новый пользователь:', data.user);
-                this.user = data.user;
+                console.log('❌ Пользователь не найден, показываем регистрацию');
                 this.showRegistration();
             }
-            
-            // Загружаем уведомления
-            await this.loadNotifications();
-            
-            this.hideLoading();
-            
         } catch (error) {
             console.error('❌ Ошибка загрузки пользователя:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки данных пользователя: ' + error.message);
+            this.showRegistration();
         }
     }
 
     showRegistration() {
-        this.hideAllSections();
-        document.getElementById('registrationSection').classList.remove('hidden');
-        this.currentSection = 'registration';
-        
+        document.getElementById('mainContent').classList.remove('active');
+        document.getElementById('registrationSection').classList.add('active');
         this.loadRoles();
     }
 
     async loadRoles() {
         try {
-            this.showLoading('Загрузка ролей...');
-            
             const response = await fetch('/api/webapp/roles');
-            if (!response.ok) throw new Error('Ошибка загрузки ролей');
-            
             const roles = await response.json();
             
-            const container = document.getElementById('roleSelection');
-            container.innerHTML = roles.map(role => `
-                <div class="role-option" onclick="app.selectRole(${role.id}, this)">
+            const roleSelection = document.getElementById('roleSelection');
+            roleSelection.innerHTML = '';
+            
+            roles.forEach(role => {
+                const roleCard = document.createElement('div');
+                roleCard.className = 'role-card';
+                roleCard.innerHTML = `
                     <div class="role-icon">${role.icon}</div>
                     <div class="role-name">${role.name}</div>
                     <div class="role-description">${role.description}</div>
-                </div>
-            `).join('');
-            
-            this.hideLoading();
+                    <div class="role-requirements">${role.requirements}</div>
+                `;
+                
+                roleCard.addEventListener('click', () => this.selectRole(role));
+                roleSelection.appendChild(roleCard);
+            });
             
         } catch (error) {
             console.error('❌ Ошибка загрузки ролей:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки списка ролей: ' + error.message);
+            this.showMessage('Ошибка загрузки ролей', 'error');
         }
     }
 
-    selectRole(roleId, element) {
-        this.selectedRole = roleId;
-        
-        // Убираем выделение у всех ролей
-        document.querySelectorAll('.role-option').forEach(option => {
-            option.classList.remove('selected');
+    selectRole(role) {
+        // Убираем выделение со всех карточек
+        document.querySelectorAll('.role-card').forEach(card => {
+            card.classList.remove('selected');
         });
         
-        // Добавляем выделение выбранной роли
-        element.classList.add('selected');
+        // Выделяем выбранную карточку
+        event.currentTarget.classList.add('selected');
+        
+        this.selectedRole = role;
+        this.loadCharacters(role.id);
         
         // Показываем раздел выбора персонажа
         document.getElementById('characterSection').classList.remove('hidden');
-        
-        // Загружаем персонажей для выбранной роли
-        this.loadCharacters(roleId);
+        document.getElementById('registerBtn').classList.remove('hidden');
     }
 
     async loadCharacters(roleId) {
         try {
-            this.showLoading('Загрузка персонажей...');
-            
             const response = await fetch(`/api/webapp/characters/${roleId}`);
-            if (!response.ok) throw new Error('Ошибка загрузки персонажей');
-            
             const characters = await response.json();
             
-            const container = document.getElementById('characterSelection');
-            if (characters.length > 0) {
-                container.innerHTML = characters.map(character => `
-                    <div class="character-option" onclick="app.selectCharacter(${character.id}, this)">
-                        <div class="character-name">
-                            <span style="font-size: 24px; margin-right: 8px;">${character.avatar}</span>
-                            ${character.name}
-                        </div>
-                        <div class="character-description">${character.description}</div>
-                        <div class="character-bonus">${character.bonus_description}</div>
-                    </div>
-                `).join('');
-                
-                document.getElementById('registerBtn').classList.remove('hidden');
-            } else {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">👤</div>
-                        <h3>Персонажи не найдены</h3>
-                        <p>Для этой роли пока нет доступных персонажей</p>
-                    </div>
-                `;
-            }
+            const characterSelection = document.getElementById('characterSelection');
+            characterSelection.innerHTML = '';
             
-            this.hideLoading();
+            characters.forEach(character => {
+                const characterCard = document.createElement('div');
+                characterCard.className = 'character-card';
+                characterCard.innerHTML = `
+                    <div class="character-header">
+                        <div class="character-avatar">${character.avatar}</div>
+                        <div class="character-name">${character.name}</div>
+                    </div>
+                    <div class="character-description">${character.description}</div>
+                    <div class="character-bonus">${character.bonus_description}</div>
+                `;
+                
+                characterCard.addEventListener('click', () => this.selectCharacter(character));
+                characterSelection.appendChild(characterCard);
+            });
             
         } catch (error) {
             console.error('❌ Ошибка загрузки персонажей:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки списка персонажей: ' + error.message);
+            this.showMessage('Ошибка загрузки персонажей', 'error');
         }
     }
 
-    selectCharacter(characterId, element) {
-        this.selectedCharacter = characterId;
-        
-        // Убираем выделение у всех персонажей
-        document.querySelectorAll('.character-option').forEach(option => {
-            option.classList.remove('selected');
+    selectCharacter(character) {
+        // Убираем выделение со всех карточек
+        document.querySelectorAll('.character-card').forEach(card => {
+            card.classList.remove('selected');
         });
         
-        // Добавляем выделение выбранному персонажу
-        element.classList.add('selected');
+        // Выделяем выбранную карточку
+        event.currentTarget.classList.add('selected');
+        
+        this.selectedCharacter = character;
     }
 
     async completeRegistration() {
         if (!this.selectedRole || !this.selectedCharacter) {
-            this.showError('Выберите роль и персонажа');
+            this.showMessage('Пожалуйста, выберите роль и персонажа', 'warning');
             return;
         }
 
         try {
-            this.showLoading('Регистрация...');
-            
             const response = await fetch('/api/users/register', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.user.user_id,
-                    firstName: this.tg.initDataUnsafe?.user?.first_name || 'Пользователь',
-                    roleId: this.selectedRole,
-                    characterId: this.selectedCharacter
+                    userId: this.userId,
+                    firstName: this.initData?.user?.first_name || 'Пользователь',
+                    username: this.initData?.user?.username,
+                    roleId: this.selectedRole.id,
+                    characterId: this.selectedCharacter.id
                 })
             });
 
-            if (!response.ok) throw new Error('Ошибка регистрации');
-
             const data = await response.json();
-
+            
             if (data.success) {
                 this.user = data.user;
-                this.showMessage('🎉 Регистрация успешна! Добро пожаловать в Мастерскую Вдохновения!', 'success');
+                this.showMessage(data.message, 'success');
                 this.showDashboard();
+                this.updateUI();
             } else {
-                throw new Error(data.error || 'Неизвестная ошибка');
+                this.showMessage(data.error || 'Ошибка регистрации', 'error');
             }
-            
-            this.hideLoading();
-            
         } catch (error) {
             console.error('❌ Ошибка регистрации:', error);
-            this.hideLoading();
-            this.showError('Ошибка регистрации: ' + error.message);
+            this.showMessage('Ошибка регистрации', 'error');
         }
     }
 
     showDashboard() {
-        this.hideAllSections();
-        document.getElementById('dashboardSection').classList.remove('hidden');
-        this.currentSection = 'dashboard';
+        // Скрываем все секции
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.remove('active');
+        });
         
-        this.updateUserInfo();
-        this.loadRecentActivities();
+        // Показываем главную панель
+        document.getElementById('mainContent').classList.add('active');
     }
 
-    updateUserInfo() {
+    showSection(sectionName) {
+        // Скрываем все секции
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        
+        // Показываем выбранную секцию
+        const section = document.getElementById(sectionName + 'Section');
+        if (section) {
+            section.classList.add('active');
+            this.loadSectionData(sectionName);
+        }
+    }
+
+    loadSectionData(sectionName) {
+        switch (sectionName) {
+            case 'quizzes':
+                this.loadQuizzes();
+                break;
+            case 'marathons':
+                this.loadMarathons();
+                break;
+            case 'interactives':
+                this.loadInteractives();
+                break;
+            case 'works':
+                this.loadWorks();
+                break;
+            case 'shop':
+                this.loadShopItems();
+                break;
+            case 'posts':
+                this.loadPosts();
+                break;
+            case 'achievements':
+                this.loadAchievements();
+                break;
+            case 'activities':
+                this.loadActivities();
+                break;
+            case 'purchases':
+                this.loadPurchases();
+                break;
+            case 'changeRole':
+                this.loadChangeRole();
+                break;
+            case 'notifications':
+                this.loadNotifications();
+                break;
+            case 'profile':
+                this.loadProfile();
+                break;
+        }
+    }
+
+    updateUI() {
         if (!this.user) return;
-        
-        // Обновляем аватар
-        const avatarElement = document.getElementById('userAvatar');
-        avatarElement.textContent = this.user.tg_first_name?.charAt(0)?.toUpperCase() || 'U';
-        
-        // Обновляем информацию
-        document.getElementById('userName').textContent = this.user.tg_first_name || 'Пользователь';
-        document.getElementById('userRole').textContent = this.user.class || 'Роль не выбрана';
+
+        // Обновляем информацию пользователя
+        document.getElementById('userName').textContent = this.user.tg_first_name;
+        document.getElementById('userRole').textContent = this.user.class || 'Не выбрана';
         document.getElementById('userLevel').textContent = this.user.level;
         document.getElementById('sparksAmount').textContent = this.user.sparks.toFixed(1);
-        document.getElementById('quizzesCount').textContent = this.user.completed_quizzes || 0;
-        document.getElementById('marathonsCount').textContent = this.user.completed_marathons || 0;
-        document.getElementById('worksCount').textContent = this.user.uploaded_works || 0;
+        
+        // Обновляем аватар
+        const avatar = document.getElementById('userAvatar');
+        avatar.textContent = this.user.tg_first_name?.charAt(0) || 'U';
+        
+        // Обновляем статистику
+        if (this.user.stats) {
+            document.getElementById('quizzesCount').textContent = this.user.stats.totalQuizzesCompleted || 0;
+            document.getElementById('marathonsCount').textContent = this.user.stats.totalMarathonsCompleted || 0;
+            document.getElementById('worksCount').textContent = this.user.stats.totalWorks || 0;
+            
+            // Обновляем прогресс уровня
+            document.getElementById('userLevelDisplay').textContent = this.user.level;
+            document.getElementById('levelProgressPercent').textContent = 
+                Math.round(this.user.stats.levelProgress || 0) + '%';
+            document.getElementById('levelProgressBar').style.width = 
+                (this.user.stats.levelProgress || 0) + '%';
+        }
+
+        // Загружаем последние активности
+        this.loadRecentActivities();
+        
+        // Проверяем уведомления
+        this.checkNotifications();
     }
 
     async loadRecentActivities() {
         try {
-            const response = await fetch(`/api/webapp/users/${this.user.user_id}/activities`);
-            if (!response.ok) return;
-            
+            const response = await fetch(`/api/webapp/users/${this.userId}/activities?limit=5`);
             const data = await response.json();
             
-            const container = document.getElementById('recentActivities');
-            if (data.activities && data.activities.length > 0) {
-                container.innerHTML = data.activities.slice(0, 5).map(activity => `
-                    <div class="activity-item">
-                        <div class="activity-info">
-                            <div class="activity-title">${activity.description}</div>
-                            <div class="activity-date">${this.formatDate(activity.created_at)}</div>
-                        </div>
-                        <div class="activity-sparks">+${activity.sparks_earned}✨</div>
-                    </div>
-                `).join('');
-            } else {
-                container.innerHTML = `
-                    <div class="empty-state" style="padding: 20px;">
+            const activitiesList = document.getElementById('recentActivities');
+            
+            if (data.activities.length === 0) {
+                activitiesList.innerHTML = `
+                    <div class="empty-state">
                         <div class="empty-state-icon">📊</div>
-                        <p>Активности пока нет</p>
+                        <div class="empty-state-title">Пока нет активностей</div>
+                        <div class="empty-state-description">Начните с прохождения квиза или загрузки работы!</div>
                     </div>
                 `;
+                return;
             }
+            
+            activitiesList.innerHTML = '';
+            
+            data.activities.forEach(activity => {
+                const activityItem = document.createElement('div');
+                activityItem.className = 'activity-item';
+                
+                const icon = this.getActivityIcon(activity.activity_type);
+                const time = this.formatTime(activity.created_at);
+                
+                activityItem.innerHTML = `
+                    <div class="activity-icon">${icon}</div>
+                    <div class="activity-content">
+                        <div class="activity-title">${activity.description}</div>
+                        <div class="activity-time">${time}</div>
+                    </div>
+                    <div class="activity-sparks">+${activity.sparks_earned}✨</div>
+                `;
+                
+                activitiesList.appendChild(activityItem);
+            });
+            
         } catch (error) {
             console.error('❌ Ошибка загрузки активностей:', error);
         }
     }
 
-    async showSection(sectionName) {
-        if (this.isLoading) return;
-        
-        this.hideAllSections();
-        
-        switch (sectionName) {
-            case 'quizzes':
-                await this.showQuizzes();
-                break;
-            case 'marathons':
-                await this.showMarathons();
-                break;
-            case 'interactives':
-                await this.showInteractives();
-                break;
-            case 'works':
-                await this.showWorks();
-                break;
-            case 'shop':
-                await this.showShop();
-                break;
-            case 'posts':
-                await this.showPosts();
-                break;
-            case 'achievements':
-                await this.showAchievements();
-                break;
-            case 'activities':
-                await this.showActivities();
-                break;
-            case 'purchases':
-                await this.showPurchases();
-                break;
-            case 'changeRole':
-                await this.showChangeRole();
-                break;
-            default:
-                this.showDashboard();
-                return;
-        }
-        
-        document.getElementById(sectionName + 'Section').classList.remove('hidden');
-        this.currentSection = sectionName;
-    }
-
-    async showQuizzes() {
+    async loadQuizzes() {
         try {
-            this.showLoading('Загрузка квизов...');
-            
-            const response = await fetch(`/api/webapp/quizzes?userId=${this.user.user_id}`);
-            if (!response.ok) throw new Error('Ошибка загрузки квизов');
-            
+            const response = await fetch(`/api/webapp/quizzes?userId=${this.userId}`);
             const quizzes = await response.json();
             
-            const container = document.getElementById('quizzesList');
-            if (quizzes.length > 0) {
-                container.innerHTML = quizzes.map((quiz, index) => {
-                    const difficultyBadge = quiz.difficulty === 'beginner' ? 'badge-success' : 
-                                          quiz.difficulty === 'intermediate' ? 'badge-warning' : 'badge-danger';
-                    const difficultyText = quiz.difficulty === 'beginner' ? 'Начинающий' :
-                                         quiz.difficulty === 'intermediate' ? 'Средний' : 'Продвинутый';
-                    
-                    let buttonText = 'Начать квиз';
-                    let buttonClass = 'primary';
-                    let disabled = false;
-                    
-                    if (quiz.completed) {
-                        if (quiz.can_retake) {
-                            buttonText = 'Пройти снова';
-                            buttonClass = 'warning';
-                        } else {
-                            buttonText = 'Пройден';
-                            buttonClass = 'secondary';
-                            disabled = true;
-                        }
-                    }
-                    
-                    return `
-                        <div class="quiz-card stagger-item" style="animation-delay: ${index * 0.1}s">
-                            <div class="quiz-title">${quiz.title}</div>
-                            <div class="quiz-description">${quiz.description}</div>
-                            <div class="quiz-meta">
-                                <span class="badge ${difficultyBadge}">${difficultyText}</span>
-                                <span class="badge badge-info">${quiz.total_questions} вопросов</span>
-                                <span class="badge badge-secondary">${quiz.sparks_per_correct}✨ за ответ</span>
-                                ${quiz.completed && (
-                                    `<span class="badge badge-success">Результат: ${quiz.user_score}/${quiz.total_questions}</span>`
-                                )}
-                            </div>
-                            <button class="action-btn ${buttonClass}" ${disabled ? 'disabled' : ''} 
-                                    onclick="app.startQuiz(${quiz.id})">
-                                ${buttonText}
-                            </button>
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                container.innerHTML = this.createEmptyState('🎯', 'Квизы не найдены', 'Скоро появятся новые квизы!');
+            const quizzesList = document.getElementById('quizzesList');
+            
+            if (quizzes.length === 0) {
+                quizzesList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎯</div>
+                        <div class="empty-state-title">Пока нет доступных квизов</div>
+                        <div class="empty-state-description">Новые квизы появятся скоро!</div>
+                    </div>
+                `;
+                return;
             }
             
-            this.hideLoading();
+            quizzesList.innerHTML = '';
+            
+            quizzes.forEach(quiz => {
+                const quizCard = document.createElement('div');
+                quizCard.className = 'card';
+                
+                const status = quiz.completed ? 
+                    `<span style="color: var(--success-color);">✅ Пройден (${quiz.user_score}/${quiz.total_questions})</span>` :
+                    `<span style="color: var(--primary-color);">🆕 Доступен</span>`;
+                
+                const buttonText = quiz.completed ? 
+                    (quiz.can_retake ? 'Пройти снова' : 'Просмотреть') : 
+                    'Начать квиз';
+                
+                const buttonClass = quiz.completed ? 
+                    (quiz.can_retake ? 'btn-primary' : 'btn-secondary') : 
+                    'btn-primary';
+                
+                quizCard.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${quiz.title}</div>
+                            <div class="card-description">${quiz.description}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            ${status}
+                        </div>
+                    </div>
+                    
+                    <div class="card-meta">
+                        <div class="tag">
+                            <i class="fas fa-star"></i>
+                            ${quiz.difficulty}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-clock"></i>
+                            ${quiz.duration_minutes} мин
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-question"></i>
+                            ${quiz.total_questions} вопросов
+                        </div>
+                        ${quiz.attempts_left !== undefined ? `
+                        <div class="tag">
+                            <i class="fas fa-sync-alt"></i>
+                            ${quiz.attempts_left} попыток сегодня
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Сложность</span>
+                            <span>${quiz.average_score ? quiz.average_score.toFixed(1) : '0'}/5</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${(quiz.average_score || 0) * 20}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-actions">
+                        <button class="btn ${buttonClass}" onclick="app.startQuiz(${quiz.id})">
+                            <i class="fas fa-play"></i>
+                            ${buttonText}
+                        </button>
+                        ${quiz.completed ? `
+                        <button class="btn btn-secondary" onclick="app.viewQuizResults(${quiz.id})">
+                            <i class="fas fa-chart-bar"></i>
+                            Результаты
+                        </button>
+                        ` : ''}
+                    </div>
+                `;
+                
+                quizzesList.appendChild(quizCard);
+            });
             
         } catch (error) {
             console.error('❌ Ошибка загрузки квизов:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки квизов: ' + error.message);
+            this.showMessage('Ошибка загрузки квизов', 'error');
         }
     }
 
     async startQuiz(quizId) {
         try {
-            this.showLoading('Загрузка квиза...');
-            
-            const response = await fetch(`/api/webapp/quizzes?userId=${this.user.user_id}`);
-            if (!response.ok) throw new Error('Ошибка загрузки квиза');
-            
-            const quizzes = await response.json();
-            const quiz = quizzes.find(q => q.id === quizId);
+            const response = await fetch(`/api/webapp/quizzes/${quizId}?userId=${this.userId}`);
+            const quiz = await response.json();
             
             if (!quiz) {
-                throw new Error('Квиз не найден');
+                this.showMessage('Квиз не найден', 'error');
+                return;
             }
             
             this.currentQuiz = quiz;
-            this.quizAnswers = [];
             this.currentQuestionIndex = 0;
+            this.quizAnswers = [];
+            this.quizStartTime = Date.now();
             
             this.showQuizQuestion();
             
-            this.hideLoading();
-            
         } catch (error) {
             console.error('❌ Ошибка начала квиза:', error);
-            this.hideLoading();
-            this.showError('Ошибка начала квиза: ' + error.message);
+            this.showMessage('Ошибка начала квиза', 'error');
         }
     }
 
     showQuizQuestion() {
-        if (!this.currentQuiz || !this.currentQuiz.questions[this.currentQuestionIndex]) {
-            this.showQuizResults();
-            return;
-        }
-        
         const question = this.currentQuiz.questions[this.currentQuestionIndex];
-        const progress = ((this.currentQuestionIndex) / this.currentQuiz.questions.length) * 100;
         
         const quizHTML = `
             <div class="quiz-container">
                 <div class="quiz-progress">
-                    <div class="quiz-progress-bar" style="width: ${progress}%"></div>
+                    <div class="quiz-progress-bar" style="width: ${((this.currentQuestionIndex + 1) / this.currentQuiz.questions.length) * 100}%"></div>
                 </div>
                 
-                <div class="question-number">Вопрос ${this.currentQuestionIndex + 1} из ${this.currentQuiz.questions.length}</div>
-                <div class="question-text">${question.question}</div>
+                <div class="question-number">
+                    Вопрос ${this.currentQuestionIndex + 1} из ${this.currentQuiz.questions.length}
+                </div>
+                
+                <div class="question-text">
+                    ${question.question}
+                </div>
+                
+                ${question.image_url ? `
+                <div style="text-align: center; margin: 20px 0;">
+                    <img src="${question.image_url}" alt="Иллюстрация" style="max-width: 100%; border-radius: var(--radius-md);">
+                </div>
+                ` : ''}
                 
                 <div class="options-list">
                     ${question.options.map((option, index) => `
@@ -476,10 +499,19 @@ class InspirationApp {
                     `).join('')}
                 </div>
                 
-                <button class="btn btn-primary" onclick="app.nextQuizQuestion()" 
-                        ${this.quizAnswers[this.currentQuestionIndex] === undefined ? 'disabled' : ''}>
-                    ${this.currentQuestionIndex === this.currentQuiz.questions.length - 1 ? 'Завершить квиз' : 'Следующий вопрос'}
-                </button>
+                <div class="card-actions">
+                    ${this.currentQuestionIndex > 0 ? `
+                    <button class="btn btn-secondary" onclick="app.previousQuizQuestion()">
+                        <i class="fas fa-arrow-left"></i>
+                        Назад
+                    </button>
+                    ` : ''}
+                    
+                    <button class="btn btn-primary" onclick="app.nextQuizQuestion()" id="nextQuizBtn" ${this.quizAnswers[this.currentQuestionIndex] === undefined ? 'disabled' : ''}>
+                        ${this.currentQuestionIndex === this.currentQuiz.questions.length - 1 ? 'Завершить квиз' : 'Следующий вопрос'}
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
             </div>
         `;
         
@@ -487,30 +519,33 @@ class InspirationApp {
     }
 
     selectQuizAnswer(answerIndex) {
-        // Убираем выделение у всех вариантов
+        // Убираем выделение со всех вариантов
         document.querySelectorAll('.option-item').forEach(item => {
             item.classList.remove('selected');
         });
         
-        // Добавляем выделение выбранному варианту
+        // Выделяем выбранный вариант
         event.currentTarget.classList.add('selected');
         
-        // Сохраняем ответ
         this.quizAnswers[this.currentQuestionIndex] = answerIndex;
-        
-        // Активируем кнопку продолжения
-        document.querySelector('#quizzesList .btn').disabled = false;
+        document.getElementById('nextQuizBtn').disabled = false;
+    }
+
+    previousQuizQuestion() {
+        if (this.currentQuestionIndex > 0) {
+            this.currentQuestionIndex--;
+            this.showQuizQuestion();
+        }
     }
 
     nextQuizQuestion() {
         if (this.quizAnswers[this.currentQuestionIndex] === undefined) {
-            this.showError('Выберите вариант ответа');
+            this.showMessage('Пожалуйста, выберите ответ', 'warning');
             return;
         }
         
-        this.currentQuestionIndex++;
-        
-        if (this.currentQuestionIndex < this.currentQuiz.questions.length) {
+        if (this.currentQuestionIndex < this.currentQuiz.questions.length - 1) {
+            this.currentQuestionIndex++;
             this.showQuizQuestion();
         } else {
             this.submitQuiz();
@@ -519,637 +554,708 @@ class InspirationApp {
 
     async submitQuiz() {
         try {
-            this.showLoading('Проверка ответов...');
+            const timeSpent = Math.round((Date.now() - this.quizStartTime) / 1000);
             
             const response = await fetch(`/api/webapp/quizzes/${this.currentQuiz.id}/submit`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.user.user_id,
-                    answers: this.quizAnswers
+                    userId: this.userId,
+                    answers: this.quizAnswers,
+                    timeSpent: timeSpent
                 })
             });
 
-            if (!response.ok) throw new Error('Ошибка отправки квиза');
-
             const data = await response.json();
-
+            
             if (data.success) {
                 this.showQuizResults(data);
             } else {
-                throw new Error(data.error || 'Неизвестная ошибка');
+                this.showMessage(data.error || 'Ошибка отправки квиза', 'error');
+                this.loadQuizzes(); // Возвращаемся к списку квизов
             }
-            
-            this.hideLoading();
-            
         } catch (error) {
             console.error('❌ Ошибка отправки квиза:', error);
-            this.hideLoading();
-            this.showError('Ошибка отправки квиза: ' + error.message);
+            this.showMessage('Ошибка отправки квиза', 'error');
         }
     }
 
     showQuizResults(results) {
         const resultsHTML = `
-            <div class="quiz-results">
-                <div class="results-score">${results.scorePercentage}%</div>
-                <div class="results-message">${results.message}</div>
-                
-                <div class="results-details">
-                    <h3 style="margin-bottom: 16px;">Детали результатов:</h3>
-                    ${results.results.map((result, index) => `
-                        <div class="result-item">
-                            <div class="result-question">${result.question}</div>
-                            <div class="result-answer">
-                                Ваш ответ: ${result.userAnswer !== undefined ? 
-                                    this.currentQuiz.questions[index].options[result.userAnswer] : 'Нет ответа'}
-                            </div>
-                            <div class="result-correct">
-                                Правильный ответ: ${this.currentQuiz.questions[index].options[result.correctAnswer]}
-                            </div>
-                            ${result.explanation && `
-                                <div class="result-explanation">${result.explanation}</div>
-                            `}
-                        </div>
-                    `).join('')}
+            <div class="results-container">
+                <div class="results-score">
+                    ${results.correctAnswers}/${results.totalQuestions}
                 </div>
                 
-                <button class="btn btn-primary" onclick="app.showSection('quizzes')">
-                    Вернуться к списку квизов
-                </button>
+                <div class="results-message">
+                    ${results.perfectScore ? 
+                        '🎉 Идеальный результат! Поздравляем!' : 
+                        results.correctAnswers === results.totalQuestions ? 
+                        '🎉 Отличный результат!' :
+                        'Хорошая работа! Продолжайте в том же духе!'}
+                </div>
+                
+                <div class="card" style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--success-color); margin-bottom: 8px;">
+                        +${results.sparksEarned}✨
+                    </div>
+                    <div style="color: var(--text-muted);">
+                        ${results.message}
+                    </div>
+                    ${results.character_bonus ? `
+                    <div style="margin-top: 12px; padding: 12px; background: rgba(102, 126, 234, 0.1); border-radius: var(--radius-md);">
+                        <i class="fas fa-star"></i> Бонус персонажа: ${results.character_bonus}
+                    </div>
+                    ` : ''}
+                </div>
+                
+                ${results.attempts_left !== undefined ? `
+                <div class="card" style="text-align: center;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Осталось попыток сегодня: ${results.attempts_left}</div>
+                </div>
+                ` : ''}
+                
+                <div class="card-actions" style="justify-content: center; margin-top: 24px;">
+                    <button class="btn btn-primary" onclick="app.loadQuizzes()">
+                        <i class="fas fa-list"></i>
+                        К списку квизов
+                    </button>
+                    <button class="btn btn-secondary" onclick="app.viewQuizDetails(${this.currentQuiz.id})">
+                        <i class="fas fa-chart-bar"></i>
+                        Детали результатов
+                    </button>
+                </div>
             </div>
         `;
         
         document.getElementById('quizzesList').innerHTML = resultsHTML;
         
         // Обновляем данные пользователя
-        this.loadUserData(this.user.user_id);
+        this.loadUser();
     }
 
-    async showMarathons() {
+    async loadMarathons() {
         try {
-            this.showLoading('Загрузка марафонов...');
-            
-            const response = await fetch(`/api/webapp/marathons?userId=${this.user.user_id}`);
-            if (!response.ok) throw new Error('Ошибка загрузки марафонов');
-            
+            const response = await fetch(`/api/webapp/marathons?userId=${this.userId}`);
             const marathons = await response.json();
             
-            const container = document.getElementById('marathonsList');
-            if (marathons.length > 0) {
-                container.innerHTML = marathons.map((marathon, index) => {
-                    const progress = marathon.progress || 0;
-                    let buttonText = 'Начать марафон';
-                    let buttonClass = 'primary';
-                    
-                    if (marathon.completed) {
-                        buttonText = 'Завершено 🎉';
-                        buttonClass = 'success';
-                    } else if (marathon.can_continue) {
-                        buttonText = 'Продолжить';
-                        buttonClass = 'warning';
-                    }
-                    
-                    return `
-                        <div class="marathon-card stagger-item" style="animation-delay: ${index * 0.1}s">
-                            <div class="marathon-title">${marathon.title}</div>
-                            <div class="marathon-description">${marathon.description}</div>
-                            <div class="marathon-meta">
-                                <span class="badge badge-info">${marathon.duration_days} дней</span>
-                                <span class="badge badge-warning">${marathon.sparks_per_day}✨ в день</span>
-                                <span class="badge badge-success">${marathon.sparks_completion_bonus}✨ за завершение</span>
-                            </div>
-                            
-                            ${marathon.can_continue && !marathon.completed && progress > 0 && (`
-                                <div class="progress-container">
-                                    <div class="progress-label">
-                                        <span>Прогресс</span>
-                                        <span>${progress}%</span>
-                                    </div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: ${progress}%"></div>
-                                    </div>
-                                </div>
-                            `)}
-                            
-                            <button class="action-btn ${buttonClass}" onclick="app.startMarathon(${marathon.id})">
-                                ${buttonText}
-                            </button>
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                container.innerHTML = this.createEmptyState('🏃‍♂️', 'Марафоны не найдены', 'Скоро появятся новые марафоны!');
+            const marathonsList = document.getElementById('marathonsList');
+            
+            if (marathons.length === 0) {
+                marathonsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🏃‍♂️</div>
+                        <div class="empty-state-title">Пока нет доступных марафонов</div>
+                        <div class="empty-state-description">Новые марафоны появятся скоро!</div>
+                    </div>
+                `;
+                return;
             }
             
-            this.hideLoading();
+            marathonsList.innerHTML = '';
+            
+            marathons.forEach(marathon => {
+                const marathonCard = document.createElement('div');
+                marathonCard.className = 'card';
+                
+                const status = marathon.completed ? 
+                    `<span style="color: var(--success-color);">✅ Завершен</span>` :
+                    marathon.started_at ? 
+                    `<span style="color: var(--primary-color);">🔄 В процессе (день ${marathon.current_day})</span>` :
+                    `<span style="color: var(--warning-color);">🆕 Доступен</span>`;
+                
+                const buttonText = marathon.completed ? 
+                    'Просмотреть' : 
+                    marathon.started_at ? 
+                    'Продолжить' : 
+                    'Начать марафон';
+                
+                const buttonClass = marathon.completed ? 
+                    'btn-secondary' : 'btn-primary';
+                
+                marathonCard.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${marathon.title}</div>
+                            <div class="card-description">${marathon.description}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            ${status}
+                        </div>
+                    </div>
+                    
+                    <div class="card-meta">
+                        <div class="tag">
+                            <i class="fas fa-calendar"></i>
+                            ${marathon.duration_days} дней
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-star"></i>
+                            ${marathon.difficulty}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-users"></i>
+                            ${marathon.participants_count} участников
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-trophy"></i>
+                            ${marathon.completion_rate}% завершают
+                        </div>
+                    </div>
+                    
+                    ${marathon.started_at ? `
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Прогресс</span>
+                            <span>${marathon.progress}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${marathon.progress}%"></div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="card-actions">
+                        <button class="btn ${buttonClass}" onclick="app.${marathon.completed ? 'viewMarathon' : marathon.started_at ? 'continueMarathon' : 'startMarathon'}(${marathon.id})">
+                            <i class="fas fa-${marathon.completed ? 'eye' : marathon.started_at ? 'play' : 'flag'}"></i>
+                            ${buttonText}
+                        </button>
+                    </div>
+                `;
+                
+                marathonsList.appendChild(marathonCard);
+            });
             
         } catch (error) {
             console.error('❌ Ошибка загрузки марафонов:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки марафонов: ' + error.message);
+            this.showMessage('Ошибка загрузки марафонов', 'error');
         }
     }
 
     async startMarathon(marathonId) {
         try {
-            this.showLoading('Загрузка марафона...');
+            const response = await fetch(`/api/webapp/marathons/${marathonId}/submit-day`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: this.userId,
+                    day: 1
+                })
+            });
+
+            const data = await response.json();
             
-            const response = await fetch(`/api/webapp/marathons?userId=${this.user.user_id}`);
-            if (!response.ok) throw new Error('Ошибка загрузки марафона');
-            
-            const marathons = await response.json();
-            const marathon = marathons.find(m => m.id === marathonId);
-            
-            if (!marathon) {
-                throw new Error('Марафон не найден');
+            if (data.success) {
+                this.showMessage('Марафон начат! ' + data.message, 'success');
+                this.loadMarathons();
+            } else {
+                this.showMessage(data.error || 'Ошибка начала марафона', 'error');
             }
-            
-            this.marathonData = marathon;
-            this.showMarathonDay(marathon, marathon.current_day);
-            
-            this.hideLoading();
-            
         } catch (error) {
             console.error('❌ Ошибка начала марафона:', error);
-            this.hideLoading();
-            this.showError('Ошибка начала марафона: ' + error.message);
+            this.showMessage('Ошибка начала марафона', 'error');
         }
     }
 
-    showMarathonDay(marathon, day) {
-        const task = marathon.tasks.find(t => t.day === day);
-        if (!task) {
-            this.showError('Задание не найдено');
-            return;
-        }
-        
-        const dayHTML = `
-            <div class="content-card">
-                <h3 style="margin-bottom: 16px;">День ${day}: ${task.title}</h3>
-                <div class="marathon-description" style="margin-bottom: 20px;">${task.description}</div>
-                
-                ${task.instructions && (`
-                    <div class="card" style="background: #f0f9ff; border-color: #bfdbfe;">
-                        <h4 style="margin-bottom: 12px; color: #1e40af;">📋 Инструкции:</h4>
-                        <p style="color: #374151; line-height: 1.5;">${task.instructions}</p>
+    async continueMarathon(marathonId) {
+        // Показываем текущий день марафона
+        this.showMarathonDay(marathonId);
+    }
+
+    async showMarathonDay(marathonId) {
+        try {
+            const response = await fetch(`/api/webapp/marathons/${marathonId}?userId=${this.userId}`);
+            const marathon = await response.json();
+            
+            if (!marathon) {
+                this.showMessage('Марафон не найден', 'error');
+                return;
+            }
+            
+            const currentTask = marathon.current_task;
+            
+            const marathonHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${marathon.title} - День ${marathon.current_day}</div>
+                            <div class="card-description">${currentTask.title}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="color: var(--primary-color);">🔄 День ${marathon.current_day} из ${marathon.duration_days}</span>
+                        </div>
                     </div>
-                `)}
-                
-                ${task.tips && task.tips.length > 0 && (`
-                    <div class="card" style="background: #f0fff4; border-color: #bbf7d0; margin-top: 16px;">
-                        <h4 style="margin-bottom: 12px; color: #166534;">💡 Советы:</h4>
-                        <ul style="color: #374151; padding-left: 20px;">
-                            ${task.tips.map(tip => `<li style="margin-bottom: 8px;">${tip}</li>`).join('')}
-                        </ul>
+                    
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Прогресс марафона</span>
+                            <span>${marathon.progress}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${marathon.progress}%"></div>
+                        </div>
                     </div>
-                `)}
-                
-                ${task.requires_submission && (`
-                    <div class="form-group" style="margin-top: 20px;">
-                        <label class="form-label">Ваша работа:</label>
+                    
+                    <div style="margin: 20px 0;">
+                        <h3 style="margin-bottom: 12px;">📝 Задание</h3>
+                        <p style="margin-bottom: 16px; line-height: 1.6;">${currentTask.description}</p>
+                        
+                        ${currentTask.instructions ? `
+                        <div style="background: var(--light-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 16px;">
+                            <strong>Инструкции:</strong><br>
+                            ${currentTask.instructions}
+                        </div>
+                        ` : ''}
+                        
+                        ${currentTask.tips && currentTask.tips.length > 0 ? `
+                        <div style="background: rgba(255, 193, 7, 0.1); padding: 16px; border-radius: var(--radius-md); margin-bottom: 16px;">
+                            <strong>💡 Советы:</strong><br>
+                            <ul style="margin: 8px 0 0 20px;">
+                                ${currentTask.tips.map(tip => `<li>${tip}</li>`).join('')}
+                            </ul>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${currentTask.requires_submission ? `
+                    <div class="form-group">
+                        <label class="form-label">Ваша работа или ответ</label>
                         <textarea class="form-control" id="marathonSubmission" placeholder="Опишите вашу работу или прикрепите ссылку на изображение..." rows="4"></textarea>
                     </div>
-                `)}
-                
-                <button class="btn btn-success" onclick="app.submitMarathonDay(${marathon.id}, ${day})" style="margin-top: 20px;">
-                    ${day === marathon.duration_days ? 'Завершить марафон' : 'Завершить день'}
-                </button>
-            </div>
-        `;
-        
-        // Показываем навигацию по дням
-        const navigationHTML = `
-            <div class="days-navigation">
-                ${marathon.tasks.map(t => `
-                    <button class="day-button 
-                        ${t.day === day ? 'active' : ''}
-                        ${t.day < day ? 'completed' : ''}
-                        ${t.day > day && !marathon.can_continue ? 'disabled' : ''}"
-                        onclick="app.showMarathonDay(marathonData, ${t.day})"
-                        ${t.day > day && !marathon.can_continue ? 'disabled' : ''}>
-                        День ${t.day}
-                    </button>
-                `).join('')}
-            </div>
-        `;
-        
-        // Сохраняем marathonData в глобальной области видимости для использования в onclick
-        window.marathonData = marathon;
-        
-        document.getElementById('marathonsList').innerHTML = navigationHTML + dayHTML;
+                    ` : ''}
+                    
+                    <div class="card-actions">
+                        <button class="btn btn-primary" onclick="app.submitMarathonDay(${marathon.id}, ${marathon.current_day})">
+                            <i class="fas fa-check"></i>
+                            ${currentTask.requires_submission ? 'Отправить работу' : 'Завершить день'}
+                        </button>
+                        <button class="btn btn-secondary" onclick="app.loadMarathons()">
+                            <i class="fas fa-arrow-left"></i>
+                            Назад
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('marathonsList').innerHTML = marathonHTML;
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки дня марафона:', error);
+            this.showMessage('Ошибка загрузки дня марафона', 'error');
+        }
     }
 
     async submitMarathonDay(marathonId, day) {
         try {
             const submissionText = document.getElementById('marathonSubmission')?.value || '';
             
-            if (this.marathonData.tasks.find(t => t.day === day)?.requires_submission && !submissionText) {
-                this.showError('Это задание требует отправки работы');
-                return;
-            }
-
-            this.showLoading('Отправка работы...');
-            
             const response = await fetch(`/api/webapp/marathons/${marathonId}/submit-day`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.user.user_id,
+                    userId: this.userId,
                     day: day,
                     submission_text: submissionText
                 })
             });
 
-            if (!response.ok) throw new Error('Ошибка отправки дня марафона');
-
             const data = await response.json();
-
+            
             if (data.success) {
                 this.showMessage(data.message, 'success');
                 
                 if (data.completed) {
-                    this.showSection('marathons');
+                    this.loadMarathons(); // Возвращаемся к списку
                 } else {
-                    // Показываем следующий день
-                    const marathonsResponse = await fetch(`/api/webapp/marathons?userId=${this.user.user_id}`);
-                    const marathons = await marathonsResponse.json();
-                    const marathon = marathons.find(m => m.id === marathonId);
-                    this.showMarathonDay(marathon, data.currentDay);
+                    this.showMarathonDay(marathonId); // Показываем следующий день
                 }
                 
                 // Обновляем данные пользователя
-                this.loadUserData(this.user.user_id);
+                this.loadUser();
             } else {
-                throw new Error(data.error || 'Неизвестная ошибка');
+                this.showMessage(data.error || 'Ошибка отправки дня', 'error');
             }
-            
-            this.hideLoading();
-            
         } catch (error) {
             console.error('❌ Ошибка отправки дня марафона:', error);
-            this.hideLoading();
-            this.showError('Ошибка отправки дня марафона: ' + error.message);
+            this.showMessage('Ошибка отправки дня марафона', 'error');
         }
     }
 
-    async showInteractives() {
+    async loadInteractives() {
         try {
-            this.showLoading('Загрузка интерактивов...');
-            
-            const response = await fetch(`/api/webapp/interactives?userId=${this.user.user_id}`);
-            if (!response.ok) throw new Error('Ошибка загрузки интерактивов');
-            
+            const response = await fetch(`/api/webapp/interactives?userId=${this.userId}`);
             const interactives = await response.json();
             
-            const container = document.getElementById('interactivesList');
-            if (interactives.length > 0) {
-                container.innerHTML = interactives.map((interactive, index) => {
-                    let buttonText = 'Начать';
-                    let buttonClass = 'primary';
-                    let disabled = false;
-                    
-                    if (interactive.completed && !interactive.can_retake) {
-                        buttonText = 'Завершено';
-                        buttonClass = 'secondary';
-                        disabled = true;
-                    } else if (interactive.completed && interactive.can_retake) {
-                        buttonText = 'Повторить';
-                        buttonClass = 'warning';
-                    }
-                    
-                    return `
-                        <div class="interactive-card stagger-item" style="animation-delay: ${index * 0.1}s">
-                            <div class="interactive-title">${interactive.title}</div>
-                            <div class="interactive-description">${interactive.description}</div>
-                            <div class="interactive-meta">
-                                <span class="badge badge-info">${interactive.type}</span>
-                                <span class="badge badge-warning">${interactive.sparks_reward}✨ награда</span>
-                                ${interactive.completed && (`
-                                    <span class="badge badge-success">Пройдено</span>
-                                `)}
-                            </div>
-                            <button class="action-btn ${buttonClass}" ${disabled ? 'disabled' : ''} 
-                                    onclick="app.startInteractive(${interactive.id})">
-                                ${buttonText}
-                            </button>
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                container.innerHTML = this.createEmptyState('🎮', 'Интерактивы не найдены', 'Скоро появятся новые интерактивы!');
+            const interactivesList = document.getElementById('interactivesList');
+            
+            if (interactives.length === 0) {
+                interactivesList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎮</div>
+                        <div class="empty-state-title">Пока нет доступных интерактивов</div>
+                        <div class="empty-state-description">Новые интерактивы появятся скоро!</div>
+                    </div>
+                `;
+                return;
             }
             
-            this.hideLoading();
+            interactivesList.innerHTML = '';
+            
+            interactives.forEach(interactive => {
+                const interactiveCard = document.createElement('div');
+                interactiveCard.className = 'card';
+                
+                const status = interactive.completed ? 
+                    `<span style="color: var(--success-color);">✅ Пройден</span>` :
+                    `<span style="color: var(--primary-color);">🆕 Доступен</span>`;
+                
+                const buttonText = interactive.completed ? 
+                    (interactive.can_retake ? 'Попробовать снова' : 'Просмотреть') : 
+                    'Начать';
+                
+                const buttonClass = interactive.completed ? 
+                    (interactive.can_retake ? 'btn-primary' : 'btn-secondary') : 
+                    'btn-primary';
+                
+                interactiveCard.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${interactive.title}</div>
+                            <div class="card-description">${interactive.description}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            ${status}
+                        </div>
+                    </div>
+                    
+                    <div class="card-meta">
+                        <div class="tag">
+                            <i class="fas fa-star"></i>
+                            ${interactive.difficulty}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-clock"></i>
+                            ${interactive.time_limit} сек
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-trophy"></i>
+                            +${interactive.sparks_reward} искр
+                        </div>
+                    </div>
+                    
+                    <div class="card-actions">
+                        <button class="btn ${buttonClass}" onclick="app.startInteractive(${interactive.id})">
+                            <i class="fas fa-play"></i>
+                            ${buttonText}
+                        </button>
+                    </div>
+                `;
+                
+                interactivesList.appendChild(interactiveCard);
+            });
             
         } catch (error) {
             console.error('❌ Ошибка загрузки интерактивов:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки интерактивов: ' + error.message);
+            this.showMessage('Ошибка загрузки интерактивов', 'error');
         }
     }
 
     async startInteractive(interactiveId) {
         try {
-            this.showLoading('Загрузка интерактива...');
-            
-            const response = await fetch(`/api/webapp/interactives?userId=${this.user.user_id}`);
-            if (!response.ok) throw new Error('Ошибка загрузки интерактива');
-            
-            const interactives = await response.json();
-            const interactive = interactives.find(i => i.id === interactiveId);
+            const response = await fetch(`/api/webapp/interactives/${interactiveId}?userId=${this.userId}`);
+            const interactive = await response.json();
             
             if (!interactive) {
-                throw new Error('Интерактив не найден');
+                this.showMessage('Интерактив не найден', 'error');
+                return;
             }
             
-            const interactiveHTML = `
-                <div class="interactive-container">
-                    <div class="interactive-title">${interactive.title}</div>
-                    <div class="interactive-description">${interactive.description}</div>
-                    
-                    ${interactive.image_url && (`
-                        <img src="${interactive.image_url}" class="interactive-image" alt="${interactive.title}">
-                    `)}
-                    
-                    <div class="question-text">${interactive.question}</div>
-                    
-                    <div class="options-list">
-                        ${interactive.options.map((option, index) => `
-                            <div class="option-item" onclick="app.selectInteractiveAnswer(${interactive.id}, ${index})">
-                                ${option}
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('interactivesList').innerHTML = interactiveHTML;
-            
-            this.hideLoading();
+            this.currentInteractive = interactive;
+            this.showInteractiveQuestion();
             
         } catch (error) {
             console.error('❌ Ошибка начала интерактива:', error);
-            this.hideLoading();
-            this.showError('Ошибка начала интерактива: ' + error.message);
+            this.showMessage('Ошибка начала интерактива', 'error');
         }
     }
 
-    async selectInteractiveAnswer(interactiveId, answerIndex) {
-        try {
-            this.showLoading('Проверка ответа...');
-            
-            const response = await fetch(`/api/webapp/interactives/${interactiveId}/submit`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    userId: this.user.user_id,
-                    answer: answerIndex
-                })
-            });
-
-            if (!response.ok) throw new Error('Ошибка отправки ответа');
-
-            const data = await response.json();
-
-            if (data.success) {
-                // Показываем результат
-                const resultHTML = `
-                    <div class="content-card" style="text-align: center;">
-                        <div style="font-size: 80px; margin-bottom: 20px;">
-                            ${data.correct ? '🎉' : '😔'}
-                        </div>
-                        <h2 style="margin-bottom: 16px;">${data.correct ? 'Правильно!' : 'Попробуйте еще раз!'}</h2>
-                        <p style="font-size: 18px; margin: 20px 0; line-height: 1.5;">
-                            ${data.message}
-                        </p>
-                        ${data.correct && (`
-                            <div style="font-size: 32px; color: #10b981; font-weight: 700; margin: 20px 0;">
-                                +${data.sparksEarned}✨
-                            </div>
-                        `)}
-                        <button class="btn btn-primary" onclick="app.showSection('interactives')" style="margin-top: 20px;">
-                            Вернуться к списку
-                        </button>
-                    </div>
-                `;
+    showInteractiveQuestion() {
+        const interactive = this.currentInteractive;
+        
+        const interactiveHTML = `
+            <div class="quiz-container">
+                <div class="question-text">
+                    ${interactive.question}
+                </div>
                 
-                document.getElementById('interactivesList').innerHTML = resultHTML;
+                ${interactive.image_url ? `
+                <div style="text-align: center; margin: 20px 0;">
+                    <img src="${interactive.image_url}" alt="Иллюстрация" style="max-width: 100%; border-radius: var(--radius-md);">
+                </div>
+                ` : ''}
                 
-                // Обновляем данные пользователя
-                this.loadUserData(this.user.user_id);
-            } else {
-                throw new Error(data.error || 'Неизвестная ошибка');
-            }
-            
-            this.hideLoading();
-            
-        } catch (error) {
-            console.error('❌ Ошибка отправки ответа:', error);
-            this.hideLoading();
-            this.showError('Ошибка отправки ответа: ' + error.message);
-        }
-    }
-
-    async showShop() {
-        try {
-            this.showLoading('Загрузка магазина...');
-            
-            const response = await fetch('/api/webapp/shop/items');
-            if (!response.ok) throw new Error('Ошибка загрузки магазина');
-            
-            const items = await response.json();
-            
-            const container = document.getElementById('shopItemsList');
-            if (items.length > 0) {
-                container.innerHTML = items.map((item, index) => {
-                    const canAfford = this.user.sparks >= item.price;
-                    
-                    return `
-                        <div class="shop-item-card stagger-item" style="animation-delay: ${index * 0.1}s">
-                            <div class="shop-item-title">${item.title}</div>
-                            <div class="shop-item-description">${item.description}</div>
-                                                        <div class="shop-item-meta">
-                                <span class="badge badge-warning">${item.price}✨</span>
-                                <span class="badge badge-info">${item.type}</span>
-                                <span class="badge badge-success">${item.difficulty}</span>
-                            </div>
-                            
-                            ${item.features && item.features.length > 0 && (`
-                                <div style="margin: 16px 0;">
-                                    <strong>Включает:</strong>
-                                    <ul style="padding-left: 20px; margin-top: 8px;">
-                                        ${item.features.map(feature => `<li style="margin-bottom: 4px;">${feature}</li>`).join('')}
-                                    </ul>
-                                </div>
-                            `)}
-                            
-                            <button class="action-btn ${canAfford ? 'primary' : 'secondary'}" 
-                                    ${!canAfford ? 'disabled' : ''}
-                                    onclick="app.purchaseItem(${item.id})">
-                                ${canAfford ? '🛒 Купить' : 'Недостаточно искр'}
-                            </button>
+                <div class="options-list">
+                    ${interactive.options.map((option, index) => `
+                        <div class="option-item" onclick="app.selectInteractiveAnswer(${index})">
+                            ${option}
                         </div>
-                    `;
-                }).join('');
-            } else {
-                container.innerHTML = this.createEmptyState('🛒', 'Магазин пуст', 'Скоро появятся новые товары!');
-            }
-            
-            this.hideLoading();
-            
-        } catch (error) {
-            console.error('❌ Ошибка загрузки магазина:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки магазина: ' + error.message);
-        }
+                    `).join('')}
+                </div>
+                
+                ${interactive.hints && interactive.hints.length > 0 ? `
+                <div style="margin-top: 20px;">
+                    <details>
+                        <summary style="cursor: pointer; font-weight: 600; color: var(--primary-color);">
+                            <i class="fas fa-lightbulb"></i> Подсказки
+                        </summary>
+                        <div style="margin-top: 12px; padding: 12px; background: var(--light-color); border-radius: var(--radius-md);">
+                            <ul style="margin: 0;">
+                                ${interactive.hints.map(hint => `<li style="margin-bottom: 8px;">${hint}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </details>
+                </div>
+                ` : ''}
+                
+                <div class="card-actions">
+                    <button class="btn btn-primary" onclick="app.submitInteractiveAnswer()" id="submitInteractiveBtn" disabled>
+                        <i class="fas fa-paper-plane"></i>
+                        Проверить ответ
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('interactivesList').innerHTML = interactiveHTML;
     }
 
-    async purchaseItem(itemId) {
-        if (!confirm('Вы уверены, что хотите купить этот товар?')) {
+    selectInteractiveAnswer(answerIndex) {
+        // Убираем выделение со всех вариантов
+        document.querySelectorAll('.option-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        // Выделяем выбранный вариант
+        event.currentTarget.classList.add('selected');
+        
+        this.selectedInteractiveAnswer = answerIndex;
+        document.getElementById('submitInteractiveBtn').disabled = false;
+    }
+
+    async submitInteractiveAnswer() {
+        if (this.selectedInteractiveAnswer === undefined) {
+            this.showMessage('Пожалуйста, выберите ответ', 'warning');
             return;
         }
 
         try {
-            this.showLoading('Покупка...');
-            
-            const response = await fetch('/api/webapp/shop/purchase', {
+            const response = await fetch(`/api/webapp/interactives/${this.currentInteractive.id}/submit`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.user.user_id,
-                    itemId: itemId
+                    userId: this.userId,
+                    answer: this.selectedInteractiveAnswer
                 })
             });
 
-            if (!response.ok) throw new Error('Ошибка покупки');
-
             const data = await response.json();
-
+            
             if (data.success) {
-                this.showMessage(data.message, 'success');
-                this.user.sparks = data.remainingSparks;
-                this.updateUserInfo();
-                this.showSection('shop');
+                this.showInteractiveResults(data);
             } else {
-                throw new Error(data.error || 'Неизвестная ошибка');
+                this.showMessage(data.error || 'Ошибка отправки ответа', 'error');
             }
-            
-            this.hideLoading();
-            
         } catch (error) {
-            console.error('❌ Ошибка покупки:', error);
-            this.hideLoading();
-            this.showError('Ошибка покупки: ' + error.message);
+            console.error('❌ Ошибка отправки интерактива:', error);
+            this.showMessage('Ошибка отправки интерактива', 'error');
         }
     }
 
-    async showWorks() {
-        try {
-            this.showLoading('Загрузка работ...');
-            
-            const response = await fetch(`/api/webapp/users/${this.user.user_id}/works`);
-            if (!response.ok) throw new Error('Ошибка загрузки работ');
+    showInteractiveResults(results) {
+        const interactive = this.currentInteractive;
+        
+        const resultsHTML = `
+            <div class="results-container">
+                <div class="results-score" style="font-size: ${results.correct ? 'var(--font-4xl)' : 'var(--font-3xl)'}; color: ${results.correct ? 'var(--success-color)' : 'var(--danger-color)'};">
+                    ${results.correct ? '✅ Правильно!' : '❌ Неправильно'}
+                </div>
+                
+                ${results.correct ? `
+                <div class="card" style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--success-color); margin-bottom: 8px;">
+                        +${results.sparksEarned}✨
+                    </div>
+                    <div style="color: var(--text-muted);">
+                        ${results.message}
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${interactive.explanation ? `
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 12px;">📚 Объяснение</h3>
+                    <p style="line-height: 1.6;">${interactive.explanation}</p>
+                </div>
+                ` : ''}
+                
+                <div class="card-actions" style="justify-content: center;">
+                    <button class="btn btn-primary" onclick="app.loadInteractives()">
+                        <i class="fas fa-list"></i>
+                        К списку интерактивов
+                    </button>
+                    ${results.correct && interactive.allow_retake ? `
+                    <button class="btn btn-secondary" onclick="app.startInteractive(${interactive.id})">
+                        <i class="fas fa-redo"></i>
+                        Попробовать снова
+                    </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('interactivesList').innerHTML = resultsHTML;
+        
+        // Обновляем данные пользователя
+        this.loadUser();
+    }
 
+    async loadWorks() {
+        try {
+            const response = await fetch(`/api/webapp/users/${this.userId}/works`);
             const data = await response.json();
             
-            const container = document.getElementById('worksList');
-            if (data.works && data.works.length > 0) {
-                container.innerHTML = data.works.map((work, index) => {
-                    const statusBadge = work.status === 'approved' ? 'badge-success' : 
-                                      work.status === 'rejected' ? 'badge-danger' : 'badge-warning';
-                    const statusText = work.status === 'approved' ? 'Одобрено' : 
-                                     work.status === 'rejected' ? 'Отклонено' : 'На модерации';
-                    
-                    return `
-                        <div class="card stagger-item" style="animation-delay: ${index * 0.1}s">
-                            <h3 style="margin-bottom: 12px;">${work.title}</h3>
-                            ${work.description && (`
-                                <p style="margin-bottom: 12px; color: #666; line-height: 1.4;">${work.description}</p>
-                            `)}
-                            <div style="margin-bottom: 16px;">
-                                <span class="badge ${statusBadge}">${statusText}</span>
-                                <span class="badge badge-secondary">${this.formatDate(work.created_at)}</span>
-                            </div>
-                            ${work.admin_comment && work.status === 'rejected' && (`
-                                <div style="background: #fef2f2; padding: 12px; border-radius: 8px; margin-top: 12px;">
-                                    <strong>Комментарий модератора:</strong> ${work.admin_comment}
-                                </div>
-                            `)}
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                container.innerHTML = `
+            const worksList = document.getElementById('worksList');
+            
+            if (data.works.length === 0) {
+                worksList.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">🖼️</div>
-                        <h3>Работы не найдены</h3>
-                        <p>Загрузите свою первую работу!</p>
-                        <button class="btn btn-primary" onclick="app.showUploadWorkForm()" style="margin-top: 20px;">
-                            ➕ Загрузить работу
-                        </button>
+                        <div class="empty-state-title">У вас пока нет работ</div>
+                        <div class="empty-state-description">Загрузите свою первую работу и покажите ее сообществу!</div>
                     </div>
                 `;
+                return;
             }
             
-            this.hideLoading();
+            worksList.innerHTML = '';
+            
+            data.works.forEach(work => {
+                const workCard = document.createElement('div');
+                workCard.className = 'card';
+                
+                const status = work.status === 'approved' ? 
+                    `<span style="color: var(--success-color);">✅ Одобрено</span>` :
+                    work.status === 'rejected' ? 
+                    `<span style="color: var(--danger-color);">❌ Отклонено</span>` :
+                    `<span style="color: var(--warning-color);">⏳ На модерации</span>`;
+                
+                workCard.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${work.title}</div>
+                            <div class="card-description">${work.description}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            ${status}
+                        </div>
+                    </div>
+                    
+                    ${work.image_url ? `
+                    <div style="text-align: center; margin: 16px 0;">
+                        <img src="${work.image_url}" alt="${work.title}" style="max-width: 100%; max-height: 300px; border-radius: var(--radius-md);">
+                    </div>
+                    ` : ''}
+                    
+                    <div class="card-meta">
+                        <div class="tag">
+                            <i class="fas fa-tag"></i>
+                            ${work.category}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-calendar"></i>
+                            ${this.formatTime(work.created_at)}
+                        </div>
+                        ${work.likes_count > 0 ? `
+                        <div class="tag">
+                            <i class="fas fa-heart"></i>
+                            ${work.likes_count}
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${work.admin_comment ? `
+                    <div style="margin: 16px 0; padding: 12px; background: var(--light-color); border-radius: var(--radius-md);">
+                        <strong>Комментарий модератора:</strong><br>
+                        ${work.admin_comment}
+                    </div>
+                    ` : ''}
+                `;
+                
+                worksList.appendChild(workCard);
+            });
             
         } catch (error) {
             console.error('❌ Ошибка загрузки работ:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки работ: ' + error.message);
+            this.showMessage('Ошибка загрузки работ', 'error');
         }
     }
 
     showUploadWorkForm() {
         const formHTML = `
             <div class="card">
-                <h3 style="margin-bottom: 20px;">📤 Загрузка работы</h3>
+                <h3 style="margin-bottom: 16px;">📤 Загрузка новой работы</h3>
                 
                 <div class="form-group">
-                    <label class="form-label">Название работы:</label>
-                    <input type="text" class="form-control" id="workTitle" placeholder="Введите название работы">
+                    <label class="form-label">Название работы *</label>
+                    <input type="text" class="form-control" id="workTitle" placeholder="Введите название вашей работы" required>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Описание:</label>
-                    <textarea class="form-control" id="workDescription" placeholder="Опишите вашу работу..." rows="3"></textarea>
+                    <label class="form-label">Описание</label>
+                    <textarea class="form-control" id="workDescription" placeholder="Опишите вашу работу, технику, идею..." rows="3"></textarea>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Ссылка на изображение:</label>
-                    <input type="url" class="form-control" id="workImageUrl" placeholder="https://example.com/image.jpg">
-                    <small style="color: #666; margin-top: 8px; display: block;">
-                        Вставьте ссылку на изображение вашей работы (Imgur, Google Drive и т.д.)
+                    <label class="form-label">Ссылка на изображение *</label>
+                    <input type="url" class="form-control" id="workImageUrl" placeholder="https://example.com/image.jpg" required>
+                    <small style="color: var(--text-muted); margin-top: 4px; display: block;">
+                        Вставьте прямую ссылку на изображение (JPG, PNG)
                     </small>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Категория:</label>
+                    <label class="form-label">Категория</label>
                     <select class="form-control" id="workCategory">
                         <option value="painting">Живопись</option>
                         <option value="drawing">Рисунок</option>
                         <option value="digital">Цифровое искусство</option>
                         <option value="photography">Фотография</option>
-                        <option value="craft">Рукоделие</option>
+                        <option value="fashion">Мода и стиль</option>
                         <option value="other">Другое</option>
                     </select>
                 </div>
                 
-                <div style="display: flex; gap: 12px; margin-top: 24px;">
-                    <button class="btn btn-secondary" onclick="app.showSection('works')" style="flex: 1;">
-                        Отмена
+                <div class="form-group">
+                    <label class="form-label">Теги (через запятую)</label>
+                    <input type="text" class="form-control" id="workTags" placeholder="акварель, пейзаж, природа">
+                </div>
+                
+                <div class="card-actions">
+                    <button class="btn btn-primary" onclick="app.uploadWork()">
+                        <i class="fas fa-upload"></i>
+                        Загрузить работу
                     </button>
-                    <button class="btn btn-primary" onclick="app.uploadWork()" style="flex: 1;">
-                        Загрузить
+                    <button class="btn btn-secondary" onclick="app.loadWorks()">
+                        <i class="fas fa-arrow-left"></i>
+                        Отмена
                     </button>
                 </div>
             </div>
@@ -1163,599 +1269,765 @@ class InspirationApp {
         const description = document.getElementById('workDescription').value.trim();
         const imageUrl = document.getElementById('workImageUrl').value.trim();
         const category = document.getElementById('workCategory').value;
-
-        if (!title) {
-            this.showError('Введите название работы');
-            return;
-        }
-
-        if (!imageUrl) {
-            this.showError('Введите ссылку на изображение');
+        const tags = document.getElementById('workTags').value.split(',').map(tag => tag.trim()).filter(tag => tag);
+        
+        if (!title || !imageUrl) {
+            this.showMessage('Пожалуйста, заполните обязательные поля', 'warning');
             return;
         }
 
         try {
-            this.showLoading('Загрузка работы...');
-            
             const response = await fetch('/api/webapp/upload-work', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.user.user_id,
+                    userId: this.userId,
                     title: title,
                     description: description,
                     imageUrl: imageUrl,
-                    category: category
+                    category: category,
+                    tags: tags
                 })
             });
 
-            if (!response.ok) throw new Error('Ошибка загрузки работы');
-
             const data = await response.json();
-
+            
             if (data.success) {
                 this.showMessage(data.message, 'success');
-                this.showSection('works');
-                this.loadUserData(this.user.user_id);
+                this.loadWorks(); // Обновляем список работ
             } else {
-                throw new Error(data.error || 'Неизвестная ошибка');
+                this.showMessage(data.error || 'Ошибка загрузки работы', 'error');
             }
-            
-            this.hideLoading();
-            
         } catch (error) {
             console.error('❌ Ошибка загрузки работы:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки работы: ' + error.message);
+            this.showMessage('Ошибка загрузки работы', 'error');
         }
     }
 
-    async showPosts() {
+    async loadShopItems() {
         try {
-            this.showLoading('Загрузка постов...');
+            const response = await fetch('/api/webapp/shop/items');
+            const items = await response.json();
             
-            const response = await fetch(`/api/webapp/channel-posts?userId=${this.user.user_id}`);
-            if (!response.ok) throw new Error('Ошибка загрузки постов');
-
-            const data = await response.json();
+            const shopList = document.getElementById('shopItemsList');
             
-            const container = document.getElementById('postsList');
-            if (data.posts && data.posts.length > 0) {
-                container.innerHTML = data.posts.map((post, index) => {
-                    const hasReview = post.user_review !== null;
-                    
-                    return `
-                        <div class="post-card stagger-item" style="animation-delay: ${index * 0.1}s">
-                            <div class="post-title">${post.title}</div>
-                            <div class="post-content">${post.content}</div>
-                            
-                            ${post.image_url && (`
-                                <div style="margin: 16px 0;">
-                                    <img src="${post.image_url}" style="max-width: 100%; border-radius: 8px;" alt="${post.title}">
-                                </div>
-                            `)}
-                            
-                            <div class="post-meta">
-                                <span>${this.formatDate(post.created_at)}</span>
-                                <span>${post.reviews_count} отзывов</span>
-                            </div>
-                            
-                            <button class="btn ${hasReview ? 'btn-secondary' : 'btn-primary'}" 
-                                    onclick="app.showPostReviewForm(${index}, '${post.post_id}')"
-                                    style="margin-top: 16px; width: 100%;"
-                                    ${hasReview ? 'disabled' : ''}>
-                                ${hasReview ? '✓ Отзыв оставлен' : '✍️ Написать отзыв'}
-                            </button>
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                container.innerHTML = this.createEmptyState('📰', 'Посты не найдены', 'Скоро появятся новые посты!');
+            if (items.length === 0) {
+                shopList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🛒</div>
+                        <div class="empty-state-title">Магазин пока пуст</div>
+                        <div class="empty-state-description">Новые товары появятся скоро!</div>
+                    </div>
+                `;
+                return;
             }
             
-            this.hideLoading();
+            shopList.innerHTML = '';
+            
+            items.forEach(item => {
+                const itemCard = document.createElement('div');
+                itemCard.className = 'card';
+                
+                const finalPrice = item.discount_percent > 0 ? 
+                    Math.round(item.price * (1 - item.discount_percent / 100)) : 
+                    item.price;
+                
+                const priceHTML = item.discount_percent > 0 ? `
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span style="font-size: var(--font-xl); font-weight: 800; color: var(--success-color);">
+                            ${finalPrice}✨
+                        </span>
+                        <span style="text-decoration: line-through; color: var(--text-muted);">
+                            ${item.price}✨
+                        </span>
+                        <span style="background: var(--danger-color); color: white; padding: 4px 8px; border-radius: 12px; font-size: var(--font-xs); font-weight: 700;">
+                            -${item.discount_percent}%
+                        </span>
+                    </div>
+                ` : `
+                    <div style="font-size: var(--font-xl); font-weight: 800; color: var(--success-color); margin-bottom: 8px;">
+                        ${item.price}✨
+                    </div>
+                `;
+                
+                itemCard.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${item.title}</div>
+                            <div class="card-description">${item.description}</div>
+                        </div>
+                    </div>
+                    
+                    ${priceHTML}
+                    
+                    <div class="card-meta">
+                        <div class="tag">
+                            <i class="fas fa-${this.getShopItemIcon(item.type)}"></i>
+                            ${this.getShopItemType(item.type)}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-star"></i>
+                            ${item.difficulty}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-clock"></i>
+                            ${item.duration}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-users"></i>
+                            ${item.students_count} студентов
+                        </div>
+                    </div>
+                    
+                    ${item.features && item.features.length > 0 ? `
+                    <div style="margin: 16px 0;">
+                        <strong>Включает:</strong>
+                        <ul style="margin: 8px 0 0 20px;">
+                            ${item.features.map(feature => `<li>${feature}</li>`).join('')}
+                        </ul>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="card-actions">
+                        <button class="btn btn-primary" onclick="app.purchaseItem(${item.id})" ${this.user.sparks < finalPrice ? 'disabled' : ''}>
+                            <i class="fas fa-shopping-cart"></i>
+                            Купить за ${finalPrice}✨
+                        </button>
+                        <button class="btn btn-secondary" onclick="app.viewItemDetails(${item.id})">
+                            <i class="fas fa-info-circle"></i>
+                            Подробнее
+                        </button>
+                    </div>
+                    
+                    ${this.user.sparks < finalPrice ? `
+                    <div style="margin-top: 12px; text-align: center; color: var(--danger-color); font-weight: 600;">
+                        ❌ Недостаточно искр. Нужно еще ${finalPrice - this.user.sparks}✨
+                    </div>
+                    ` : ''}
+                `;
+                
+                shopList.appendChild(itemCard);
+            });
             
         } catch (error) {
-            console.error('❌ Ошибка загрузки постов:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки постов: ' + error.message);
+            console.error('❌ Ошибка загрузки товаров:', error);
+            this.showMessage('Ошибка загрузки товаров', 'error');
         }
     }
 
-    showPostReviewForm(postIndex, postId) {
-        const formHTML = `
-            <div class="card">
-                <h3 style="margin-bottom: 20px;">✍️ Написать отзыв</h3>
-                
-                <div class="form-group">
-                    <label class="form-label">Ваш отзыв:</label>
-                    <textarea class="form-control" id="reviewText" placeholder="Поделитесь вашим мнением о посте..." rows="4"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Оценка:</label>
-                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        ${[1, 2, 3, 4, 5].map(star => `
-                            <button type="button" class="btn btn-secondary" 
-                                    onclick="app.setReviewRating(${star})"
-                                    id="star-${star}"
-                                    style="flex: 1; padding: 12px;">
-                                ${star} ⭐
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
-                
-                <input type="hidden" id="reviewRating" value="5">
-                
-                <div style="display: flex; gap: 12px; margin-top: 24px;">
-                    <button class="btn btn-secondary" onclick="app.showSection('posts')" style="flex: 1;">
-                        Отмена
-                    </button>
-                    <button class="btn btn-primary" onclick="app.submitPostReview('${postId}')" style="flex: 1;">
-                        Отправить отзыв
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        // Сохраняем индекс поста для возврата
-        this.currentPostIndex = postIndex;
-        
-        document.getElementById('postsList').innerHTML = formHTML;
-        this.setReviewRating(5); // Устанавливаем рейтинг по умолчанию
-    }
-
-    setReviewRating(rating) {
-        document.getElementById('reviewRating').value = rating;
-        
-        // Обновляем стили кнопок
-        for (let i = 1; i <= 5; i++) {
-            const starBtn = document.getElementById(`star-${i}`);
-            if (i <= rating) {
-                starBtn.classList.remove('btn-secondary');
-                starBtn.classList.add('btn-warning');
-            } else {
-                starBtn.classList.remove('btn-warning');
-                starBtn.classList.add('btn-secondary');
-            }
-        }
-    }
-
-    async submitPostReview(postId) {
-        const reviewText = document.getElementById('reviewText').value.trim();
-        const rating = parseInt(document.getElementById('reviewRating').value);
-
-        if (!reviewText) {
-            this.showError('Введите текст отзыва');
+    async purchaseItem(itemId) {
+        if (!confirm('Вы уверены, что хотите купить этот товар?')) {
             return;
         }
 
         try {
-            this.showLoading('Отправка отзыва...');
-            
-            const response = await fetch(`/api/webapp/posts/${postId}/review`, {
+            const response = await fetch('/api/webapp/shop/purchase', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.user.user_id,
-                    reviewText: reviewText,
-                    rating: rating
+                    userId: this.userId,
+                    itemId: itemId
                 })
             });
 
-            if (!response.ok) throw new Error('Ошибка отправки отзыва');
-
             const data = await response.json();
-
+            
             if (data.success) {
                 this.showMessage(data.message, 'success');
-                this.showSection('posts');
-                this.loadUserData(this.user.user_id);
+                this.loadShopItems(); // Обновляем список товаров
+                this.loadUser(); // Обновляем данные пользователя
             } else {
-                throw new Error(data.error || 'Неизвестная ошибка');
+                this.showMessage(data.error || 'Ошибка покупки', 'error');
             }
-            
-            this.hideLoading();
-            
         } catch (error) {
-            console.error('❌ Ошибка отправки отзыва:', error);
-            this.hideLoading();
-            this.showError('Ошибка отправки отзыва: ' + error.message);
+            console.error('❌ Ошибка покупки:', error);
+            this.showMessage('Ошибка покупки', 'error');
         }
     }
 
-    async showAchievements() {
+    async loadPosts() {
         try {
-            this.showLoading('Загрузка достижений...');
+            const response = await fetch(`/api/webapp/channel-posts?userId=${this.userId}&limit=20`);
+            const data = await response.json();
             
-            const response = await fetch(`/api/webapp/users/${this.user.user_id}/achievements`);
-            if (!response.ok) throw new Error('Ошибка загрузки достижений');
+            const postsList = document.getElementById('postsList');
+            
+            if (data.posts.length === 0) {
+                postsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📰</div>
+                        <div class="empty-state-title">Пока нет постов</div>
+                        <div class="empty-state-description">Новые посты появятся скоро!</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            postsList.innerHTML = '';
+            
+            data.posts.forEach(post => {
+                const postCard = document.createElement('div');
+                postCard.className = 'card';
+                
+                postCard.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${post.title}</div>
+                            <div class="card-description">${post.content}</div>
+                        </div>
+                    </div>
+                    
+                    ${post.image_url ? `
+                    <div style="text-align: center; margin: 16px 0;">
+                        <img src="${post.image_url}" alt="${post.title}" style="max-width: 100%; border-radius: var(--radius-md);">
+                    </div>
+                    ` : ''}
+                    
+                    <div class="card-meta">
+                        <div class="tag">
+                            <i class="fas fa-calendar"></i>
+                            ${this.formatTime(post.created_at)}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-eye"></i>
+                            ${post.views_count} просмотров
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-heart"></i>
+                            ${post.likes_count} лайков
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-comment"></i>
+                            ${post.comments_count} комментариев
+                        </div>
+                    </div>
+                    
+                    <div class="card-actions">
+                        <button class="btn btn-primary" onclick="app.viewPost(${post.id})">
+                            <i class="fas fa-eye"></i>
+                            Читать полностью
+                        </button>
+                        <button class="btn btn-secondary" onclick="app.writePostReview('${post.post_id}')">
+                            <i class="fas fa-star"></i>
+                            Оставить отзыв
+                        </button>
+                    </div>
+                `;
+                
+                postsList.appendChild(postCard);
+            });
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки постов:', error);
+            this.showMessage('Ошибка загрузки постов', 'error');
+        }
+    }
+
+    async writePostReview(postId) {
+        const reviewText = prompt('Напишите ваш отзыв о посте:');
+        if (!reviewText) return;
+
+        const rating = prompt('Оцените пост от 1 до 5 звезд:');
+        if (!rating || isNaN(rating) || rating < 1 || rating > 5) {
+            this.showMessage('Пожалуйста, введите корректную оценку от 1 до 5', 'warning');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/webapp/posts/${postId}/review`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: this.userId,
+                    reviewText: reviewText,
+                    rating: parseInt(rating)
+                })
+            });
 
             const data = await response.json();
             
-            const container = document.getElementById('achievementsList');
-            
-            // Показываем полученные достижения
-            if (data.earned && data.earned.length > 0) {
-                const earnedHTML = `
-                    <h3 style="margin-bottom: 16px;">🎉 Полученные достижения</h3>
-                    <div class="achievements-grid">
-                        ${data.earned.map((achievement, index) => `
-                            <div class="achievement-card earned stagger-item" style="animation-delay: ${index * 0.1}s">
-                                <div class="achievement-icon">${achievement.icon}</div>
-                                <div class="achievement-title">${achievement.title}</div>
-                                <div class="achievement-description">${achievement.description}</div>
-                                <div class="achievement-reward">+${achievement.sparks_reward}✨</div>
-                                ${!achievement.sparks_claimed && (`
-                                    <button class="btn btn-success" onclick="app.claimAchievement(${achievement.achievement_id})" style="margin-top: 12px; width: 100%;">
-                                        Забрать награду
-                                    </button>
-                                `)}
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-                
-                container.innerHTML = earnedHTML;
+            if (data.success) {
+                this.showMessage(data.message, 'success');
+                this.loadUser(); // Обновляем данные пользователя
             } else {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🏆</div>
-                        <h3>Достижений пока нет</h3>
-                        <p>Участвуйте в активностях, чтобы получить достижения!</p>
-                    </div>
+                this.showMessage(data.error || 'Ошибка отправки отзыва', 'error');
+            }
+        } catch (error) {
+            console.error('❌ Ошибка отправки отзыва:', error);
+            this.showMessage('Ошибка отправки отзыва', 'error');
+        }
+    }
+
+    async loadAchievements() {
+        try {
+            const response = await fetch(`/api/webapp/users/${this.userId}/achievements`);
+            const data = await response.json();
+            
+            const achievementsList = document.getElementById('achievementsList');
+            
+            achievementsList.innerHTML = '';
+            
+            // Показываем заработанные достижения
+            if (data.earned.length > 0) {
+                const earnedSection = document.createElement('div');
+                earnedSection.innerHTML = `
+                    <h2 class="section-title" style="margin: 24px 0 16px;">
+                        <i class="fas fa-trophy"></i>
+                        Ваши достижения (${data.earned.length})
+                    </h2>
                 `;
+                achievementsList.appendChild(earnedSection);
+                
+                const earnedGrid = document.createElement('div');
+                earnedGrid.className = 'achievement-grid';
+                
+                data.earned.forEach(achievement => {
+                    const achievementCard = document.createElement('div');
+                    achievementCard.className = 'achievement-card earned';
+                    achievementCard.innerHTML = `
+                        <div class="achievement-icon">${achievement.icon}</div>
+                        <div class="achievement-title">${achievement.title}</div>
+                        <div class="achievement-description">${achievement.description}</div>
+                        <div class="achievement-reward">
+                            ${achievement.sparks_claimed ? 
+                                `✅ ${achievement.sparks_reward}✨ получено` : 
+                                `<button class="btn btn-success" onclick="app.claimAchievement(${achievement.achievement_id})" style="padding: 8px 16px; font-size: var(--font-sm);">
+                                    Получить ${achievement.sparks_reward}✨
+                                </button>`
+                            }
+                        </div>
+                    `;
+                    earnedGrid.appendChild(achievementCard);
+                });
+                
+                achievementsList.appendChild(earnedGrid);
             }
             
             // Показываем доступные достижения
-            if (data.available && data.available.length > 0) {
-                const availableHTML = `
-                    <h3 style="margin: 32px 0 16px 0;">🎯 Доступные достижения</h3>
-                    <div class="achievements-grid">
-                        ${data.available.filter(a => !a.earned).map((achievement, index) => `
-                            <div class="achievement-card stagger-item" style="animation-delay: ${index * 0.1}s">
-                                <div class="achievement-icon">${achievement.icon}</div>
-                                <div class="achievement-title">${achievement.title}</div>
-                                <div class="achievement-description">${achievement.description}</div>
-                                <div class="achievement-reward">+${achievement.sparks_reward}✨</div>
-                            </div>
-                        `).join('')}
-                    </div>
+            if (data.available.filter(a => !a.earned).length > 0) {
+                const availableSection = document.createElement('div');
+                availableSection.innerHTML = `
+                    <h2 class="section-title" style="margin: 24px 0 16px;">
+                        <i class="fas fa-lock"></i>
+                        Доступные достижения
+                    </h2>
                 `;
+                achievementsList.appendChild(availableSection);
                 
-                container.innerHTML += availableHTML;
+                const availableGrid = document.createElement('div');
+                availableGrid.className = 'achievement-grid';
+                
+                data.available.filter(a => !a.earned).forEach(achievement => {
+                    const achievementCard = document.createElement('div');
+                    achievementCard.className = 'achievement-card';
+                    achievementCard.innerHTML = `
+                        <div class="achievement-icon">${achievement.icon}</div>
+                        <div class="achievement-title">${achievement.title}</div>
+                        <div class="achievement-description">${achievement.description}</div>
+                        <div class="achievement-reward" style="color: var(--text-muted);">
+                            Награда: ${achievement.sparks_reward}✨
+                        </div>
+                    `;
+                    availableGrid.appendChild(achievementCard);
+                });
+                
+                achievementsList.appendChild(availableGrid);
             }
             
-            this.hideLoading();
+            if (data.earned.length === 0 && data.available.filter(a => !a.earned).length === 0) {
+                achievementsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🏆</div>
+                        <div class="empty-state-title">Пока нет достижений</div>
+                        <div class="empty-state-description">Выполняйте задания и получайте достижения!</div>
+                    </div>
+                `;
+            }
             
         } catch (error) {
             console.error('❌ Ошибка загрузки достижений:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки достижений: ' + error.message);
+            this.showMessage('Ошибка загрузки достижений', 'error');
         }
     }
 
     async claimAchievement(achievementId) {
         try {
-            this.showLoading('Получение награды...');
-            
             const response = await fetch(`/api/webapp/achievements/${achievementId}/claim`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.user.user_id
+                    userId: this.userId
                 })
             });
 
-            if (!response.ok) throw new Error('Ошибка получения награды');
-
             const data = await response.json();
-
+            
             if (data.success) {
                 this.showMessage(data.message, 'success');
-                this.showSection('achievements');
-                this.loadUserData(this.user.user_id);
+                this.loadAchievements(); // Обновляем список достижений
+                this.loadUser(); // Обновляем данные пользователя
             } else {
-                throw new Error(data.error || 'Неизвестная ошибка');
+                this.showMessage(data.error || 'Ошибка получения награды', 'error');
             }
-            
-            this.hideLoading();
-            
         } catch (error) {
             console.error('❌ Ошибка получения награды:', error);
-            this.hideLoading();
-            this.showError('Ошибка получения награды: ' + error.message);
+            this.showMessage('Ошибка получения награды', 'error');
         }
     }
 
-    async showActivities() {
+    async loadActivities() {
         try {
-            this.showLoading('Загрузка активностей...');
-            
-            const response = await fetch(`/api/webapp/users/${this.user.user_id}/activities`);
-            if (!response.ok) throw new Error('Ошибка загрузки активностей');
-
+            const response = await fetch(`/api/webapp/users/${this.userId}/activities?limit=50`);
             const data = await response.json();
             
-            const container = document.getElementById('activitiesList');
-            if (data.activities && data.activities.length > 0) {
-                container.innerHTML = data.activities.map((activity, index) => `
-                    <div class="activity-item stagger-item" style="animation-delay: ${index * 0.05}s">
-                        <div class="activity-info">
-                            <div class="activity-title">${activity.description}</div>
-                            <div class="activity-date">${this.formatDate(activity.created_at)}</div>
-                        </div>
-                        <div class="activity-sparks">+${activity.sparks_earned}✨</div>
+            const activitiesList = document.getElementById('activitiesList');
+            
+            if (data.activities.length === 0) {
+                activitiesList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <div class="empty-state-title">Пока нет активностей</div>
+                        <div class="empty-state-description">Ваша история активностей появится здесь</div>
                     </div>
-                `).join('');
-            } else {
-                container.innerHTML = this.createEmptyState('📊', 'Активности не найдены', 'Начните участвовать в активностях!');
+                `;
+                return;
             }
             
-            this.hideLoading();
+            activitiesList.innerHTML = '';
+            
+            let currentDate = '';
+            
+            data.activities.forEach(activity => {
+                const activityDate = new Date(activity.created_at).toDateString();
+                
+                // Добавляем заголовок даты если она изменилась
+                if (activityDate !== currentDate) {
+                    currentDate = activityDate;
+                    const dateHeader = document.createElement('div');
+                    dateHeader.className = 'section-title';
+                    dateHeader.style.margin = '24px 0 16px';
+                    dateHeader.textContent = this.formatDate(activity.created_at);
+                    activitiesList.appendChild(dateHeader);
+                }
+                
+                const activityItem = document.createElement('div');
+                activityItem.className = 'activity-item';
+                
+                const icon = this.getActivityIcon(activity.activity_type);
+                const time = this.formatTime(activity.created_at);
+                
+                activityItem.innerHTML = `
+                    <div class="activity-icon">${icon}</div>
+                    <div class="activity-content">
+                        <div class="activity-title">${activity.description}</div>
+                        <div class="activity-time">${time}</div>
+                    </div>
+                    <div class="activity-sparks" style="color: ${activity.sparks_earned >= 0 ? 'var(--success-color)' : 'var(--danger-color)'};">
+                        ${activity.sparks_earned >= 0 ? '+' : ''}${activity.sparks_earned}✨
+                    </div>
+                `;
+                
+                activitiesList.appendChild(activityItem);
+            });
             
         } catch (error) {
             console.error('❌ Ошибка загрузки активностей:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки активностей: ' + error.message);
+            this.showMessage('Ошибка загрузки активностей', 'error');
         }
     }
 
-    async showPurchases() {
+    async loadPurchases() {
         try {
-            this.showLoading('Загрузка покупок...');
-            
-            const response = await fetch(`/api/webapp/users/${this.user.user_id}/purchases`);
-            if (!response.ok) throw new Error('Ошибка загрузки покупок');
-
+            const response = await fetch(`/api/webapp/users/${this.userId}/purchases`);
             const data = await response.json();
             
-            const container = document.getElementById('purchasesList');
-            if (data.purchases && data.purchases.length > 0) {
-                container.innerHTML = data.purchases.map((purchase, index) => {
-                    const fileUrl = purchase.file_url || purchase.file_data;
-                    
-                    return `
-                        <div class="purchase-card stagger-item" style="animation-delay: ${index * 0.1}s">
-                            <div class="purchase-header">
-                                <div>
-                                    <div class="purchase-title">${purchase.title}</div>
-                                    <div class="purchase-description">${purchase.description}</div>
-                                </div>
-                                <div class="purchase-price">-${purchase.price_paid}✨</div>
-                            </div>
-                            
-                            <div class="purchase-meta">
-                                <span class="badge badge-info">${purchase.type}</span>
-                                <span class="badge badge-secondary">${this.formatDate(purchase.purchased_at)}</span>
-                            </div>
-                            
-                            ${fileUrl && (`
-                                <a href="${fileUrl}" class="file-download" target="_blank" download>
-                                    📥 Скачать материалы
-                                </a>
-                            `)}
-                            
-                            ${purchase.content_text && !fileUrl && (`
-                                <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-top: 12px;">
-                                    <strong>Содержание:</strong>
-                                    <p style="margin-top: 8px; line-height: 1.5;">${purchase.content_text}</p>
-                                </div>
-                            `)}
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                container.innerHTML = this.createEmptyState('📦', 'Покупок нет', 'Купите что-нибудь в магазине!');
+            const purchasesList = document.getElementById('purchasesList');
+            
+            if (data.purchases.length === 0) {
+                purchasesList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <div class="empty-state-title">У вас пока нет покупок</div>
+                        <div class="empty-state-description">Приобретайте курсы и материалы в магазине!</div>
+                    </div>
+                `;
+                return;
             }
             
-            this.hideLoading();
+            purchasesList.innerHTML = '';
+            
+            data.purchases.forEach(purchase => {
+                const purchaseCard = document.createElement('div');
+                purchaseCard.className = 'card';
+                
+                purchaseCard.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${purchase.title}</div>
+                            <div class="card-description">${purchase.description}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="color: var(--success-color);">✅ Куплено</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card-meta">
+                        <div class="tag">
+                            <i class="fas fa-${this.getShopItemIcon(purchase.type)}"></i>
+                            ${this.getShopItemType(purchase.type)}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-calendar"></i>
+                            ${this.formatTime(purchase.purchased_at)}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-coins"></i>
+                            ${purchase.price_paid}✨
+                        </div>
+                    </div>
+                    
+                    ${purchase.download_count !== undefined ? `
+                    <div style="margin: 16px 0;">
+                        <strong>Скачиваний:</strong> ${purchase.download_count}
+                    </div>
+                    ` : ''}
+                    
+                    <div class="card-actions">
+                        <button class="btn btn-primary" onclick="app.downloadPurchase(${purchase.id})">
+                            <i class="fas fa-download"></i>
+                            Скачать
+                        </button>
+                        <button class="btn btn-secondary" onclick="app.viewPurchaseContent(${purchase.id})">
+                            <i class="fas fa-eye"></i>
+                            Просмотреть
+                        </button>
+                    </div>
+                `;
+                
+                purchasesList.appendChild(purchaseCard);
+            });
             
         } catch (error) {
             console.error('❌ Ошибка загрузки покупок:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки покупок: ' + error.message);
+            this.showMessage('Ошибка загрузки покупок', 'error');
         }
     }
 
-    async showChangeRole() {
+    async loadChangeRole() {
         try {
-            this.showLoading('Загрузка ролей...');
-            
-            // Показываем текущую роль
+            // Загружаем текущую роль
             document.getElementById('currentRole').textContent = this.user.class || 'Не выбрана';
             
-            // Загружаем все роли
+            // Загружаем доступные роли
             const response = await fetch('/api/webapp/roles');
-            if (!response.ok) throw new Error('Ошибка загрузки ролей');
-            
             const roles = await response.json();
             
-            const container = document.getElementById('changeRoleSelection');
-            container.innerHTML = roles.map(role => `
-                <div class="role-option" onclick="app.selectChangeRole(${role.id}, this)">
+            const roleSelection = document.getElementById('changeRoleSelection');
+            roleSelection.innerHTML = '';
+            
+            roles.forEach(role => {
+                if (role.name === this.user.class) return; // Пропускаем текущую роль
+                
+                const roleCard = document.createElement('div');
+                roleCard.className = 'role-card';
+                roleCard.innerHTML = `
                     <div class="role-icon">${role.icon}</div>
                     <div class="role-name">${role.name}</div>
                     <div class="role-description">${role.description}</div>
-                </div>
-            `).join('');
-            
-            this.hideLoading();
+                    <div class="role-requirements">${role.requirements}</div>
+                `;
+                
+                roleCard.addEventListener('click', () => this.selectChangeRole(role));
+                roleSelection.appendChild(roleCard);
+            });
             
         } catch (error) {
-            console.error('❌ Ошибка загрузки ролей:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки ролей: ' + error.message);
+            console.error('❌ Ошибка загрузки ролей для смены:', error);
+            this.showMessage('Ошибка загрузки ролей', 'error');
         }
     }
 
-    async selectChangeRole(roleId, element) {
-        this.selectedRole = roleId;
-        
-        // Убираем выделение у всех ролей
-        document.querySelectorAll('#changeRoleSelection .role-option').forEach(option => {
-            option.classList.remove('selected');
+    selectChangeRole(role) {
+        // Убираем выделение со всех карточек
+        document.querySelectorAll('#changeRoleSelection .role-card').forEach(card => {
+            card.classList.remove('selected');
         });
         
-        // Добавляем выделение выбранной роли
-        element.classList.add('selected');
+        // Выделяем выбранную карточку
+        event.currentTarget.classList.add('selected');
+        
+        this.selectedChangeRole = role;
+        this.loadChangeCharacters(role.id);
         
         // Показываем раздел выбора персонажа
         document.getElementById('changeCharacterSection').classList.remove('hidden');
-        
-        // Загружаем персонажей для выбранной роли
-        await this.loadChangeCharacters(roleId);
-        
-        // Показываем кнопку смены роли
         document.getElementById('changeRoleBtn').classList.remove('hidden');
     }
 
     async loadChangeCharacters(roleId) {
         try {
-            this.showLoading('Загрузка персонажей...');
-            
             const response = await fetch(`/api/webapp/characters/${roleId}`);
-            if (!response.ok) throw new Error('Ошибка загрузки персонажей');
-            
             const characters = await response.json();
             
-            const container = document.getElementById('changeCharacterSelection');
-            if (characters.length > 0) {
-                container.innerHTML = characters.map(character => `
-                    <div class="character-option" onclick="app.selectChangeCharacter(${character.id}, this)">
-                        <div class="character-name">
-                            <span style="font-size: 24px; margin-right: 8px;">${character.avatar}</span>
-                            ${character.name}
-                        </div>
-                        <div class="character-description">${character.description}</div>
-                        <div class="character-bonus">${character.bonus_description}</div>
-                    </div>
-                `).join('');
-                
-                // Выбираем первого персонажа по умолчанию
-                if (characters.length > 0) {
-                    this.selectChangeCharacter(characters[0].id, container.firstElementChild);
-                }
-            } else {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">👤</div>
-                        <p>Для этой роли пока нет персонажей</p>
-                    </div>
-                `;
-            }
+            const characterSelection = document.getElementById('changeCharacterSelection');
+            characterSelection.innerHTML = '';
             
-            this.hideLoading();
+            characters.forEach(character => {
+                const characterCard = document.createElement('div');
+                characterCard.className = 'character-card';
+                characterCard.innerHTML = `
+                    <div class="character-header">
+                        <div class="character-avatar">${character.avatar}</div>
+                        <div class="character-name">${character.name}</div>
+                    </div>
+                    <div class="character-description">${character.description}</div>
+                    <div class="character-bonus">${character.bonus_description}</div>
+                `;
+                
+                characterCard.addEventListener('click', () => this.selectChangeCharacter(character));
+                characterSelection.appendChild(characterCard);
+            });
             
         } catch (error) {
-            console.error('❌ Ошибка загрузки персонажей:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки персонажей: ' + error.message);
+            console.error('❌ Ошибка загрузки персонажей для смены:', error);
+            this.showMessage('Ошибка загрузки персонажей', 'error');
         }
     }
 
-    selectChangeCharacter(characterId, element) {
-        this.selectedCharacter = characterId;
-        
-        // Убираем выделение у всех персонажей
-        document.querySelectorAll('#changeCharacterSelection .character-option').forEach(option => {
-            option.classList.remove('selected');
+    selectChangeCharacter(character) {
+        // Убираем выделение со всех карточек
+        document.querySelectorAll('#changeCharacterSelection .character-card').forEach(card => {
+            card.classList.remove('selected');
         });
         
-        // Добавляем выделение выбранному персонажу
-        element.classList.add('selected');
+        // Выделяем выбранную карточку
+        event.currentTarget.classList.add('selected');
+        
+        this.selectedChangeCharacter = character;
     }
 
     async changeRole() {
-        if (!this.selectedRole || !this.selectedCharacter) {
-            this.showError('Выберите роль и персонажа');
+        if (!this.selectedChangeRole || !this.selectedChangeCharacter) {
+            this.showMessage('Пожалуйста, выберите роль и персонажа', 'warning');
             return;
         }
 
-        if (!confirm('Вы уверены, что хотите сменить роль? Это повлияет на доступные активности.')) {
+        if (!confirm(`Вы уверены, что хотите сменить роль на "${this.selectedChangeRole.name}"?`)) {
             return;
         }
 
         try {
-            this.showLoading('Смена роли...');
-            
             const response = await fetch('/api/users/change-role', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.user.user_id,
-                    roleId: this.selectedRole,
-                    characterId: this.selectedCharacter
+                    userId: this.userId,
+                    roleId: this.selectedChangeRole.id,
+                    characterId: this.selectedChangeCharacter.id
                 })
             });
 
-            if (!response.ok) throw new Error('Ошибка смены роли');
-
             const data = await response.json();
-
+            
             if (data.success) {
                 this.user = data.user;
                 this.showMessage(data.message, 'success');
                 this.showDashboard();
+                this.updateUI();
             } else {
-                throw new Error(data.error || 'Неизвестная ошибка');
+                this.showMessage(data.error || 'Ошибка смены роли', 'error');
             }
-            
-            this.hideLoading();
-            
         } catch (error) {
             console.error('❌ Ошибка смены роли:', error);
-            this.hideLoading();
-            this.showError('Ошибка смены роли: ' + error.message);
+            this.showMessage('Ошибка смены роли', 'error');
         }
     }
 
-    async showNotifications() {
+    async loadNotifications() {
         try {
-            this.showLoading('Загрузка уведомлений...');
-            
-            const response = await fetch(`/api/webapp/users/${this.user.user_id}/notifications`);
-            if (!response.ok) throw new Error('Ошибка загрузки уведомлений');
-
+            const response = await fetch(`/api/webapp/users/${this.userId}/notifications?unread_only=false&limit=50`);
             const data = await response.json();
             
-            const container = document.getElementById('notificationsList');
-            if (data.notifications && data.notifications.length > 0) {
-                container.innerHTML = data.notifications.map((notification, index) => `
-                    <div class="notification-item ${!notification.is_read ? 'unread' : ''} stagger-item" 
-                         style="animation-delay: ${index * 0.1}s">
-                        <div class="notification-title">${notification.title}</div>
-                        <div class="notification-message">${notification.message}</div>
-                        <div class="notification-meta">
-                            <span>${this.formatDate(notification.created_at)}</span>
-                            ${!notification.is_read && (`
-                                <button class="btn btn-sm btn-primary" 
-                                        onclick="app.markNotificationRead(${notification.id})">
-                                    Отметить прочитанным
-                                </button>
-                            `)}
-                        </div>
+            const notificationsList = document.getElementById('notificationsList');
+            
+            if (data.notifications.length === 0) {
+                notificationsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔔</div>
+                        <div class="empty-state-title">У вас нет уведомлений</div>
+                        <div class="empty-state-description">Новые уведомления появятся здесь</div>
                     </div>
-                `).join('');
-            } else {
-                container.innerHTML = this.createEmptyState('🔔', 'Уведомлений нет', 'Здесь появятся ваши уведомления!');
+                `;
+                return;
             }
             
-            this.hideLoading();
+            notificationsList.innerHTML = '';
+            
+            data.notifications.forEach(notification => {
+                const notificationItem = document.createElement('div');
+                notificationItem.className = 'card';
+                notificationItem.style.opacity = notification.is_read ? '0.7' : '1';
+                
+                const icon = this.getNotificationIcon(notification.type);
+                const time = this.formatTime(notification.created_at);
+                
+                notificationItem.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${icon} ${notification.title}</div>
+                            <div class="card-description">${notification.message}</div>
+                        </div>
+                        ${!notification.is_read ? `
+                        <div style="text-align: right;">
+                            <span style="background: var(--primary-color); color: white; padding: 4px 8px; border-radius: 12px; font-size: var(--font-xs); font-weight: 700;">
+                                НОВОЕ
+                            </span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="card-meta">
+                        <div class="tag">
+                            <i class="fas fa-clock"></i>
+                            ${time}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-bell"></i>
+                            ${this.getNotificationType(notification.type)}
+                        </div>
+                    </div>
+                    
+                    <div class="card-actions">
+                        ${!notification.is_read ? `
+                        <button class="btn btn-primary" onclick="app.markNotificationRead(${notification.id})">
+                            <i class="fas fa-check"></i>
+                            Отметить прочитанным
+                        </button>
+                        ` : ''}
+                        ${notification.action_url ? `
+                        <button class="btn btn-secondary" onclick="app.handleNotificationAction('${notification.action_url}')">
+                            ${notification.action_text || 'Перейти'}
+                        </button>
+                        ` : ''}
+                    </div>
+                `;
+                
+                notificationsList.appendChild(notificationItem);
+            });
             
         } catch (error) {
             console.error('❌ Ошибка загрузки уведомлений:', error);
-            this.hideLoading();
-            this.showError('Ошибка загрузки уведомлений: ' + error.message);
+            this.showMessage('Ошибка загрузки уведомлений', 'error');
         }
     }
 
@@ -1764,146 +2036,320 @@ class InspirationApp {
             const response = await fetch(`/api/webapp/notifications/${notificationId}/read`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.user.user_id
+                    userId: this.userId
                 })
             });
 
-            if (response.ok) {
-                this.showNotifications();
-                this.loadNotifications(); // Обновляем бейдж
+            const data = await response.json();
+            
+            if (data.success) {
+                this.loadNotifications(); // Обновляем список
+                this.checkNotifications(); // Обновляем бейдж
+            } else {
+                this.showMessage('Ошибка отметки уведомления', 'error');
             }
         } catch (error) {
             console.error('❌ Ошибка отметки уведомления:', error);
+            this.showMessage('Ошибка отметки уведомления', 'error');
         }
     }
 
     async markAllNotificationsRead() {
         try {
-            this.showLoading('Отметка уведомлений...');
-            
             const response = await fetch('/api/webapp/notifications/mark-all-read', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.user.user_id
+                    userId: this.userId
                 })
             });
 
-            if (response.ok) {
-                this.showMessage('Все уведомления отмечены как прочитанные', 'success');
-                this.showNotifications();
-                this.loadNotifications(); // Обновляем бейдж
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showMessage(`Отмечено ${data.marked_count} уведомлений как прочитанные`, 'success');
+                this.loadNotifications(); // Обновляем список
+                this.checkNotifications(); // Обновляем бейдж
+            } else {
+                this.showMessage('Ошибка отметки уведомлений', 'error');
             }
-            
-            this.hideLoading();
-            
         } catch (error) {
             console.error('❌ Ошибка отметки уведомлений:', error);
-            this.hideLoading();
+            this.showMessage('Ошибка отметки уведомлений', 'error');
         }
     }
 
-    async loadNotifications() {
+    async checkNotifications() {
         try {
-            const response = await fetch(`/api/webapp/users/${this.user.user_id}/notifications?unread_only=true`);
-            if (!response.ok) return;
-            
+            const response = await fetch(`/api/webapp/users/${this.userId}/notifications?unread_only=true&limit=1`);
             const data = await response.json();
-            const unreadCount = data.notifications ? data.notifications.length : 0;
             
             const badge = document.getElementById('notificationBadge');
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount;
+            
+            if (data.unread_count > 0) {
+                badge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
                 badge.classList.remove('hidden');
             } else {
                 badge.classList.add('hidden');
             }
         } catch (error) {
-            console.error('❌ Ошибка загрузки уведомлений:', error);
+            console.error('❌ Ошибка проверки уведомлений:', error);
         }
     }
 
-    // Вспомогательные методы
-    hideAllSections() {
-        const sections = document.querySelectorAll('[id$="Section"]');
-        sections.forEach(section => {
-            section.classList.add('hidden');
-        });
-    }
-
-    showLoading(message = 'Загрузка...') {
-        this.isLoading = true;
-        const mainContent = document.getElementById('mainContent');
-        mainContent.innerHTML = `
-            <div class="loading">
-                <div class="loading-spinner"></div>
-                <div>${message}</div>
-            </div>
-        `;
-    }
-
-    hideLoading() {
-        this.isLoading = false;
-    }
-
-    showMessage(text, type = 'info') {
-        const messageArea = document.getElementById('messageArea');
-        messageArea.innerHTML = `
-            <div class="message ${type}">
-                ${text}
-            </div>
-        `;
+    async loadProfile() {
+        // Заполняем форму профиля
+        document.getElementById('profileName').value = this.user.tg_first_name || '';
+        document.getElementById('profileBio').value = this.user.bio || '';
         
-        // Автоматически скрываем сообщение через 5 секунд
+        // Загружаем статистику профиля
+        if (this.user.stats) {
+            const stats = this.user.stats;
+            document.getElementById('profileStats').innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.totalActivities}</div>
+                        <div class="stat-label">Всего активностей</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.totalSparksEarned}</div>
+                        <div class="stat-label">Заработано искр</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.streak}</div>
+                        <div class="stat-label">Дней подряд</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.totalAchievements}</div>
+                        <div class="stat-label">Достижений</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.totalQuizzesCompleted}</div>
+                        <div class="stat-label">Пройдено квизов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.totalMarathonsCompleted}</div>
+                        <div class="stat-label">Завершено марафонов</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 16px; text-align: center; color: var(--text-muted);">
+                    <i class="fas fa-calendar"></i>
+                    Участник с ${this.formatDate(stats.registrationDate)}
+                </div>
+            `;
+        }
+    }
+
+    async updateProfile() {
+        const name = document.getElementById('profileName').value.trim();
+        const bio = document.getElementById('profileBio').value.trim();
+        
+        if (!name) {
+            this.showMessage('Имя не может быть пустым', 'warning');
+            return;
+        }
+
+        // В реальном приложении здесь был бы API вызов для обновления профиля
+        this.user.tg_first_name = name;
+        this.user.bio = bio;
+        
+        this.showMessage('Профиль успешно обновлен', 'success');
+        this.updateUI();
+    }
+
+    // Вспомогательные методы
+
+    showMessage(message, type = 'info') {
+        const messageArea = document.getElementById('messageArea');
+        const messageEl = document.createElement('div');
+        messageEl.className = `message ${type}`;
+        messageEl.textContent = message;
+        
+        messageArea.appendChild(messageEl);
+        
+        // Автоматическое скрытие через 5 секунд
         setTimeout(() => {
-            messageArea.innerHTML = '';
+            messageEl.remove();
         }, 5000);
     }
 
-    showError(text) {
-        this.showMessage(text, 'error');
+    getActivityIcon(activityType) {
+        const icons = {
+            'registration': '👋',
+            'quiz': '🎯',
+            'marathon': '🏃‍♂️',
+            'marathon_day': '📅',
+            'marathon_completion': '🏆',
+            'upload_work': '🖼️',
+            'work_approved': '✅',
+            'purchase': '🛒',
+            'post_review': '⭐',
+            'interactive': '🎮',
+            'achievement': '🏆',
+            'role_change': '🔄'
+        };
+        
+        return icons[activityType] || '📊';
     }
 
-    createEmptyState(icon, title, description) {
-        return `
-            <div class="empty-state">
-                <div class="empty-state-icon">${icon}</div>
-                <h3>${title}</h3>
-                <p>${description}</p>
-            </div>
-        `;
+    getNotificationIcon(notificationType) {
+        const icons = {
+            'welcome': '👋',
+            'achievement': '🏆',
+            'purchase': '🛒',
+            'work_approved': '✅',
+            'work_rejected': '❌',
+            'info': 'ℹ️',
+            'warning': '⚠️',
+            'error': '❌'
+        };
+        
+        return icons[notificationType] || '🔔';
     }
 
-    formatDate(dateString) {
+    getNotificationType(notificationType) {
+        const types = {
+            'welcome': 'Приветствие',
+            'achievement': 'Достижение',
+            'purchase': 'Покупка',
+            'work_approved': 'Работа одобрена',
+            'work_rejected': 'Работа отклонена',
+            'info': 'Информация',
+            'warning': 'Предупреждение',
+            'error': 'Ошибка'
+        };
+        
+        return types[notificationType] || 'Уведомление';
+    }
+
+    getShopItemIcon(itemType) {
+        const icons = {
+            'video_course': 'video',
+            'ebook': 'book',
+            'course': 'graduation-cap',
+            'material': 'file',
+            'tool': 'tools'
+        };
+        
+        return icons[itemType] || 'shopping-cart';
+    }
+
+    getShopItemType(itemType) {
+        const types = {
+            'video_course': 'Видеокурс',
+            'ebook': 'Электронная книга',
+            'course': 'Курс',
+            'material': 'Материалы',
+            'tool': 'Инструмент'
+        };
+        
+        return types[itemType] || 'Товар';
+    }
+
+    formatTime(dateString) {
         const date = new Date(dateString);
         const now = new Date();
         const diffMs = now - date;
         const diffMins = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) return 'только что';
+        if (diffMins < 60) return `${diffMins} мин назад`;
+        if (diffHours < 24) return `${diffHours} ч назад`;
+        if (diffDays < 7) return `${diffDays} дн назад`;
+        
+        return date.toLocaleDateString('ru-RU');
+    }
 
-        if (diffMins < 1) {
-            return 'только что';
-        } else if (diffMins < 60) {
-            return `${diffMins} мин. назад`;
-        } else if (diffHours < 24) {
-            return `${diffHours} ч. назад`;
-        } else if (diffDays < 7) {
-            return `${diffDays} д. назад`;
-        } else {
-            return date.toLocaleDateString('ru-RU');
-        }
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ru-RU', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+
+    initEventListeners() {
+        // Обработка глобальных событий
+        document.addEventListener('click', (e) => {
+            // Закрытие сообщений при клике на них
+            if (e.target.classList.contains('message')) {
+                e.target.remove();
+            }
+        });
+        
+        // Обработка клавиатуры
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.showDashboard();
+            }
+        });
+    }
+
+    loadInitialData() {
+        // Загружаем дополнительные данные в фоне
+        this.checkNotifications();
+    }
+
+    // Заглушки для нереализованных методов
+    viewQuizResults(quizId) {
+        this.showMessage('Функция просмотра результатов квиза в разработке', 'info');
+    }
+
+    viewQuizDetails(quizId) {
+        this.showMessage('Функция просмотра деталей квиза в разработке', 'info');
+    }
+
+    viewMarathon(marathonId) {
+        this.showMessage('Функция просмотра марафона в разработке', 'info');
+    }
+
+    viewItemDetails(itemId) {
+        this.showMessage('Функция просмотра деталей товара в разработке', 'info');
+    }
+
+    viewPost(postId) {
+        this.showMessage('Функция просмотра поста в разработке', 'info');
+    }
+
+    downloadPurchase(purchaseId) {
+        this.showMessage('Функция скачивания покупки в разработке', 'info');
+    }
+
+    viewPurchaseContent(purchaseId) {
+        this.showMessage('Функция просмотра покупки в разработке', 'info');
+    }
+
+    handleNotificationAction(actionUrl) {
+        this.showMessage(`Переход по действию: ${actionUrl}`, 'info');
+    }
+
+    showNotifications() {
+        this.showSection('notifications');
     }
 }
 
 // Инициализация приложения
-let app;
-document.addEventListener('DOMContentLoaded', function() {
-    app = new InspirationApp();
+const app = new InspirationWorkshop();
+
+// Глобальные функции для обработчиков событий
+window.app = app;
+
+// Обработка ошибок
+window.addEventListener('error', (event) => {
+    console.error('Глобальная ошибка:', event.error);
 });
-                               
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Необработанный промис:', event.reason);
+});
+
+console.log('🎨 Приложение Мастерская Вдохновения v9.0 загружено!');
