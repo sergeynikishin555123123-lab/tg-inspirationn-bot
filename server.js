@@ -3177,6 +3177,252 @@ app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     });
 });
 
+// Получение детальной статистики квиза
+app.get('/api/admin/quizzes/:quizId/stats', requireAdmin, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    
+    const quiz = db.quizzes.find(q => q.id === quizId);
+    if (!quiz) {
+        return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    const completions = db.quiz_completions.filter(qc => qc.quiz_id === quizId);
+    const perfectCompletions = completions.filter(qc => qc.perfect_score);
+    
+    const stats = {
+        quiz: {
+            id: quiz.id,
+            title: quiz.title,
+            questions_count: quiz.questions.length,
+            difficulty: quiz.difficulty,
+            created_at: quiz.created_at
+        },
+        completions: {
+            total: completions.length,
+            perfect: perfectCompletions.length,
+            average_score: completions.length > 0 ? 
+                completions.reduce((sum, qc) => sum + qc.score, 0) / completions.length : 0,
+            average_time: completions.length > 0 ? 
+                completions.reduce((sum, qc) => sum + qc.time_spent, 0) / completions.length : 0,
+            success_rate: completions.length > 0 ? 
+                (completions.filter(qc => qc.score >= quiz.questions.length / 2).length / completions.length) * 100 : 0
+        },
+        question_stats: quiz.questions.map(question => {
+            const correctAnswers = completions.filter(qc => 
+                qc.answers && qc.answers[quiz.questions.indexOf(question)] === question.correctAnswer
+            ).length;
+            
+            return {
+                question: question.question,
+                correct_answers: correctAnswers,
+                success_rate: completions.length > 0 ? (correctAnswers / completions.length) * 100 : 0
+            };
+        })
+    };
+    
+    res.json(stats);
+});
+
+// Управление статусом квиза
+app.put('/api/admin/quizzes/:quizId/status', requireAdmin, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const { is_active } = req.body;
+    
+    const quiz = db.quizzes.find(q => q.id === quizId);
+    if (!quiz) {
+        return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    quiz.is_active = is_active;
+    
+    res.json({
+        success: true,
+        message: `Quiz ${is_active ? 'activated' : 'deactivated'} successfully`,
+        quiz: quiz
+    });
+});
+
+// Получение участников марафона
+app.get('/api/admin/marathons/:marathonId/participants', requireAdmin, (req, res) => {
+    const marathonId = parseInt(req.params.marathonId);
+    
+    const completions = db.marathon_completions.filter(mc => mc.marathon_id === marathonId);
+    
+    const participants = completions.map(completion => {
+        const user = db.users.find(u => u.user_id === completion.user_id);
+        const submissions = db.marathon_submissions.filter(
+            ms => ms.user_id === completion.user_id && ms.marathon_id === marathonId
+        );
+        
+        return {
+            user_id: user.user_id,
+            user_name: user.tg_first_name,
+            user_username: user.tg_username,
+            current_day: completion.current_day,
+            progress: completion.progress,
+            completed: completion.completed,
+            started_at: completion.started_at,
+            completed_at: completion.completed_at,
+            submissions_count: submissions.length,
+            total_sparks_earned: completion.total_sparks_earned
+        };
+    });
+    
+    res.json({
+        participants: participants,
+        total: participants.length,
+        active: participants.filter(p => !p.completed).length,
+        completed: participants.filter(p => p.completed).length
+    });
+});
+
+// Управление статусом интерактива
+app.put('/api/admin/interactives/:interactiveId/status', requireAdmin, (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const { is_active } = req.body;
+    
+    const interactive = db.interactives.find(i => i.id === interactiveId);
+    if (!interactive) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    interactive.is_active = is_active;
+    
+    res.json({
+        success: true,
+        message: `Interactive ${is_active ? 'activated' : 'deactivated'} successfully`,
+        interactive: interactive
+    });
+});
+
+// Получение постов для админки
+app.get('/api/admin/posts', requireAdmin, (req, res) => {
+    const posts = db.channel_posts.map(post => {
+        const admin = db.admins.find(a => a.user_id === post.admin_id);
+        const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
+        
+        return {
+            ...post,
+            admin_username: admin?.username,
+            reviews_count: reviews.length,
+            average_rating: reviews.length > 0 ? 
+                reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0
+        };
+    }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
+    res.json({ posts });
+});
+
+// Создание нового поста
+app.post('/api/admin/posts', requireAdmin, (req, res) => {
+    const { title, content, image_url, video_url, media_type, action_type, action_target, tags, featured, excerpt } = req.body;
+    
+    const errors = [];
+    if (!title || title.length < 5) errors.push('Title must be at least 5 characters');
+    if (!content || content.length < 10) errors.push('Content must be at least 10 characters');
+    
+    if (errors.length > 0) {
+        return res.status(400).json({ error: errors.join(', ') });
+    }
+    
+    const newPost = {
+        id: Date.now(),
+        post_id: `post_${Date.now()}`,
+        title,
+        content,
+        image_url: image_url || '',
+        video_url: video_url || '',
+        media_type: media_type || 'text',
+        admin_id: req.admin.user_id,
+        created_at: new Date().toISOString(),
+        is_active: true,
+        telegram_message_id: null,
+        action_type: action_type || null,
+        action_target: action_target || null,
+        likes_count: 0,
+        comments_count: 0,
+        views_count: 0,
+        tags: tags || [],
+        featured: featured || false,
+        publish_date: new Date().toISOString(),
+        excerpt: excerpt || content.substring(0, 150) + '...'
+    };
+    
+    db.channel_posts.push(newPost);
+    
+    res.json({
+        success: true,
+        message: 'Post created successfully',
+        post: newPost
+    });
+});
+
+// Получение товаров для админки
+app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
+    const items = db.shop_items.map(item => {
+        const purchasesCount = db.purchases.filter(p => p.item_id === item.id).length;
+        const totalRevenue = db.purchases
+            .filter(p => p.item_id === item.id)
+            .reduce((sum, p) => sum + p.price_paid, 0);
+            
+        return {
+            ...item,
+            purchases_count: purchasesCount,
+            total_revenue: totalRevenue
+        };
+    });
+    
+    res.json(items);
+});
+
+// Создание товара
+app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
+    const { title, description, type, file_url, preview_url, price, content_text, category, difficulty, duration, instructor, features, tags, requirements, what_you_learn, discount_percent, original_price } = req.body;
+    
+    const errors = [];
+    if (!title || title.length < 5) errors.push('Title must be at least 5 characters');
+    if (!description || description.length < 10) errors.push('Description must be at least 10 characters');
+    if (!price || price < 0) errors.push('Price must be positive');
+    
+    if (errors.length > 0) {
+        return res.status(400).json({ error: errors.join(', ') });
+    }
+    
+    const newItem = {
+        id: Date.now(),
+        title,
+        description,
+        type: type || 'video_course',
+        file_url: file_url || '',
+        preview_url: preview_url || '',
+        price: parseFloat(price),
+        content_text: content_text || '',
+        category: category || 'general',
+        difficulty: difficulty || 'beginner',
+        duration: duration || '',
+        instructor: instructor || '',
+        features: features || [],
+        tags: tags || [],
+        requirements: requirements || '',
+        what_you_learn: what_you_learn || [],
+        discount_percent: discount_percent || 0,
+        original_price: original_price || parseFloat(price),
+        is_active: true,
+        created_at: new Date().toISOString(),
+        rating: 0,
+        students_count: 0,
+        featured: false
+    };
+    
+    db.shop_items.push(newItem);
+    
+    res.json({
+        success: true,
+        message: 'Item created successfully',
+        item: newItem
+    });
+});
+
 // Управление админами - ИСПРАВЛЕННАЯ ВЕРСИЯ
 app.get('/api/admin/admins', requireAdmin, (req, res) => {
     const admins = db.admins.map(admin => {
