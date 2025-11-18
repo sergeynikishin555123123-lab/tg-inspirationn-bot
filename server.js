@@ -2692,6 +2692,257 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
     });
 });
 
+// Создание новой роли
+app.post('/api/admin/roles', requireAdmin, (req, res) => {
+    const { name, description, icon, available_buttons, color, requirements, level_requirements, permissions } = req.body;
+    
+    const errors = [];
+    if (!name || name.length < 3) errors.push('Role name must be at least 3 characters');
+    if (!description || description.length < 10) errors.push('Description must be at least 10 characters');
+    
+    if (errors.length > 0) {
+        return res.status(400).json({ error: errors.join(', ') });
+    }
+    
+    // Проверяем дубликат
+    const existingRole = db.roles.find(r => r.name.toLowerCase() === name.toLowerCase());
+    if (existingRole) {
+        return res.status(400).json({ error: 'Role with this name already exists' });
+    }
+    
+    const newRole = {
+        id: Date.now(),
+        name,
+        description,
+        icon: icon || '🎨',
+        available_buttons: available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+        color: color || '#667eea',
+        requirements: requirements || '',
+        is_active: true,
+        created_at: new Date().toISOString(),
+        level_requirements: level_requirements || {
+            'Ученик': 0,
+            'Искатель': 50,
+            'Знаток': 150,
+            'Мастер': 300,
+            'Наставник': 500,
+            'Легенда': 1000
+        },
+        permissions: permissions || {
+            can_upload_works: true,
+            can_participate_marathons: true,
+            can_take_quizzes: true,
+            can_use_shop: true,
+            can_invite_friends: true,
+            max_works_per_day: 5,
+            max_quiz_attempts: 3
+        }
+    };
+    
+    db.roles.push(newRole);
+    
+    res.json({
+        success: true,
+        message: 'Role created successfully',
+        role: newRole
+    });
+});
+
+// Создание нового персонажа
+app.post('/api/admin/characters', requireAdmin, (req, res) => {
+    const { role_id, name, description, bonus_type, bonus_value, bonus_description, avatar, personality, quote, level_requirement, rarity } = req.body;
+    
+    const errors = [];
+    if (!role_id) errors.push('Role ID is required');
+    if (!name || name.length < 2) errors.push('Character name must be at least 2 characters');
+    if (!bonus_type) errors.push('Bonus type is required');
+    if (!bonus_value) errors.push('Bonus value is required');
+    
+    if (errors.length > 0) {
+        return res.status(400).json({ error: errors.join(', ') });
+    }
+    
+    // Проверяем существование роли
+    const role = db.roles.find(r => r.id == role_id);
+    if (!role) {
+        return res.status(404).json({ error: 'Role not found' });
+    }
+    
+    const newCharacter = {
+        id: Date.now(),
+        role_id: parseInt(role_id),
+        name,
+        description: description || '',
+        bonus_type,
+        bonus_value,
+        bonus_description: bonus_description || '',
+        avatar: avatar || '👤',
+        personality: personality || '',
+        quote: quote || '',
+        level_requirement: level_requirement || 0,
+        rarity: rarity || 'common',
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.characters.push(newCharacter);
+    
+    res.json({
+        success: true,
+        message: 'Character created successfully',
+        character: newCharacter
+    });
+});
+
+// Создание нового достижения
+app.post('/api/admin/achievements', requireAdmin, (req, res) => {
+    const { title, description, icon, sparks_reward, condition_type, condition_value, category, rarity, points, hidden } = req.body;
+    
+    const errors = [];
+    if (!title || title.length < 3) errors.push('Achievement title must be at least 3 characters');
+    if (!description || description.length < 10) errors.push('Description must be at least 10 characters');
+    if (!condition_type) errors.push('Condition type is required');
+    if (!condition_value) errors.push('Condition value is required');
+    
+    if (errors.length > 0) {
+        return res.status(400).json({ error: errors.join(', ') });
+    }
+    
+    const newAchievement = {
+        id: Date.now(),
+        title,
+        description,
+        icon: icon || '🏆',
+        sparks_reward: sparks_reward || 10,
+        condition_type,
+        condition_value,
+        is_active: true,
+        category: category || 'general',
+        rarity: rarity || 'common',
+        points: points || 10,
+        hidden: hidden || false,
+        created_at: new Date().toISOString()
+    };
+    
+    db.achievements.push(newAchievement);
+    
+    res.json({
+        success: true,
+        message: 'Achievement created successfully',
+        achievement: newAchievement
+    });
+});
+
+// Получение работ для модерации
+app.get('/api/admin/moderation/works', requireAdmin, (req, res) => {
+    const { status = 'pending', limit = 50, offset = 0 } = req.query;
+    
+    let works = db.user_works.filter(w => w.status === status);
+    
+    // Добавляем информацию о пользователе
+    works = works.map(work => {
+        const user = db.users.find(u => u.user_id === work.user_id);
+        return {
+            ...work,
+            user_name: user?.tg_first_name || 'Unknown',
+            user_username: user?.tg_username,
+            user_level: user?.level
+        };
+    });
+    
+    // Сортировка и пагинация
+    works = works
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        .slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    
+    res.json({
+        works: works,
+        total: db.user_works.filter(w => w.status === status).length,
+        pending_count: db.user_works.filter(w => w.status === 'pending').length,
+        approved_count: db.user_works.filter(w => w.status === 'approved').length,
+        rejected_count: db.user_works.filter(w => w.status === 'rejected').length
+    });
+});
+
+// Получение отзывов для модерации
+app.get('/api/admin/moderation/reviews', requireAdmin, (req, res) => {
+    const { status = 'pending', limit = 50, offset = 0 } = req.query;
+    
+    let reviews = db.post_reviews.filter(r => r.status === status);
+    
+    // Добавляем информацию о пользователе и посте
+    reviews = reviews.map(review => {
+        const user = db.users.find(u => u.user_id === review.user_id);
+        const post = db.channel_posts.find(p => p.post_id === review.post_id);
+        return {
+            ...review,
+            user_name: user?.tg_first_name || 'Unknown',
+            user_username: user?.tg_username,
+            post_title: post?.title || 'Unknown Post'
+        };
+    });
+    
+    // Сортировка и пагинация
+    reviews = reviews
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        .slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    
+    res.json({
+        reviews: reviews,
+        total: db.post_reviews.filter(r => r.status === status).length,
+        pending_count: db.post_reviews.filter(r => r.status === 'pending').length,
+        approved_count: db.post_reviews.filter(r => r.status === 'approved').length,
+        rejected_count: db.post_reviews.filter(r => r.status === 'rejected').length
+    });
+});
+
+// Массовая модерация работ
+app.post('/api/admin/moderation/works/batch', requireAdmin, (req, res) => {
+    const { work_ids, status, admin_comment } = req.body;
+    
+    if (!work_ids || !Array.isArray(work_ids) || work_ids.length === 0) {
+        return res.status(400).json({ error: 'Work IDs array is required' });
+    }
+    
+    const results = [];
+    
+    work_ids.forEach(workId => {
+        const work = db.user_works.find(w => w.id === workId);
+        if (work) {
+            work.status = status;
+            work.moderated_at = new Date().toISOString();
+            work.moderator_id = req.admin.user_id;
+            work.admin_comment = admin_comment || null;
+            
+            if (status === 'approved') {
+                const sparksEarned = 15; // Базовое количество искр за одобрение
+                addSparks(work.user_id, sparksEarned, 'work_approved', `Работа одобрена: ${work.title}`, {
+                    work_id: workId,
+                    points_earned: sparksEarned
+                });
+            }
+            
+            results.push({
+                work_id: workId,
+                success: true,
+                status: status
+            });
+        } else {
+            results.push({
+                work_id: workId,
+                success: false,
+                error: 'Work not found'
+            });
+        }
+    });
+    
+    res.json({
+        success: true,
+        message: `Processed ${results.filter(r => r.success).length} works`,
+        results: results
+    });
+});
+
 app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     const itemId = parseInt(req.params.itemId);
     const { title, description, type, file_url, preview_url, price, content_text, is_active, category, difficulty, duration, instructor, features, tags, requirements, what_you_learn, discount_percent, original_price, featured } = req.body;
@@ -3705,6 +3956,8 @@ if (process.env.BOT_TOKEN) {
             } else {
                 user.last_active = new Date().toISOString();
             }
+
+
             
             const welcomeText = `🎨 Привет, ${name}!
 
@@ -3832,6 +4085,100 @@ if (process.env.BOT_TOKEN) {
         console.error('❌ Ошибка инициализации бота:', error);
     }
 }
+
+// Обновление настроек системы
+app.post('/api/admin/settings/update', requireAdmin, (req, res) => {
+    const { settings } = req.body;
+    
+    if (!settings || !Array.isArray(settings)) {
+        return res.status(400).json({ error: 'Settings array is required' });
+    }
+    
+    const results = [];
+    
+    settings.forEach(setting => {
+        const existingSetting = db.settings.find(s => s.key === setting.key);
+        if (existingSetting) {
+            existingSetting.value = setting.value;
+            if (setting.description) {
+                existingSetting.description = setting.description;
+            }
+            results.push({
+                key: setting.key,
+                success: true,
+                action: 'updated'
+            });
+        } else {
+            db.settings.push({
+                key: setting.key,
+                value: setting.value,
+                description: setting.description || `Setting for ${setting.key}`
+            });
+            results.push({
+                key: setting.key,
+                success: true,
+                action: 'created'
+            });
+        }
+    });
+    
+    res.json({
+        success: true,
+        message: `Updated ${results.length} settings`,
+        results: results
+    });
+});
+
+// Сброс системы (только для суперадминов)
+app.post('/api/admin/system/reset', requireAdmin, (req, res) => {
+    // Проверяем, что пользователь суперадмин
+    if (req.admin.role !== 'superadmin') {
+        return res.status(403).json({ error: 'Only superadmins can reset the system' });
+    }
+    
+    const { reset_type, confirmation } = req.body;
+    
+    if (confirmation !== 'I understand this will delete all data') {
+        return res.status(400).json({ error: 'Confirmation phrase is required' });
+    }
+    
+    let resetData = {};
+    
+    switch (reset_type) {
+        case 'activities':
+            db.activities = [];
+            resetData.activities = 'All activities cleared';
+            break;
+            
+        case 'users':
+            // Сохраняем только админов
+            const admins = db.admins;
+            db.users = db.users.filter(u => admins.some(a => a.user_id === u.user_id));
+            db.activities = [];
+            db.quiz_completions = [];
+            db.marathon_completions = [];
+            db.user_works = [];
+            resetData.users = 'All user data cleared (admins preserved)';
+            break;
+            
+        case 'content':
+            db.quizzes = db.quizzes.filter(q => q.id <= 2); // Сохраняем базовые квизы
+            db.marathons = db.marathons.filter(m => m.id <= 1); // Сохраняем базовые марафоны
+            db.interactives = db.interactives.filter(i => i.id <= 1); // Сохраняем базовые интерактивы
+            db.channel_posts = db.channel_posts.filter(p => p.id <= 1); // Сохраняем базовые посты
+            resetData.content = 'All content reset to default';
+            break;
+            
+        default:
+            return res.status(400).json({ error: 'Invalid reset type' });
+    }
+    
+    res.json({
+        success: true,
+        message: `System reset completed: ${reset_type}`,
+        reset_data: resetData
+    });
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
