@@ -1226,11 +1226,13 @@ showDashboard() {
         }
     }
 
-    showUploadWorkForm() {
-        const formHTML = `
-            <div class="card">
-                <h3 style="margin-bottom: 16px;">📤 Загрузка новой работы</h3>
-                
+    // ИСПРАВИТЬ метод showUploadWorkForm в public/app.js
+showUploadWorkForm() {
+    const formHTML = `
+        <div class="card">
+            <h3 style="margin-bottom: 16px;">📤 Загрузка новой работы</h3>
+            
+            <form id="uploadWorkForm" enctype="multipart/form-data">
                 <div class="form-group">
                     <label class="form-label">Название работы *</label>
                     <input type="text" class="form-control" id="workTitle" placeholder="Введите название вашей работы" required>
@@ -1242,11 +1244,14 @@ showDashboard() {
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Ссылка на изображение *</label>
-                    <input type="url" class="form-control" id="workImageUrl" placeholder="https://example.com/image.jpg" required>
+                    <label class="form-label">Изображение работы *</label>
+                    <input type="file" class="form-control" id="workImage" accept="image/*" required>
                     <small style="color: var(--text-muted); margin-top: 4px; display: block;">
-                        Вставьте прямую ссылку на изображение (JPG, PNG)
+                        Выберите файл изображения (JPG, PNG, до 10MB)
                     </small>
+                    <div id="imagePreview" style="margin-top: 12px; display: none;">
+                        <img id="previewImage" style="max-width: 200px; max-height: 200px; border-radius: var(--radius-md);">
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -1267,62 +1272,84 @@ showDashboard() {
                 </div>
                 
                 <div class="card-actions">
-                    <button class="btn btn-primary" onclick="app.uploadWork()">
+                    <button type="submit" class="btn btn-primary">
                         <i class="fas fa-upload"></i>
                         Загрузить работу
                     </button>
-                    <button class="btn btn-secondary" onclick="app.loadWorks()">
+                    <button type="button" class="btn btn-secondary" onclick="app.loadWorks()">
                         <i class="fas fa-arrow-left"></i>
                         Отмена
                     </button>
                 </div>
-            </div>
-        `;
-        
-        document.getElementById('worksList').innerHTML = formHTML;
+            </form>
+        </div>
+    `;
+    
+    document.getElementById('worksList').innerHTML = formHTML;
+    
+    // Добавляем обработчик предпросмотра изображения
+    document.getElementById('workImage').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('imagePreview');
+                const img = document.getElementById('previewImage');
+                img.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Добавляем обработчик отправки формы
+    document.getElementById('uploadWorkForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.uploadWork();
+    });
+}
+
+// ИСПРАВИТЬ метод uploadWork в public/app.js
+async uploadWork() {
+    const title = document.getElementById('workTitle').value.trim();
+    const description = document.getElementById('workDescription').value.trim();
+    const imageFile = document.getElementById('workImage').files[0];
+    const category = document.getElementById('workCategory').value;
+    const tags = document.getElementById('workTags').value;
+    
+    if (!title || !imageFile) {
+        this.showMessage('Пожалуйста, заполните обязательные поля', 'warning');
+        return;
     }
 
-    async uploadWork() {
-        const title = document.getElementById('workTitle').value.trim();
-        const description = document.getElementById('workDescription').value.trim();
-        const imageUrl = document.getElementById('workImageUrl').value.trim();
-        const category = document.getElementById('workCategory').value;
-        const tags = document.getElementById('workTags').value.split(',').map(tag => tag.trim()).filter(tag => tag);
+    try {
+        const formData = new FormData();
+        formData.append('userId', this.userId);
+        formData.append('title', title);
+        formData.append('description', description);
+        formData.append('image', imageFile);
+        formData.append('category', category);
+        formData.append('tags', tags);
+
+        const response = await fetch('/api/webapp/upload-work', {
+            method: 'POST',
+            body: formData
+            // Не устанавливаем Content-Type - браузер сделает это сам с boundary
+        });
+
+        const data = await response.json();
         
-        if (!title || !imageUrl) {
-            this.showMessage('Пожалуйста, заполните обязательные поля', 'warning');
-            return;
+        if (data.success) {
+            this.showMessage(data.message, 'success');
+            this.loadWorks(); // Обновляем список работ
+        } else {
+            this.showMessage(data.error || 'Ошибка загрузки работы', 'error');
         }
-
-        try {
-            const response = await fetch('/api/webapp/upload-work', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: this.userId,
-                    title: title,
-                    description: description,
-                    imageUrl: imageUrl,
-                    category: category,
-                    tags: tags
-                })
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                this.showMessage(data.message, 'success');
-                this.loadWorks(); // Обновляем список работ
-            } else {
-                this.showMessage(data.error || 'Ошибка загрузки работы', 'error');
-            }
-        } catch (error) {
-            console.error('❌ Ошибка загрузки работы:', error);
-            this.showMessage('Ошибка загрузки работы', 'error');
-        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки работы:', error);
+        this.showMessage('Ошибка загрузки работы', 'error');
     }
+}
 
     async loadShopItems() {
         try {
