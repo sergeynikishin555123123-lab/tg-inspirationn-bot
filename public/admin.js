@@ -798,66 +798,353 @@ class AdminApp {
         // В реальном приложении здесь было бы расширенное модальное окно фильтров
     }
 
-    // Заглушки для других разделов (для демонстрации структуры)
-    async loadQuizzes() {
-        this.showMessage('Загрузка квизов...', 'info');
-        // Реализация загрузки квизов
+   async loadQuizzes() {
+    try {
+        const response = await fetch(`/api/admin/quizzes?userId=${this.userId}`);
+        const data = await response.json();
+        
+        const quizzesSection = document.getElementById('quizzesSection');
+        quizzesSection.innerHTML = this.createQuizzesManagementHTML(data);
+        
+        this.initQuizzesEventListeners();
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки квизов:', error);
+        this.showMessage('Ошибка загрузки квизов', 'error');
     }
+}
 
-    async loadMarathons() {
-        this.showMessage('Загрузка марафонов...', 'info');
-        // Реализация загрузки марафонов
-    }
+createQuizzesManagementHTML(quizzes) {
+    return `
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Управление квизами</h3>
+                <div class="table-actions">
+                    <button class="btn btn-primary" onclick="adminApp.showCreateQuizForm()">
+                        <i class="fas fa-plus"></i>
+                        Создать квиз
+                    </button>
+                    <button class="btn btn-secondary" onclick="adminApp.exportQuizzes()">
+                        <i class="fas fa-download"></i>
+                        Экспорт
+                    </button>
+                </div>
+            </div>
 
-    async loadInteractives() {
-        this.showMessage('Загрузка интерактивов...', 'info');
-        // Реализация загрузки интерактивов
-    }
+            <div class="search-filters">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" id="quizzesSearch" placeholder="Поиск квизов...">
+                </div>
+                <div class="filter-group">
+                    <select class="form-control" id="quizzesStatusFilter">
+                        <option value="">Все статусы</option>
+                        <option value="active">Активные</option>
+                        <option value="inactive">Неактивные</option>
+                    </select>
+                    <select class="form-control" id="quizzesDifficultyFilter">
+                        <option value="">Все сложности</option>
+                        <option value="beginner">Начинающий</option>
+                        <option value="intermediate">Средний</option>
+                        <option value="advanced">Продвинутый</option>
+                    </select>
+                </div>
+            </div>
 
-    async loadPosts() {
-        this.showMessage('Загрузка постов...', 'info');
-        // Реализация загрузки постов
-    }
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Сложность</th>
+                            <th>Вопросы</th>
+                            <th>Попытки</th>
+                            <th>Рейтинг</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="quizzesTable">
+                        ${quizzes.length === 0 ? `
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                <div class="empty-state" style="padding: 20px;">
+                                    <div class="empty-state-icon">🎯</div>
+                                    <div class="empty-state-title">Квизы не найдены</div>
+                                    <div class="empty-state-description">Создайте первый квиз</div>
+                                </div>
+                            </td>
+                        </tr>
+                        ` : quizzes.map(quiz => `
+                        <tr>
+                            <td>${quiz.id}</td>
+                            <td>
+                                <div style="font-weight: 600;">${quiz.title}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">
+                                    ${quiz.category} • ${quiz.duration_minutes} мин
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge ${this.getDifficultyBadgeClass(quiz.difficulty)}">
+                                    ${quiz.difficulty}
+                                </span>
+                            </td>
+                            <td>${quiz.questions.length}</td>
+                            <td>${quiz.completions_count || 0}</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <i class="fas fa-star" style="color: var(--warning-color);"></i>
+                                    ${quiz.average_score ? quiz.average_score.toFixed(1) : '0'}/5
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge ${quiz.is_active ? 'status-active' : 'status-inactive'}">
+                                    ${quiz.is_active ? 'Активен' : 'Неактивен'}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="adminApp.viewQuiz(${quiz.id})" title="Просмотр">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-warning btn-sm" onclick="adminApp.editQuiz(${quiz.id})" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-${quiz.is_active ? 'danger' : 'success'} btn-sm" 
+                                            onclick="adminApp.toggleQuizStatus(${quiz.id}, ${!quiz.is_active})" 
+                                            title="${quiz.is_active ? 'Деактивировать' : 'Активировать'}">
+                                        <i class="fas fa-${quiz.is_active ? 'pause' : 'play'}"></i>
+                                    </button>
+                                    <button class="btn btn-info btn-sm" onclick="adminApp.viewQuizStats(${quiz.id})" title="Статистика">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
 
-    async loadShopItems() {
-        this.showMessage('Загрузка товаров...', 'info');
-        // Реализация загрузки товаров
+async loadMarathons() {
+    try {
+        const response = await fetch(`/api/admin/marathons?userId=${this.userId}`);
+        const data = await response.json();
+        
+        const marathonsSection = document.getElementById('marathonsSection');
+        marathonsSection.innerHTML = this.createMarathonsManagementHTML(data);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки марафонов:', error);
+        this.showMessage('Ошибка загрузки марафонов', 'error');
     }
+}
 
-    async loadPurchases() {
-        this.showMessage('Загрузка покупок...', 'info');
-        // Реализация загрузки покупок
-    }
+createMarathonsManagementHTML(marathons) {
+    return `
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Управление марафонами</h3>
+                <div class="table-actions">
+                    <button class="btn btn-primary" onclick="adminApp.showCreateMarathonForm()">
+                        <i class="fas fa-plus"></i>
+                        Создать марафон
+                    </button>
+                </div>
+            </div>
 
-    async loadRoles() {
-        this.showMessage('Загрузка ролей...', 'info');
-        // Реализация загрузки ролей
-    }
+            <div class="search-filters">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" id="marathonsSearch" placeholder="Поиск марафонов...">
+                </div>
+                <div class="filter-group">
+                    <select class="form-control" id="marathonsStatusFilter">
+                        <option value="">Все статусы</option>
+                        <option value="active">Активные</option>
+                        <option value="inactive">Неактивные</option>
+                        <option value="draft">Черновики</option>
+                    </select>
+                </div>
+            </div>
 
-    async loadCharacters() {
-        this.showMessage('Загрузка персонажей...', 'info');
-        // Реализация загрузки персонажей
-    }
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Дни</th>
+                            <th>Участники</th>
+                            <th>Завершили</th>
+                            <th>Сложность</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="marathonsTable">
+                        ${marathons.length === 0 ? `
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                <div class="empty-state" style="padding: 20px;">
+                                    <div class="empty-state-icon">🏃‍♂️</div>
+                                    <div class="empty-state-title">Марафоны не найдены</div>
+                                    <div class="empty-state-description">Создайте первый марафон</div>
+                                </div>
+                            </td>
+                        </tr>
+                        ` : marathons.map(marathon => `
+                        <tr>
+                            <td>${marathon.id}</td>
+                            <td>
+                                <div style="font-weight: 600;">${marathon.title}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">
+                                    ${marathon.category} • ${marathon.duration_days} дней
+                                </div>
+                            </td>
+                            <td>${marathon.duration_days}</td>
+                            <td>${marathon.participants_count || 0}</td>
+                            <td>
+                                <div>${marathon.completed_participants || 0}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">
+                                    ${marathon.completion_rate || 0}%
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge ${this.getDifficultyBadgeClass(marathon.difficulty)}">
+                                    ${marathon.difficulty}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge ${marathon.is_active ? 'status-active' : 'status-inactive'}">
+                                    ${marathon.is_active ? 'Активен' : 'Неактивен'}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="adminApp.viewMarathon(${marathon.id})" title="Просмотр">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-warning btn-sm" onclick="adminApp.editMarathon(${marathon.id})" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-info btn-sm" onclick="adminApp.viewMarathonParticipants(${marathon.id})" title="Участники">
+                                        <i class="fas fa-users"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
 
-    async loadAchievements() {
-        this.showMessage('Загрузка достижений...', 'info');
-        // Реализация загрузки достижений
+async loadInteractives() {
+    try {
+        const response = await fetch(`/api/admin/interactives?userId=${this.userId}`);
+        const data = await response.json();
+        
+        const interactivesSection = document.getElementById('interactivesSection');
+        interactivesSection.innerHTML = this.createInteractivesManagementHTML(data);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки интерактивов:', error);
+        this.showMessage('Ошибка загрузки интерактивов', 'error');
     }
+}
 
-    async loadModeration() {
-        this.showMessage('Загрузка данных для модерации...', 'info');
-        // Реализация загрузки модерации
-    }
+createInteractivesManagementHTML(interactives) {
+    return `
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Управление интерактивами</h3>
+                <div class="table-actions">
+                    <button class="btn btn-primary" onclick="adminApp.showCreateInteractiveForm()">
+                        <i class="fas fa-plus"></i>
+                        Создать интерактив
+                    </button>
+                </div>
+            </div>
 
-    async loadAdmins() {
-        this.showMessage('Загрузка администраторов...', 'info');
-        // Реализация загрузки администраторов
-    }
-
-    async loadSettings() {
-        this.showMessage('Загрузка настроек...', 'info');
-        // Реализация загрузки настроек
-    }
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Тип</th>
+                            <th>Попытки</th>
+                            <th>Успешность</th>
+                            <th>Награда</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="interactivesTable">
+                        ${interactives.length === 0 ? `
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                <div class="empty-state" style="padding: 20px;">
+                                    <div class="empty-state-icon">🎮</div>
+                                    <div class="empty-state-title">Интерактивы не найдены</div>
+                                    <div class="empty-state-description">Создайте первый интерактив</div>
+                                </div>
+                            </td>
+                        </tr>
+                        ` : interactives.map(interactive => `
+                        <tr>
+                            <td>${interactive.id}</td>
+                            <td>
+                                <div style="font-weight: 600;">${interactive.title}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">
+                                    ${interactive.category} • ${interactive.difficulty}
+                                </div>
+                            </td>
+                            <td>${interactive.type}</td>
+                            <td>${interactive.attempts_count || 0}</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    ${interactive.success_rate || 0}%
+                                    <div style="width: 60px; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden;">
+                                        <div style="width: ${interactive.success_rate || 0}%; height: 100%; background: var(--success-color);"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>${interactive.sparks_reward}✨</td>
+                            <td>
+                                <span class="status-badge ${interactive.is_active ? 'status-active' : 'status-inactive'}">
+                                    ${interactive.is_active ? 'Активен' : 'Неактивен'}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="adminApp.viewInteractive(${interactive.id})" title="Просмотр">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-warning btn-sm" onclick="adminApp.editInteractive(${interactive.id})" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-${interactive.is_active ? 'danger' : 'success'} btn-sm" 
+                                            onclick="adminApp.toggleInteractiveStatus(${interactive.id}, ${!interactive.is_active})">
+                                        <i class="fas fa-${interactive.is_active ? 'pause' : 'play'}"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
 
     // Вспомогательные методы
     showMessage(message, type = 'info') {
