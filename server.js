@@ -13,10 +13,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-// ДОБАВИТЬ в server.js перед маршрутами
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+// На более современный синтаксис ES modules:
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 // Создаем папку для загрузок если ее нет
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
@@ -49,70 +49,76 @@ const upload = multer({
     }
 });
 
-// ИСПРАВИТЬ маршрут загрузки работ
-app.post('/api/webapp/upload-work', upload.single('image'), requireAuth, (req, res) => {
-    const { userId, title, description, type, category, tags } = req.body;
-    
-    if (!userId || !title || !req.file) {
-        return res.status(400).json({ error: 'User ID, title and image are required' });
+// ИСПРАВЛЕННЫЙ маршрут загрузки работ
+app.post('/api/webapp/upload-work', upload.single('image'), requireAuth, async (req, res) => {
+    try {
+        const { userId, title, description, type, category, tags } = req.body;
+        
+        if (!userId || !title || !req.file) {
+            return res.status(400).json({ error: 'User ID, title and image are required' });
+        }
+        
+        const user = db.users.find(u => u.user_id == userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        
+        // Проверяем ограничение на количество работ в день
+        const today = new Date().toDateString();
+        const todayWorks = db.user_works.filter(w => 
+            w.user_id === userId && 
+            new Date(w.created_at).toDateString() === today
+        ).length;
+        
+        const maxWorksPerDay = 5;
+        if (todayWorks >= maxWorksPerDay) {
+            return res.status(400).json({ error: `Превышено максимальное количество работ в день (${maxWorksPerDay})` });
+        }
+        
+        // Создаем URL для доступа к файлу
+        const imageUrl = `/uploads/${req.file.filename}`;
+        
+        const newWork = {
+            id: Date.now(),
+            user_id: parseInt(userId),
+            title,
+            description: description || '',
+            image_url: imageUrl,
+            type: type || 'image',
+            category: category || 'other',
+            tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+            status: 'pending',
+            created_at: new Date().toISOString(),
+            moderated_at: null,
+            moderator_id: null,
+            admin_comment: null,
+            likes_count: 0,
+            comments_count: 0,
+            views_count: 0,
+            metadata: {},
+            featured: false,
+            allow_comments: true
+        };
+        
+        db.user_works.push(newWork);
+        
+        user.uploaded_works = db.user_works.filter(w => w.user_id === userId).length;
+        
+        // Начисляем искры за загрузку работы
+        addSparks(userId, 5, 'upload_work', `Загрузка работы: ${title}`, {
+            work_id: newWork.id,
+            category: category
+        });
+        
+        res.json({
+            success: true,
+            message: `Работа успешно загружена! Получено +5✨. После одобрения вы получите +15✨`,
+            workId: newWork.id,
+            work: newWork
+        });
+    } catch (error) {
+        console.error('❌ Ошибка загрузки работы:', error);
+        res.status(500).json({ error: 'Ошибка загрузки работы' });
     }
-    
-    const user = db.users.find(u => u.user_id == userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    
-    // Проверяем ограничение на количество работ в день
-    const today = new Date().toDateString();
-    const todayWorks = db.user_works.filter(w => 
-        w.user_id === userId && 
-        new Date(w.created_at).toDateString() === today
-    ).length;
-    
-    const maxWorksPerDay = 5;
-    if (todayWorks >= maxWorksPerDay) {
-        return res.status(400).json({ error: `Превышено максимальное количество работ в день (${maxWorksPerDay})` });
-    }
-    
-    // Создаем URL для доступа к файлу
-    const imageUrl = `/uploads/${req.file.filename}`;
-    
-    const newWork = {
-        id: Date.now(),
-        user_id: userId,
-        title,
-        description: description || '',
-        image_url: imageUrl,
-        type: type || 'image',
-        category: category || 'other',
-        tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        moderated_at: null,
-        moderator_id: null,
-        admin_comment: null,
-        likes_count: 0,
-        comments_count: 0,
-        views_count: 0,
-        metadata: {},
-        featured: false,
-        allow_comments: true
-    };
-    
-    db.user_works.push(newWork);
-    
-    user.uploaded_works = db.user_works.filter(w => w.user_id === userId).length;
-    
-    // Начисляем искры за загрузку работы
-    addSparks(userId, 5, 'upload_work', `Загрузка работы: ${title}`, {
-        work_id: newWork.id,
-        category: category
-    });
-    
-    res.json({
-        success: true,
-        message: `Работа успешно загружена! Получено +5✨. После одобрения вы получите +15✨`,
-        workId: newWork.id,
-        work: newWork
-    });
+});
 });
 
 // ДОБАВИТЬ статическую раздачу файлов
