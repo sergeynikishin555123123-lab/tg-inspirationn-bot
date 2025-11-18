@@ -1613,6 +1613,791 @@ createPurchasesManagementHTML(stats) {
     `;
 }
 
+async loadRoles() {
+    try {
+        const response = await fetch(`/api/admin/roles?userId=${this.userId}`);
+        const roles = await response.json();
+        
+        const rolesSection = document.getElementById('rolesSection');
+        rolesSection.innerHTML = this.createRolesManagementHTML(roles);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки ролей:', error);
+        this.showMessage('Ошибка загрузки ролей', 'error');
+    }
+}
+
+createRolesManagementHTML(roles) {
+    const totalUsers = roles.reduce((sum, role) => sum + (role.users_count || 0), 0);
+
+    return `
+        <div class="stats-grid" style="margin-bottom: 24px;">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">🎭</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        5%
+                    </div>
+                </div>
+                <div class="stat-value">${roles.length}</div>
+                <div class="stat-label">Всего ролей</div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-header">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        12%
+                    </div>
+                </div>
+                <div class="stat-value">${totalUsers}</div>
+                <div class="stat-label">Пользователей с ролями</div>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-header">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        3%
+                    </div>
+                </div>
+                <div class="stat-value">${roles.filter(r => r.is_active).length}</div>
+                <div class="stat-label">Активных ролей</div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Управление ролями</h3>
+                <div class="table-actions">
+                    <button class="btn btn-primary" onclick="adminApp.showCreateRoleForm()">
+                        <i class="fas fa-plus"></i>
+                        Создать роль
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Роль</th>
+                            <th>Описание</th>
+                            <th>Пользователи</th>
+                            <th>Разрешения</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rolesTable">
+                        ${roles.length === 0 ? `
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="empty-state" style="padding: 20px;">
+                                    <div class="empty-state-icon">🎭</div>
+                                    <div class="empty-state-title">Роли не найдены</div>
+                                    <div class="empty-state-description">Создайте первую роль</div>
+                                </div>
+                            </td>
+                        </tr>
+                        ` : roles.map(role => `
+                        <tr>
+                            <td>${role.id}</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="font-size: 20px;">${role.icon}</div>
+                                    <div>
+                                        <div style="font-weight: 600;">${role.name}</div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">
+                                            ${role.requirements}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="max-width: 200px;">
+                                    ${role.description}
+                                </div>
+                            </td>
+                            <td>
+                                <div style="text-align: center;">
+                                    <div style="font-size: var(--font-lg); font-weight: 800; color: var(--primary-color);">
+                                        ${role.users_count || 0}
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                        пользователей
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-size: 12px;">
+                                    ${role.available_buttons ? role.available_buttons.slice(0, 3).join(', ') : 'Нет'}${role.available_buttons && role.available_buttons.length > 3 ? '...' : ''}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge ${role.is_active ? 'status-active' : 'status-inactive'}">
+                                    ${role.is_active ? 'Активна' : 'Неактивна'}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="adminApp.viewRole(${role.id})" title="Просмотр">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-warning btn-sm" onclick="adminApp.editRole(${role.id})" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-${role.is_active ? 'danger' : 'success'} btn-sm" 
+                                            onclick="adminApp.toggleRoleStatus(${role.id}, ${!role.is_active})">
+                                        <i class="fas fa-${role.is_active ? 'pause' : 'play'}"></i>
+                                    </button>
+                                    ${role.users_count === 0 ? `
+                                    <button class="btn btn-danger btn-sm" onclick="adminApp.deleteRole(${role.id})" title="Удалить">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    ` : ''}
+                                </div>
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4 style="margin-bottom: 16px;">📊 Распределение по ролям</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                ${roles.filter(role => role.users_count > 0).map(role => `
+                <div style="text-align: center; padding: 16px; background: var(--light-color); border-radius: var(--radius-md);">
+                    <div style="font-size: 20px; margin-bottom: 8px;">${role.icon}</div>
+                    <div style="font-size: var(--font-lg); font-weight: 800; color: var(--primary-color);">
+                        ${role.users_count}
+                    </div>
+                    <div style="font-size: var(--font-sm); color: var(--text-muted);">
+                        ${role.name}
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        ${Math.round((role.users_count / totalUsers) * 100)}%
+                    </div>
+                </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+async loadCharacters() {
+    try {
+        const response = await fetch(`/api/admin/characters?userId=${this.userId}`);
+        const characters = await response.json();
+        
+        const charactersSection = document.getElementById('charactersSection');
+        charactersSection.innerHTML = this.createCharactersManagementHTML(characters);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки персонажей:', error);
+        this.showMessage('Ошибка загрузки персонажей', 'error');
+    }
+}
+
+createCharactersManagementHTML(characters) {
+    return `
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Управление персонажами</h3>
+                <div class="table-actions">
+                    <button class="btn btn-primary" onclick="adminApp.showCreateCharacterForm()">
+                        <i class="fas fa-plus"></i>
+                        Создать персонажа
+                    </button>
+                </div>
+            </div>
+
+            <div class="search-filters">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" id="charactersSearch" placeholder="Поиск персонажей...">
+                </div>
+                <div class="filter-group">
+                    <select class="form-control" id="charactersRoleFilter">
+                        <option value="">Все роли</option>
+                        ${[...new Set(characters.map(c => c.role_name))].filter(name => name).map(name => `
+                            <option value="${name}">${name}</option>
+                        `).join('')}
+                    </select>
+                    <select class="form-control" id="charactersRarityFilter">
+                        <option value="">Все редкости</option>
+                        <option value="common">Обычный</option>
+                        <option value="rare">Редкий</option>
+                        <option value="epic">Эпический</option>
+                        <option value="legendary">Легендарный</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Персонаж</th>
+                            <th>Роль</th>
+                            <th>Бонус</th>
+                            <th>Пользователи</th>
+                            <th>Редкость</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="charactersTable">
+                        ${characters.length === 0 ? `
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                <div class="empty-state" style="padding: 20px;">
+                                    <div class="empty-state-icon">👤</div>
+                                    <div class="empty-state-title">Персонажи не найдены</div>
+                                    <div class="empty-state-description">Создайте первого персонажа</div>
+                                </div>
+                            </td>
+                        </tr>
+                        ` : characters.map(character => `
+                        <tr>
+                            <td>${character.id}</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="font-size: 24px;">${character.avatar}</div>
+                                    <div>
+                                        <div style="font-weight: 600;">${character.name}</div>
+                                        <div style="font-size: 12px; color: var(--text-muted); max-width: 200px;">
+                                            ${character.description}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge status-active">
+                                    ${character.role_name}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="font-size: 12px;">
+                                    <strong>${character.bonus_type}:</strong> ${character.bonus_value}<br>
+                                    <span style="color: var(--text-muted);">${character.bonus_description}</span>
+                                </div>
+                            </td>
+                            <td>${character.users_count || 0}</td>
+                            <td>
+                                <span class="status-badge ${this.getRarityBadgeClass(character.rarity)}">
+                                    ${this.getRarityLabel(character.rarity)}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge ${character.is_active ? 'status-active' : 'status-inactive'}">
+                                    ${character.is_active ? 'Активен' : 'Неактивен'}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="adminApp.viewCharacter(${character.id})" title="Просмотр">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-warning btn-sm" onclick="adminApp.editCharacter(${character.id})" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-${character.is_active ? 'danger' : 'success'} btn-sm" 
+                                            onclick="adminApp.toggleCharacterStatus(${character.id}, ${!character.is_active})">
+                                        <i class="fas fa-${character.is_active ? 'pause' : 'play'}"></i>
+                                    </button>
+                                    ${character.users_count === 0 ? `
+                                    <button class="btn btn-danger btn-sm" onclick="adminApp.deleteCharacter(${character.id})" title="Удалить">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    ` : ''}
+                                </div>
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+// Вспомогательные методы для редкости
+getRarityBadgeClass(rarity) {
+    const classes = {
+        'common': 'status-active',
+        'rare': 'status-completed',
+        'epic': 'status-pending',
+        'legendary': 'status-inactive'
+    };
+    return classes[rarity] || 'status-active';
+}
+
+getRarityLabel(rarity) {
+    const labels = {
+        'common': 'Обычный',
+        'rare': 'Редкий',
+        'epic': 'Эпический',
+        'legendary': 'Легендарный'
+    };
+    return labels[rarity] || rarity;
+}
+
+async loadAchievements() {
+    try {
+        const response = await fetch(`/api/admin/achievements?userId=${this.userId}`);
+        const data = await response.json();
+        
+        const achievementsSection = document.getElementById('achievementsSection');
+        achievementsSection.innerHTML = this.createAchievementsManagementHTML(data.achievements || []);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки достижений:', error);
+        this.showMessage('Ошибка загрузки достижений', 'error');
+    }
+}
+
+createAchievementsManagementHTML(achievements) {
+    const totalEarned = achievements.reduce((sum, a) => sum + (a.earned_count || 0), 0);
+    const activeAchievements = achievements.filter(a => a.is_active).length;
+
+    return `
+        <div class="stats-grid" style="margin-bottom: 24px;">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        8%
+                    </div>
+                </div>
+                <div class="stat-value">${achievements.length}</div>
+                <div class="stat-label">Всего достижений</div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-header">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        15%
+                    </div>
+                </div>
+                <div class="stat-value">${totalEarned}</div>
+                <div class="stat-label">Всего получено</div>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-header">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-arrow-up"></i>
+                        5%
+                    </div>
+                </div>
+                <div class="stat-value">${activeAchievements}</div>
+                <div class="stat-label">Активных достижений</div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Управление достижениями</h3>
+                <div class="table-actions">
+                    <button class="btn btn-primary" onclick="adminApp.showCreateAchievementForm()">
+                        <i class="fas fa-plus"></i>
+                        Создать достижение
+                    </button>
+                </div>
+            </div>
+
+            <div class="search-filters">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" id="achievementsSearch" placeholder="Поиск достижений...">
+                </div>
+                <div class="filter-group">
+                    <select class="form-control" id="achievementsCategoryFilter">
+                        <option value="">Все категории</option>
+                        <option value="general">Общие</option>
+                        <option value="quizzes">Квизы</option>
+                        <option value="marathons">Марафоны</option>
+                        <option value="works">Работы</option>
+                        <option value="social">Социальные</option>
+                    </select>
+                    <select class="form-control" id="achievementsRarityFilter">
+                        <option value="">Все редкости</option>
+                        <option value="common">Обычные</option>
+                        <option value="rare">Редкие</option>
+                        <option value="epic">Эпические</option>
+                        <option value="legendary">Легендарные</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Достижение</th>
+                            <th>Условие</th>
+                            <th>Награда</th>
+                            <th>Получено</th>
+                            <th>Категория</th>
+                            <th>Редкость</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="achievementsTable">
+                        ${achievements.length === 0 ? `
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                <div class="empty-state" style="padding: 20px;">
+                                    <div class="empty-state-icon">🏆</div>
+                                    <div class="empty-state-title">Достижения не найдены</div>
+                                    <div class="empty-state-description">Создайте первое достижение</div>
+                                </div>
+                            </td>
+                        </tr>
+                        ` : achievements.map(achievement => `
+                        <tr>
+                            <td>${achievement.id}</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="font-size: 20px;">${achievement.icon}</div>
+                                    <div>
+                                        <div style="font-weight: 600;">${achievement.title}</div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">
+                                            ${achievement.description}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-size: 12px;">
+                                    <strong>${this.getConditionLabel(achievement.condition_type)}:</strong><br>
+                                    ${achievement.condition_value}
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--success-color);">
+                                    ${achievement.sparks_reward}✨
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-muted);">
+                                    ${achievement.points} очков
+                                </div>
+                            </td>
+                            <td>
+                                <div style="text-align: center;">
+                                    <div style="font-size: var(--font-lg); font-weight: 800; color: var(--primary-color);">
+                                        ${achievement.earned_count || 0}
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                        пользователей
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge status-active">
+                                    ${achievement.category}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge ${this.getRarityBadgeClass(achievement.rarity)}">
+                                    ${this.getRarityLabel(achievement.rarity)}
+                                </span>
+                                ${achievement.hidden ? '<br><span class="status-badge status-inactive" style="margin-top: 4px;">👻 Скрытое</span>' : ''}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="adminApp.viewAchievement(${achievement.id})" title="Просмотр">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-warning btn-sm" onclick="adminApp.editAchievement(${achievement.id})" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-${achievement.is_active ? 'danger' : 'success'} btn-sm" 
+                                            onclick="adminApp.toggleAchievementStatus(${achievement.id}, ${!achievement.is_active})">
+                                        <i class="fas fa-${achievement.is_active ? 'pause' : 'play'}"></i>
+                                    </button>
+                                    <button class="btn btn-info btn-sm" onclick="adminApp.viewAchievementStats(${achievement.id})" title="Статистика">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+getConditionLabel(conditionType) {
+    const labels = {
+        'registration': 'Регистрация',
+        'quiz_completion': 'Завершение квизов',
+        'work_upload': 'Загрузка работ',
+        'sparks_total': 'Всего искр',
+        'marathon_completion': 'Завершение марафонов',
+        'perfect_quiz': 'Идеальный квиз',
+        'interactive_completion': 'Завершение интерактивов',
+        'level_reached': 'Достижение уровня'
+    };
+    return labels[conditionType] || conditionType;
+}
+
+async loadModeration() {
+    try {
+        // Загружаем данные для модерации
+        const [worksResponse, reviewsResponse] = await Promise.all([
+            fetch(`/api/admin/moderation/works?userId=${this.userId}`),
+            fetch(`/api/admin/moderation/reviews?userId=${this.userId}`)
+        ]);
+        
+        const worksData = await worksResponse.json();
+        const reviewsData = await reviewsResponse.json();
+        
+        const moderationSection = document.getElementById('moderationSection');
+        moderationSection.innerHTML = this.createModerationManagementHTML(worksData, reviewsData);
+        
+        this.initModerationEventListeners();
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки данных модерации:', error);
+        this.showMessage('Ошибка загрузки данных модерации', 'error');
+    }
+}
+
+createModerationManagementHTML(worksData, reviewsData) {
+    const pendingWorks = worksData.pending_count || 0;
+    const pendingReviews = reviewsData.pending_count || 0;
+    const totalPending = pendingWorks + pendingReviews;
+
+    return `
+        <div class="stats-grid" style="margin-bottom: 24px;">
+            <div class="stat-card ${pendingWorks > 0 ? 'warning' : ''}">
+                <div class="stat-header">
+                    <div class="stat-icon">🖼️</div>
+                    <div class="stat-trend ${pendingWorks > 0 ? 'trend-up' : 'trend-down'}">
+                        <i class="fas fa-${pendingWorks > 0 ? 'arrow-up' : 'check'}"></i>
+                        ${pendingWorks > 0 ? `${pendingWorks} ожидают` : 'Все проверены'}
+                    </div>
+                </div>
+                <div class="stat-value">${pendingWorks}</div>
+                <div class="stat-label">Работ на модерации</div>
+            </div>
+
+            <div class="stat-card ${pendingReviews > 0 ? 'warning' : ''}">
+                <div class="stat-header">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-trend ${pendingReviews > 0 ? 'trend-up' : 'trend-down'}">
+                        <i class="fas fa-${pendingReviews > 0 ? 'arrow-up' : 'check'}"></i>
+                        ${pendingReviews > 0 ? `${pendingReviews} ожидают` : 'Все проверены'}
+                    </div>
+                </div>
+                <div class="stat-value">${pendingReviews}</div>
+                <div class="stat-label">Отзывов на модерации</div>
+            </div>
+
+            <div class="stat-card ${totalPending > 0 ? 'danger' : 'success'}">
+                <div class="stat-header">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-trend ${totalPending > 0 ? 'trend-up' : 'trend-down'}">
+                        <i class="fas fa-${totalPending > 0 ? 'exclamation' : 'check'}"></i>
+                        ${totalPending > 0 ? 'Требуют внимания' : 'Все чисто'}
+                    </div>
+                </div>
+                <div class="stat-value">${totalPending}</div>
+                <div class="stat-label">Всего ожидает модерации</div>
+            </div>
+        </div>
+
+        <div class="tabs" id="moderationTabs">
+            <button class="tab active" data-tab="works">Работы (${pendingWorks})</button>
+            <button class="tab" data-tab="reviews">Отзывы (${pendingReviews})</button>
+        </div>
+
+        <div class="tab-content active" id="worksTab">
+            <div class="table-card">
+                <div class="table-header">
+                    <h3 class="table-title">Модерация работ</h3>
+                    <div class="table-actions">
+                        ${pendingWorks > 0 ? `
+                        <button class="btn btn-success" onclick="adminApp.approveAllWorks()">
+                            <i class="fas fa-check-double"></i>
+                            Одобрить все
+                        </button>
+                        ` : ''}
+                        <button class="btn btn-secondary" onclick="adminApp.loadModeration()">
+                            <i class="fas fa-sync-alt"></i>
+                            Обновить
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th width="50">
+                                    <input type="checkbox" id="selectAllWorks" onchange="adminApp.toggleSelectAllWorks(this.checked)">
+                                </th>
+                                <th>Работа</th>
+                                <th>Пользователь</th>
+                                <th>Категория</th>
+                                <th>Дата</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="worksModerationTable">
+                            ${worksData.works && worksData.works.length > 0 ? worksData.works.map(work => `
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="work-checkbox" value="${work.id}">
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600;">${work.title}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted); max-width: 300px;">
+                                        ${work.description || 'Нет описания'}
+                                    </div>
+                                    ${work.image_url ? `
+                                    <div style="margin-top: 8px;">
+                                        <img src="${work.image_url}" alt="${work.title}" style="max-width: 100px; max-height: 80px; border-radius: var(--radius-sm);">
+                                    </div>
+                                    ` : ''}
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600;">${work.user_name}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                        @${work.user_username} • ${work.user_level}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-active">
+                                        ${work.category}
+                                    </span>
+                                </td>
+                                <td>${this.formatTime(work.created_at)}</td>
+                                <td>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button class="btn btn-success btn-sm" onclick="adminApp.moderateWork(${work.id}, 'approved')" title="Одобрить">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="adminApp.moderateWork(${work.id}, 'rejected')" title="Отклонить">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" onclick="adminApp.viewWorkDetails(${work.id})" title="Просмотр">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            `).join('') : `
+                            <tr>
+                                <td colspan="6" class="text-center">
+                                    <div class="empty-state" style="padding: 20px;">
+                                        <div class="empty-state-icon">✅</div>
+                                        <div class="empty-state-title">Все работы проверены</div>
+                                        <div class="empty-state-description">Нет работ, ожидающих модерации</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            `}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="reviewsTab">
+            <div class="table-card">
+                <div class="table-header">
+                    <h3 class="table-title">Модерация отзывов</h3>
+                    <div class="table-actions">
+                        <button class="btn btn-secondary" onclick="adminApp.loadModeration()">
+                            <i class="fas fa-sync-alt"></i>
+                            Обновить
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Отзыв</th>
+                                <th>Пользователь</th>
+                                <th>Пост</th>
+                                <th>Оценка</th>
+                                <th>Дата</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reviewsModerationTable">
+                            ${reviewsData.reviews && reviewsData.reviews.length > 0 ? reviewsData.reviews.map(review => `
+                            <tr>
+                                <td>
+                                    <div style="max-width: 300px;">
+                                        <div style="font-weight: 600;">${review.review_text}</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600;">${review.user_name}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                        @${review.user_username}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="font-size: 12px;">
+                                        ${review.post_title}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="color: var(--warning-color); font-weight: 600;">
+                                        ${'⭐'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
+                                    </div>
+                                </td>
+                                <td>${this.formatTime(review.created_at)}</td>
+                                <td>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button class="btn btn-success btn-sm" onclick="adminApp.moderateReview(${review.id}, 'approved')" title="Одобрить">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="adminApp.moderateReview(${review.id}, 'rejected')" title="Отклонить">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            `).join('') : `
+                            <tr>
+                                <td colspan="6" class="text-center">
+                                    <div class="empty-state" style="padding: 20px;">
+                                        <div class="empty-state-icon">✅</div>
+                                        <div class="empty-state-title">Все отзывы проверены</div>
+                                        <div class="empty-state-description">Нет отзывов, ожидающих модерации</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            `}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
+    
 // Вспомогательные методы для админки
 getDifficultyBadgeClass(difficulty) {
     const classes = {
