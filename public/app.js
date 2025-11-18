@@ -2198,6 +2198,64 @@ class InspirationWorkshop {
         return icons[activityType] || '📊';
     }
 
+// ==================== ВАЛИДАЦИЯ ФОРМ ====================
+// ⬇️⬇️⬇️ ВСТАВИТЬ ЗДЕСЬ ⬇️⬇️⬇️
+
+validateRegistrationForm(role, character) {
+    const errors = [];
+    
+    if (!role) {
+        errors.push('Пожалуйста, выберите роль');
+    }
+    
+    if (!character) {
+        errors.push('Пожалуйста, выберите персонажа');
+    }
+    
+    return errors;
+}
+
+validateWorkForm(title, imageUrl, description) {
+    const errors = [];
+    
+    if (!title || title.trim().length < 3) {
+        errors.push('Название работы должно быть не менее 3 символов');
+    }
+    
+    if (!imageUrl || imageUrl.trim().length === 0) {
+        errors.push('URL изображения обязателен');
+    } else if (!this.isValidUrl(imageUrl)) {
+        errors.push('Пожалуйста, введите корректный URL изображения');
+    }
+    
+    if (description && description.length > 500) {
+        errors.push('Описание не должно превышать 500 символов');
+    }
+    
+    return errors;
+}
+
+isValidUrl(string) {
+    try {
+        const url = new URL(string);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch (_) {
+        return false;
+    }
+}
+
+validateQuizAnswer(questionIndex, answer) {
+    if (answer === undefined || answer === null) {
+        return 'Пожалуйста, выберите ответ';
+    }
+    
+    if (answer < 0 || answer >= this.currentQuiz.questions[questionIndex].options.length) {
+        return 'Некорректный ответ';
+    }
+    
+    return null;
+}
+   
     getNotificationIcon(notificationType) {
         const icons = {
             'welcome': '👋',
@@ -2228,6 +2286,71 @@ class InspirationWorkshop {
         return types[notificationType] || 'Уведомление';
     }
 
+// ==================== СИСТЕМА КЭШИРОВАНИЯ ====================
+// ⬇️⬇️⬇️ ВСТАВИТЬ ЗДЕСЬ ⬇️⬇️⬇️
+
+cache = {
+    users: {},
+    quizzes: {},
+    marathons: {},
+    shopItems: {},
+    posts: {}
+};
+
+setCache(key, data, ttl = 300000) { // 5 минут по умолчанию
+    this.cache[key] = {
+        data: data,
+        expiry: Date.now() + ttl,
+        key: key
+    };
+    
+    // Автоочистка старых записей
+    this.cleanupCache();
+}
+
+getCache(key) {
+    const item = this.cache[key];
+    
+    if (item && item.expiry > Date.now()) {
+        console.log('📦 Данные получены из кэша:', key);
+        return item.data;
+    }
+    
+    // Удаляем просроченные данные
+    if (item) {
+        delete this.cache[key];
+    }
+    
+    return null;
+}
+
+cleanupCache() {
+    const now = Date.now();
+    Object.keys(this.cache).forEach(key => {
+        if (this.cache[key].expiry <= now) {
+            delete this.cache[key];
+        }
+    });
+}
+
+clearCache(pattern = null) {
+    if (pattern) {
+        Object.keys(this.cache).forEach(key => {
+            if (key.includes(pattern)) {
+                delete this.cache[key];
+            }
+        });
+    } else {
+        this.cache = {
+            users: {},
+            quizzes: {},
+            marathons: {},
+            shopItems: {},
+            posts: {}
+        };
+    }
+}
+    
     getShopItemIcon(itemType) {
         const icons = {
             'video_course': 'video',
@@ -2299,38 +2422,852 @@ class InspirationWorkshop {
         this.checkNotifications();
     }
 
-    // Заглушки для нереализованных методов
-    viewQuizResults(quizId) {
-        this.showMessage('Функция просмотра результатов квиза в разработке', 'info');
-    }
+   async viewQuizResults(quizId) {
+    try {
+        // Используем кэш для результатов
+        const cacheKey = `quiz_results_${quizId}_${this.userId}`;
+        const cached = this.getCache(cacheKey);
+        
+        if (cached) {
+            this.showQuizDetailedResults(cached);
+            return;
+        }
 
-    viewQuizDetails(quizId) {
-        this.showMessage('Функция просмотра деталей квиза в разработке', 'info');
+        const response = await fetch(`/api/webapp/quizzes/${quizId}/results?userId=${this.userId}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch quiz results');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            this.setCache(cacheKey, data.results, 60000); // Кэшируем на 1 минуту
+            this.showQuizDetailedResults(data.results);
+        } else {
+            this.showMessage(data.error || 'Ошибка загрузки результатов', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки результатов квиза:', error);
+        this.showMessage('Ошибка загрузки результатов квиза', 'error');
+        this.loadQuizzes(); // Возвращаем к списку квизов
     }
+}
 
-    viewMarathon(marathonId) {
-        this.showMessage('Функция просмотра марафона в разработке', 'info');
-    }
+showQuizDetailedResults(results) {
+    const resultsHTML = `
+        <div class="card">
+            <div class="card-header">
+                <h3 style="margin-bottom: 8px;">📊 Детальные результаты</h3>
+                <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--success-color);">
+                    ${results.scorePercentage}%
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 20px 0;">
+                <div style="text-align: center; padding: 16px; background: var(--light-color); border-radius: var(--radius-md);">
+                    <div style="font-size: var(--font-xl); font-weight: 800; color: var(--primary-color);">
+                        ${results.correctAnswers}/${results.totalQuestions}
+                    </div>
+                    <div style="font-size: var(--font-sm); color: var(--text-muted);">Правильных ответов</div>
+                </div>
+                
+                <div style="text-align: center; padding: 16px; background: var(--light-color); border-radius: var(--radius-md);">
+                    <div style="font-size: var(--font-xl); font-weight: 800; color: var(--success-color);">
+                        +${results.sparksEarned}✨
+                    </div>
+                    <div style="font-size: var(--font-sm); color: var(--text-muted);">Заработано искр</div>
+                </div>
+                
+                <div style="text-align: center; padding: 16px; background: var(--light-color); border-radius: var(--radius-md);">
+                    <div style="font-size: var(--font-xl); font-weight: 800; color: var(--warning-color);">
+                        ${results.timeSpent}с
+                    </div>
+                    <div style="font-size: var(--font-sm); color: var(--text-muted);">Время прохождения</div>
+                </div>
+            </div>
 
-    viewItemDetails(itemId) {
-        this.showMessage('Функция просмотра деталей товара в разработке', 'info');
-    }
+            ${results.character_bonus ? `
+            <div style="padding: 12px; background: rgba(102, 126, 234, 0.1); border-radius: var(--radius-md); margin-bottom: 16px;">
+                <i class="fas fa-star" style="color: var(--primary-color);"></i>
+                <strong>Бонус персонажа:</strong> ${results.character_bonus}
+            </div>
+            ` : ''}
+        </div>
+        
+        <div class="card">
+            <h4 style="margin-bottom: 16px;">📝 Детали по вопросам</h4>
+            <div style="max-height: 400px; overflow-y: auto;">
+                ${results.detailedResults.map((result, index) => `
+                    <div style="padding: 16px; border-bottom: 1px solid var(--border-color); ${!result.isCorrect ? 'background: rgba(245, 101, 101, 0.05);' : ''}">
+                        <div style="display: flex; justify-content: between; align-items: flex-start; margin-bottom: 8px;">
+                            <div style="font-weight: 600; flex: 1;">
+                                Вопрос ${index + 1}: ${result.question}
+                            </div>
+                            <div style="margin-left: 12px;">
+                                <span class="status-badge ${result.isCorrect ? 'status-active' : 'status-inactive'}">
+                                    ${result.isCorrect ? '✅ Правильно' : '❌ Неправильно'}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 8px;">
+                            <strong>Ваш ответ:</strong> 
+                            <span style="color: ${result.isCorrect ? 'var(--success-color)' : 'var(--danger-color)'};">
+                                ${result.userAnswerText}
+                            </span>
+                        </div>
+                        
+                        ${!result.isCorrect ? `
+                        <div style="margin-bottom: 8px;">
+                            <strong>Правильный ответ:</strong> 
+                            <span style="color: var(--success-color);">${result.correctAnswerText}</span>
+                        </div>
+                        ` : ''}
+                        
+                        ${result.explanation ? `
+                        <div style="padding: 12px; background: var(--light-color); border-radius: var(--radius-sm); margin-top: 8px;">
+                            <strong>💡 Объяснение:</strong> ${result.explanation}
+                        </div>
+                        ` : ''}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        
+        <div class="card-actions">
+            <button class="btn btn-primary" onclick="app.loadQuizzes()">
+                <i class="fas fa-arrow-left"></i>
+                Назад к списку квизов
+            </button>
+            <button class="btn btn-secondary" onclick="app.startQuiz(${results.quizId})">
+                <i class="fas fa-redo"></i>
+                Пройти снова
+            </button>
+        </div>
+    `;
+    
+    document.getElementById('quizzesList').innerHTML = resultsHTML;
+}
 
-    viewPost(postId) {
-        this.showMessage('Функция просмотра поста в разработке', 'info');
+async viewQuizDetails(quizId) {
+    try {
+        const response = await fetch(`/api/webapp/quizzes/${quizId}?userId=${this.userId}`);
+        const quiz = await response.json();
+        
+        if (!quiz) {
+            throw new Error('Quiz not found');
+        }
+        
+        const detailsHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h3 style="margin-bottom: 8px;">${quiz.title}</h3>
+                    <div>
+                        <span class="status-badge status-active">${quiz.difficulty}</span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <p>${quiz.description}</p>
+                </div>
+                
+                <div class="card-meta">
+                    <div class="tag">
+                        <i class="fas fa-clock"></i>
+                        ${quiz.duration_minutes} минут
+                    </div>
+                    <div class="tag">
+                        <i class="fas fa-question"></i>
+                        ${quiz.questions.length} вопросов
+                    </div>
+                    <div class="tag">
+                        <i class="fas fa-users"></i>
+                        ${quiz.attempts_count} попыток
+                    </div>
+                    <div class="tag">
+                        <i class="fas fa-star"></i>
+                        Рейтинг: ${quiz.rating}/5
+                    </div>
+                </div>
+                
+                ${quiz.requirements ? `
+                <div style="margin: 16px 0; padding: 12px; background: var(--light-color); border-radius: var(--radius-md);">
+                    <strong>📋 Требования:</strong><br>
+                    Минимальный уровень: ${quiz.requirements.min_level}<br>
+                    Максимум попыток в день: ${quiz.requirements.max_attempts_per_day}
+                </div>
+                ` : ''}
+                
+                ${quiz.tags && quiz.tags.length > 0 ? `
+                <div style="margin: 16px 0;">
+                    <strong>🏷️ Теги:</strong>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                        ${quiz.tags.map(tag => `
+                            <span style="padding: 4px 8px; background: var(--light-color); border-radius: 12px; font-size: 12px;">
+                                ${tag}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="card">
+                <h4 style="margin-bottom: 16px;">📝 Примеры вопросов</h4>
+                ${quiz.questions.slice(0, 3).map((question, index) => `
+                    <div style="padding: 12px; border-bottom: 1px solid var(--border-color);">
+                        <div style="font-weight: 600; margin-bottom: 8px;">
+                            Вопрос ${index + 1}: ${question.question}
+                        </div>
+                        <div style="font-size: 14px; color: var(--text-muted);">
+                            Варианты ответов: ${question.options.slice(0, 2).join(', ')}...
+                        </div>
+                    </div>
+                `).join('')}
+                ${quiz.questions.length > 3 ? `
+                <div style="text-align: center; padding: 16px; color: var(--text-muted);">
+                    ... и еще ${quiz.questions.length - 3} вопросов
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="card-actions">
+                <button class="btn btn-primary" onclick="app.startQuiz(${quizId})">
+                    <i class="fas fa-play"></i>
+                    Начать квиз
+                </button>
+                <button class="btn btn-secondary" onclick="app.loadQuizzes()">
+                    <i class="fas fa-arrow-left"></i>
+                    Назад
+                </button>
+            </div>
+        `;
+        
+        document.getElementById('quizzesList').innerHTML = detailsHTML;
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки деталей квиза:', error);
+        this.showMessage('Ошибка загрузки деталей квиза', 'error');
+        this.loadQuizzes();
     }
+}
 
-    downloadPurchase(purchaseId) {
-        this.showMessage('Функция скачивания покупки в разработке', 'info');
+async viewMarathon(marathonId) {
+    try {
+        const response = await fetch(`/api/webapp/marathons/${marathonId}?userId=${this.userId}`);
+        const marathon = await response.json();
+        
+        if (!marathon) {
+            throw new Error('Marathon not found');
+        }
+        
+        const completion = marathon.completed ? '✅ Завершен' : 
+                          marathon.started_at ? '🔄 В процессе' : '🆕 Доступен';
+        
+        const marathonHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h3 style="margin-bottom: 8px;">${marathon.title}</h3>
+                    <div>
+                        <span class="status-badge ${marathon.completed ? 'status-completed' : marathon.started_at ? 'status-active' : 'status-pending'}">
+                            ${completion}
+                        </span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <p>${marathon.description}</p>
+                </div>
+                
+                <div class="card-meta">
+                    <div class="tag">
+                        <i class="fas fa-calendar"></i>
+                        ${marathon.duration_days} дней
+                    </div>
+                    <div class="tag">
+                        <i class="fas fa-star"></i>
+                        ${marathon.difficulty}
+                    </div>
+                    <div class="tag">
+                        <i class="fas fa-users"></i>
+                        ${marathon.participants_count} участников
+                    </div>
+                    <div class="tag">
+                        <i class="fas fa-trophy"></i>
+                        ${marathon.completion_rate}% завершают
+                    </div>
+                </div>
+                
+                ${marathon.started_at ? `
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Прогресс</span>
+                        <span>${marathon.progress}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${marathon.progress}%"></div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${marathon.requirements ? `
+                <div style="margin: 16px 0; padding: 12px; background: var(--light-color); border-radius: var(--radius-md);">
+                    <strong>📋 Требования:</strong><br>
+                    ${marathon.requirements}
+                </div>
+                ` : ''}
+                
+                ${marathon.tags && marathon.tags.length > 0 ? `
+                <div style="margin: 16px 0;">
+                    <strong>🏷️ Теги:</strong>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                        ${marathon.tags.map(tag => `
+                            <span style="padding: 4px 8px; background: var(--light-color); border-radius: 12px; font-size: 12px;">
+                                ${tag}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="card">
+                <h4 style="margin-bottom: 16px;">📅 План марафона</h4>
+                ${marathon.tasks.map((task, index) => `
+                    <div style="padding: 16px; border-bottom: 1px solid var(--border-color); 
+                         ${marathon.current_day === task.day ? 'background: rgba(102, 126, 234, 0.05); border-left: 4px solid var(--primary-color);' : ''}">
+                        <div style="display: flex; justify-content: between; align-items: flex-start; margin-bottom: 8px;">
+                            <div>
+                                <div style="font-weight: 600;">День ${task.day}: ${task.title}</div>
+                                <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">
+                                    ${task.description}
+                                </div>
+                            </div>
+                            <div>
+                                ${marathon.current_day > task.day ? '✅' : 
+                                  marathon.current_day === task.day ? '🔄' : '⏳'}
+                            </div>
+                        </div>
+                        
+                        ${task.requires_submission ? `
+                        <div style="font-size: 14px; color: var(--warning-color); margin-top: 8px;">
+                            <i class="fas fa-upload"></i> Требуется загрузка работы
+                        </div>
+                        ` : ''}
+                        
+                        ${task.sparks_reward ? `
+                        <div style="font-size: 14px; color: var(--success-color); margin-top: 4px;">
+                            <i class="fas fa-bolt"></i> Награда: ${task.sparks_reward}✨
+                        </div>
+                        ` : ''}
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div class="card">
+                <h4 style="margin-bottom: 16px;">🎯 Награды за завершение</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                    <div style="text-align: center; padding: 16px; background: var(--light-color); border-radius: var(--radius-md);">
+                        <div style="font-size: var(--font-lg); font-weight: 800; color: var(--success-color);">
+                            +${marathon.sparks_completion_bonus}✨
+                        </div>
+                        <div style="font-size: var(--font-sm); color: var(--text-muted);">Бонус завершения</div>
+                    </div>
+                    <div style="text-align: center; padding: 16px; background: var(--light-color); border-radius: var(--radius-md);">
+                        <div style="font-size: var(--font-lg); font-weight: 800; color: var(--primary-color);">
+                            🏆
+                        </div>
+                        <div style="font-size: var(--font-sm); color: var(--text-muted);">Достижение</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-actions">
+                ${!marathon.completed ? `
+                <button class="btn btn-primary" onclick="app.${marathon.started_at ? 'continueMarathon' : 'startMarathon'}(${marathonId})">
+                    <i class="fas fa-${marathon.started_at ? 'play' : 'flag'}"></i>
+                    ${marathon.started_at ? 'Продолжить' : 'Начать марафон'}
+                </button>
+                ` : ''}
+                <button class="btn btn-secondary" onclick="app.loadMarathons()">
+                    <i class="fas fa-arrow-left"></i>
+                    Назад к списку
+                </button>
+            </div>
+        `;
+        
+        document.getElementById('marathonsList').innerHTML = marathonHTML;
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки марафона:', error);
+        this.showMessage('Ошибка загрузки марафона', 'error');
+        this.loadMarathons();
     }
+}
 
-    viewPurchaseContent(purchaseId) {
-        this.showMessage('Функция просмотра покупки в разработке', 'info');
+async viewItemDetails(itemId) {
+    try {
+        const response = await fetch(`/api/webapp/shop/items/${itemId}`);
+        const item = await response.json();
+        
+        if (!item) {
+            throw new Error('Item not found');
+        }
+        
+        const finalPrice = item.discount_percent > 0 ? 
+            Math.round(item.price * (1 - item.discount_percent / 100)) : 
+            item.price;
+        
+        const canAfford = this.user.sparks >= finalPrice;
+        const hasPurchased = await this.checkItemPurchase(itemId);
+        
+        const detailsHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h3 style="margin-bottom: 8px;">${item.title}</h3>
+                    <div>
+                        ${item.featured ? `
+                        <span class="status-badge status-active" style="background: var(--premium-gradient);">
+                            ⭐ Рекомендуемый
+                        </span>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <p>${item.description}</p>
+                </div>
+                
+                ${item.discount_percent > 0 ? `
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px; background: linear-gradient(135deg, rgba(255, 154, 158, 0.1), rgba(254, 207, 239, 0.1)); border-radius: var(--radius-md);">
+                    <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--success-color);">
+                        ${finalPrice}✨
+                    </div>
+                    <div style="text-decoration: line-through; color: var(--text-muted);">
+                        ${item.price}✨
+                    </div>
+                    <div style="background: var(--danger-color); color: white; padding: 4px 8px; border-radius: 12px; font-size: var(--font-sm); font-weight: 700;">
+                        -${item.discount_percent}%
+                    </div>
+                </div>
+                ` : `
+                <div style="font-size: var(--font-2xl); font-weight: 800; color: var(--success-color); margin-bottom: 16px;">
+                    ${item.price}✨
+                </div>
+                `}
+                
+                <div class="card-meta">
+                    <div class="tag">
+                        <i class="fas fa-${this.getShopItemIcon(item.type)}"></i>
+                        ${this.getShopItemType(item.type)}
+                    </div>
+                    <div class="tag">
+                        <i class="fas fa-star"></i>
+                        ${item.difficulty}
+                    </div>
+                    <div class="tag">
+                        <i class="fas fa-clock"></i>
+                        ${item.duration}
+                    </div>
+                    <div class="tag">
+                        <i class="fas fa-users"></i>
+                        ${item.students_count} студентов
+                    </div>
+                </div>
+                
+                ${item.instructor ? `
+                <div style="margin: 16px 0; padding: 12px; background: var(--light-color); border-radius: var(--radius-md);">
+                    <strong>👨‍🏫 Инструктор:</strong> ${item.instructor}
+                </div>
+                ` : ''}
+                
+                ${item.what_you_learn && item.what_you_learn.length > 0 ? `
+                <div style="margin: 16px 0;">
+                    <strong>🎯 Чему вы научитесь:</strong>
+                    <ul style="margin: 8px 0 0 20px;">
+                        ${item.what_you_learn.map(skill => `<li>${skill}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+                
+                ${item.features && item.features.length > 0 ? `
+                <div style="margin: 16px 0;">
+                    <strong>📦 Включает:</strong>
+                    <ul style="margin: 8px 0 0 20px;">
+                        ${item.features.map(feature => `<li>${feature}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+                
+                ${item.requirements ? `
+                <div style="margin: 16px 0; padding: 12px; background: var(--light-color); border-radius: var(--radius-md);">
+                    <strong>📋 Требования:</strong><br>
+                    ${item.requirements}
+                </div>
+                ` : ''}
+                
+                ${item.tags && item.tags.length > 0 ? `
+                <div style="margin: 16px 0;">
+                    <strong>🏷️ Теги:</strong>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                        ${item.tags.map(tag => `
+                            <span style="padding: 4px 8px; background: var(--light-color); border-radius: 12px; font-size: 12px;">
+                                ${tag}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="card-actions">
+                ${hasPurchased ? `
+                <button class="btn btn-success" onclick="app.downloadPurchase(${itemId})">
+                    <i class="fas fa-download"></i>
+                    Скачать
+                </button>
+                <button class="btn btn-secondary" onclick="app.viewPurchaseContent(${itemId})">
+                    <i class="fas fa-eye"></i>
+                    Просмотреть
+                </button>
+                ` : `
+                <button class="btn btn-primary" onclick="app.purchaseItem(${itemId})" ${!canAfford ? 'disabled' : ''}>
+                    <i class="fas fa-shopping-cart"></i>
+                    Купить за ${finalPrice}✨
+                </button>
+                `}
+                
+                <button class="btn btn-secondary" onclick="app.loadShopItems()">
+                    <i class="fas fa-arrow-left"></i>
+                    Назад
+                </button>
+            </div>
+            
+            ${!canAfford && !hasPurchased ? `
+            <div class="card" style="text-align: center;">
+                <div style="color: var(--danger-color); font-weight: 600; margin-bottom: 8px;">
+                    ❌ Недостаточно искр
+                </div>
+                <div style="color: var(--text-muted);">
+                    Вам нужно еще ${finalPrice - this.user.sparks}✨ для покупки
+                </div>
+            </div>
+            ` : ''}
+        `;
+        
+        document.getElementById('shopItemsList').innerHTML = detailsHTML;
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки деталей товара:', error);
+        this.showMessage('Ошибка загрузки деталей товара', 'error');
+        this.loadShopItems();
     }
+}
 
-    handleNotificationAction(actionUrl) {
-        this.showMessage(`Переход по действию: ${actionUrl}`, 'info');
+async checkItemPurchase(itemId) {
+    try {
+        const response = await fetch(`/api/webapp/users/${this.userId}/purchases`);
+        const data = await response.json();
+        return data.purchases.some(purchase => purchase.item_id === itemId);
+    } catch (error) {
+        console.error('❌ Ошибка проверки покупки:', error);
+        return false;
     }
+}
+
+async viewPost(postId) {
+    try {
+        const response = await fetch(`/api/webapp/channel-posts/${postId}?userId=${this.userId}`);
+        const post = await response.json();
+        
+        if (!post) {
+            throw new Error('Post not found');
+        }
+        
+        const postHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h3 style="margin-bottom: 8px;">${post.title}</h3>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="status-badge ${post.featured ? 'status-completed' : 'status-active'}">
+                            ${post.featured ? '⭐ Избранный' : '📰 Пост'}
+                        </span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 16px; color: var(--text-muted);">
+                    <i class="fas fa-calendar"></i> ${this.formatTime(post.created_at)}
+                    ${post.views_count > 0 ? ` • <i class="fas fa-eye"></i> ${post.views_count} просмотров` : ''}
+                    ${post.likes_count > 0 ? ` • <i class="fas fa-heart"></i> ${post.likes_count}` : ''}
+                    ${post.comments_count > 0 ? ` • <i class="fas fa-comment"></i> ${post.comments_count}` : ''}
+                </div>
+                
+                ${post.image_url ? `
+                <div style="text-align: center; margin: 20px 0;">
+                    <img src="${post.image_url}" alt="${post.title}" style="max-width: 100%; border-radius: var(--radius-md);">
+                </div>
+                ` : ''}
+                
+                <div style="line-height: 1.8; font-size: var(--font-md); margin-bottom: 24px;">
+                    ${post.content.split('\n').map(paragraph => `
+                        <p style="margin-bottom: 16px;">${paragraph}</p>
+                    `).join('')}
+                </div>
+                
+                ${post.tags && post.tags.length > 0 ? `
+                <div style="margin: 24px 0;">
+                    <strong>🏷️ Теги:</strong>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                        ${post.tags.map(tag => `
+                            <span style="padding: 6px 12px; background: var(--light-color); border-radius: 16px; font-size: 12px; font-weight: 600;">
+                                ${tag}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${post.action_type && post.action_target ? `
+                <div style="margin: 24px 0; padding: 16px; background: rgba(102, 126, 234, 0.1); border-radius: var(--radius-md); text-align: center;">
+                    <strong>🎯 Призыв к действию:</strong>
+                    <div style="margin-top: 12px;">
+                        <button class="btn btn-primary" onclick="app.handlePostAction('${post.action_type}', '${post.action_target}')">
+                            ${post.action_text || 'Перейти'}
+                        </button>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="card">
+                <h4 style="margin-bottom: 16px;">💬 Отзывы (${post.reviews_count})</h4>
+                
+                ${post.user_review ? `
+                <div style="padding: 16px; background: rgba(72, 187, 120, 0.1); border-radius: var(--radius-md); margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Ваш отзыв</div>
+                    <div style="margin-bottom: 8px;">${post.user_review.review_text}</div>
+                    <div style="color: var(--warning-color);">
+                        ${'⭐'.repeat(post.user_review.rating)}${'☆'.repeat(5 - post.user_review.rating)}
+                    </div>
+                </div>
+                ` : `
+                <div style="text-align: center; padding: 20px;">
+                    <button class="btn btn-primary" onclick="app.writePostReview('${post.post_id}')">
+                        <i class="fas fa-star"></i>
+                        Написать отзыв
+                    </button>
+                </div>
+                `}
+                
+                ${post.average_rating > 0 ? `
+                <div style="text-align: center; padding: 16px; background: var(--light-color); border-radius: var(--radius-md);">
+                    <div style="font-size: var(--font-lg); font-weight: 700; color: var(--warning-color); margin-bottom: 8px;">
+                        ${post.average_rating.toFixed(1)}/5
+                    </div>
+                    <div style="color: var(--text-muted);">
+                        Средняя оценка на основе ${post.reviews_count} отзывов
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="card-actions">
+                <button class="btn btn-secondary" onclick="app.loadPosts()">
+                    <i class="fas fa-arrow-left"></i>
+                    Назад к списку постов
+                </button>
+                <button class="btn btn-primary" onclick="app.writePostReview('${post.post_id}')">
+                    <i class="fas fa-star"></i>
+                    Оставить отзыв
+                </button>
+            </div>
+        `;
+        
+        document.getElementById('postsList').innerHTML = postHTML;
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки поста:', error);
+        this.showMessage('Ошибка загрузки поста', 'error');
+        this.loadPosts();
+    }
+}
+
+async downloadPurchase(purchaseId) {
+    try {
+        this.showMessage('Подготовка скачивания...', 'info');
+        
+        const response = await fetch(`/api/webapp/purchases/${purchaseId}/download?userId=${this.userId}`);
+        
+        if (!response.ok) {
+            throw new Error('Download failed');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.download_url) {
+            // Создаем временную ссылку для скачивания
+            const link = document.createElement('a');
+            link.href = data.download_url;
+            link.download = data.filename || 'download';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            this.showMessage('Скачивание началось!', 'success');
+            
+            // Обновляем счетчик скачиваний
+            this.loadPurchases();
+        } else {
+            this.showMessage(data.error || 'Ошибка скачивания', 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка скачивания:', error);
+        this.showMessage('Ошибка скачивания файла', 'error');
+    }
+}
+
+async viewPurchaseContent(purchaseId) {
+    try {
+        const response = await fetch(`/api/webapp/purchases/${purchaseId}/content?userId=${this.userId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const contentHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h3 style="margin-bottom: 8px;">${data.purchase.title}</h3>
+                        <div>
+                            <span class="status-badge status-completed">✅ Куплено</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <p>${data.purchase.description}</p>
+                    </div>
+                    
+                    <div class="card-meta">
+                        <div class="tag">
+                            <i class="fas fa-${this.getShopItemIcon(data.purchase.type)}"></i>
+                            ${this.getShopItemType(data.purchase.type)}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-calendar"></i>
+                            ${this.formatTime(data.purchase.purchased_at)}
+                        </div>
+                        <div class="tag">
+                            <i class="fas fa-download"></i>
+                            ${data.purchase.download_count || 0} скачиваний
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h4 style="margin-bottom: 16px;">📚 Содержание</h4>
+                    
+                    ${data.purchase.content_text ? `
+                    <div style="line-height: 1.6; margin-bottom: 20px;">
+                        ${data.purchase.content_text}
+                    </div>
+                    ` : `
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📖</div>
+                        <div style="font-size: var(--font-lg); font-weight: 600; margin-bottom: 8px;">
+                            Содержание товара
+                        </div>
+                        <div>
+                            Здесь будет отображаться содержимое приобретенного материала
+                        </div>
+                    </div>
+                    `}
+                    
+                    ${data.purchase.file_url ? `
+                    <div style="text-align: center; margin-top: 24px;">
+                        <button class="btn btn-primary" onclick="app.downloadPurchase(${purchaseId})">
+                            <i class="fas fa-download"></i>
+                            Скачать файл
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div class="card-actions">
+                    <button class="btn btn-secondary" onclick="app.loadPurchases()">
+                        <i class="fas fa-arrow-left"></i>
+                        Назад к покупкам
+                    </button>
+                    ${data.purchase.file_url ? `
+                    <button class="btn btn-primary" onclick="app.downloadPurchase(${purchaseId})">
+                        <i class="fas fa-download"></i>
+                        Скачать
+                    </button>
+                    ` : ''}
+                </div>
+            `;
+            
+            document.getElementById('purchasesList').innerHTML = contentHTML;
+        } else {
+            this.showMessage(data.error || 'Ошибка загрузки контента', 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки контента покупки:', error);
+        this.showMessage('Ошибка загрузки контента', 'error');
+        this.loadPurchases();
+    }
+}
+
+handleNotificationAction(actionUrl) {
+    if (!actionUrl) return;
+    
+    // Обрабатываем разные типы действий
+    if (actionUrl.startsWith('/')) {
+        // Внутренняя навигация
+        const section = actionUrl.replace('/', '');
+        if (section && this[`show${section.charAt(0).toUpperCase() + section.slice(1)}`]) {
+            this[`show${section.charAt(0).toUpperCase() + section.slice(1)}`]();
+        } else {
+            this.showSection(section);
+        }
+    } else if (actionUrl.startsWith('http')) {
+        // Внешняя ссылка
+        window.open(actionUrl, '_blank');
+    } else {
+        console.log('Обработка действия:', actionUrl);
+        this.showMessage(`Выполняется действие: ${actionUrl}`, 'info');
+    }
+}
+
+handlePostAction(actionType, actionTarget) {
+    const actions = {
+        'quiz': () => {
+            this.showSection('quizzes');
+            this.showMessage('Переход к квизам', 'info');
+        },
+        'marathon': () => {
+            this.showSection('marathons');
+            this.showMessage('Переход к марафонам', 'info');
+        },
+        'shop': () => {
+            this.showSection('shop');
+            this.showMessage('Переход к магазину', 'info');
+        },
+        'profile': () => {
+            this.showSection('profile');
+            this.showMessage('Переход к профилю', 'info');
+        },
+        'external': () => {
+            window.open(actionTarget, '_blank');
+        }
+    };
+    
+    if (actions[actionType]) {
+        actions[actionType]();
+    } else {
+        this.showMessage(`Действие: ${actionType}`, 'info');
+    }
+}
 
     showNotifications() {
         this.showSection('notifications');
