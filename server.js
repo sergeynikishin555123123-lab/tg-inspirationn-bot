@@ -4,6 +4,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -807,7 +808,9 @@ app.get('/api/webapp/users/:userId/purchases', (req, res) => {
                 type: item?.type,
                 file_url: item?.file_url,
                 content_text: item?.content_text,
-                preview_url: item?.preview_url
+                preview_url: item?.preview_url,
+                file_data: item?.file_url?.startsWith('data:') ? item.file_url : null,
+                preview_data: item?.preview_url?.startsWith('data:') ? item.preview_url : null
             };
         })
         .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
@@ -1294,7 +1297,7 @@ app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
 });
 
 app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
-    const { title, description, type, file_url, preview_url, price, content_text } = req.body;
+    const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data } = req.body;
     
     if (!title || !price) {
         return res.status(400).json({ error: 'Title and price are required' });
@@ -1305,8 +1308,8 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
         title,
         description: description || '',
         type: type || 'video',
-        file_url: file_url || '',
-        preview_url: preview_url || '',
+        file_url: file_url || file_data || '',
+        preview_url: preview_url || preview_data || '',
         price: parseFloat(price),
         content_text: content_text || '',
         is_active: true,
@@ -1325,7 +1328,7 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
 
 app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     const itemId = parseInt(req.params.itemId);
-    const { title, description, type, file_url, preview_url, price, content_text, is_active } = req.body;
+    const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data } = req.body;
     
     const item = db.shop_items.find(i => i.id === itemId);
     if (!item) {
@@ -1336,7 +1339,9 @@ app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     if (description) item.description = description;
     if (type) item.type = type;
     if (file_url !== undefined) item.file_url = file_url;
+    if (file_data !== undefined) item.file_url = file_data;
     if (preview_url !== undefined) item.preview_url = preview_url;
+    if (preview_data !== undefined) item.preview_url = preview_data;
     if (price) item.price = parseFloat(price);
     if (content_text) item.content_text = content_text;
     if (is_active !== undefined) item.is_active = is_active;
@@ -1865,7 +1870,7 @@ if (process.env.BOT_TOKEN) {
             
             const welcomeText = `🎨 Привет, ${name}!
 
-Добро пожаловать в **Мастерская Вдохновения**!
+Добро пожаловать в **Мастерскую Вдохновения**!
 
 ✨ Откройте личный кабинет чтобы:
 • 🎯 Проходить квизы и получать искры
