@@ -667,7 +667,6 @@ function calculateLevel(sparks) {
     return 'Ученик';
 }
 
-// НАХОДИМ функцию addSparks и УБЕДИТЕСЬ что она выглядит так:
 function addSparks(userId, sparks, activityType, description, metadata = {}) {
     const user = db.users.find(u => u.user_id == userId);
     if (user) {
@@ -690,7 +689,6 @@ function addSparks(userId, sparks, activityType, description, metadata = {}) {
         // Проверяем достижения
         checkAchievements(userId);
         
-        console.log(`✨ Начислено ${sparks} искр пользователю ${userId} за ${activityType}`);
         return activity;
     }
     return null;
