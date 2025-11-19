@@ -1500,5 +1500,119 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="admin.js"></script>
+
+    <!-- Модальное окно создания пользователя -->
+<div class="modal" id="createUserModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">👥 Добавить пользователя</h3>
+            <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
+        </div>
+        <div class="p-4">
+            <div class="form-group">
+                <label class="form-label">Имя пользователя</label>
+                <input type="text" class="form-control" id="newUserName" placeholder="Введите имя">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Роль</label>
+                <select class="form-control" id="newUserRole">
+                    <option value="student">Студент</option>
+                    <option value="teacher">Преподаватель</option>
+                    <option value="admin">Администратор</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" id="newUserEmail" placeholder="email@example.com">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="adminApp.createUser()">
+                    <i class="fas fa-plus"></i>
+                    Создать пользователя
+                </button>
+                <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания квиза -->
+<div class="modal" id="createQuizModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">🎯 Создать квиз</h3>
+            <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
+        </div>
+        <div class="p-4">
+            <div class="form-group">
+                <label class="form-label">Название квиза</label>
+                <input type="text" class="form-control" id="newQuizTitle" placeholder="Введите название">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Описание</label>
+                <textarea class="form-control" id="newQuizDescription" placeholder="Описание квиза" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Сложность</label>
+                <select class="form-control" id="newQuizDifficulty">
+                    <option value="beginner">Начинающий</option>
+                    <option value="intermediate">Средний</option>
+                    <option value="advanced">Продвинутый</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Длительность (минуты)</label>
+                <input type="number" class="form-control" id="newQuizDuration" value="10" min="5" max="60">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="adminApp.createQuiz()">
+                    <i class="fas fa-plus"></i>
+                    Создать квиз
+                </button>
+                <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания товара -->
+<div class="modal" id="createItemModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">🛒 Создать товар</h3>
+            <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
+        </div>
+        <div class="p-4">
+            <div class="form-group">
+                <label class="form-label">Название товара</label>
+                <input type="text" class="form-control" id="newItemTitle" placeholder="Введите название">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Описание</label>
+                <textarea class="form-control" id="newItemDescription" placeholder="Описание товара" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Тип</label>
+                <select class="form-control" id="newItemType">
+                    <option value="video_course">Видеокурс</option>
+                    <option value="ebook">Электронная книга</option>
+                    <option value="course">Курс</option>
+                    <option value="material">Материалы</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Цена (искры)</label>
+                <input type="number" class="form-control" id="newItemPrice" value="100" min="10" max="10000">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="adminApp.createItem()">
+                    <i class="fas fa-plus"></i>
+                    Создать товар
+                </button>
+                <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>
