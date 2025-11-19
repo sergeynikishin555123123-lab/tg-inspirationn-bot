@@ -920,8 +920,8 @@ audio {
             </div>
         </div>
 
-<!-- Навигация -->
-<div class="nav-tabs">
+        <!-- Навигация -->
+       <div class="nav-tabs">
     <div class="nav-tab active" onclick="showTab('dashboard')">📊 Дашборд</div>
     <div class="nav-tab" onclick="showTab('users')">👥 Пользователи</div>
     <div class="nav-tab" onclick="showTab('roles')">🎭 Роли</div>
@@ -1498,8 +1498,6 @@ audio {
             </div>
         </div>
 
-<!-- ==================== ПОСТЫ ==================== -->
-
 <!-- Посты -->
 <div id="posts" class="tab-content">
     <div class="card">
@@ -1698,14 +1696,6 @@ audio {
     </div>
 
     <script>
-        // Глобальные переменные
-        let currentAdmin = null;
-        let currentUserId = null;
-        let currentEditingId = null;
-        let currentShopTab = 'items';
-        let currentModerationTab = 'works';
-        let interactiveImageData = null;
-
 // ИСПРАВЛЕННАЯ ИНИЦИАЛИЗАЦИЯ АДМИНКИ
 async function initAdminPanel() {
     console.log("🚀 Загрузка админ-панели");
@@ -2030,111 +2020,127 @@ async function loadMarathonSubmissions() {
     }
 }
         
-// ПОЛНОСТЬЮ ПЕРЕПИСАННАЯ ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК
-function showTab(tabName) {
-    console.log('🔄 Переключение на вкладку:', tabName);
-    
-    // Скрыть все вкладки
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Убрать активный класс со всех кнопок навигации
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Показать выбранную вкладку
-    const targetTab = document.getElementById(tabName);
-    if (targetTab) {
-        targetTab.classList.add('active');
-        console.log('✅ Вкладка активирована:', tabName);
-    } else {
-        console.error('❌ Вкладка не найдена:', tabName);
-        // Создаем временный контент для отсутствующей вкладки
-        createTempTabContent(tabName);
-    }
-    
-    // Найти и активировать соответствующую кнопку навигации
-    let foundTab = false;
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        // Простая проверка по тексту кнопки
-        if (tab.textContent && tab.textContent.trim().includes(getTabName(tabName))) {
-            tab.classList.add('active');
-            foundTab = true;
-            console.log('✅ Кнопка активирована по тексту:', tab.textContent);
+    <script>
+        // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
+
+        // БАЗОВАЯ ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК
+        function showTab(tabName) {
+            console.log('🔄 Переключение на вкладку:', tabName);
+            
+            try {
+                // Скрыть все вкладки
+                const allTabs = document.querySelectorAll('.tab-content');
+                allTabs.forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                // Убрать активный класс со всех кнопок навигации
+                const allNavTabs = document.querySelectorAll('.nav-tab');
+                allNavTabs.forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                // Показать выбранную вкладку
+                const targetTab = document.getElementById(tabName);
+                if (targetTab) {
+                    targetTab.classList.add('active');
+                    console.log('✅ Вкладка активирована:', tabName);
+                } else {
+                    console.error('❌ Вкладка не найдена:', tabName);
+                    return;
+                }
+                
+                // Активировать соответствующую кнопку навигации
+                allNavTabs.forEach(tab => {
+                    if (tab.getAttribute('onclick') && tab.getAttribute('onclick').includes("showTab('" + tabName + "')")) {
+                        tab.classList.add('active');
+                        console.log('✅ Кнопка активирована:', tab.textContent);
+                    }
+                });
+                
+                // Скрыть все формы
+                hideAllForms();
+                
+                // Загрузить данные для вкладки
+                loadTabData(tabName);
+                
+            } catch (error) {
+                console.error('❌ Ошибка в showTab:', error);
+            }
         }
-    });
-    
-    // Если не нашли по тексту, ищем по onclick
-    if (!foundTab) {
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            const onclickAttr = tab.getAttribute('onclick');
-            if (onclickAttr && onclickAttr.includes(`'${tabName}'`)) {
-                tab.classList.add('active');
-                foundTab = true;
-                console.log('✅ Кнопка активирована по onclick:', tab.textContent);
-            }
-        });
-    }
-    
-    // Если все еще не нашли, активируем первую кнопку с подходящим содержимым
-    if (!foundTab) {
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            if (tab.textContent && getTabIcon(tabName) && tab.textContent.includes(getTabIcon(tabName))) {
-                tab.classList.add('active');
-                console.log('✅ Кнопка активирована по иконке:', tab.textContent);
-            }
-        });
-    }
-    
-    // Скрыть все формы
-    hideAllForms();
-    
-    // Загрузить данные для вкладки
-    loadTabData(tabName);
-}
 
-// Функция для получения названия вкладки по ID
-function getTabName(tabId) {
-    const names = {
-        'dashboard': 'Дашборд',
-        'users': 'Пользователи', 
-        'roles': 'Роли',
-        'characters': 'Персонажи',
-        'quizzes': 'Квизы',
-        'marathons': 'Марафоны',
-        'interactives': 'Интерактивы',
-        'shop': 'Магазин',
-        'posts': 'Посты',
-        'moderation': 'Модерация',
-        'admins': 'Админы'
-    };
-    return names[tabId] || tabId;
-}
+        // Функция для загрузки данных вкладки
+        function loadTabData(tabName) {
+            console.log('📥 Загрузка данных для вкладки:', tabName);
+            
+            try {
+                switch(tabName) {
+                    case 'users':
+                        if (typeof loadUsers === 'function') loadUsers();
+                        break;
+                    case 'roles':
+                        if (typeof loadRoles === 'function') loadRoles();
+                        break;
+                    case 'characters':
+                        if (typeof loadCharacters === 'function') loadCharacters();
+                        break;
+                    case 'quizzes':
+                        if (typeof loadQuizzes === 'function') loadQuizzes();
+                        break;
+                    case 'marathons':
+                        if (typeof loadMarathons === 'function') loadMarathons();
+                        break;
+                    case 'interactives':
+                        if (typeof loadInteractives === 'function') loadInteractives();
+                        break;
+                    case 'shop':
+                        if (typeof loadShopItems === 'function') loadShopItems();
+                        break;
+                    case 'posts':
+                        if (typeof loadPosts === 'function') loadPosts();
+                        break;
+                    case 'moderation':
+                        if (typeof loadWorksForModeration === 'function') loadWorksForModeration();
+                        break;
+                    case 'admins':
+                        if (typeof loadAdmins === 'function') loadAdmins();
+                        break;
+                    default:
+                        console.log('ℹ️ Для вкладки нет загрузчика:', tabName);
+                }
+            } catch (error) {
+                console.error('❌ Ошибка загрузки данных вкладки:', error);
+            }
+        }
 
-// Создание временного контента для отсутствующей вкладки
-function createTempTabContent(tabName) {
-    const container = document.querySelector('.container');
-    let tempTab = document.getElementById(tabName);
-    
-    if (!tempTab) {
-        tempTab = document.createElement('div');
-        tempTab.id = tabName;
-        tempTab.className = 'tab-content active';
-        tempTab.innerHTML = `
-            <div class="card">
-                <h2>${getTabName(tabName)} ${getTabIcon(tabName)}</h2>
-                <div class="loading">
-                    Загрузка ${getTabName(tabName).toLowerCase()}...
-                </div>
-            </div>
-        `;
-        container.appendChild(tempTab);
-    } else {
-        tempTab.classList.add('active');
-    }
-}
+        // Скрыть все формы
+        function hideAllForms() {
+            try {
+                const forms = [
+                    'roleForm', 'characterForm', 'quizForm', 'marathonForm', 
+                    'interactiveForm', 'shopItemForm', 'postForm', 'adminForm'
+                ];
+                
+                forms.forEach(formId => {
+                    const form = document.getElementById(formId);
+                    if (form) {
+                        form.style.display = 'none';
+                    }
+                });
+                
+                currentEditingId = null;
+            } catch (error) {
+                console.error('❌ Ошибка в hideAllForms:', error);
+            }
+        }
+
+        // Глобальные переменные
+        let currentAdmin = null;
+        let currentUserId = null;
+        let currentEditingId = null;
+        let currentShopTab = 'items';
+        let currentModerationTab = 'works';
+        let interactiveImageData = null;
 
 // ДОБАВЬТЕ ЭТУ ФУНКЦИЮ ДЛЯ ЗАГРУЗКИ ДАННЫХ ВКЛАДКИ
 function loadTabData(tabName) {
@@ -2195,18 +2201,17 @@ function loadTabData(tabName) {
             return icons[tabName] || '📄';
         }
 
-// Скрыть все формы
-function hideAllForms() {
-    document.getElementById('roleForm').style.display = 'none';
-    document.getElementById('characterForm').style.display = 'none';
-    document.getElementById('quizForm').style.display = 'none';
-    document.getElementById('marathonForm').style.display = 'none';
-    document.getElementById('interactiveForm').style.display = 'none';
-    document.getElementById('shopItemForm').style.display = 'none';
-    document.getElementById('postForm').style.display = 'none'; // ДОБАВИТЬ ЭТУ СТРОКУ
-    document.getElementById('adminForm').style.display = 'none'; // ДОБАВИТЬ ЭТУ СТРОКУ
-    currentEditingId = null;
-}
+        // Скрыть все формы
+        function hideAllForms() {
+            document.getElementById('roleForm').style.display = 'none';
+            document.getElementById('characterForm').style.display = 'none';
+            document.getElementById('quizForm').style.display = 'none';
+            document.getElementById('marathonForm').style.display = 'none';
+            document.getElementById('interactiveForm').style.display = 'none';
+            document.getElementById('shopItemForm').style.display = 'none';
+            document.getElementById('postForm').style.display = 'none';
+            document.getElementById('adminForm').style.display = 'none';
+            currentEditingId = null;
         }
 
         // ==================== СТАТИСТИКА ====================
