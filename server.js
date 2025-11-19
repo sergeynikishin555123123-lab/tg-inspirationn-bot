@@ -1345,6 +1345,32 @@ app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
     });
 });
 
+// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ ЗАГРУЗКИ ОТЗЫВОВ
+app.get('/api/admin/reviews', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    console.log('📥 Загрузка отзывов со статусом:', status);
+    
+    const reviews = db.post_reviews
+        .filter(r => r.status === status)
+        .map(review => {
+            const user = db.users.find(u => u.user_id === review.user_id);
+            const post = db.channel_posts.find(p => p.post_id === review.post_id);
+            const moderator = db.admins.find(a => a.user_id === review.moderator_id);
+            
+            return {
+                ...review,
+                tg_first_name: user?.tg_first_name || 'Неизвестно',
+                tg_username: user?.tg_username,
+                post_title: post?.title || 'Пост не найден',
+                moderator_username: moderator?.username
+            };
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    res.json({ reviews });
+});
+
 // Admin API
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
     const stats = {
@@ -1832,8 +1858,36 @@ app.delete('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Марафон удален' });
 });
 
-// Управление работами пользователей
-app.get('/api/admin/user-works', requireAdmin, (req, res) => {
+app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
+    // ... существующий код модерации работ ...
+});
+
+// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ МОДЕРАЦИИ ОТЗЫВОВ
+app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
+    const reviewId = parseInt(req.params.reviewId);
+    const { status, admin_comment } = req.body;
+    
+    console.log('🔄 Модерация отзыва:', { reviewId, status });
+    
+    const review = db.post_reviews.find(r => r.id === reviewId);
+    if (!review) {
+        return res.status(404).json({ error: 'Review not found' });
+    }
+    
+    review.status = status;
+    review.moderated_at = new Date().toISOString();
+    review.moderator_id = req.admin.user_id;
+    review.admin_comment = admin_comment || null;
+    
+    res.json({ 
+        success: true, 
+        message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`,
+        review: review
+    });
+});
+
+// Управление постами
+app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     const { status = 'pending' } = req.query;
     
     const works = db.user_works
@@ -1967,6 +2021,23 @@ app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Пост удален' });
 });
 
+// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ УДАЛЕНИЯ ПОСТОВ
+app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
+    const postId = parseInt(req.params.postId);
+    
+    console.log('🗑️ Удаление поста:', postId);
+    
+    const postIndex = db.channel_posts.findIndex(p => p.id === postId);
+    if (postIndex === -1) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    db.channel_posts.splice(postIndex, 1);
+    
+    console.log('✅ Пост удален');
+    res.json({ success: true, message: 'Пост удален' });
+});
+
 // Управление отзывами
 app.get('/api/admin/reviews', requireAdmin, (req, res) => {
     const { status = 'pending' } = req.query;
@@ -2014,6 +2085,27 @@ app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
 // Управление админами
 app.get('/api/admin/admins', requireAdmin, (req, res) => {
     res.json(db.admins);
+});
+
+// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ УДАЛЕНИЯ АДМИНОВ
+app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
+    const userId = parseInt(req.params.userId);
+    
+    console.log('🗑️ Удаление админа:', userId);
+    
+    if (userId === req.admin.user_id) {
+        return res.status(400).json({ error: 'Cannot remove yourself' });
+    }
+    
+    const adminIndex = db.admins.findIndex(a => a.user_id === userId);
+    if (adminIndex === -1) {
+        return res.status(404).json({ error: 'Admin not found' });
+    }
+    
+    db.admins.splice(adminIndex, 1);
+    
+    console.log('✅ Админ удален');
+    res.json({ success: true, message: 'Админ удален' });
 });
 
 app.post('/api/admin/admins', requireAdmin, (req, res) => {
