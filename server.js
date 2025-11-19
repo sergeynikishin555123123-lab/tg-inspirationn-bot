@@ -2371,7 +2371,7 @@ app.post('/api/admin/export-to-sheets', requireAdmin, async (req, res) => {
                     error: 'Ошибка экспорта данных' 
                 });
             }
-        }
+            
     } catch (error) {
         console.error('❌ Ошибка экспорта:', error);
         res.status(500).json({ 
@@ -2406,7 +2406,6 @@ app.get('/api/admin/sheets-status', requireAdmin, async (req, res) => {
             message: `Ошибка подключения: ${error.message}` 
         });
     }
-});
 
 // Ручка для скачивания CSV
 app.get('/api/admin/export-csv', requireAdmin, (req, res) => {
