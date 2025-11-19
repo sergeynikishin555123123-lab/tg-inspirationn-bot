@@ -799,9 +799,9 @@ class AdminApp {
     }
 
     // ==================== МЕТОДЫ ДЛЯ КВИЗОВ ====================
-    async showCreateQuizForm() {
-        this.showMessage('Форма создания квиза', 'info');
-    }
+   async showCreateQuizForm() {
+    document.getElementById('createQuizModal').classList.add('active');
+}
 
     async editQuiz(quizId) {
         this.showMessage(`Редактирование квиза ID: ${quizId}`, 'info');
@@ -1323,8 +1323,8 @@ createPostsManagementHTML(posts) {
 
         // ==================== МЕТОДЫ ДЛЯ ПОСТОВ ====================
     async showCreatePostForm() {
-        this.showMessage('Форма создания поста', 'info');
-    }
+    document.getElementById('createPostModal').classList.add('active');
+}
 
     async editPost(postId) {
         this.showMessage(`Редактирование поста ID: ${postId}`, 'info');
@@ -1525,10 +1525,9 @@ createShopManagementHTML(items) {
 }
 
     // ==================== МЕТОДЫ ДЛЯ МАГАЗИНА ====================
-    async showCreateItemForm() {
-        this.showMessage('Форма создания товара', 'info');
-    }
-
+   async showCreateItemForm() {
+    document.getElementById('createItemModal').classList.add('active');
+}
     async editItem(itemId) {
         this.showMessage(`Редактирование товара ID: ${itemId}`, 'info');
     }
