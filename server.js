@@ -630,23 +630,24 @@ function getUserStats(userId) {
     };
 }
 
-// Middleware - УПРОЩЕННАЯ ВЕРСИЯ (ВРЕМЕННО)
+// ИСПРАВЛЕННАЯ ПРОВЕРКА АДМИНА
 const requireAdmin = (req, res, next) => {
     const userId = req.query.userId || req.body.userId;
     
-    console.log('🔧 Admin access check for user:', userId);
+    console.log('🔐 Проверка прав админа для userId:', userId);
     
     if (!userId) {
+        console.log('❌ User ID не указан');
         return res.status(401).json({ error: 'User ID required' });
     }
     
-    // ВРЕМЕННО: разрешаем доступ всем пользователям
-    const admin = db.admins.find(a => a.user_id == userId) || {
-        user_id: parseInt(userId),
-        role: 'admin',
-        username: 'temp_admin'
-    };
+    const admin = db.admins.find(a => a.user_id == userId);
+    if (!admin) {
+        console.log('❌ Пользователь не является админом:', userId);
+        return res.status(403).json({ error: 'Admin access required' });
+    }
     
+    console.log('✅ Админ подтвержден:', admin);
     req.admin = admin;
     next();
 };
@@ -667,11 +668,15 @@ app.get('/health', (req, res) => {
 });
 
 // WebApp API
+// ИСПРАВЛЕННОЕ СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ
 app.get('/api/users/:userId', (req, res) => {
     const userId = parseInt(req.params.userId);
-    const user = db.users.find(u => u.user_id === userId);
+    console.log('👤 Запрос пользователя:', userId);
+    
+    let user = db.users.find(u => u.user_id === userId);
     
     if (user) {
+        console.log('✅ Пользователь найден:', user.tg_first_name);
         const stats = getUserStats(userId);
         res.json({ 
             exists: true, 
@@ -681,10 +686,12 @@ app.get('/api/users/:userId', (req, res) => {
             }
         });
     } else {
+        console.log('🆕 Создание нового пользователя:', userId);
         const newUser = {
             id: Date.now(),
             user_id: userId,
             tg_first_name: 'Новый пользователь',
+            tg_username: null,
             sparks: 0,
             level: 'Ученик',
             is_registered: false,
@@ -696,11 +703,52 @@ app.get('/api/users/:userId', (req, res) => {
             last_active: new Date().toISOString()
         };
         db.users.push(newUser);
+        
+        console.log('✅ Новый пользователь создан:', newUser);
         res.json({ 
             exists: false, 
             user: newUser 
         });
     }
+});
+
+// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ ДОБАВЛЕНИЯ АДМИНОВ
+app.post('/api/admin/add-admin', requireAdmin, (req, res) => {
+    const { targetUserId, username, role } = req.body;
+    
+    if (!targetUserId) {
+        return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    // Проверяем, не является ли пользователь уже админом
+    const existingAdmin = db.admins.find(a => a.user_id == targetUserId);
+    if (existingAdmin) {
+        return res.status(400).json({ error: 'User is already an admin' });
+    }
+    
+    // Проверяем, существует ли пользователь
+    const user = db.users.find(u => u.user_id == targetUserId);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const newAdmin = {
+        id: Date.now(),
+        user_id: parseInt(targetUserId),
+        username: username || user.tg_username || '',
+        role: role || 'moderator',
+        created_at: new Date().toISOString()
+    };
+    
+    db.admins.push(newAdmin);
+    
+    console.log('✅ Новый админ добавлен:', newAdmin);
+    
+    res.json({ 
+        success: true, 
+        message: 'Администратор успешно добавлен',
+        admin: newAdmin
+    });
 });
 
 // НОВЫЙ МЕТОД ДЛЯ СМЕНЫ РОЛИ
