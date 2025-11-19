@@ -1,59 +1,74 @@
 // admin.js - Полная версия админ-панели Мастерской Вдохновения v9.0
 class AdminApp {
-    constructor() {
-        this.userId = null;
-        this.admin = null;
-        this.currentSection = 'dashboard';
-        this.charts = {};
-        this.data = {
-            users: [],
-            quizzes: [],
-            marathons: [],
-            interactives: [],
-            posts: [],
-            shopItems: [],
-            purchases: [],
-            roles: [],
-            characters: [],
-            achievements: [],
-            admins: [],
-            settings: [],
-            moderation: {
-                works: [],
-                reviews: []
-            }
-        };
-        
-        // Хранилище файлов
-        this.uploadedFiles = {
-            quizzes: {},
-            marathons: {},
-            interactives: {},
-            posts: {},
-            shop: {}
-        };
+constructor() {
+    this.userId = null;
+    this.admin = null;
+    this.currentSection = 'dashboard';
+    this.charts = {};
+    this.data = {
+        users: [],
+        quizzes: [],
+        marathons: [],
+        interactives: [],
+        posts: [],
+        shopItems: [],
+        purchases: [],
+        roles: [],
+        characters: [],
+        achievements: [],
+        admins: [],
+        settings: [],
+        moderation: {
+            works: [],
+            reviews: []
+        }
+    };
+    
+    // Хранилище файлов
+    this.uploadedFiles = {
+        quizzes: {},
+        marathons: {},
+        interactives: {},
+        posts: {},
+        shop: {}
+    };
 
-        // Текущие редактируемые элементы
-        this.editingItem = null;
-        
-        this.init();
-    }
+    // Текущие редактируемые элементы
+    this.editingItem = null;
+    
+    // ==================== СИСТЕМА СИНХРОНИЗАЦИИ С ПРИЛОЖЕНИЕМ ====================
+    this.syncMethods = {
+        clearCache: this.clearCache.bind(this),
+        forceSync: this.forceSync.bind(this),
+        getCacheStatus: this.getCacheStatus.bind(this)
+    };
+    
+    this.init();
+}
 
-    async init() {
-        console.log('🔧 Админ панель - Инициализация v9.0');
+async init() {
+    console.log('🔧 Админ панель - Инициализация v9.0');
+    
+    try {
+        // Получаем ID пользователя из URL параметров
+        const urlParams = new URLSearchParams(window.location.search);
+        this.userId = urlParams.get('userId') || 898508164;
         
-        try {
-            // Получаем ID пользователя из URL параметров
-            const urlParams = new URLSearchParams(window.location.search);
-            this.userId = urlParams.get('userId') || 898508164;
-            
-            if (!this.userId) {
-                this.showMessage('User ID не найден в параметрах URL', 'error');
-                return;
-            }
+        if (!this.userId) {
+            this.showMessage('User ID не найден в параметрах URL', 'error');
+            return;
+        }
 
-            // Проверяем права администратора
-            await this.checkAdminAccess();
+        // Проверяем права администратора
+        await this.checkAdminAccess();
+        
+        // ==================== ПРОВЕРКА СИНХРОНИЗАЦИИ С СЕРВЕРОМ ====================
+        console.log('🔄 Проверка соединения с сервером...');
+        await this.checkServerConnection();
+        
+        // Инициализация интерфейса
+        this.initEventListeners();
+        this.initCharts();
             
             // Инициализация интерфейса
             this.initEventListeners();
@@ -73,36 +88,215 @@ class AdminApp {
         }
     }
 
-    async checkAdminAccess() {
-        try {
-            // В реальном приложении здесь был бы API вызов
-            // Для демонстрации используем localStorage
-            const adminData = localStorage.getItem(`admin_${this.userId}`);
-            
-            if (adminData) {
-                this.admin = JSON.parse(adminData);
-            } else {
-                // Создаем тестового администратора
-                this.admin = {
-                    user_id: this.userId,
-                    role: 'superadmin',
-                    permissions: ['all'],
-                    tg_first_name: 'Администратор',
-                    username: 'admin',
-                    created_at: new Date().toISOString(),
-                    last_login: new Date().toISOString(),
-                    is_active: true
-                };
-                localStorage.setItem(`admin_${this.userId}`, JSON.stringify(this.admin));
-            }
-            
-            console.log('✅ Права администратора подтверждены');
-            
-        } catch (error) {
-            console.error('❌ Ошибка доступа:', error);
-            this.showMessage('У вас нет прав доступа к админ панели', 'error');
+async checkAdminAccess() {
+    try {
+        // В реальном приложении здесь был бы API вызов
+        // Для демонстрации используем localStorage
+        const adminData = localStorage.getItem(`admin_${this.userId}`);
+        
+        if (adminData) {
+            this.admin = JSON.parse(adminData);
+        } else {
+            // Создаем тестового администратора
+            this.admin = {
+                user_id: this.userId,
+                role: 'superadmin',
+                permissions: ['all'],
+                tg_first_name: 'Администратор',
+                username: 'admin',
+                created_at: new Date().toISOString(),
+                last_login: new Date().toISOString(),
+                is_active: true
+            };
+            localStorage.setItem(`admin_${this.userId}`, JSON.stringify(this.admin));
         }
+        
+        console.log('✅ Права администратора подтверждены');
+        
+    } catch (error) {
+        console.error('❌ Ошибка доступа:', error);
+        this.showMessage('У вас нет прав доступа к админ панели', 'error');
     }
+}
+
+// ==================== МЕТОДЫ СИНХРОНИЗАЦИИ С ПРИЛОЖЕНИЕМ ====================
+
+// Проверка соединения с сервером
+async checkServerConnection() {
+    try {
+        const response = await fetch('/health');
+        if (!response.ok) throw new Error('Server not responding');
+        
+        const data = await response.json();
+        console.log('✅ Соединение с сервером установлено:', data.status);
+        return true;
+    } catch (error) {
+        console.error('❌ Ошибка соединения с сервером:', error);
+        this.showMessage('Ошибка соединения с сервером. Проверьте подключение.', 'error');
+        return false;
+    }
+}
+
+// Метод для очистки кэша на сервере
+async clearCache(cacheType = null) {
+    try {
+        const response = await fetch('/api/admin/clear-cache', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                cacheType: cacheType,
+                userId: this.userId
+            })
+        });
+
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log(`🔄 Кэш очищен: ${cacheType || 'all'}`);
+            return true;
+        } else {
+            console.error('❌ Ошибка очистки кэша:', data.error);
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Ошибка очистки кэша:', error);
+        this.showMessage('Ошибка очистки кэша. Проверьте соединение.', 'error');
+        return false;
+    }
+}
+
+// Метод для принудительной синхронизации данных
+async forceSync(dataType) {
+    try {
+        this.showMessage(`Синхронизация ${dataType}...`, 'info');
+        
+        // Очищаем кэш на сервере
+        const cacheCleared = await this.clearCache(dataType);
+        
+        if (cacheCleared) {
+            // Перезагружаем данные в админ-панели
+            this.loadSectionData(this.currentSection);
+            
+            // Обновляем статус кэша
+            await this.getCacheStatus();
+            
+            this.showMessage(`✅ Данные "${dataType}" синхронизированы с приложением`, 'success');
+            
+            // Логируем действие
+            console.log(`🔄 Синхронизировано: ${dataType}`, {
+                admin: this.admin.username,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            this.showMessage(`❌ Ошибка синхронизации ${dataType}`, 'error');
+        }
+        
+        return cacheCleared;
+    } catch (error) {
+        console.error('❌ Ошибка синхронизации:', error);
+        this.showMessage('Ошибка синхронизации', 'error');
+        return false;
+    }
+}
+
+// Получение статуса кэша с сервера
+async getCacheStatus() {
+    try {
+        const response = await fetch('/api/admin/cache-status');
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        const status = await response.json();
+        console.log('📊 Статус кэша:', status);
+        return status;
+    } catch (error) {
+        console.error('❌ Ошибка получения статуса кэша:', error);
+        return null;
+    }
+}
+
+// Универсальный метод для создания контента с синхронизацией
+async createContentWithSync(type, formData, storageKey) {
+    try {
+        if (!formData) return;
+
+        const items = this.getStoredData(storageKey) || [];
+        const newItem = {
+            id: Date.now(),
+            ...formData,
+            created_at: new Date().toISOString(),
+            is_active: true,
+            created_by: this.admin.username,
+            created_by_id: this.userId
+        };
+
+        items.push(newItem);
+        this.setStoredData(storageKey, items);
+
+        // СИНХРОНИЗАЦИЯ: Очищаем кэш на сервере
+        await this.forceSync(type);
+
+        this.showMessage(`${this.getTypeLabel(type)} успешно создан и синхронизирован!`, 'success');
+        this.hideModals();
+        
+        // Перезагружаем соответствующий раздел
+        this.loadSectionData(type);
+
+        return true;
+
+    } catch (error) {
+        console.error(`❌ Ошибка создания ${type}:`, error);
+        this.showMessage(`Ошибка создания ${this.getTypeLabel(type)}`, 'error');
+        return false;
+    }
+}
+
+// Обновленные методы создания с синхронизацией
+async createQuiz() {
+    const formData = this.getQuizFormData();
+    await this.createContentWithSync('quizzes', formData, 'quizzes');
+}
+
+async createMarathon() {
+    const formData = this.getMarathonFormData();
+    await this.createContentWithSync('marathons', formData, 'marathons');
+}
+
+async createInteractive() {
+    const formData = this.getInteractiveFormData();
+    await this.createContentWithSync('interactives', formData, 'interactives');
+}
+
+async createPost() {
+    const formData = this.getPostFormData();
+    await this.createContentWithSync('posts', formData, 'posts');
+}
+
+async createItem() {
+    const formData = this.getItemFormData();
+    await this.createContentWithSync('shopItems', formData, 'shopItems');
+}
+
+// Вспомогательный метод для получения русских названий типов
+getTypeLabel(type) {
+    const labels = {
+        'quizzes': 'Квиз',
+        'marathons': 'Марафон', 
+        'interactives': 'Интерактив',
+        'posts': 'Пост',
+        'shopItems': 'Товар',
+        'users': 'Пользователь',
+        'roles': 'Роль',
+        'characters': 'Персонаж'
+    };
+    return labels[type] || type;
+}
+
+// Инициализация интерфейса
+this.initEventListeners();
 
     initEventListeners() {
         // Навигация по разделам
