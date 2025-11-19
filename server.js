@@ -6,7 +6,6 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
-import { google } from 'googleapis';
 
 dotenv.config();
 
@@ -25,11 +24,26 @@ console.log('📁 Текущая рабочая директория:', APP_ROOT
 let db = {
     users: [
         {
+            id: 1,
+            user_id: 12345,
+            tg_first_name: 'Тестовый Пользователь',
+            tg_username: 'test_user',
+            sparks: 45.5,
+            level: 'Искатель',
+            is_registered: true,
+            class: 'Художники',
+            character_id: 1,
+            character_name: 'Лука Цветной',
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+            registration_date: new Date().toISOString(),
+            last_active: new Date().toISOString()
+        },
+        {
             id: 2,
             user_id: 898508164,
             tg_first_name: 'Администратор',
             tg_username: 'admin',
-            sparks: 0,
+            sparks: 250.0,
             level: 'Мастер',
             is_registered: true,
             class: 'Художники',
@@ -357,16 +371,16 @@ let db = {
         }
     ],
     activities: [],
-admins: [
-    { 
-        id: 1, 
-        user_id: 898508164,       // 👈 ВАШ ID КАК АДМИН
-        username: 'admin', 
-        role: 'superadmin', 
-        created_at: new Date().toISOString() 
-    }
-],                                // ← 👈 ЗАПЯТАЯ ОСТАЕТСЯ ЗДЕСЬ
-purchases: [],
+    admins: [
+        { 
+            id: 1, 
+            user_id: 898508164, 
+            username: 'admin', 
+            role: 'superadmin', 
+            created_at: new Date().toISOString() 
+        }
+    ],
+    purchases: [],
     channel_posts: [
         {
             id: 1,
@@ -514,45 +528,8 @@ purchases: [],
     ],
     interactive_completions: [],
     interactive_submissions: [],
-        marathon_submissions: []
+    marathon_submissions: []
 };
-
-// ==================== GOOGLE SHEETS ИНТЕГРАЦИЯ ====================
-const SPREADSHEET_ID = '13ejLNfIpsW71iR08uirh3TbdcBCWpK3bt_NLeqkRa5c';
-const SHEET_NAME = 'Данные пользователей';
-
-// Временное отключение Google Sheets
-async function initializeSheets() {
-    console.log('⚠️ Google Sheets временно отключен для устранения ошибок JWT');
-    return null;
-}
-
-// Обновите функцию экспорта
-async function exportUsersToSheets(sheets) {
-    console.log('📊 Экспорт в Google Sheets временно недоступен');
-    console.log('💡 Используйте CSV экспорт вместо этого');
-    return false;
-}
-// Альтернативная функция для CSV экспорта
-function exportUsersToCSV() {
-    try {
-        const userData = prepareUserDataForSheets();
-        const headers = ['ID пользователя', 'Имя', 'Username', 'Роль', 'Персонаж', 'Уровень', 'Искры', 
-                        'Зарегистрирован', 'Последняя активность', 'Пройдено квизов', 'Завершено марафонов',
-                        'Загружено работ', 'Одобрено работ', 'Покупок', 'Всего активностей', 'Всего искр'];
-        
-        let csvContent = headers.join(',') + '\n';
-        userData.forEach(row => {
-            csvContent += row.join(',') + '\n';
-        });
-        
-        return csvContent;
-    } catch (error) {
-        console.error('❌ Ошибка создания CSV:', error);
-        return null;
-    }
-}
-// ==================== КОНЕЦ GOOGLE SHEETS ИНТЕГРАЦИИ ====================
 
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
@@ -645,24 +622,19 @@ function getUserStats(userId) {
     };
 }
 
-// ИСПРАВЛЕННАЯ ПРОВЕРКА АДМИНА
+// Middleware
 const requireAdmin = (req, res, next) => {
     const userId = req.query.userId || req.body.userId;
     
-    console.log('🔐 Проверка прав админа для userId:', userId);
-    
     if (!userId) {
-        console.log('❌ User ID не указан');
         return res.status(401).json({ error: 'User ID required' });
     }
     
     const admin = db.admins.find(a => a.user_id == userId);
     if (!admin) {
-        console.log('❌ Пользователь не является админом:', userId);
         return res.status(403).json({ error: 'Admin access required' });
     }
     
-    console.log('✅ Админ подтвержден:', admin);
     req.admin = admin;
     next();
 };
@@ -683,15 +655,11 @@ app.get('/health', (req, res) => {
 });
 
 // WebApp API
-// ИСПРАВЛЕННОЕ СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ
 app.get('/api/users/:userId', (req, res) => {
     const userId = parseInt(req.params.userId);
-    console.log('👤 Запрос пользователя:', userId);
-    
-    let user = db.users.find(u => u.user_id === userId);
+    const user = db.users.find(u => u.user_id === userId);
     
     if (user) {
-        console.log('✅ Пользователь найден:', user.tg_first_name);
         const stats = getUserStats(userId);
         res.json({ 
             exists: true, 
@@ -701,12 +669,10 @@ app.get('/api/users/:userId', (req, res) => {
             }
         });
     } else {
-        console.log('🆕 Создание нового пользователя:', userId);
         const newUser = {
             id: Date.now(),
             user_id: userId,
             tg_first_name: 'Новый пользователь',
-            tg_username: null,
             sparks: 0,
             level: 'Ученик',
             is_registered: false,
@@ -718,52 +684,11 @@ app.get('/api/users/:userId', (req, res) => {
             last_active: new Date().toISOString()
         };
         db.users.push(newUser);
-        
-        console.log('✅ Новый пользователь создан:', newUser);
         res.json({ 
             exists: false, 
             user: newUser 
         });
     }
-});
-
-// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ ДОБАВЛЕНИЯ АДМИНОВ
-app.post('/api/admin/add-admin', requireAdmin, (req, res) => {
-    const { targetUserId, username, role } = req.body;
-    
-    if (!targetUserId) {
-        return res.status(400).json({ error: 'User ID is required' });
-    }
-    
-    // Проверяем, не является ли пользователь уже админом
-    const existingAdmin = db.admins.find(a => a.user_id == targetUserId);
-    if (existingAdmin) {
-        return res.status(400).json({ error: 'User is already an admin' });
-    }
-    
-    // Проверяем, существует ли пользователь
-    const user = db.users.find(u => u.user_id == targetUserId);
-    if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-    }
-    
-    const newAdmin = {
-        id: Date.now(),
-        user_id: parseInt(targetUserId),
-        username: username || user.tg_username || '',
-        role: role || 'moderator',
-        created_at: new Date().toISOString()
-    };
-    
-    db.admins.push(newAdmin);
-    
-    console.log('✅ Новый админ добавлен:', newAdmin);
-    
-    res.json({ 
-        success: true, 
-        message: 'Администратор успешно добавлен',
-        admin: newAdmin
-    });
 });
 
 // НОВЫЙ МЕТОД ДЛЯ СМЕНЫ РОЛИ
@@ -1383,32 +1308,6 @@ app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
     });
 });
 
-// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ ЗАГРУЗКИ ОТЗЫВОВ
-app.get('/api/admin/reviews', requireAdmin, (req, res) => {
-    const { status = 'pending' } = req.query;
-    
-    console.log('📥 Загрузка отзывов со статусом:', status);
-    
-    const reviews = db.post_reviews
-        .filter(r => r.status === status)
-        .map(review => {
-            const user = db.users.find(u => u.user_id === review.user_id);
-            const post = db.channel_posts.find(p => p.post_id === review.post_id);
-            const moderator = db.admins.find(a => a.user_id === review.moderator_id);
-            
-            return {
-                ...review,
-                tg_first_name: user?.tg_first_name || 'Неизвестно',
-                tg_username: user?.tg_username,
-                post_title: post?.title || 'Пост не найден',
-                moderator_username: moderator?.username
-            };
-        })
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    
-    res.json({ reviews });
-});
-
 // Admin API
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
     const stats = {
@@ -1896,86 +1795,8 @@ app.delete('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Марафон удален' });
 });
 
-app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
-    // ... существующий код модерации работ ...
-});
-
-// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ МОДЕРАЦИИ ОТЗЫВОВ
-app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
-    const reviewId = parseInt(req.params.reviewId);
-    const { status, admin_comment } = req.body;
-    
-    console.log('🔄 Модерация отзыва:', { reviewId, status });
-    
-    const review = db.post_reviews.find(r => r.id === reviewId);
-    if (!review) {
-        return res.status(404).json({ error: 'Review not found' });
-    }
-    
-    review.status = status;
-    review.moderated_at = new Date().toISOString();
-    review.moderator_id = req.admin.user_id;
-    review.admin_comment = admin_comment || null;
-    
-    res.json({ 
-        success: true, 
-        message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`,
-        review: review
-    });
-});
-
-// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ РАБОТ ПОЛЬЗОВАТЕЛЕЙ
+// Управление работами пользователей
 app.get('/api/admin/user-works', requireAdmin, (req, res) => {
-    const { status = 'pending' } = req.query;
-    
-    console.log('📥 Загрузка работ со статусом:', status);
-    
-    const works = db.user_works
-        .filter(w => w.status === status)
-        .map(work => {
-            const user = db.users.find(u => u.user_id === work.user_id);
-            return {
-                ...work,
-                user_name: user?.tg_first_name || 'Неизвестно',
-                user_username: user?.tg_username
-            };
-        })
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    
-    res.json({ works });
-});
-
-// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ МОДЕРАЦИИ РАБОТ
-app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
-    const workId = parseInt(req.params.workId);
-    const { status, admin_comment } = req.body;
-    const adminId = req.admin.user_id;
-    
-    console.log('🔄 Модерация работы:', { workId, status });
-    
-    const work = db.user_works.find(w => w.id === workId);
-    if (!work) {
-        return res.status(404).json({ error: 'Work not found' });
-    }
-    
-    work.status = status;
-    work.moderated_at = new Date().toISOString();
-    work.moderator_id = adminId;
-    work.admin_comment = admin_comment || null;
-    
-    if (status === 'approved') {
-        addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
-    }
-    
-    res.json({ 
-        success: true, 
-        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
-        work: work
-    });
-});
-
-// Управление постами
-app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     const { status = 'pending' } = req.query;
     
     const works = db.user_works
@@ -2109,23 +1930,6 @@ app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Пост удален' });
 });
 
-// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ УДАЛЕНИЯ ПОСТОВ
-app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
-    const postId = parseInt(req.params.postId);
-    
-    console.log('🗑️ Удаление поста:', postId);
-    
-    const postIndex = db.channel_posts.findIndex(p => p.id === postId);
-    if (postIndex === -1) {
-        return res.status(404).json({ error: 'Post not found' });
-    }
-    
-    db.channel_posts.splice(postIndex, 1);
-    
-    console.log('✅ Пост удален');
-    res.json({ success: true, message: 'Пост удален' });
-});
-
 // Управление отзывами
 app.get('/api/admin/reviews', requireAdmin, (req, res) => {
     const { status = 'pending' } = req.query;
@@ -2170,92 +1974,9 @@ app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     });
 });
 
-// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ ЗАГРУЗКИ ОТЗЫВОВ
-app.get('/api/admin/reviews', requireAdmin, (req, res) => {
-    const { status = 'pending' } = req.query;
-    
-    console.log('📥 Загрузка отзывов со статусом:', status);
-    
-    const reviews = db.post_reviews
-        .filter(r => r.status === status)
-        .map(review => {
-            const user = db.users.find(u => u.user_id === review.user_id);
-            const post = db.channel_posts.find(p => p.post_id === review.post_id);
-            const moderator = db.admins.find(a => a.user_id === review.moderator_id);
-            
-            return {
-                ...review,
-                tg_first_name: user?.tg_first_name || 'Неизвестно',
-                tg_username: user?.tg_username,
-                post_title: post?.title || 'Пост не найден',
-                moderator_username: moderator?.username
-            };
-        })
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    
-    res.json({ reviews });
-});
-
-// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ МОДЕРАЦИИ ОТЗЫВОВ
-app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
-    const reviewId = parseInt(req.params.reviewId);
-    const { status, admin_comment } = req.body;
-    
-    console.log('🔄 Модерация отзыва:', { reviewId, status });
-    
-    const review = db.post_reviews.find(r => r.id === reviewId);
-    if (!review) {
-        return res.status(404).json({ error: 'Review not found' });
-    }
-    
-    review.status = status;
-    review.moderated_at = new Date().toISOString();
-    review.moderator_id = req.admin.user_id;
-    review.admin_comment = admin_comment || null;
-    
-    res.json({ 
-        success: true, 
-        message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`,
-        review: review
-    });
-});
-
-// Управление администраторами - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Управление админами
 app.get('/api/admin/admins', requireAdmin, (req, res) => {
-    console.log('📥 Загрузка списка администраторов');
-    
-    const admins = db.admins.map(admin => {
-        const user = db.users.find(u => u.user_id === admin.user_id);
-        return {
-            ...admin,
-            user_name: user?.tg_first_name || 'Неизвестно',
-            user_username: user?.tg_username
-        };
-    });
-    
-    console.log('✅ Админы загружены:', admins.length);
-    res.json(admins);
-});
-
-// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ УДАЛЕНИЯ АДМИНОВ
-app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    
-    console.log('🗑️ Удаление админа:', userId);
-    
-    if (userId === req.admin.user_id) {
-        return res.status(400).json({ error: 'Нельзя удалить самого себя' });
-    }
-    
-    const adminIndex = db.admins.findIndex(a => a.user_id === userId);
-    if (adminIndex === -1) {
-        return res.status(404).json({ error: 'Админ не найден' });
-    }
-    
-    db.admins.splice(adminIndex, 1);
-    
-    console.log('✅ Админ удален');
-    res.json({ success: true, message: 'Администратор удален' });
+    res.json(db.admins);
 });
 
 app.post('/api/admin/admins', requireAdmin, (req, res) => {
@@ -2342,105 +2063,6 @@ app.get('/api/admin/users-report', requireAdmin, (req, res) => {
     
     res.json({ users });
 });
-
-// Ручка для ручного экспорта данных в Google Sheets
-app.post('/api/admin/export-to-sheets', requireAdmin, async (req, res) => {
-    try {
-        console.log('📤 Запрос на экспорт данных в Google Sheets...');
-        
-        const sheets = await initializeSheets();
-        const success = await exportUsersToSheets(sheets);
-        
-        if (success) {
-            res.json({ 
-                success: true, 
-                message: 'Данные успешно экспортированы в Google Sheets' 
-            });
-        } else {
-            // Предлагаем альтернативу - CSV экспорт
-            const csvData = exportUsersToCSV();
-            if (csvData) {
-                res.json({ 
-                    success: true, 
-                    message: 'Google Sheets недоступен. Данные подготовлены в CSV формате',
-                    csv_data: csvData
-                });
-            } else {
-                res.status(500).json({ 
-                    success: false, 
-                    error: 'Ошибка экспорта данных' 
-                });
-            }
-            
-    } catch (error) {
-        console.error('❌ Ошибка экспорта:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Внутренняя ошибка сервера при экспорте' 
-        });
-    }
-});
-
-// Обновите проверку статуса
-app.get('/api/admin/sheets-status', requireAdmin, async (req, res) => {
-    res.json({ 
-        connected: false,
-        message: 'Google Sheets временно отключен. Используйте CSV экспорт.' 
-    });
-});
-
-        // Проверяем доступ к таблице
-        const response = await sheets.spreadsheets.get({
-            spreadsheetId: SPREADSHEET_ID,
-        });
-
-        res.json({ 
-            connected: true,
-            message: 'Google Sheets подключен',
-            spreadsheetTitle: response.data.properties.title,
-            totalUsers: db.users.filter(u => u.is_registered).length
-        });
-    } catch (error) {
-        res.json({ 
-            connected: false,
-            message: `Ошибка подключения: ${error.message}` 
-        });
-    }
-
-// Ручка для скачивания CSV
-app.get('/api/admin/export-csv', requireAdmin, (req, res) => {
-    try {
-        const csvData = exportUsersToCSV();
-        if (!csvData) {
-            return res.status(500).json({ error: 'Ошибка создания CSV' });
-        }
-        
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename=users_export.csv');
-        res.send(csvData);
-    } catch (error) {
-        res.status(500).json({ error: 'Ошибка экспорта' });
-    }
-});
-
-// Автоматический экспорт при изменении данных (опционально)
-function scheduleAutoExport() {
-    // Экспорт каждые 6 часов
-    setInterval(async () => {
-        try {
-            const sheets = await initializeSheets();
-            if (sheets) {
-                await exportUsersToSheets(sheets);
-                console.log('✅ Автоматический экспорт данных выполнен');
-            }
-        } catch (error) {
-            console.error('❌ Ошибка автоматического экспорта:', error);
-        }
-    }, 6 * 60 * 60 * 1000); // 6 часов
-}
-
-// Запускаем автоматический экспорт при старте сервера
-scheduleAutoExport();
 
 // Полная статистика
 app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
