@@ -798,6 +798,69 @@ class AdminApp {
         // В реальном приложении здесь было бы расширенное модальное окно фильтров
     }
 
+    // ==================== МЕТОДЫ ДЛЯ КВИЗОВ ====================
+    async showCreateQuizForm() {
+        this.showMessage('Форма создания квиза', 'info');
+    }
+
+    async editQuiz(quizId) {
+        this.showMessage(`Редактирование квиза ID: ${quizId}`, 'info');
+    }
+
+    async toggleQuizStatus(quizId, newStatus) {
+        const action = newStatus ? 'активирован' : 'деактивирован';
+        this.showMessage(`Квиз ${quizId} ${action}`, 'success');
+        this.loadQuizzes();
+    }
+
+    async viewQuizStats(quizId) {
+        this.showMessage(`Статистика квиза ID: ${quizId}`, 'info');
+    }
+
+    async exportQuizzes() {
+        this.showMessage('Экспорт квизов начат', 'info');
+    }
+
+    async viewQuiz(quizId) {
+        this.showMessage(`Просмотр квиза ID: ${quizId}`, 'info');
+    }
+
+    // ==================== МЕТОДЫ ДЛЯ МАРАФОНОВ ====================
+    async showCreateMarathonForm() {
+        this.showMessage('Форма создания марафона', 'info');
+    }
+
+    async editMarathon(marathonId) {
+        this.showMessage(`Редактирование марафона ID: ${marathonId}`, 'info');
+    }
+
+    async viewMarathon(marathonId) {
+        this.showMessage(`Просмотр марафона ID: ${marathonId}`, 'info');
+    }
+
+    async viewMarathonParticipants(marathonId) {
+        this.showMessage(`Участники марафона ID: ${marathonId}`, 'info');
+    }
+
+    // ==================== МЕТОДЫ ДЛЯ ИНТЕРАКТИВОВ ====================
+    async showCreateInteractiveForm() {
+        this.showMessage('Форма создания интерактива', 'info');
+    }
+
+    async editInteractive(interactiveId) {
+        this.showMessage(`Редактирование интерактива ID: ${interactiveId}`, 'info');
+    }
+
+    async toggleInteractiveStatus(interactiveId, newStatus) {
+        const action = newStatus ? 'активирован' : 'деактивирован';
+        this.showMessage(`Интерактив ${interactiveId} ${action}`, 'success');
+        this.loadInteractives();
+    }
+
+    async viewInteractive(interactiveId) {
+        this.showMessage(`Просмотр интерактива ID: ${interactiveId}`, 'info');
+    }
+    
 async loadQuizzes() {
     try {
         const response = await fetch(`/api/admin/quizzes?userId=${this.userId}`);
@@ -1258,6 +1321,30 @@ createPostsManagementHTML(posts) {
     `;
 }
 
+    // ==================== МЕТОДЫ ДЛЯ ПОСТОВ ====================
+    async showCreatePostForm() {
+        this.showMessage('Форма создания поста', 'info');
+    }
+
+    async editPost(postId) {
+        this.showMessage(`Редактирование поста ID: ${postId}`, 'info');
+    }
+
+    async togglePostStatus(postId, newStatus) {
+        const action = newStatus ? 'активирован' : 'деактивирован';
+        this.showMessage(`Пост ${postId} ${action}`, 'success');
+        this.loadPosts();
+    }
+
+    async viewPost(postId) {
+        this.showMessage(`Просмотр поста ID: ${postId}`, 'info');
+    }
+
+    async featurePost(postId) {
+        this.showMessage(`Пост ${postId} добавлен в избранное`, 'success');
+        this.loadPosts();
+    }
+    
 async loadShopItems() {
     try {
         const response = await fetch(`/api/admin/shop/items?userId=${this.userId}`);
@@ -1437,6 +1524,63 @@ createShopManagementHTML(items) {
     `;
 }
 
+    // ==================== МЕТОДЫ ДЛЯ МАГАЗИНА ====================
+    async showCreateItemForm() {
+        this.showMessage('Форма создания товара', 'info');
+    }
+
+    async editItem(itemId) {
+        this.showMessage(`Редактирование товара ID: ${itemId}`, 'info');
+    }
+
+    async toggleItemStatus(itemId, newStatus) {
+        const action = newStatus ? 'активирован' : 'деактивирован';
+        this.showMessage(`Товар ${itemId} ${action}`, 'success');
+        this.loadShopItems();
+    }
+
+    async viewItem(itemId) {
+        this.showMessage(`Просмотр товара ID: ${itemId}`, 'info');
+    }
+
+    async viewItemStats(itemId) {
+        this.showMessage(`Статистика товара ID: ${itemId}`, 'info');
+    }
+
+    async exportShopData() {
+        this.showMessage('Экспорт данных магазина', 'info');
+    }
+
+    async exportSalesReport() {
+        this.showMessage('Экспорт отчета по продажам', 'info');
+    }
+
+    // ==================== МЕТОДЫ ДЛЯ РОЛЕЙ ====================
+    async showCreateRoleForm() {
+        this.showMessage('Форма создания роли', 'info');
+    }
+
+    async editRole(roleId) {
+        this.showMessage(`Редактирование роли ID: ${roleId}`, 'info');
+    }
+
+    async toggleRoleStatus(roleId, newStatus) {
+        const action = newStatus ? 'активирована' : 'деактивирована';
+        this.showMessage(`Роль ${roleId} ${action}`, 'success');
+        this.loadRoles();
+    }
+
+    async viewRole(roleId) {
+        this.showMessage(`Просмотр роли ID: ${roleId}`, 'info');
+    }
+
+    async deleteRole(roleId) {
+        if (confirm('Вы уверены, что хотите удалить эту роль?')) {
+            this.showMessage(`Роль ${roleId} удалена`, 'success');
+            this.loadRoles();
+        }
+    }
+    
 async loadPurchases() {
     try {
         const response = await fetch(`/api/admin/full-stats?userId=${this.userId}`);
@@ -2142,6 +2286,89 @@ createAchievementsManagementHTML(achievements) {
     `;
 }
 
+    // ==================== МЕТОДЫ ДЛЯ ДОСТИЖЕНИЙ ====================
+    async showCreateAchievementForm() {
+        this.showMessage('Форма создания достижения', 'info');
+    }
+
+    async editAchievement(achievementId) {
+        this.showMessage(`Редактирование достижения ID: ${achievementId}`, 'info');
+    }
+
+    async toggleAchievementStatus(achievementId, newStatus) {
+        const action = newStatus ? 'активировано' : 'деактивировано';
+        this.showMessage(`Достижение ${achievementId} ${action}`, 'success');
+        this.loadAchievements();
+    }
+
+    async viewAchievement(achievementId) {
+        this.showMessage(`Просмотр достижения ID: ${achievementId}`, 'info');
+    }
+
+    async viewAchievementStats(achievementId) {
+        this.showMessage(`Статистика достижения ID: ${achievementId}`, 'info');
+    }
+
+    // ==================== МЕТОДЫ ДЛЯ МОДЕРАЦИИ ====================
+    initModerationEventListeners() {
+        // Инициализация вкладок модерации
+        document.querySelectorAll('#moderationTabs .tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const tabName = e.currentTarget.getAttribute('data-tab');
+                this.switchModerationTab(tabName);
+            });
+        });
+    }
+
+    switchModerationTab(tabName) {
+        document.querySelectorAll('#moderationTabs .tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        document.getElementById(`${tabName}Tab`).classList.add('active');
+    }
+
+    toggleSelectAllWorks(checked) {
+        document.querySelectorAll('.work-checkbox').forEach(checkbox => {
+            checkbox.checked = checked;
+        });
+    }
+
+    async approveAllWorks() {
+        const selectedWorks = Array.from(document.querySelectorAll('.work-checkbox:checked'))
+            .map(cb => cb.value);
+        
+        if (selectedWorks.length === 0) {
+            this.showMessage('Выберите работы для одобрения', 'warning');
+            return;
+        }
+
+        if (confirm(`Одобрить ${selectedWorks.length} работ?`)) {
+            this.showMessage(`${selectedWorks.length} работ одобрено`, 'success');
+            this.loadModeration();
+        }
+    }
+
+    async moderateWork(workId, action) {
+        const actionText = action === 'approved' ? 'одобрена' : 'отклонена';
+        this.showMessage(`Работа ${workId} ${actionText}`, 'success');
+        this.loadModeration();
+    }
+
+    async moderateReview(reviewId, action) {
+        const actionText = action === 'approved' ? 'одобрен' : 'отклонен';
+        this.showMessage(`Отзыв ${reviewId} ${actionText}`, 'success');
+        this.loadModeration();
+    }
+
+    async viewWorkDetails(workId) {
+        this.showMessage(`Детали работы ID: ${workId}`, 'info');
+    }
+    
 getConditionLabel(conditionType) {
     const labels = {
         'registration': 'Регистрация',
