@@ -1976,33 +1976,42 @@ function showLoginForm() {
             });
         }
 
-        // Создание графика распределения по ролям
-        function createRolesChart(stats) {
-            const ctx = document.getElementById('rolesChart').getContext('2d');
-            
-            const rolesData = {
-                labels: stats.users.by_role.map(role => role.role),
-                datasets: [{
-                    data: stats.users.by_role.map(role => role.count),
-                    backgroundColor: [
-                        '#667eea', '#ed8936', '#48bb78', '#f56565', '#9f7aea'
-                    ]
-                }]
-            };
-            
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: rolesData,
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-        }
+// Создание графика активности - УПРОЩЕННАЯ ВЕРСИЯ БЕЗ Chart.js
+function createActivityChart(stats) {
+    const chartContainer = document.getElementById('activityChart');
+    
+    // Простая HTML-заглушка вместо графика
+    chartContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #718096;">
+            <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+            <h4 style="margin-bottom: 8px;">Статистика активности</h4>
+            <p>Активных пользователей сегодня: ${stats.users.active_today || 0}</p>
+            <p>Всего активностей: ${stats.activities.total_activities || 0}</p>
+        </div>
+    `;
+}
+
+// Создание графика распределения по ролям - УПРОЩЕННАЯ ВЕРСИЯ
+function createRolesChart(stats) {
+    const chartContainer = document.getElementById('rolesChart');
+    
+    let rolesHtml = '';
+    stats.users.by_role.forEach(role => {
+        rolesHtml += `
+            <div style="display: flex; justify-content: between; margin-bottom: 8px; padding: 8px; background: #f7fafc; border-radius: 8px;">
+                <span style="flex: 1;">${role.role}</span>
+                <span style="font-weight: bold; color: #667eea;">${role.count}</span>
+            </div>
+        `;
+    });
+    
+    chartContainer.innerHTML = `
+        <div style="text-align: center;">
+            <h4 style="margin-bottom: 16px;">📈 Распределение по ролям</h4>
+            ${rolesHtml}
+        </div>
+    `;
+}
 
         // ==================== ПОЛЬЗОВАТЕЛИ ====================
 
