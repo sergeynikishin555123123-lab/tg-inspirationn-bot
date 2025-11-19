@@ -921,19 +921,19 @@ audio {
         </div>
 
         <!-- Навигация -->
-        <div class="nav-tabs">
-            <div class="nav-tab active" onclick="showTab('dashboard')">📊 Дашборд</div>
-            <div class="nav-tab" onclick="showTab('users')">👥 Пользователи</div>
-            <div class="nav-tab" onclick="showTab('roles')">🎭 Роли</div>
-            <div class="nav-tab" onclick="showTab('characters')">👤 Персонажи</div>
-            <div class="nav-tab" onclick="showTab('quizzes')">🎯 Квизы</div>
-            <div class="nav-tab" onclick="showTab('marathons')">🏃‍♂️ Марафоны</div>
-            <div class="nav-tab" onclick="showTab('interactives')">🎮 Интерактивы</div>
-            <div class="nav-tab" onclick="showTab('shop')">🛒 Магазин</div>
-            <div class="nav-tab" onclick="showTab('posts')">📰 Посты</div>
-            <div class="nav-tab" onclick="showTab('moderation')">⚖️ Модерация</div>
-            <div class="nav-tab" onclick="showTab('admins')">🔧 Админы</div>
-        </div>
+       <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showTab('dashboard')">📊 Дашборд</div>
+    <div class="nav-tab" onclick="showTab('users')">👥 Пользователи</div>
+    <div class="nav-tab" onclick="showTab('roles')">🎭 Роли</div>
+    <div class="nav-tab" onclick="showTab('characters')">👤 Персонажи</div>
+    <div class="nav-tab" onclick="showTab('quizzes')">🎯 Квизы</div>
+    <div class="nav-tab" onclick="showTab('marathons')">🏃‍♂️ Марафоны</div>
+    <div class="nav-tab" onclick="showTab('interactives')">🎮 Интерактивы</div>
+    <div class="nav-tab" onclick="showTab('shop')">🛒 Магазин</div>
+    <div class="nav-tab" onclick="showTab('posts')">📰 Посты</div>
+    <div class="nav-tab" onclick="showTab('moderation')">⚖️ Модерация</div>
+    <div class="nav-tab" onclick="showTab('admins')">🔧 Админы</div>
+</div>
 
         <!-- Дашборд -->
         <div id="dashboard" class="tab-content active">
@@ -1498,150 +1498,150 @@ audio {
             </div>
         </div>
 
-        <!-- Посты -->
-        <div id="posts" class="tab-content">
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">📰 Управление постами</h2>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="showPostForm()">➕ Создать пост</button>
-                </div>
-
-                <div id="postsList" class="loading">
-                    Загрузка постов...
-                </div>
-            </div>
-
-            <!-- Форма создания/редактирования поста -->
-            <div id="postForm" class="card" style="display: none;">
-                <h3 id="postFormTitle" style="margin-bottom: 20px;">Создание нового поста</h3>
-                
-                <div class="form-group">
-                    <label class="form-label">ID поста (уникальный):</label>
-                    <input type="text" id="postId" class="form-control" placeholder="post_unique_id">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Заголовок:</label>
-                    <input type="text" id="postTitle" class="form-control" placeholder="Заголовок поста">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Содержимое:</label>
-                    <textarea id="postContent" class="form-control" rows="6" placeholder="Текст поста..."></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">URL изображения:</label>
-                    <input type="text" id="postImageUrl" class="form-control" placeholder="https://example.com/image.jpg">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">URL видео:</label>
-                    <input type="text" id="postVideoUrl" class="form-control" placeholder="https://example.com/video.mp4">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Тип медиа:</label>
-                    <select id="postMediaType" class="form-control">
-                        <option value="text">📝 Текст</option>
-                        <option value="image">🖼️ Изображение</option>
-                        <option value="video">🎥 Видео</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Тип действия:</label>
-                    <select id="postActionType" class="form-control">
-                        <option value="">Нет действия</option>
-                        <option value="quiz">🎯 Перейти к квизу</option>
-                        <option value="marathon">🏃‍♂️ Перейти к марафону</option>
-                        <option value="interactive">🎮 Перейти к интерактиву</option>
-                        <option value="shop">🛒 Перейти к магазину</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Цель действия (ID):</label>
-                    <input type="text" id="postActionTarget" class="form-control" placeholder="ID квиза/марафона/интерактива">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">
-                        <input type="checkbox" id="postActive" checked> Активный пост
-                    </label>
-                </div>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="savePost()">💾 Сохранить пост</button>
-                    <button class="btn btn-danger" onclick="hidePostForm()">❌ Отмена</button>
-                </div>
-            </div>
+ <!-- Посты -->
+<div id="posts" class="tab-content">
+    <div class="card">
+        <h2 style="margin-bottom: 20px;">📰 Управление постами</h2>
+        
+        <div class="action-buttons">
+            <button class="btn btn-success" onclick="showPostForm()">➕ Создать пост</button>
         </div>
 
-        <!-- Модерация -->
-        <div id="moderation" class="tab-content">
-            <div class="tab-subnav">
-                <div class="tab-subnav-item active" onclick="showModerationTab('works')">🖼️ Работы</div>
-                <div class="tab-subnav-item" onclick="showModerationTab('reviews')">💬 Отзывы</div>
-                <div class="tab-subnav-item" onclick="showModerationTab('marathon')">🏃‍♂️ Марафоны</div>
+        <div id="postsList" class="loading">
+            Загрузка постов...
+        </div>
+    </div>
+
+    <!-- Форма создания/редактирования поста -->
+    <div id="postForm" class="card" style="display: none;">
+        <h3 id="postFormTitle" style="margin-bottom: 20px;">Создание нового поста</h3>
+        
+        <div class="form-group">
+            <label class="form-label">ID поста (уникальный):</label>
+            <input type="text" id="postId" class="form-control" placeholder="post_unique_id">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Заголовок:</label>
+            <input type="text" id="postTitle" class="form-control" placeholder="Заголовок поста">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Содержимое:</label>
+            <textarea id="postContent" class="form-control" rows="6" placeholder="Текст поста..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">URL изображения:</label>
+            <input type="text" id="postImageUrl" class="form-control" placeholder="https://example.com/image.jpg">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">URL видео:</label>
+            <input type="text" id="postVideoUrl" class="form-control" placeholder="https://example.com/video.mp4">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Тип медиа:</label>
+            <select id="postMediaType" class="form-control">
+                <option value="text">📝 Текст</option>
+                <option value="image">🖼️ Изображение</option>
+                <option value="video">🎥 Видео</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Тип действия:</label>
+            <select id="postActionType" class="form-control">
+                <option value="">Нет действия</option>
+                <option value="quiz">🎯 Перейти к квизу</option>
+                <option value="marathon">🏃‍♂️ Перейти к марафону</option>
+                <option value="interactive">🎮 Перейти к интерактиву</option>
+                <option value="shop">🛒 Перейти к магазину</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Цель действия (ID):</label>
+            <input type="text" id="postActionTarget" class="form-control" placeholder="ID квиза/марафона/интерактива">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">
+                <input type="checkbox" id="postActive" checked> Активный пост
+            </label>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn btn-success" onclick="savePost()">💾 Сохранить пост</button>
+            <button class="btn btn-danger" onclick="hidePostForm()">❌ Отмена</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модерация -->
+<div id="moderation" class="tab-content">
+    <div class="tab-subnav">
+        <div class="tab-subnav-item active" onclick="showModerationTab('works')">🖼️ Работы</div>
+        <div class="tab-subnav-item" onclick="showModerationTab('reviews')">💬 Отзывы</div>
+        <div class="tab-subnav-item" onclick="showModerationTab('marathon')">🏃‍♂️ Марафоны</div>
+    </div>
+
+    <div id="moderationWorksTab">
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">🖼️ Модерация работ</h2>
+            
+            <div class="filters">
+                <select class="filter-select" id="workStatusFilter" onchange="loadWorksForModeration()">
+                    <option value="pending">⏳ На модерации</option>
+                    <option value="approved">✅ Одобренные</option>
+                    <option value="rejected">❌ Отклоненные</option>
+                </select>
             </div>
 
-            <div id="moderationWorksTab">
-                <div class="card">
-                    <h2 style="margin-bottom: 20px;">🖼️ Модерация работ</h2>
-                    
-                    <div class="filters">
-                        <select class="filter-select" id="workStatusFilter" onchange="loadWorksForModeration()">
-                            <option value="pending">⏳ На модерации</option>
-                            <option value="approved">✅ Одобренные</option>
-                            <option value="rejected">❌ Отклоненные</option>
-                        </select>
-                    </div>
-
-                    <div id="worksModerationList" class="loading">
-                        Загрузка работ...
-                    </div>
-                </div>
-            </div>
-
-            <div id="moderationReviewsTab" style="display: none;">
-                <div class="card">
-                    <h2 style="margin-bottom: 20px;">💬 Модерация отзывов</h2>
-                    
-                    <div class="filters">
-                        <select class="filter-select" id="reviewStatusFilter" onchange="loadReviewsForModeration()">
-                            <option value="pending">⏳ На модерации</option>
-                            <option value="approved">✅ Одобренные</option>
-                            <option value="rejected">❌ Отклоненные</option>
-                        </select>
-                    </div>
-
-                    <div id="reviewsModerationList" class="loading">
-                        Загрузка отзывов...
-                    </div>
-                </div>
-            </div>
-
-            <div id="moderationMarathonTab" style="display: none;">
-                <div class="card">
-                    <h2 style="margin-bottom: 20px;">🏃‍♂️ Модерация работ марафонов</h2>
-                    
-                    <div class="filters">
-                        <select class="filter-select" id="marathonFilter" onchange="loadMarathonSubmissions()">
-                            <option value="">Все марафоны</option>
-                        </select>
-                        <select class="filter-select" id="marathonDayFilter" onchange="loadMarathonSubmissions()">
-                            <option value="">Все дни</option>
-                        </select>
-                    </div>
-
-                    <div id="marathonSubmissionsList" class="loading">
-                        Загрузка работ марафонов...
-                    </div>
-                </div>
+            <div id="worksModerationList" class="loading">
+                Загрузка работ...
             </div>
         </div>
+    </div>
+
+    <div id="moderationReviewsTab" style="display: none;">
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">💬 Модерация отзывов</h2>
+            
+            <div class="filters">
+                <select class="filter-select" id="reviewStatusFilter" onchange="loadReviewsForModeration()">
+                    <option value="pending">⏳ На модерации</option>
+                    <option value="approved">✅ Одобренные</option>
+                    <option value="rejected">❌ Отклоненные</option>
+                </select>
+            </div>
+
+            <div id="reviewsModerationList" class="loading">
+                Загрузка отзывов...
+            </div>
+        </div>
+    </div>
+
+    <div id="moderationMarathonTab" style="display: none;">
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">🏃‍♂️ Модерация работ марафонов</h2>
+            
+            <div class="filters">
+                <select class="filter-select" id="marathonFilter" onchange="loadMarathonSubmissions()">
+                    <option value="">Все марафоны</option>
+                </select>
+                <select class="filter-select" id="marathonDayFilter" onchange="loadMarathonSubmissions()">
+                    <option value="">Все дни</option>
+                </select>
+            </div>
+
+            <div id="marathonSubmissionsList" class="loading">
+                Загрузка работ марафонов...
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Админы -->
 <div id="admins" class="tab-content">
