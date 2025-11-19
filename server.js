@@ -2182,9 +2182,21 @@ app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     });
 });
 
-// Управление админами
+// Управление администраторами - ИСПРАВЛЕННАЯ ВЕРСИЯ
 app.get('/api/admin/admins', requireAdmin, (req, res) => {
-    res.json(db.admins);
+    console.log('📥 Загрузка списка администраторов');
+    
+    const admins = db.admins.map(admin => {
+        const user = db.users.find(u => u.user_id === admin.user_id);
+        return {
+            ...admin,
+            user_name: user?.tg_first_name || 'Неизвестно',
+            user_username: user?.tg_username
+        };
+    });
+    
+    console.log('✅ Админы загружены:', admins.length);
+    res.json(admins);
 });
 
 // ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ УДАЛЕНИЯ АДМИНОВ
@@ -2194,18 +2206,18 @@ app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
     console.log('🗑️ Удаление админа:', userId);
     
     if (userId === req.admin.user_id) {
-        return res.status(400).json({ error: 'Cannot remove yourself' });
+        return res.status(400).json({ error: 'Нельзя удалить самого себя' });
     }
     
     const adminIndex = db.admins.findIndex(a => a.user_id === userId);
     if (adminIndex === -1) {
-        return res.status(404).json({ error: 'Admin not found' });
+        return res.status(404).json({ error: 'Админ не найден' });
     }
     
     db.admins.splice(adminIndex, 1);
     
     console.log('✅ Админ удален');
-    res.json({ success: true, message: 'Админ удален' });
+    res.json({ success: true, message: 'Администратор удален' });
 });
 
 app.post('/api/admin/admins', requireAdmin, (req, res) => {
