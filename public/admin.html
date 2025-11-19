@@ -1643,49 +1643,49 @@ audio {
             </div>
         </div>
 
-        <!-- Админы -->
-        <div id="admins" class="tab-content">
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">🔧 Управление администраторами</h2>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="showAdminForm()">➕ Добавить админа</button>
-                </div>
-
-                <div id="adminsList" class="loading">
-                    Загрузка администраторов...
-                </div>
-            </div>
-
-            <!-- Форма добавления админа -->
-            <div id="adminForm" class="card" style="display: none;">
-                <h3 style="margin-bottom: 20px;">Добавление нового администратора</h3>
-                
-                <div class="form-group">
-                    <label class="form-label">ID пользователя Telegram:</label>
-                    <input type="number" id="adminUserId" class="form-control" placeholder="123456789">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Имя пользователя (опционально):</label>
-                    <input type="text" id="adminUsername" class="form-control" placeholder="@username">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Роль:</label>
-                    <select id="adminRole" class="form-control">
-                        <option value="moderator">Модератор</option>
-                        <option value="admin">Администратор</option>
-                        <option value="superadmin">Супер-админ</option>
-                    </select>
-                </div>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="saveAdmin()">💾 Добавить админа</button>
-                    <button class="btn btn-danger" onclick="hideAdminForm()">❌ Отмена</button>
-                </div>
-            </div>
+<!-- Админы -->
+<div id="admins" class="tab-content">
+    <div class="card">
+        <h2 style="margin-bottom: 20px;">🔧 Управление администраторами</h2>
+        
+        <div class="action-buttons">
+            <button class="btn btn-success" onclick="showAdminForm()">➕ Добавить админа</button>
         </div>
+
+        <div id="adminsList" class="loading">
+            Загрузка администраторов...
+        </div>
+    </div>
+
+    <!-- Форма добавления админа -->
+    <div id="adminForm" class="card" style="display: none;">
+        <h3 style="margin-bottom: 20px;">Добавление нового администратора</h3>
+        
+        <div class="form-group">
+            <label class="form-label">ID пользователя Telegram:</label>
+            <input type="number" id="adminUserId" class="form-control" placeholder="123456789">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Имя пользователя (опционально):</label>
+            <input type="text" id="adminUsername" class="form-control" placeholder="@username">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Роль:</label>
+            <select id="adminRole" class="form-control">
+                <option value="moderator">Модератор</option>
+                <option value="admin">Администратор</option>
+                <option value="superadmin">Супер-админ</option>
+            </select>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn btn-success" onclick="saveAdmin()">💾 Добавить админа</button>
+            <button class="btn btn-danger" onclick="hideAdminForm()">❌ Отмена</button>
+        </div>
+    </div>
+</div>
 
         <!-- Сообщения -->
         <div id="messageArea"></div>
@@ -4755,66 +4755,97 @@ function showRejectReviewForm(reviewId) {
 
         // ==================== АДМИНЫ ====================
 
-        // Загрузка администраторов
-        async function loadAdmins() {
-            try {
-                const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
-                const admins = await response.json();
-                
-                displayAdmins(admins);
-                
-            } catch (error) {
-                document.getElementById('adminsList').innerHTML = '<div class="message error">Ошибка загрузки администраторов</div>';
-            }
+// Загрузка администраторов - ИСПРАВЛЕННАЯ
+async function loadAdmins() {
+    console.log('🔄 Загрузка списка администраторов');
+    
+    try {
+        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
         }
+        
+        const admins = await response.json();
+        console.log('✅ Админы загружены:', admins);
+        
+        displayAdmins(admins);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки администраторов:', error);
+        document.getElementById('adminsList').innerHTML = `
+            <div class="message error">
+                Ошибка загрузки администраторов: ${error.message}
+                <button class="btn" onclick="loadAdmins()" style="margin-top: 10px;">
+                    🔄 Попробовать снова
+                </button>
+            </div>
+        `;
+    }
+}
 
-        // Отображение администраторов
-        function displayAdmins(admins) {
-            const adminsList = document.getElementById('adminsList');
-            
-            if (admins.length === 0) {
-                adminsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔧</div><div>Администраторов не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            admins.forEach(admin => {
-                const roleBadges = {
-                    'moderator': 'badge-info',
-                    'admin': 'badge-warning',
-                    'superadmin': 'badge-danger'
-                };
-                
-                html += `
-                    <div class="admin-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${admin.username || `Пользователь ${admin.user_id}`}</h3>
-                                <div style="margin-bottom: 12px;">
-                                    <span class="badge ${roleBadges[admin.role]}">${admin.role}</span>
-                                    <span class="badge badge-secondary">ID: ${admin.user_id}</span>
-                                </div>
-                            </div>
+// Отображение администраторов - ИСПРАВЛЕННАЯ
+function displayAdmins(admins) {
+    const adminsList = document.getElementById('adminsList');
+    
+    if (!admins || admins.length === 0) {
+        adminsList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🔧</div>
+                <div>Администраторов не найдено</div>
+                <div style="color: #718096; margin-top: 12px; font-size: 14px;">
+                    Добавьте первого администратора
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    
+    admins.forEach(admin => {
+        const roleBadges = {
+            'moderator': 'badge-info',
+            'admin': 'badge-warning', 
+            'superadmin': 'badge-danger'
+        };
+        
+        const roleTexts = {
+            'moderator': '👮 Модератор',
+            'admin': '🔧 Администратор',
+            'superadmin': '👑 Супер-админ'
+        };
+        
+        html += `
+            <div class="admin-card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 8px 0;">${admin.user_name || admin.username || `Пользователь ${admin.user_id}`}</h3>
+                        <div style="margin-bottom: 12px;">
+                            <span class="badge ${roleBadges[admin.role]}">${roleTexts[admin.role]}</span>
+                            <span class="badge badge-secondary">ID: ${admin.user_id}</span>
+                            ${admin.username ? `<span class="badge badge-info">@${admin.username}</span>` : ''}
                         </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Добавлен: ${new Date(admin.created_at).toLocaleDateString('ru-RU')}
-                        </div>
-                        ${admin.user_id != currentUserId ? `
-                            <div class="action-buttons">
-                                <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">🗑️ Удалить</button>
-                            </div>
-                        ` : `
-                            <div style="color: #718096; font-style: italic;">
-                                Это ваша учетная запись
-                            </div>
-                        `}
                     </div>
-                `;
-            });
-            
-            adminsList.innerHTML = html;
-        }
+                </div>
+                <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+                    Добавлен: ${new Date(admin.created_at).toLocaleDateString('ru-RU')}
+                </div>
+                ${admin.user_id != currentUserId ? `
+                    <div class="action-buttons">
+                        <button class="btn btn-danger" onclick="deleteAdmin(${admin.user_id})">🗑️ Удалить</button>
+                    </div>
+                ` : `
+                    <div style="color: #718096; font-style: italic;">
+                        👆 Это ваша учетная запись
+                    </div>
+                `}
+            </div>
+        `;
+    });
+    
+    adminsList.innerHTML = html;
+}
 
         // Показать форму добавления админа
         function showAdminForm() {
@@ -4883,28 +4914,35 @@ async function saveAdmin() {
     }
 }
 
-        // Удаление админа
-        async function deleteAdmin(userId) {
-            if (!confirm('Вы уверены, что хотите удалить этого администратора?')) return;
-            
-            try {
-                const response = await fetch(`/api/admin/admins/${userId}?userId=${currentUserId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Администратор успешно удален', 'success');
-                    loadAdmins();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка удаления администратора', 'error');
-            }
+// Удаление админа - ИСПРАВЛЕННАЯ
+async function deleteAdmin(userId) {
+    if (!confirm('Вы уверены, что хотите удалить этого администратора?')) return;
+    
+    try {
+        console.log('🗑️ Удаление админа:', userId);
+        
+        const response = await fetch(`/api/admin/admins/${userId}?userId=${currentUserId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
         }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Администратор успешно удален', 'success');
+            loadAdmins();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка удаления администратора:', error);
+        showMessage('❌ Ошибка удаления администратора: ' + error.message, 'error');
+    }
+}
 
         // Скрыть форму админа
         function hideAdminForm() {
