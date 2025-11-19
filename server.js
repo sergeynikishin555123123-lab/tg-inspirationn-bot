@@ -371,15 +371,23 @@ let db = {
         }
     ],
     activities: [],
-    admins: [
-        { 
-            id: 1, 
-            user_id: 898508164, 
-            username: 'admin', 
-            role: 'superadmin', 
-            created_at: new Date().toISOString() 
-        }
-    ],
+admins: [
+    { 
+        id: 1, 
+        user_id: 898508164, 
+        username: 'admin', 
+        role: 'superadmin', 
+        created_at: new Date().toISOString() 
+    },
+    // ДОБАВЬТЕ ЭТУ СТРОЧКУ С ВАШИМ ID:
+    { 
+        id: 2, 
+        user_id: 898508164, // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ TELEGRAM ID
+        username: 'your_username', 
+        role: 'admin', 
+        created_at: new Date().toISOString() 
+    }
+],
     purchases: [],
     channel_posts: [
         {
