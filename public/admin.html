@@ -1698,7 +1698,7 @@ audio {
         let currentModerationTab = 'works';
         let interactiveImageData = null;
 
-        // САМЫЙ ПРОСТОЙ КОД - ВСЕ АДМИНЫ ВИДЯТ ВСЁ
+// ИСПРАВЛЕННАЯ ИНИЦИАЛИЗАЦИЯ АДМИНКИ
 async function initAdminPanel() {
     console.log("🚀 Загрузка админ-панели");
     
@@ -1706,7 +1706,6 @@ async function initAdminPanel() {
     const urlParams = new URLSearchParams(window.location.search);
     currentUserId = urlParams.get('userId');
     
-    // Если нет ID, показываем ошибку
     if (!currentUserId) {
         document.body.innerHTML = `
             <div class="admin-login">
@@ -1720,15 +1719,37 @@ async function initAdminPanel() {
         return;
     }
     
-    // Просто записываем ID и загружаем админку
-    currentAdmin = { user_id: currentUserId };
-    document.getElementById('adminId').textContent = currentUserId;
-    
-    // ВСЕ КНОПКИ АКТИВНЫ ВСЕГДА
-    console.log("✅ Все разделы доступны");
-    
-    // Загружаем данные
-    loadAllData();
+    // ПРОВЕРЯЕМ ПРАВА АДМИНА
+    try {
+        const response = await fetch(`/api/admin/stats?userId=${currentUserId}`);
+        if (!response.ok) {
+            throw new Error('Not an admin');
+        }
+        
+        const stats = await response.json();
+        console.log('✅ Права админа подтверждены');
+        
+        currentAdmin = { user_id: currentUserId };
+        document.getElementById('adminId').textContent = currentUserId;
+        
+        // Загружаем данные
+        loadAllData();
+        
+    } catch (error) {
+        console.error('❌ Ошибка доступа:', error);
+        document.body.innerHTML = `
+            <div class="admin-login">
+                <h1>🔐 Доступ запрещен</h1>
+                <p>У вас нет прав администратора</p>
+                <p style="color: #718096; font-size: 14px;">
+                    Обратитесь к существующему администратору
+                </p>
+                <button class="btn" onclick="location.reload()" style="margin-top: 20px;">
+                    🔄 Попробовать снова
+                </button>
+            </div>
+        `;
+    }
 }
 
 // Убираем форму логина
@@ -4240,31 +4261,36 @@ function hideShopItemForm() {
             worksList.innerHTML = html;
         }
 
-        // Модерация работы
-        async function moderateWork(workId, status, comment = '') {
-            try {
-                const response = await fetch(`/api/admin/user-works/${workId}/moderate?userId=${currentUserId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        status,
-                        admin_comment: comment
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage(`✅ Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`, 'success');
-                    loadWorksForModeration();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка модерации работы', 'error');
-            }
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ МОДЕРАЦИИ
+async function moderateWork(workId, status, comment = '') {
+    try {
+        const response = await fetch(`/api/admin/user-works/${workId}/moderate?userId=${currentUserId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                status,
+                admin_comment: comment
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Network error');
         }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage(`✅ Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`, 'success');
+            loadWorksForModeration();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка модерации:', error);
+        showMessage('❌ Ошибка модерации работы', 'error');
+    }
+}
 
         // Показать форму отклонения работы
         function showRejectWorkForm(workId) {
@@ -4475,7 +4501,7 @@ function hideShopItemForm() {
             document.getElementById('adminForm').style.display = 'block';
         }
 
-       // Сохранение админа
+// ИСПРАВЛЕННОЕ СОХРАНЕНИЕ АДМИНА
 async function saveAdmin() {
     const user_id = document.getElementById('adminUserId').value.trim();
     const username = document.getElementById('adminUsername').value.trim();
@@ -4496,14 +4522,14 @@ async function saveAdmin() {
     
     try {
         const adminData = {
-            user_id: parseInt(user_id),
-            username: username || undefined, // Отправляем undefined если пустое
+            targetUserId: parseInt(user_id),
+            username: username || undefined,
             role: role
         };
         
         console.log('📤 Отправка данных:', adminData);
         
-        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
+        const response = await fetch(`/api/admin/add-admin?userId=${currentUserId}`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -4811,6 +4837,37 @@ document.addEventListener('DOMContentLoaded', function() {
         setupDragAndDrop(previewUploadArea, handleShopItemPreviewUpload);
     }
 });
+
+// ФУНКЦИЯ ДЛЯ БЫСТРОГО ДОБАВЛЕНИЯ АДМИНА (запускать из консоли)
+window.addAdmin = function(userId, username = '') {
+    if (!confirm(`Добавить пользователя ${userId} как администратора?`)) return;
+    
+    fetch(`/api/admin/add-admin?userId=${currentUserId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            targetUserId: parseInt(userId),
+            username: username,
+            role: 'superadmin'
+        })
+    })
+    .then(r => r.json())
+    .then(result => {
+        console.log('Результат:', result);
+        if (result.success) {
+            alert('✅ Админ успешно добавлен!');
+            location.reload();
+        } else {
+            alert('❌ Ошибка: ' + result.error);
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка:', error);
+        alert('❌ Ошибка сети');
+    });
+};
+
+console.log('🛠️ Функция addAdmin() доступна в консоли');
         
     </script>
 </body>
