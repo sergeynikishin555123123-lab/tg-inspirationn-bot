@@ -364,17 +364,8 @@ admins: [
         role: 'superadmin', 
         created_at: new Date().toISOString() 
     }
-],
-    // ДОБАВЬТЕ ЭТУ СТРОЧКУ С ВАШИМ ID:
-    { 
-        id: 2, 
-        user_id: 123456789, // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ TELEGRAM ID
-        username: 'your_username', 
-        role: 'admin', 
-        created_at: new Date().toISOString() 
-    }
-],
-    purchases: [],
+],                                // ← 👈 ЗАПЯТАЯ ОСТАЕТСЯ ЗДЕСЬ
+purchases: [],
     channel_posts: [
         {
             id: 1,
