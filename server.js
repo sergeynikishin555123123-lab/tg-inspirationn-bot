@@ -518,13 +518,14 @@ purchases: [],
 };
 
 // ==================== GOOGLE SHEETS ИНТЕГРАЦИЯ ====================
-// Конфигурация Google Sheets
-const SPREADSHEET_ID = '13ejLNfIpsW71iR08uirh3TbdcBCWpK3bt_NLeqkRa5c'; // Замените на реальный ID из URL таблицы
+const SPREADSHEET_ID = '13ejLNfIpsW71iR08uirh3TbdcBCWpK3bt_NLeqkRa5c';
 const SHEET_NAME = 'Данные пользователей';
 
-// Функция для инициализации Google Sheets API
+// Улучшенная функция инициализации Google Sheets
 async function initializeSheets() {
     try {
+        console.log('🔐 Инициализация Google Sheets API...');
+        
         const auth = new google.auth.GoogleAuth({
             keyFile: './google-sheets-credentials.json',
             scopes: ['https://www.googleapis.com/auth/spreadsheets'],
@@ -533,10 +534,28 @@ async function initializeSheets() {
         const client = await auth.getClient();
         const sheets = google.sheets({ version: 'v4', auth: client });
         
+        // Проверяем доступ к таблице
+        const response = await sheets.spreadsheets.get({
+            spreadsheetId: SPREADSHEET_ID,
+        });
+        
         console.log('✅ Google Sheets API инициализирован');
+        console.log('📊 Таблица:', response.data.properties.title);
         return sheets;
     } catch (error) {
-        console.error('❌ Ошибка инициализации Google Sheets:', error);
+        console.error('❌ Ошибка инициализации Google Sheets:', error.message);
+        
+        // Детальная диагностика ошибки
+        if (error.message.includes('invalid_grant')) {
+            console.error('🔑 Проблема с аутентификацией. Проверьте:');
+            console.error('   - Файл учетных данных существует');
+            console.error('   - Сервисный аккаунт имеет доступ к таблице');
+            console.error('   - Время на сервере синхронизировано');
+        } else if (error.message.includes('PERMISSION_DENIED')) {
+            console.error('🚫 Нет доступа к таблице. Предоставьте доступ:');
+            console.error('   inspiration-workshop-sheet-629@inspiration-workshop-bot.iam.gserviceaccount.com');
+        }
+        
         return null;
     }
 }
@@ -590,6 +609,11 @@ async function exportUsersToSheets(sheets) {
 
         const userData = prepareUserDataForSheets();
         
+        if (userData.length === 0) {
+            console.log('ℹ️ Нет данных для экспорта');
+            return true;
+        }
+        
         // Заголовки столбцов
         const headers = [
             ['ID пользователя', 'Имя', 'Username', 'Роль', 'Персонаж', 'Уровень', 'Искры', 
@@ -615,8 +639,28 @@ async function exportUsersToSheets(sheets) {
         console.log(`✅ Данные ${userData.length} пользователей экспортированы в Google Sheets`);
         return true;
     } catch (error) {
-        console.error('❌ Ошибка экспорта в Google Sheets:', error);
+        console.error('❌ Ошибка экспорта в Google Sheets:', error.message);
         return false;
+    }
+}
+
+// Альтернативная функция для CSV экспорта
+function exportUsersToCSV() {
+    try {
+        const userData = prepareUserDataForSheets();
+        const headers = ['ID пользователя', 'Имя', 'Username', 'Роль', 'Персонаж', 'Уровень', 'Искры', 
+                        'Зарегистрирован', 'Последняя активность', 'Пройдено квизов', 'Завершено марафонов',
+                        'Загружено работ', 'Одобрено работ', 'Покупок', 'Всего активностей', 'Всего искр'];
+        
+        let csvContent = headers.join(',') + '\n';
+        userData.forEach(row => {
+            csvContent += row.join(',') + '\n';
+        });
+        
+        return csvContent;
+    } catch (error) {
+        console.error('❌ Ошибка создания CSV:', error);
+        return null;
     }
 }
 // ==================== КОНЕЦ GOOGLE SHEETS ИНТЕГРАЦИИ ====================
@@ -2410,8 +2454,6 @@ app.get('/api/admin/users-report', requireAdmin, (req, res) => {
     res.json({ users });
 });
 
-// ==================== GOOGLE SHEETS ЭКСПОРТ ====================
-
 // Ручка для ручного экспорта данных в Google Sheets
 app.post('/api/admin/export-to-sheets', requireAdmin, async (req, res) => {
     try {
@@ -2426,10 +2468,20 @@ app.post('/api/admin/export-to-sheets', requireAdmin, async (req, res) => {
                 message: 'Данные успешно экспортированы в Google Sheets' 
             });
         } else {
-            res.status(500).json({ 
-                success: false, 
-                error: 'Ошибка экспорта в Google Sheets' 
-            });
+            // Предлагаем альтернативу - CSV экспорт
+            const csvData = exportUsersToCSV();
+            if (csvData) {
+                res.json({ 
+                    success: true, 
+                    message: 'Google Sheets недоступен. Данные подготовлены в CSV формате',
+                    csv_data: csvData
+                });
+            } else {
+                res.status(500).json({ 
+                    success: false, 
+                    error: 'Ошибка экспорта данных' 
+                });
+            }
         }
     } catch (error) {
         console.error('❌ Ошибка экспорта:', error);
@@ -2468,6 +2520,22 @@ app.get('/api/admin/sheets-status', requireAdmin, async (req, res) => {
             connected: false,
             message: `Ошибка подключения: ${error.message}` 
         });
+    }
+});
+
+// Ручка для скачивания CSV
+app.get('/api/admin/export-csv', requireAdmin, (req, res) => {
+    try {
+        const csvData = exportUsersToCSV();
+        if (!csvData) {
+            return res.status(500).json({ error: 'Ошибка создания CSV' });
+        }
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=users_export.csv');
+        res.send(csvData);
+    } catch (error) {
+        res.status(500).json({ error: 'Ошибка экспорта' });
     }
 });
 
