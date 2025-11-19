@@ -11,13 +11,14 @@
     "deploy": "node server.js",
     "build": "echo \"No build process required\" && exit 0"
   },
-  "dependencies": {
-    "express": "^4.18.2",
-    "node-telegram-bot-api": "^0.64.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "body-parser": "^1.20.2"
-  },
+"dependencies": {
+  "express": "^4.18.2",
+  "node-telegram-bot-api": "^0.64.0", 
+  "cors": "^2.8.5",
+  "body-parser": "^1.20.2",
+  "dotenv": "^16.3.1",
+  "googleapis": "^126.0.1"
+},
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
