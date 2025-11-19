@@ -614,6 +614,183 @@ let db = {
     system_logs: []
 };
 
+// Кэш для хранения актуальных данных
+const dataCache = {
+    users: new Map(),
+    quizzes: new Map(),
+    marathons: new Map(),
+    interactives: new Map(),
+    posts: new Map(),
+    shopItems: new Map(),
+    lastUpdate: new Map()
+};
+
+// Функция для инвалидации кэша при изменениях
+function invalidateCache(dataType) {
+    if (dataCache[dataType]) {
+        dataCache[dataType].clear();
+        dataCache.lastUpdate.set(dataType, Date.now());
+    }
+    console.log(`🔄 Кэш инвалидирован: ${dataType}`);
+}
+
+// Функция для отправки уведомлений пользователям
+async function broadcastToUsers(userIds, notification) {
+    try {
+        userIds.forEach(userId => {
+            const userNotification = {
+                id: Date.now(),
+                user_id: userId,
+                ...notification,
+                created_at: new Date().toISOString(),
+                is_read: false
+            };
+            
+            db.notifications.push(userNotification);
+        });
+        
+        console.log(`📢 Уведомление отправлено ${userIds.length} пользователям: ${notification.title}`);
+    } catch (error) {
+        console.error('❌ Ошибка отправки уведомлений:', error);
+    }
+}
+
+// Функция для отправки уведомлений всем пользователям
+async function broadcastToAllUsers(notification) {
+    const allUserIds = db.users.map(user => user.user_id);
+    await broadcastToUsers(allUserIds, notification);
+}
+
+// Функция для отправки уведомлений по ролям
+async function broadcastToRole(roleName, notification) {
+    const roleUserIds = db.users
+        .filter(user => user.class === roleName)
+        .map(user => user.user_id);
+    
+    await broadcastToUsers(roleUserIds, notification);
+}
+
+// Автоматическая инвалидация кэша при изменениях через админ-панель
+function setupChangeListeners() {
+    // Слушатели для разных типов данных
+    const changeHandlers = {
+        quizzes: (action, quiz) => {
+            invalidateCache('quizzes');
+            const notification = {
+                title: "🎯 Новый квиз доступен!",
+                message: `Доступен новый квиз: "${quiz.title}". Проверьте свои знания!`,
+                type: "new_content",
+                action_url: "/quizzes",
+                action_text: "Пройти квиз",
+                priority: "medium"
+            };
+            broadcastToAllUsers(notification);
+        },
+        
+        marathons: (action, marathon) => {
+            invalidateCache('marathons');
+            const notification = {
+                title: "🏃‍♂️ Начался новый марафон!",
+                message: `Запущен марафон: "${marathon.title}". Присоединяйтесь!`,
+                type: "new_content", 
+                action_url: "/marathons",
+                action_text: "Участвовать",
+                priority: "high"
+            };
+            broadcastToAllUsers(notification);
+        },
+        
+        interactives: (action, interactive) => {
+            invalidateCache('interactives');
+            const notification = {
+                title: "🎮 Новый интерактив!",
+                message: `Доступен интерактив: "${interactive.title}". Попробуйте сейчас!`,
+                type: "new_content",
+                action_url: "/interactives", 
+                action_text: "Играть",
+                priority: "medium"
+            };
+            broadcastToAllUsers(notification);
+        },
+        
+        posts: (action, post) => {
+            invalidateCache('posts');
+            const notification = {
+                title: "📰 Новый пост в ленте",
+                message: `Опубликован новый пост: "${post.title}". Читайте первыми!`,
+                type: "new_content",
+                action_url: "/posts",
+                action_text: "Читать",
+                priority: "low"
+            };
+            broadcastToAllUsers(notification);
+        },
+        
+        shopItems: (action, item) => {
+            invalidateCache('shopItems');
+            const notification = {
+                title: "🛒 Новый товар в магазине",
+                message: `В продаже новый товар: "${item.title}". Спешите приобрести!`,
+                type: "new_content",
+                action_url: "/shop",
+                action_text: "В магазин", 
+                priority: "medium"
+            };
+            broadcastToAllUsers(notification);
+        }
+    };
+
+    // Перехват методов для автоматического отслеживания изменений
+    const originalPush = Array.prototype.push;
+    
+    // Перехватываем добавление новых элементов
+    ['quizzes', 'marathons', 'interactives', 'posts', 'shopItems'].forEach(type => {
+        if (db[type]) {
+            db[type].push = function(...items) {
+                const result = originalPush.apply(this, items);
+                items.forEach(item => {
+                    if (changeHandlers[type]) {
+                        changeHandlers[type]('create', item);
+                    }
+                });
+                return result;
+            };
+        }
+    });
+}
+
+// Инициализация системы отслеживания изменений
+setupChangeListeners();
+
+// ==================== ОБНОВЛЕННЫЕ API С КЭШИРОВАНИЕМ ====================
+
+// Middleware для кэширования
+function withCache(cacheKey, dataFetcher, ttl = 300000) { // 5 минут по умолчанию
+    return (req, res, next) => {
+        const cached = dataCache[cacheKey]?.get('data');
+        const lastUpdate = dataCache.lastUpdate?.get(cacheKey) || 0;
+        
+        if (cached && (Date.now() - lastUpdate) < ttl) {
+            console.log(`📦 Данные из кэша: ${cacheKey}`);
+            return res.json(cached);
+        }
+        
+        // Если данных нет в кэше или устарели, получаем свежие
+        dataFetcher()
+            .then(data => {
+                if (!dataCache[cacheKey]) dataCache[cacheKey] = new Map();
+                dataCache[cacheKey].set('data', data);
+                dataCache.lastUpdate.set(cacheKey, Date.now());
+                console.log(`🔄 Данные обновлены в кэше: ${cacheKey}`);
+                res.json(data);
+            })
+            .catch(error => {
+                console.error(`❌ Ошибка получения данных ${cacheKey}:`, error);
+                res.status(500).json({ error: 'Ошибка загрузки данных' });
+            });
+    };
+}
+
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -1026,6 +1203,177 @@ app.get('/health', (req, res) => {
         posts: db.channel_posts.length,
         uptime: process.uptime()
     });
+});
+
+// Basic routes
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        version: '9.0.0',
+        database: 'In-Memory',
+        users: db.users.length,
+        quizzes: db.quizzes.length,
+        marathons: db.marathons.length,
+        shop_items: db.shop_items.length,
+        interactives: db.interactives.length,
+        posts: db.channel_posts.length,
+        uptime: process.uptime(),
+        cache_status: {
+            quizzes: dataCache.quizzes.has('data') ? 'cached' : 'empty',
+            marathons: dataCache.marathons.has('data') ? 'cached' : 'empty',
+            interactives: dataCache.interactives.has('data') ? 'cached' : 'empty',
+            posts: dataCache.posts.has('data') ? 'cached' : 'empty',
+            shopItems: dataCache.shopItems.has('data') ? 'cached' : 'empty'
+        }
+    });
+});
+
+// ==================== ОБНОВЛЕННЫЕ API С КЭШИРОВАНИЕМ ====================
+
+// WebApp API с кэшированием
+app.get('/api/webapp/quizzes', requireAuth, (req, res) => {
+    const userId = parseInt(req.user.user_id);
+    
+    // Проверяем кэш
+    const cacheKey = `quizzes_${userId}`;
+    const cached = dataCache.quizzes.get(cacheKey);
+    const lastUpdate = dataCache.lastUpdate.get('quizzes') || 0;
+    
+    if (cached && (Date.now() - lastUpdate) < 300000) { // 5 минут
+        console.log('📦 Квизы из кэша');
+        return res.json(cached);
+    }
+    
+    // Если нет в кэше, формируем данные
+    const quizzes = db.quizzes.filter(q => q.is_active);
+    
+    const quizzesWithStatus = quizzes.map(quiz => {
+        const completion = db.quiz_completions.find(
+            qc => qc.user_id === userId && qc.quiz_id === quiz.id
+        );
+        
+        let canRetake = quiz.allow_retake;
+        if (completion && quiz.cooldown_hours > 0) {
+            const lastCompletion = new Date(completion.completed_at);
+            const now = new Date();
+            const hoursSinceCompletion = (now - lastCompletion) / (1000 * 60 * 60);
+            canRetake = hoursSinceCompletion >= quiz.cooldown_hours;
+        }
+        
+        const today = new Date().toDateString();
+        const todayAttempts = db.quiz_completions.filter(
+            qc => qc.user_id === userId && 
+                  qc.quiz_id === quiz.id &&
+                  new Date(qc.completed_at).toDateString() === today
+        ).length;
+        
+        const maxAttempts = quiz.requirements?.max_attempts_per_day || 3;
+        const attemptsLeft = maxAttempts - todayAttempts;
+        
+        return {
+            ...quiz,
+            completed: !!completion,
+            user_score: completion ? completion.score : 0,
+            total_questions: quiz.questions.length,
+            can_retake: canRetake && quiz.allow_retake && attemptsLeft > 0,
+            last_completion: completion ? completion.completed_at : null,
+            user_perfect_score: completion ? completion.perfect_score : false,
+            attempts_today: todayAttempts,
+            attempts_left: attemptsLeft,
+            user_best_score: completion ? completion.score : 0
+        };
+    });
+    
+    // Сохраняем в кэш
+    dataCache.quizzes.set(cacheKey, quizzesWithStatus);
+    console.log('🔄 Квизы обновлены в кэше');
+    
+    res.json(quizzesWithStatus);
+});
+
+// Аналогично обновляем другие API методы...
+app.get('/api/webapp/marathons', requireAuth, (req, res) => {
+    const userId = parseInt(req.user.user_id);
+    
+    const cacheKey = `marathons_${userId}`;
+    const cached = dataCache.marathons.get(cacheKey);
+    const lastUpdate = dataCache.lastUpdate.get('marathons') || 0;
+    
+    if (cached && (Date.now() - lastUpdate) < 300000) {
+        console.log('📦 Марафоны из кэша');
+        return res.json(cached);
+    }
+    
+    const marathons = db.marathons.filter(m => m.is_active);
+    
+    const marathonsWithStatus = marathons.map(marathon => {
+        const completion = db.marathon_completions.find(
+            mc => mc.user_id === userId && mc.marathon_id === marathon.id
+        );
+        
+        const currentTask = completion ? marathon.tasks[completion.current_day - 1] : marathon.tasks[0];
+        const submissions = db.marathon_submissions.filter(
+            ms => ms.user_id === userId && ms.marathon_id === marathon.id
+        );
+        
+        const progress = completion ? completion.progress : 0;
+        const daysCompleted = completion ? completion.current_day - 1 : 0;
+        
+        return {
+            ...marathon,
+            completed: completion ? completion.completed : false,
+            current_day: completion ? completion.current_day : 1,
+            progress: progress,
+            started_at: completion ? completion.started_at : null,
+            current_task: currentTask,
+            submissions: submissions,
+            can_continue: completion && !completion.completed,
+            days_completed: daysCompleted,
+            days_remaining: marathon.duration_days - daysCompleted,
+            can_start: !completion
+        };
+    });
+    
+    dataCache.marathons.set(cacheKey, marathonsWithStatus);
+    console.log('🔄 Марафоны обновлены в кэше');
+    
+    res.json(marathonsWithStatus);
+});
+
+// API для принудительного обновления кэша (для админ-панели)
+app.post('/api/admin/clear-cache', requireAdmin, (req, res) => {
+    const { cacheType } = req.body;
+    
+    if (cacheType && dataCache[cacheType]) {
+        invalidateCache(cacheType);
+        res.json({ success: true, message: `Кэш ${cacheType} очищен` });
+    } else if (!cacheType) {
+        // Очистка всего кэша
+        Object.keys(dataCache).forEach(key => {
+            if (key !== 'lastUpdate') {
+                invalidateCache(key);
+            }
+        });
+        res.json({ success: true, message: 'Весь кэш очищен' });
+    } else {
+        res.status(400).json({ error: 'Неверный тип кэша' });
+    }
+});
+
+// API для получения статуса кэша
+app.get('/api/admin/cache-status', requireAdmin, (req, res) => {
+    const status = {};
+    Object.keys(dataCache).forEach(key => {
+        if (key !== 'lastUpdate') {
+            status[key] = {
+                hasData: dataCache[key].size > 0,
+                size: dataCache[key].size,
+                lastUpdate: dataCache.lastUpdate.get(key) || null
+            };
+        }
+    });
+    res.json(status);
 });
 
 // WebApp API
