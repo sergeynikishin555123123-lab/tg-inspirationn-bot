@@ -1706,18 +1706,21 @@
         let uploadedImage = null;
         let marathonUploadedImage = null;
 
-        // Инициализация приложения
-        async function initApp() {
-            try {
-                // Инициализация Telegram WebApp
-                tg = window.Telegram.WebApp;
-                tg.expand();
-                tg.enableClosingConfirmation();
-                
-                currentUserId = tg.initDataUnsafe.user?.id || tg.initDataUnsafe.start_param?.replace('ref_', '') || 12345;
-                
-                console.log('👤 User ID:', currentUserId);
-                console.log('📱 Platform:', tg.platform);
+// Инициализация приложения
+async function initApp() {
+    try {
+        // ДОБАВЬТЕ ЭТУ ПРОВЕРКУ В НАЧАЛО ФУНКЦИИ
+        console.log('🚀 Инициализация приложения...');
+        
+        // Инициализация Telegram WebApp
+        tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation();
+        
+        currentUserId = tg.initDataUnsafe.user?.id || tg.initDataUnsafe.start_param?.replace('ref_', '') || 898508164;
+        
+        console.log('👤 User ID:', currentUserId);
+        console.log('📱 Platform:', tg.platform);
                 
                 // Загружаем данные пользователя
                 await loadUserData();
@@ -1751,49 +1754,86 @@
             }
         }
 
-        // Загрузка данных пользователя
-        async function loadUserData() {
-            try {
-                const response = await fetch(`/api/users/${currentUserId}`);
-                const data = await response.json();
-                
-                if (data.exists) {
-                    currentUser = data.user;
-                    showUserData();
-                    loadAvailableButtons();
-                } else {
-                    showWelcomeScreen();
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки пользователя:', error);
-                showMessage('❌ Ошибка загрузки данных', 'error');
-            }
+        // Загрузка данных пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
+async function loadUserData() {
+    try {
+        const userDataElement = document.getElementById('userData');
+        userDataElement.innerHTML = '<div class="loading"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div>Загрузка данных...</div>';
+        
+        const response = await fetch(`/api/users/${currentUserId}`);
+        const data = await response.json();
+        
+        if (data.exists) {
+            currentUser = data.user;
+            showUserData();
+            loadAvailableButtons();
+        } else {
+            showWelcomeScreen();
         }
+    } catch (error) {
+        console.error('Ошибка загрузки пользователя:', error);
+        showMessage('❌ Ошибка загрузки данных', 'error');
+        // Показываем экран приветствия в случае ошибки
+        showWelcomeScreen();
+    }
+}
 
-        // Показать данные пользователя
-        function showUserData() {
-            document.getElementById('userContent').style.display = 'block';
-            document.getElementById('welcomeBlock').style.display = 'none';
-            document.getElementById('actionsBlock').style.display = 'block';
+// Показать данные пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
+function showUserData() {
+    const userDataElement = document.getElementById('userData');
+    
+    userDataElement.innerHTML = `
+        <div id="userContent">
+            <div class="user-info-grid">
+                <div class="user-info-item">
+                    <span class="user-info-label">Имя:</span>
+                    <span id="userName" class="user-info-value">${currentUser.tg_first_name}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Уровень:</span>
+                    <span id="userLevel" class="user-info-value">${currentUser.level}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Роль:</span>
+                    <span id="userRole" class="user-info-value">${currentUser.class || 'Не выбрана'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Персонаж:</span>
+                    <span id="userCharacter" class="user-info-value">${currentUser.character_name || 'Не выбран'}</span>
+                </div>
+            </div>
             
-            document.getElementById('userName').textContent = currentUser.tg_first_name;
-            document.getElementById('userLevel').textContent = currentUser.level;
-            document.getElementById('sparksCount').textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
-            document.getElementById('userRole').textContent = currentUser.class || 'Не выбрана';
-            document.getElementById('userCharacter').textContent = currentUser.character_name || 'Не выбран';
+            <div class="sparks pulse">✨ ${currentUser.sparks.toFixed(1)}</div>
             
-            // Обновляем статистику если есть
-            if (currentUser.stats) {
-                document.getElementById('userStats').style.display = 'block';
-                document.getElementById('statQuizzes').textContent = currentUser.stats.totalQuizzesCompleted;
-                document.getElementById('statWorks').textContent = currentUser.stats.totalWorks;
-                document.getElementById('statMarathons').textContent = currentUser.stats.totalMarathonsCompleted;
-                document.getElementById('statInteractives').textContent = currentUser.stats.totalInteractivesCompleted;
-            }
-            
-            // Заполняем имя в форме регистрации
-            document.getElementById('userFirstName').value = currentUser.tg_first_name;
-        }
+            <div id="userStats">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">${currentUser.stats?.totalQuizzesCompleted || 0}</div>
+                        <div class="stat-label">Квизов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${currentUser.stats?.totalWorks || 0}</div>
+                        <div class="stat-label">Работ</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${currentUser.stats?.totalMarathonsCompleted || 0}</div>
+                        <div class="stat-label">Марафонов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${currentUser.stats?.totalInteractivesCompleted || 0}</div>
+                        <div class="stat-label">Интерактивов</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('welcomeBlock').style.display = 'none';
+    document.getElementById('actionsBlock').style.display = 'block';
+    
+    // Заполняем имя в форме регистрации
+    document.getElementById('userFirstName').value = currentUser.tg_first_name;
+}
 
         // Показать экран приветствия
         function showWelcomeScreen() {
@@ -1802,50 +1842,61 @@
             document.getElementById('actionsBlock').style.display = 'none';
         }
 
-        // Загрузка доступных кнопок
-        function loadAvailableButtons() {
-            const buttonsContainer = document.getElementById('actionButtons');
-            const availableButtons = currentUser.available_buttons || [];
-            
-            const buttons = {
-                'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary', icon: '🎯' },
-                'marathon': { text: '🏃‍♂️ Участвовать в марафоне', screen: 'marathonsScreen', color: 'btn-warning', icon: '🏃‍♂️' },
-                'works': { text: '🖼️ Мои работы', screen: 'worksScreen', color: 'btn-info', icon: '🖼️' },
-                'activities': { text: '📊 История активностей', screen: 'activitiesScreen', color: 'btn', icon: '📊' },
-                'posts': { text: '📰 Полезные материалы', screen: 'postsScreen', color: 'btn-success', icon: '📰' },
-                'shop': { text: '🛒 Магазин знаний', screen: 'shopScreen', color: 'btn-danger', icon: '🛒' },
-                'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info', icon: '👥' },
-                'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success', icon: '🎮' }
+ // Загрузка доступных кнопок - ИСПРАВЛЕННАЯ ВЕРСИЯ
+function loadAvailableButtons() {
+    const buttonsContainer = document.getElementById('actionButtons');
+    const availableButtons = currentUser.available_buttons || [];
+    
+    console.log('🔄 Загрузка кнопок для пользователя:', currentUser.tg_first_name);
+    console.log('📋 Доступные кнопки:', availableButtons);
+    
+    // Всегда показываем основные кнопки, даже если их нет в available_buttons
+    const allButtons = {
+        'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary', icon: '🎯' },
+        'marathon': { text: '🏃‍♂️ Участвовать в марафоне', screen: 'marathonsScreen', color: 'btn-warning', icon: '🏃‍♂️' },
+        'works': { text: '🖼️ Мои работы', screen: 'worksScreen', color: 'btn-info', icon: '🖼️' },
+        'activities': { text: '📊 История активностей', screen: 'activitiesScreen', color: 'btn', icon: '📊' },
+        'posts': { text: '📰 Полезные материалы', screen: 'postsScreen', color: 'btn-success', icon: '📰' },
+        'shop': { text: '🛒 Магазин знаний', screen: 'shopScreen', color: 'btn-danger', icon: '🛒' },
+        'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info', icon: '👥' },
+        'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success', icon: '🎮' },
+        'change_role': { text: '🔄 Сменить роль', screen: 'changeRoleScreen', color: 'change-role-btn', icon: '🔄' }
+    };
+    
+    buttonsContainer.innerHTML = '';
+    
+    // Показываем все кнопки для зарегистрированных пользователей
+    if (currentUser.is_registered) {
+        Object.keys(allButtons).forEach(buttonKey => {
+            const buttonInfo = allButtons[buttonKey];
+            const featureCard = document.createElement('div');
+            featureCard.className = 'feature-card';
+            featureCard.style.cursor = 'pointer';
+            featureCard.innerHTML = `
+                <div class="feature-icon">${buttonInfo.icon}</div>
+                <div class="feature-title">${buttonInfo.text}</div>
+            `;
+            featureCard.onclick = () => {
+                console.log('🎯 Нажата кнопка:', buttonInfo.text);
+                showScreen(buttonInfo.screen);
             };
-            
-            buttonsContainer.innerHTML = '';
-            
-            availableButtons.forEach(buttonKey => {
-                if (buttons[buttonKey]) {
-                    const buttonInfo = buttons[buttonKey];
-                    const featureCard = document.createElement('div');
-                    featureCard.className = 'feature-card';
-                    featureCard.innerHTML = `
-                        <div class="feature-icon">${buttonInfo.icon}</div>
-                        <div class="feature-title">${buttonInfo.text}</div>
-                    `;
-                    featureCard.onclick = () => showScreen(buttonInfo.screen);
-                    buttonsContainer.appendChild(featureCard);
-                }
-            });
-            
-            // Всегда показываем кнопку интерактивов
-            if (!availableButtons.includes('interactives')) {
-                const featureCard = document.createElement('div');
-                featureCard.className = 'feature-card';
-                featureCard.innerHTML = `
-                    <div class="feature-icon">🎮</div>
-                    <div class="feature-title">Интерактивные задания</div>
-                `;
-                featureCard.onclick = () => showScreen('interactivesScreen');
-                buttonsContainer.appendChild(featureCard);
-            }
-        }
+            buttonsContainer.appendChild(featureCard);
+        });
+    } else {
+        // Для незарегистрированных показываем только кнопку регистрации
+        const featureCard = document.createElement('div');
+        featureCard.className = 'feature-card';
+        featureCard.style.cursor = 'pointer';
+        featureCard.innerHTML = `
+            <div class="feature-icon">🚀</div>
+            <div class="feature-title">Начать регистрацию</div>
+        `;
+        featureCard.onclick = () => showScreen('registrationScreen');
+        buttonsContainer.appendChild(featureCard);
+    }
+    
+    console.log('✅ Кнопки загружены');
+}
 
         // Показать экран
         function showScreen(screenName) {
