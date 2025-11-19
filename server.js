@@ -25,7 +25,7 @@ let db = {
     users: [
         {
             id: 1,
-            user_id: 898508164,
+            user_id: 123456789,
             tg_first_name: 'Тестовый Пользователь',
             tg_username: 'test_user',
             sparks: 45.5,
