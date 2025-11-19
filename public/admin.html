@@ -1501,7 +1501,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="admin.js"></script>
 
-    <!-- Модальное окно создания пользователя -->
+  <!-- Модальное окно создания пользователя -->
 <div class="modal" id="createUserModal">
     <div class="modal-content">
         <div class="modal-header">
@@ -1509,21 +1509,37 @@
             <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
         </div>
         <div class="p-4">
-            <div class="form-group">
-                <label class="form-label">Имя пользователя</label>
-                <input type="text" class="form-control" id="newUserName" placeholder="Введите имя">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Роль</label>
-                <select class="form-control" id="newUserRole">
-                    <option value="student">Студент</option>
-                    <option value="teacher">Преподаватель</option>
-                    <option value="admin">Администратор</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Email</label>
-                <input type="email" class="form-control" id="newUserEmail" placeholder="email@example.com">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Имя *</label>
+                    <input type="text" class="form-control" id="newUserName" placeholder="Введите имя" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" id="newUserUsername" placeholder="username">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Роль *</label>
+                    <select class="form-control" id="newUserRole" required>
+                        <option value="">Выберите роль</option>
+                        <option value="student">Студент</option>
+                        <option value="teacher">Преподаватель</option>
+                        <option value="artist">Художник</option>
+                        <option value="designer">Дизайнер</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Уровень</label>
+                    <input type="number" class="form-control" id="newUserLevel" value="1" min="1" max="100">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Искры</label>
+                    <input type="number" class="form-control" id="newUserSparks" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" id="newUserEmail" placeholder="email@example.com">
+                </div>
             </div>
             <div class="form-actions">
                 <button class="btn btn-primary" onclick="adminApp.createUser()">
@@ -1544,25 +1560,46 @@
             <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
         </div>
         <div class="p-4">
-            <div class="form-group">
-                <label class="form-label">Название квиза</label>
-                <input type="text" class="form-control" id="newQuizTitle" placeholder="Введите название">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Описание</label>
-                <textarea class="form-control" id="newQuizDescription" placeholder="Описание квиза" rows="3"></textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Сложность</label>
-                <select class="form-control" id="newQuizDifficulty">
-                    <option value="beginner">Начинающий</option>
-                    <option value="intermediate">Средний</option>
-                    <option value="advanced">Продвинутый</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Длительность (минуты)</label>
-                <input type="number" class="form-control" id="newQuizDuration" value="10" min="5" max="60">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Название квиза *</label>
+                    <input type="text" class="form-control" id="newQuizTitle" placeholder="Введите название" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Категория *</label>
+                    <select class="form-control" id="newQuizCategory" required>
+                        <option value="">Выберите категорию</option>
+                        <option value="painting">Живопись</option>
+                        <option value="art_history">История искусства</option>
+                        <option value="fashion">Мода</option>
+                        <option value="photography">Фотография</option>
+                        <option value="general">Общее</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание</label>
+                    <textarea class="form-control" id="newQuizDescription" placeholder="Описание квиза" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Сложность *</label>
+                    <select class="form-control" id="newQuizDifficulty" required>
+                        <option value="beginner">Начинающий</option>
+                        <option value="intermediate">Средний</option>
+                        <option value="advanced">Продвинутый</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Длительность (минуты) *</label>
+                    <input type="number" class="form-control" id="newQuizDuration" value="15" min="5" max="120" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Количество вопросов</label>
+                    <input type="number" class="form-control" id="newQuizQuestions" value="10" min="1" max="50">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Награда за прохождение</label>
+                    <input type="number" class="form-control" id="newQuizReward" value="25" min="0" max="1000">
+                </div>
             </div>
             <div class="form-actions">
                 <button class="btn btn-primary" onclick="adminApp.createQuiz()">
@@ -1583,31 +1620,111 @@
             <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
         </div>
         <div class="p-4">
-            <div class="form-group">
-                <label class="form-label">Название товара</label>
-                <input type="text" class="form-control" id="newItemTitle" placeholder="Введите название">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Описание</label>
-                <textarea class="form-control" id="newItemDescription" placeholder="Описание товара" rows="3"></textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Тип</label>
-                <select class="form-control" id="newItemType">
-                    <option value="video_course">Видеокурс</option>
-                    <option value="ebook">Электронная книга</option>
-                    <option value="course">Курс</option>
-                    <option value="material">Материалы</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Цена (искры)</label>
-                <input type="number" class="form-control" id="newItemPrice" value="100" min="10" max="10000">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Название товара *</label>
+                    <input type="text" class="form-control" id="newItemTitle" placeholder="Введите название" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тип *</label>
+                    <select class="form-control" id="newItemType" required>
+                        <option value="video_course">Видеокурс</option>
+                        <option value="ebook">Электронная книга</option>
+                        <option value="course">Курс</option>
+                        <option value="material">Материалы</option>
+                        <option value="tool">Инструмент</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Категория *</label>
+                    <select class="form-control" id="newItemCategory" required>
+                        <option value="painting">Живопись</option>
+                        <option value="art_history">История искусства</option>
+                        <option value="fashion">Мода</option>
+                        <option value="photography">Фотография</option>
+                        <option value="general">Общее</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание</label>
+                    <textarea class="form-control" id="newItemDescription" placeholder="Описание товара" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Цена (искры) *</label>
+                    <input type="number" class="form-control" id="newItemPrice" value="100" min="10" max="10000" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Сложность</label>
+                    <select class="form-control" id="newItemDifficulty">
+                        <option value="beginner">Начинающий</option>
+                        <option value="intermediate">Средний</option>
+                        <option value="advanced">Продвинутый</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Длительность</label>
+                    <input type="text" class="form-control" id="newItemDuration" placeholder="2 недели, 30 дней и т.д.">
+                </div>
             </div>
             <div class="form-actions">
                 <button class="btn btn-primary" onclick="adminApp.createItem()">
                     <i class="fas fa-plus"></i>
                     Создать товар
+                </button>
+                <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания поста -->
+<div class="modal" id="createPostModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">📰 Создать пост</h3>
+            <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
+        </div>
+        <div class="p-4">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Заголовок *</label>
+                    <input type="text" class="form-control" id="newPostTitle" placeholder="Введите заголовок" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тип контента *</label>
+                    <select class="form-control" id="newPostType" required>
+                        <option value="text">Текст</option>
+                        <option value="image">Изображение</option>
+                        <option value="video">Видео</option>
+                        <option value="article">Статья</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Содержание *</label>
+                    <textarea class="form-control" id="newPostContent" placeholder="Содержание поста" rows="6" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL изображения</label>
+                    <input type="url" class="form-control" id="newPostImage" placeholder="https://example.com/image.jpg">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Категория</label>
+                    <select class="form-control" id="newPostCategory">
+                        <option value="news">Новости</option>
+                        <option value="tutorial">Обучение</option>
+                        <option value="inspiration">Вдохновение</option>
+                        <option value="event">События</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Теги (через запятую)</label>
+                    <input type="text" class="form-control" id="newPostTags" placeholder="искусство, живопись, творчество">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="adminApp.createPost()">
+                    <i class="fas fa-plus"></i>
+                    Создать пост
                 </button>
                 <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
             </div>
