@@ -24,21 +24,6 @@ console.log('📁 Текущая рабочая директория:', APP_ROOT
 let db = {
     users: [
         {
-            id: 1,
-            user_id: 123456789,
-            tg_first_name: 'Тестовый Пользователь',
-            tg_username: 'test_user',
-            sparks: 45.5,
-            level: 'Искатель',
-            is_registered: true,
-            class: 'Художники',
-            character_id: 1,
-            character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
-        },
-        {
             id: 2,
             user_id: 898508164,
             tg_first_name: 'Администратор',
