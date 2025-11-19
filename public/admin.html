@@ -1792,11 +1792,238 @@ function showLoginForm() {
             await loadShopItems();
             await loadPosts();
             await loadAdmins();
-            await loadWorksForModeration();
-            await loadReviewsForModeration();
-            await loadMarathonSubmissions();
         }
 
+// ФУНКЦИЯ ЗАГРУЗКИ РАБОТ ДЛЯ МОДЕРАЦИИ
+async function loadWorksForModeration() {
+    console.log('📥 Загрузка работ для модерации');
+    
+    try {
+        const status = document.getElementById('workStatusFilter')?.value || 'pending';
+        const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Работы загружены:', data.works?.length || 0);
+        
+        displayWorksForModeration(data.works);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки работ:', error);
+        const worksList = document.getElementById('worksModerationList');
+        if (worksList) {
+            worksList.innerHTML = `
+                <div class="message error">
+                    Ошибка загрузки работ: ${error.message}
+                    <button class="btn" onclick="loadWorksForModeration()" style="margin-top: 10px;">
+                        🔄 Попробовать снова
+                    </button>
+                </div>
+            `;
+        }
+    }
+}
+
+// ФУНКЦИЯ ОТОБРАЖЕНИЯ РАБОТ ДЛЯ МОДЕРАЦИИ
+function displayWorksForModeration(works) {
+    const worksList = document.getElementById('worksModerationList');
+    if (!worksList) return;
+    
+    if (!works || works.length === 0) {
+        worksList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🖼️</div>
+                <div>Работ не найдено</div>
+                <div style="color: #718096; margin-top: 12px; font-size: 14px;">
+                    Все работы проверены 🎉
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    
+    works.forEach(work => {
+        const statusBadges = {
+            'pending': 'badge-warning',
+            'approved': 'badge-success',
+            'rejected': 'badge-danger'
+        };
+        
+        const statusTexts = {
+            'pending': '⏳ На модерации',
+            'approved': '✅ Одобрено',
+            'rejected': '❌ Отклонено'
+        };
+        
+        html += `
+            <div class="work-card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 8px 0;">${work.title}</h3>
+                        <p style="color: #718096; margin-bottom: 12px;">${work.description || 'Без описания'}</p>
+                        <div style="margin-bottom: 12px;">
+                            <span class="badge ${statusBadges[work.status]}">${statusTexts[work.status]}</span>
+                            <span class="badge badge-secondary">Автор: ${work.user_name}</span>
+                        </div>
+                        <img src="${work.image_url}" class="work-image" style="max-width: 300px;" onerror="this.style.display='none'">
+                        ${work.admin_comment ? `
+                            <div class="review-text">
+                                <strong>💬 Комментарий модератора:</strong><br>
+                                ${work.admin_comment}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+                    Загружена: ${new Date(work.created_at).toLocaleString('ru-RU')}
+                    ${work.moderated_at ? ` • Модерирована: ${new Date(work.moderated_at).toLocaleString('ru-RU')}` : ''}
+                </div>
+                ${work.status === 'pending' ? `
+                    <div class="moderation-actions">
+                        <button class="btn btn-success" onclick="moderateWork(${work.id}, 'approved')">✅ Одобрить</button>
+                        <button class="btn btn-danger" onclick="showRejectWorkForm(${work.id})">❌ Отклонить</button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+    
+    worksList.innerHTML = html;
+}
+
+// ФУНКЦИЯ ЗАГРУЗКИ ОТЗЫВОВ ДЛЯ МОДЕРАЦИИ
+async function loadReviewsForModeration() {
+    console.log('📥 Загрузка отзывов для модерации');
+    
+    try {
+        const status = document.getElementById('reviewStatusFilter')?.value || 'pending';
+        const response = await fetch(`/api/admin/reviews?userId=${currentUserId}&status=${status}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Отзывы загружены:', data.reviews?.length || 0);
+        
+        displayReviewsForModeration(data.reviews);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки отзывов:', error);
+        const reviewsList = document.getElementById('reviewsModerationList');
+        if (reviewsList) {
+            reviewsList.innerHTML = `
+                <div class="message error">
+                    Ошибка загрузки отзывов: ${error.message}
+                    <button class="btn" onclick="loadReviewsForModeration()" style="margin-top: 10px;">
+                        🔄 Попробовать снова
+                    </button>
+                </div>
+            `;
+        }
+    }
+}
+
+// ФУНКЦИЯ ОТОБРАЖЕНИЯ ОТЗЫВОВ ДЛЯ МОДЕРАЦИИ
+function displayReviewsForModeration(reviews) {
+    const reviewsList = document.getElementById('reviewsModerationList');
+    if (!reviewsList) return;
+    
+    if (!reviews || reviews.length === 0) {
+        reviewsList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">💬</div>
+                <div>Отзывов не найдено</div>
+                <div style="color: #718096; margin-top: 12px; font-size: 14px;">
+                    Все отзывы проверены 🎉
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    
+    reviews.forEach(review => {
+        const statusBadges = {
+            'pending': 'badge-warning',
+            'approved': 'badge-success',
+            'rejected': 'badge-danger'
+        };
+        
+        const statusTexts = {
+            'pending': '⏳ На модерации',
+            'approved': '✅ Одобрен',
+            'rejected': '❌ Отклонен'
+        };
+        
+        html += `
+            <div class="review-card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 8px 0;">Отзыв к посту: "${review.post_title}"</h3>
+                        <div style="margin-bottom: 12px;">
+                            <span class="badge ${statusBadges[review.status]}">${statusTexts[review.status]}</span>
+                            <span class="badge badge-secondary">Автор: ${review.tg_first_name}</span>
+                            <span class="badge badge-info">Рейтинг: ${'★'.repeat(review.rating)}</span>
+                        </div>
+                        <div class="review-text">
+                            ${review.review_text}
+                        </div>
+                        ${review.admin_comment ? `
+                            <div class="review-text">
+                                <strong>💬 Комментарий модератора:</strong><br>
+                                ${review.admin_comment}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+                    Написан: ${new Date(review.created_at).toLocaleString('ru-RU')}
+                    ${review.moderated_at ? ` • Модерирован: ${new Date(review.moderated_at).toLocaleString('ru-RU')}` : ''}
+                </div>
+                ${review.status === 'pending' ? `
+                    <div class="moderation-actions">
+                        <button class="btn btn-success" onclick="moderateReview(${review.id}, 'approved')">✅ Одобрить</button>
+                        <button class="btn btn-danger" onclick="showRejectReviewForm(${review.id})">❌ Отклонить</button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+    
+    reviewsList.innerHTML = html;
+}
+
+// ФУНКЦИЯ ЗАГРУЗКИ РАБОТ МАРАФОНОВ
+async function loadMarathonSubmissions() {
+    console.log('📥 Загрузка работ марафонов');
+    
+    try {
+        // Временная заглушка - в реальном приложении здесь будет API запрос
+        const marathonSubmissionsList = document.getElementById('marathonSubmissionsList');
+        if (marathonSubmissionsList) {
+            marathonSubmissionsList.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🏃‍♂️</div>
+                    <div>Функция модерации работ марафонов</div>
+                    <div style="color: #718096; margin-top: 12px; font-size: 14px;">
+                        Будет реализована в следующей версии
+                    </div>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки работ марафонов:', error);
+    }
+}
+        
 // ИСПРАВЛЕННАЯ ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК
 function showTab(tabName) {
     console.log('🔄 Переключение на вкладку:', tabName);
@@ -4318,7 +4545,7 @@ function displayWorksForModeration(works) {
     worksList.innerHTML = html;
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ МОДЕРАЦИИ
+// ФУНКЦИИ МОДЕРАЦИИ
 async function moderateWork(workId, status, comment = '') {
     try {
         const response = await fetch(`/api/admin/user-works/${workId}/moderate?userId=${currentUserId}`, {
@@ -4349,13 +4576,49 @@ async function moderateWork(workId, status, comment = '') {
     }
 }
 
-        // Показать форму отклонения работы
-        function showRejectWorkForm(workId) {
-            const comment = prompt('Введите причину отклонения работы:');
-            if (comment !== null) {
-                moderateWork(workId, 'rejected', comment);
-            }
+async function moderateReview(reviewId, status, comment = '') {
+    try {
+        const response = await fetch(`/api/admin/reviews/${reviewId}/moderate?userId=${currentUserId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                status,
+                admin_comment: comment
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Network error');
         }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage(`✅ Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`, 'success');
+            loadReviewsForModeration();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка модерации:', error);
+        showMessage('❌ Ошибка модерации отзыва', 'error');
+    }
+}
+
+function showRejectWorkForm(workId) {
+    const comment = prompt('Введите причину отклонения работы:');
+    if (comment !== null) {
+        moderateWork(workId, 'rejected', comment);
+    }
+}
+
+function showRejectReviewForm(reviewId) {
+    const comment = prompt('Введите причину отклонения отзыва:');
+    if (comment !== null) {
+        moderateReview(reviewId, 'rejected', comment);
+    }
+}
 
         // Загрузка отзывов для модерации
         async function loadReviewsForModeration() {
