@@ -2410,6 +2410,86 @@ app.get('/api/admin/users-report', requireAdmin, (req, res) => {
     res.json({ users });
 });
 
+// ==================== GOOGLE SHEETS ЭКСПОРТ ====================
+
+// Ручка для ручного экспорта данных в Google Sheets
+app.post('/api/admin/export-to-sheets', requireAdmin, async (req, res) => {
+    try {
+        console.log('📤 Запрос на экспорт данных в Google Sheets...');
+        
+        const sheets = await initializeSheets();
+        const success = await exportUsersToSheets(sheets);
+        
+        if (success) {
+            res.json({ 
+                success: true, 
+                message: 'Данные успешно экспортированы в Google Sheets' 
+            });
+        } else {
+            res.status(500).json({ 
+                success: false, 
+                error: 'Ошибка экспорта в Google Sheets' 
+            });
+        }
+    } catch (error) {
+        console.error('❌ Ошибка экспорта:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Внутренняя ошибка сервера при экспорте' 
+        });
+    }
+});
+
+// Ручка для проверки статуса Google Sheets
+app.get('/api/admin/sheets-status', requireAdmin, async (req, res) => {
+    try {
+        const sheets = await initializeSheets();
+        
+        if (!sheets) {
+            return res.json({ 
+                connected: false,
+                message: 'Google Sheets не подключен' 
+            });
+        }
+
+        // Проверяем доступ к таблице
+        const response = await sheets.spreadsheets.get({
+            spreadsheetId: SPREADSHEET_ID,
+        });
+
+        res.json({ 
+            connected: true,
+            message: 'Google Sheets подключен',
+            spreadsheetTitle: response.data.properties.title,
+            totalUsers: db.users.filter(u => u.is_registered).length
+        });
+    } catch (error) {
+        res.json({ 
+            connected: false,
+            message: `Ошибка подключения: ${error.message}` 
+        });
+    }
+});
+
+// Автоматический экспорт при изменении данных (опционально)
+function scheduleAutoExport() {
+    // Экспорт каждые 6 часов
+    setInterval(async () => {
+        try {
+            const sheets = await initializeSheets();
+            if (sheets) {
+                await exportUsersToSheets(sheets);
+                console.log('✅ Автоматический экспорт данных выполнен');
+            }
+        } catch (error) {
+            console.error('❌ Ошибка автоматического экспорта:', error);
+        }
+    }, 6 * 60 * 60 * 1000); // 6 часов
+}
+
+// Запускаем автоматический экспорт при старте сервера
+scheduleAutoExport();
+
 // Полная статистика
 app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     const stats = {
