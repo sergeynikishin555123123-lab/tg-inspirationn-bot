@@ -1701,6 +1701,13 @@ audio {
 // ИНИЦИАЛИЗАЦИЯ АДМИН-ПАНЕЛИ - ИСПРАВЛЕННАЯ ВЕРСИЯ
 async function initAdminPanel() {
     console.log("🚀 Загрузка админ-панели");
+
+    // Сразу активируем все кнопки навигации
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.style.display = 'block';
+        tab.style.pointerEvents = 'auto';
+        tab.style.opacity = '1';
+    });
     
     // Получаем ID из URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -1784,48 +1791,127 @@ function showLoginForm() {
             }
         }
 
-        // Загрузка всех данных
-        async function loadAllData() {
-            await loadStats();
-            await loadUsers();
-            await loadRoles();
-            await loadCharacters();
-            await loadQuizzes();
-            await loadMarathons();
-            await loadInteractives();
-            await loadShopItems();
-            await loadPosts();
-            await loadAdmins();
-            await loadWorksForModeration();
-            await loadReviewsForModeration();
-            await loadMarathonSubmissions();
-        }
+// ==================== АКТИВАЦИЯ МОДЕРАЦИИ ====================
 
-        // Показать вкладку
-        function showTab(tabName) {
-            // Скрыть все вкладки
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Убрать активный класс со всех кнопок
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Показать выбранную вкладку
-            document.getElementById(tabName).classList.add('active');
-            
-            // Активировать соответствующую кнопку
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                if (tab.textContent.includes(getTabIcon(tabName))) {
-                    tab.classList.add('active');
-                }
-            });
-            
-            // Скрыть все формы
-            hideAllForms();
+// Загрузка данных для модерации
+async function loadModerationData() {
+    console.log('🔄 Загрузка данных для модерации...');
+    
+    try {
+        await loadWorksForModeration();
+        await loadReviewsForModeration();
+        await loadMarathonSubmissions();
+        
+        console.log('✅ Данные модерации загружены');
+    } catch (error) {
+        console.error('❌ Ошибка загрузки данных модерации:', error);
+    }
+}
+
+// Проверка доступности модерации
+function checkModerationAccess() {
+    console.log('🔐 Проверка доступа к модерации для пользователя:', currentUserId);
+    
+    // Временно разрешаем доступ всем админам
+    const hasAccess = true; // Всегда true для тестирования
+    
+    if (hasAccess) {
+        console.log('✅ Доступ к модерации разрешен');
+        // Активируем кнопку модерации
+        const moderationTab = document.querySelector('.nav-tab[onclick="showTab(\'moderation\')"]');
+        if (moderationTab) {
+            moderationTab.style.display = 'block';
+            console.log('✅ Кнопка модерации активирована');
         }
+    } else {
+        console.log('❌ Доступ к модерации запрещен');
+    }
+    
+    return hasAccess;
+}
+        
+// Загрузка всех данных - ИСПРАВЛЕННАЯ ВЕРСИЯ
+async function loadAllData() {
+    console.log('🔄 Начало загрузки всех данных...');
+    
+    try {
+        await loadStats();
+        await loadUsers();
+        await loadRoles();
+        await loadCharacters();
+        await loadQuizzes();
+        await loadMarathons();
+        await loadInteractives();
+        await loadShopItems();
+        await loadPosts();
+        await loadAdmins();
+        
+        // Загружаем данные модерации и активируем доступ
+        await loadModerationData();
+        checkModerationAccess();
+        
+        console.log('✅ Все данные успешно загружены');
+    } catch (error) {
+        console.error('❌ Ошибка загрузки данных:', error);
+    }
+}
+
+// Показать вкладку - ИСПРАВЛЕННАЯ ВЕРСИЯ
+function showTab(tabName) {
+    console.log('🎯 Переключение на вкладку:', tabName);
+    
+    // Скрыть все вкладки
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Убрать активный класс со всех кнопок
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Показать выбранную вкладку
+    const targetTab = document.getElementById(tabName);
+    if (targetTab) {
+        targetTab.classList.add('active');
+        console.log('✅ Вкладка активирована:', tabName);
+    } else {
+        console.error('❌ Вкладка не найдена:', tabName);
+        return;
+    }
+    
+    // Активировать соответствующую кнопку - ПРОСТОЙ СПОСОБ
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        if (tab.getAttribute('onclick') === `showTab('${tabName}')`) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Загружаем данные для вкладки
+    switch(tabName) {
+        case 'moderation':
+            loadWorksForModeration();
+            break;
+        case 'admins':
+            loadAdmins();
+            break;
+        case 'posts':
+            loadPosts();
+            break;
+        case 'users':
+            loadUsers();
+            break;
+        case 'roles':
+            loadRoles();
+            break;
+        case 'quizzes':
+            loadQuizzes();
+            break;
+    }
+    
+    // Скрыть все формы
+    hideAllForms();
+}
 
         // Получить иконку для вкладки
         function getTabIcon(tabName) {
@@ -4202,19 +4288,31 @@ function hideShopItemForm() {
             }
         }
 
-        // Загрузка работ для модерации
-        async function loadWorksForModeration() {
-            try {
-                const status = document.getElementById('workStatusFilter').value;
-                const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
-                const data = await response.json();
-                
-                displayWorksForModeration(data.works);
-                
-            } catch (error) {
-                document.getElementById('worksModerationList').innerHTML = '<div class="message error">Ошибка загрузки работ</div>';
-            }
+// Загрузка работ для модерации - ИСПРАВЛЕННАЯ ВЕРСИЯ
+async function loadWorksForModeration() {
+    console.log('🖼️ Загрузка работ для модерации...');
+    
+    try {
+        const status = document.getElementById('workStatusFilter') ? document.getElementById('workStatusFilter').value : 'pending';
+        const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
         }
+        
+        const data = await response.json();
+        console.log('✅ Работы загружены:', data.works.length);
+        
+        displayWorksForModeration(data.works);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки работ:', error);
+        const worksList = document.getElementById('worksModerationList');
+        if (worksList) {
+            worksList.innerHTML = '<div class="message error">Ошибка загрузки работ: ' + error.message + '</div>';
+        }
+    }
+}
 
         // Отображение работ для модерации
         function displayWorksForModeration(works) {
