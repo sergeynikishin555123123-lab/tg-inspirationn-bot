@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
+import { google } from 'googleapis';
 
 dotenv.config();
 
@@ -513,8 +514,112 @@ purchases: [],
     ],
     interactive_completions: [],
     interactive_submissions: [],
-    marathon_submissions: []
+        marathon_submissions: []
 };
+
+// ==================== GOOGLE SHEETS ИНТЕГРАЦИЯ ====================
+// Конфигурация Google Sheets
+const SPREADSHEET_ID = '13ejLNfIpsW71iR08uirh3TbdcBCWpK3bt_NLeqkRa5c'; // Замените на реальный ID из URL таблицы
+const SHEET_NAME = 'Данные пользователей';
+
+// Функция для инициализации Google Sheets API
+async function initializeSheets() {
+    try {
+        const auth = new google.auth.GoogleAuth({
+            keyFile: './google-sheets-credentials.json',
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        });
+
+        const client = await auth.getClient();
+        const sheets = google.sheets({ version: 'v4', auth: client });
+        
+        console.log('✅ Google Sheets API инициализирован');
+        return sheets;
+    } catch (error) {
+        console.error('❌ Ошибка инициализации Google Sheets:', error);
+        return null;
+    }
+}
+
+// Функция для подготовки данных пользователей
+function prepareUserDataForSheets() {
+    return db.users.filter(user => user.is_registered).map(user => {
+        const stats = getUserStats(user.user_id);
+        const works = db.user_works.filter(w => w.user_id === user.user_id);
+        const quizCompletions = db.quiz_completions.filter(q => q.user_id === user.user_id);
+        const marathonCompletions = db.marathon_completions.filter(m => m.user_id === user.user_id && m.completed);
+        const purchases = db.purchases.filter(p => p.user_id === user.user_id);
+        const activities = db.activities.filter(a => a.user_id === user.user_id);
+        
+        const totalActivities = 
+            quizCompletions.length + 
+            marathonCompletions.length + 
+            works.length + 
+            activities.filter(a => a.activity_type === 'post_review').length;
+
+        const totalSparksEarned = activities.reduce((sum, a) => sum + a.sparks_earned, 0);
+
+        return [
+            user.user_id.toString(),
+            user.tg_first_name || '',
+            user.tg_username || '',
+            user.class || '',
+            user.character_name || '',
+            user.level || '',
+            user.sparks.toFixed(1),
+            new Date(user.registration_date).toLocaleDateString('ru-RU'),
+            new Date(user.last_active).toLocaleDateString('ru-RU'),
+            quizCompletions.length.toString(),
+            marathonCompletions.length.toString(),
+            works.length.toString(),
+            works.filter(w => w.status === 'approved').length.toString(),
+            purchases.length.toString(),
+            totalActivities.toString(),
+            totalSparksEarned.toFixed(1)
+        ];
+    });
+}
+
+// Функция для экспорта данных в Google Sheets
+async function exportUsersToSheets(sheets) {
+    try {
+        if (!sheets) {
+            console.log('❌ Google Sheets не инициализирован');
+            return false;
+        }
+
+        const userData = prepareUserDataForSheets();
+        
+        // Заголовки столбцов
+        const headers = [
+            ['ID пользователя', 'Имя', 'Username', 'Роль', 'Персонаж', 'Уровень', 'Искры', 
+             'Зарегистрирован', 'Последняя активность', 'Пройдено квизов', 'Завершено марафонов',
+             'Загружено работ', 'Одобрено работ', 'Покупок', 'Всего активностей', 'Всего искр']
+        ];
+
+        // Очищаем лист и записываем новые данные
+        await sheets.spreadsheets.values.clear({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `${SHEET_NAME}!A:Z`,
+        });
+
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `${SHEET_NAME}!A1`,
+            valueInputOption: 'RAW',
+            resource: {
+                values: [...headers, ...userData]
+            }
+        });
+
+        console.log(`✅ Данные ${userData.length} пользователей экспортированы в Google Sheets`);
+        return true;
+    } catch (error) {
+        console.error('❌ Ошибка экспорта в Google Sheets:', error);
+        return false;
+    }
+}
+// ==================== КОНЕЦ GOOGLE SHEETS ИНТЕГРАЦИИ ====================
 
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
