@@ -920,8 +920,8 @@ audio {
             </div>
         </div>
 
-        <!-- Навигация -->
-       <div class="nav-tabs">
+<!-- Навигация -->
+<div class="nav-tabs">
     <div class="nav-tab active" onclick="showTab('dashboard')">📊 Дашборд</div>
     <div class="nav-tab" onclick="showTab('users')">👥 Пользователи</div>
     <div class="nav-tab" onclick="showTab('roles')">🎭 Роли</div>
@@ -2028,7 +2028,7 @@ async function loadMarathonSubmissions() {
     }
 }
         
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК
+// ПОЛНОСТЬЮ ПЕРЕПИСАННАЯ ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК
 function showTab(tabName) {
     console.log('🔄 Переключение на вкладку:', tabName);
     
@@ -2049,21 +2049,89 @@ function showTab(tabName) {
         console.log('✅ Вкладка активирована:', tabName);
     } else {
         console.error('❌ Вкладка не найдена:', tabName);
+        // Создаем временный контент для отсутствующей вкладки
+        createTempTabContent(tabName);
     }
     
-    // Активировать соответствующую кнопку навигации
+    // Найти и активировать соответствующую кнопку навигации
+    let foundTab = false;
     document.querySelectorAll('.nav-tab').forEach(tab => {
-        if (tab.getAttribute('onclick')?.includes(`'${tabName}'`)) {
+        // Простая проверка по тексту кнопки
+        if (tab.textContent && tab.textContent.trim().includes(getTabName(tabName))) {
             tab.classList.add('active');
-            console.log('✅ Кнопка активирована:', tab.textContent);
+            foundTab = true;
+            console.log('✅ Кнопка активирована по тексту:', tab.textContent);
         }
     });
+    
+    // Если не нашли по тексту, ищем по onclick
+    if (!foundTab) {
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            const onclickAttr = tab.getAttribute('onclick');
+            if (onclickAttr && onclickAttr.includes(`'${tabName}'`)) {
+                tab.classList.add('active');
+                foundTab = true;
+                console.log('✅ Кнопка активирована по onclick:', tab.textContent);
+            }
+        });
+    }
+    
+    // Если все еще не нашли, активируем первую кнопку с подходящим содержимым
+    if (!foundTab) {
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            if (tab.textContent && getTabIcon(tabName) && tab.textContent.includes(getTabIcon(tabName))) {
+                tab.classList.add('active');
+                console.log('✅ Кнопка активирована по иконке:', tab.textContent);
+            }
+        });
+    }
     
     // Скрыть все формы
     hideAllForms();
     
     // Загрузить данные для вкладки
     loadTabData(tabName);
+}
+
+// Функция для получения названия вкладки по ID
+function getTabName(tabId) {
+    const names = {
+        'dashboard': 'Дашборд',
+        'users': 'Пользователи', 
+        'roles': 'Роли',
+        'characters': 'Персонажи',
+        'quizzes': 'Квизы',
+        'marathons': 'Марафоны',
+        'interactives': 'Интерактивы',
+        'shop': 'Магазин',
+        'posts': 'Посты',
+        'moderation': 'Модерация',
+        'admins': 'Админы'
+    };
+    return names[tabId] || tabId;
+}
+
+// Создание временного контента для отсутствующей вкладки
+function createTempTabContent(tabName) {
+    const container = document.querySelector('.container');
+    let tempTab = document.getElementById(tabName);
+    
+    if (!tempTab) {
+        tempTab = document.createElement('div');
+        tempTab.id = tabName;
+        tempTab.className = 'tab-content active';
+        tempTab.innerHTML = `
+            <div class="card">
+                <h2>${getTabName(tabName)} ${getTabIcon(tabName)}</h2>
+                <div class="loading">
+                    Загрузка ${getTabName(tabName).toLowerCase()}...
+                </div>
+            </div>
+        `;
+        container.appendChild(tempTab);
+    } else {
+        tempTab.classList.add('active');
+    }
 }
 
 // ДОБАВЬТЕ ЭТУ ФУНКЦИЮ ДЛЯ ЗАГРУЗКИ ДАННЫХ ВКЛАДКИ
