@@ -521,39 +521,52 @@ purchases: [],
 const SPREADSHEET_ID = '13ejLNfIpsW71iR08uirh3TbdcBCWpK3bt_NLeqkRa5c';
 const SHEET_NAME = 'Данные пользователей';
 
-// Улучшенная функция инициализации Google Sheets
+// Упрощенная версия Google Sheets API
 async function initializeSheets() {
     try {
-        console.log('🔐 Инициализация Google Sheets API...');
+        console.log('🔐 Альтернативная инициализация Google Sheets API...');
         
-        const auth = new google.auth.GoogleAuth({
-            keyFile: './google-sheets-credentials.json',
+        // Используем прямой подход с проверкой файла
+        const fs = await import('fs');
+        const path = await import('path');
+        
+        const credentialsPath = './google-sheets-credentials.json';
+        if (!fs.existsSync(credentialsPath)) {
+            console.error('❌ Файл учетных данных не найден');
+            return null;
+        }
+        
+        // Читаем и проверяем файл
+        const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
+        console.log('✅ Файл учетных данных загружен');
+        console.log('📧 Сервисный аккаунт:', credentials.client_email);
+        
+        // Создаем JWT клиент напрямую
+        const { JWT } = await import('google-auth-library');
+        
+        const client = new JWT({
+            email: credentials.client_email,
+            key: credentials.private_key,
             scopes: ['https://www.googleapis.com/auth/spreadsheets'],
         });
-
-        const client = await auth.getClient();
+        
+        // Тестируем аутентификацию
+        await client.authorize();
+        console.log('✅ JWT аутентификация успешна');
+        
         const sheets = google.sheets({ version: 'v4', auth: client });
-        
-        // Проверяем доступ к таблице
-        const response = await sheets.spreadsheets.get({
-            spreadsheetId: SPREADSHEET_ID,
-        });
-        
-        console.log('✅ Google Sheets API инициализирован');
-        console.log('📊 Таблица:', response.data.properties.title);
         return sheets;
-    } catch (error) {
-        console.error('❌ Ошибка инициализации Google Sheets:', error.message);
         
-        // Детальная диагностика ошибки
+    } catch (error) {
+        console.error('❌ Ошибка JWT аутентификации:', error.message);
+        
+        // Детальный анализ ошибки
         if (error.message.includes('invalid_grant')) {
-            console.error('🔑 Проблема с аутентификацией. Проверьте:');
-            console.error('   - Файл учетных данных существует');
-            console.error('   - Сервисный аккаунт имеет доступ к таблице');
-            console.error('   - Время на сервере синхронизировано');
-        } else if (error.message.includes('PERMISSION_DENIED')) {
-            console.error('🚫 Нет доступа к таблице. Предоставьте доступ:');
-            console.error('   inspiration-workshop-sheet-629@inspiration-workshop-bot.iam.gserviceaccount.com');
+            console.error('🔍 Детали ошибки invalid_grant:');
+            console.error('   • Проверьте корректность приватного ключа');
+            console.error('   • Убедитесь, что сервисный аккаунт активен');
+            console.error('   • Проверьте время на сервере');
+            console.error('   • Убедитесь, что нет лишних пробелов в ключе');
         }
         
         return null;
