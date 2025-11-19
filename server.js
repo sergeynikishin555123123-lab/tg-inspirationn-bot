@@ -43,7 +43,7 @@ let db = {
             user_id: 898508164,
             tg_first_name: 'Администратор',
             tg_username: 'admin',
-            sparks: 250.0,
+            sparks: 0,
             level: 'Мастер',
             is_registered: true,
             class: 'Художники',
@@ -374,15 +374,16 @@ let db = {
 admins: [
     { 
         id: 1, 
-        user_id: 898508164, 
+        user_id: 898508164,       // 👈 ВАШ ID КАК АДМИН
         username: 'admin', 
         role: 'superadmin', 
         created_at: new Date().toISOString() 
-    },
+    }
+],
     // ДОБАВЬТЕ ЭТУ СТРОЧКУ С ВАШИМ ID:
     { 
         id: 2, 
-        user_id: 898508164, // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ TELEGRAM ID
+        user_id: 123456789, // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ TELEGRAM ID
         username: 'your_username', 
         role: 'admin', 
         created_at: new Date().toISOString() 
