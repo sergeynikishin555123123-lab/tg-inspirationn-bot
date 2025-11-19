@@ -521,56 +521,10 @@ purchases: [],
 const SPREADSHEET_ID = '13ejLNfIpsW71iR08uirh3TbdcBCWpK3bt_NLeqkRa5c';
 const SHEET_NAME = 'Данные пользователей';
 
-// Упрощенная версия Google Sheets API
+// Временное отключение Google Sheets
 async function initializeSheets() {
-    try {
-        console.log('🔐 Альтернативная инициализация Google Sheets API...');
-        
-        // Используем прямой подход с проверкой файла
-        const fs = await import('fs');
-        const path = await import('path');
-        
-        const credentialsPath = './google-sheets-credentials.json';
-        if (!fs.existsSync(credentialsPath)) {
-            console.error('❌ Файл учетных данных не найден');
-            return null;
-        }
-        
-        // Читаем и проверяем файл
-        const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
-        console.log('✅ Файл учетных данных загружен');
-        console.log('📧 Сервисный аккаунт:', credentials.client_email);
-        
-        // Создаем JWT клиент напрямую
-        const { JWT } = await import('google-auth-library');
-        
-        const client = new JWT({
-            email: credentials.client_email,
-            key: credentials.private_key,
-            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-        });
-        
-        // Тестируем аутентификацию
-        await client.authorize();
-        console.log('✅ JWT аутентификация успешна');
-        
-        const sheets = google.sheets({ version: 'v4', auth: client });
-        return sheets;
-        
-    } catch (error) {
-        console.error('❌ Ошибка JWT аутентификации:', error.message);
-        
-        // Детальный анализ ошибки
-        if (error.message.includes('invalid_grant')) {
-            console.error('🔍 Детали ошибки invalid_grant:');
-            console.error('   • Проверьте корректность приватного ключа');
-            console.error('   • Убедитесь, что сервисный аккаунт активен');
-            console.error('   • Проверьте время на сервере');
-            console.error('   • Убедитесь, что нет лишних пробелов в ключе');
-        }
-        
-        return null;
-    }
+    console.log('⚠️ Google Sheets временно отключен для устранения ошибок JWT');
+    return null;
 }
 
 // Функция для подготовки данных пользователей
@@ -612,14 +566,12 @@ function prepareUserDataForSheets() {
     });
 }
 
-// Функция для экспорта данных в Google Sheets
+// Обновите функцию экспорта
 async function exportUsersToSheets(sheets) {
-    try {
-        if (!sheets) {
-            console.log('❌ Google Sheets не инициализирован');
-            return false;
-        }
-
+    console.log('📊 Экспорт в Google Sheets временно недоступен');
+    console.log('💡 Используйте CSV экспорт вместо этого');
+    return false;
+}
         const userData = prepareUserDataForSheets();
         
         if (userData.length === 0) {
@@ -2505,17 +2457,13 @@ app.post('/api/admin/export-to-sheets', requireAdmin, async (req, res) => {
     }
 });
 
-// Ручка для проверки статуса Google Sheets
+// Обновите проверку статуса
 app.get('/api/admin/sheets-status', requireAdmin, async (req, res) => {
-    try {
-        const sheets = await initializeSheets();
-        
-        if (!sheets) {
-            return res.json({ 
-                connected: false,
-                message: 'Google Sheets не подключен' 
-            });
-        }
+    res.json({ 
+        connected: false,
+        message: 'Google Sheets временно отключен. Используйте CSV экспорт.' 
+    });
+});
 
         // Проверяем доступ к таблице
         const response = await sheets.spreadsheets.get({
