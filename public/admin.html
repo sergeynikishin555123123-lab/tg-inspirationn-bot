@@ -1698,6 +1698,96 @@ audio {
         let currentModerationTab = 'works';
         let interactiveImageData = null;
 
+// ==================== ДИАГНОСТИКА ВКЛАДОК ====================
+
+function checkTabsExistence() {
+    console.log('🔍 Проверка существования вкладок...');
+    
+    const problematicTabs = ['moderation', 'admins', 'posts'];
+    
+    problematicTabs.forEach(tabName => {
+        const tabElement = document.getElementById(tabName);
+        if (tabElement) {
+            console.log(`✅ Вкладка ${tabName} существует`);
+        } else {
+            console.error(`❌ Вкладка ${tabName} НЕ НАЙДЕНА в HTML!`);
+        }
+    });
+    
+    // Проверяем кнопки навигации
+    const navTabs = document.querySelectorAll('.nav-tab');
+    console.log('📋 Найдено кнопок навигации:', navTabs.length);
+    
+    navTabs.forEach(tab => {
+        console.log('🔘 Кнопка:', tab.textContent, 'onclick:', tab.getAttribute('onclick'));
+    });
+}
+
+// Активация всех кнопок навигации
+function activateAllNavigationTabs() {
+    console.log('🔧 Активация всех кнопок навигации...');
+    
+    const navTabs = document.querySelectorAll('.nav-tab');
+    navTabs.forEach(tab => {
+        // Убираем любые блокировки
+        tab.style.display = 'block';
+        tab.style.visibility = 'visible';
+        tab.style.opacity = '1';
+        tab.style.pointerEvents = 'auto';
+        tab.style.cursor = 'pointer';
+        
+        // Убираем disabled атрибуты
+        tab.removeAttribute('disabled');
+        tab.classList.remove('disabled');
+        
+        console.log('✅ Активирована кнопка:', tab.textContent);
+    });
+    
+    console.log('🎉 Все кнопки активированы!');
+}
+
+// Экстренное создание отсутствующих вкладок
+function createMissingTabs() {
+    console.log('🔧 Проверка и создание отсутствующих вкладок...');
+    
+    const requiredTabs = [
+        { id: 'moderation', title: 'Модерация' },
+        { id: 'admins', title: 'Админы' }, 
+        { id: 'posts', title: 'Посты' }
+    ];
+    
+    requiredTabs.forEach(tab => {
+        if (!document.getElementById(tab.id)) {
+            console.log('⚠️ Создаем отсутствующую вкладку:', tab.id);
+            
+            const tabHtml = `
+                <div id="${tab.id}" class="tab-content">
+                    <div class="card">
+                        <h2>${tab.title}</h2>
+                        <div class="loading">
+                            <div style="text-align: center; padding: 40px;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">🛠️</div>
+                                <h3>${tab.title}</h3>
+                                <p style="color: #718096;">Раздел в разработке</p>
+                                <button class="btn" onclick="loadTabData('${tab.id}')" style="margin-top: 20px;">
+                                    🔄 Загрузить данные
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Добавляем вкладку в конец контейнера
+            const container = document.querySelector('.container');
+            if (container) {
+                container.insertAdjacentHTML('beforeend', tabHtml);
+                console.log('✅ Вкладка создана:', tab.id);
+            }
+        }
+    });
+}
+        
 // ИНИЦИАЛИЗАЦИЯ АДМИН-ПАНЕЛИ - ИСПРАВЛЕННАЯ ВЕРСИЯ
 async function initAdminPanel() {
     console.log("🚀 Загрузка админ-панели");
@@ -1856,38 +1946,49 @@ async function loadAllData() {
     }
 }
 
-// Показать вкладку - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Показать вкладку - ПРОСТАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
 function showTab(tabName) {
     console.log('🎯 Переключение на вкладку:', tabName);
     
-    // Скрыть все вкладки
+    // Проверяем существование вкладки
+    const targetTab = document.getElementById(tabName);
+    if (!targetTab) {
+        console.error('❌ Вкладка не найдена:', tabName);
+        showMessage(`❌ Вкладка "${tabName}" не найдена`, 'error');
+        return;
+    }
+    
+    // 1. Скрыть все вкладки
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
     });
     
-    // Убрать активный класс со всех кнопок
+    // 2. Убрать активный класс со всех кнопок
     document.querySelectorAll('.nav-tab').forEach(tab => {
         tab.classList.remove('active');
     });
     
-    // Показать выбранную вкладку
-    const targetTab = document.getElementById(tabName);
-    if (targetTab) {
-        targetTab.classList.add('active');
-        console.log('✅ Вкладка активирована:', tabName);
-    } else {
-        console.error('❌ Вкладка не найдена:', tabName);
-        return;
-    }
+    // 3. Показать выбранную вкладку
+    targetTab.classList.add('active');
     
-    // Активировать соответствующую кнопку - ПРОСТОЙ СПОСОБ
+    // 4. Активировать кнопку - ПРОСТОЙ СПОСОБ
     document.querySelectorAll('.nav-tab').forEach(tab => {
-        if (tab.getAttribute('onclick') === `showTab('${tabName}')`) {
+        const onclickAttr = tab.getAttribute('onclick');
+        if (onclickAttr && onclickAttr.includes(`showTab('${tabName}')`)) {
             tab.classList.add('active');
         }
     });
     
-    // Загружаем данные для вкладки
+    // 5. Загружаем данные для вкладки
+    loadTabData(tabName);
+    
+    console.log('✅ Вкладка активирована:', tabName);
+}
+
+// Загрузка данных для вкладки
+function loadTabData(tabName) {
+    console.log('📥 Загрузка данных для:', tabName);
+    
     switch(tabName) {
         case 'moderation':
             loadWorksForModeration();
@@ -1907,10 +2008,18 @@ function showTab(tabName) {
         case 'quizzes':
             loadQuizzes();
             break;
+        case 'marathons':
+            loadMarathons();
+            break;
+        case 'interactives':
+            loadInteractives();
+            break;
+        case 'shop':
+            loadShopItems();
+            break;
+        default:
+            console.log('ℹ️ Нет специальной загрузки для:', tabName);
     }
-    
-    // Скрыть все формы
-    hideAllForms();
 }
 
         // Получить иконку для вкладки
