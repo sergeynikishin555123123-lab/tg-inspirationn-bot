@@ -617,6 +617,156 @@
             border-top: 1px solid var(--border-color);
         }
 
+        /* File Upload */
+        .file-upload {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 32px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary-color);
+            background: var(--light-color);
+        }
+
+        .file-upload.dragover {
+            border-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-upload-icon {
+            font-size: 48px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .file-upload-text {
+            font-size: var(--font-md);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .file-upload-hint {
+            color: var(--text-muted);
+            font-size: var(--font-sm);
+        }
+
+        .file-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .file-preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .file-preview-item img,
+        .file-preview-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .file-preview-item .remove-file {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        /* Question Builder */
+        .question-builder {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 20px;
+            background: var(--light-color);
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .question-number {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .question-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .option-item.correct {
+            border-color: var(--success-color);
+            background: rgba(72, 187, 120, 0.05);
+        }
+
+        .option-input {
+            flex: 1;
+        }
+
+        .option-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        /* Marathon Day Builder */
+        .marathon-day {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 16px;
+            background: var(--light-color);
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .day-number {
+            font-weight: 700;
+            color: var(--primary-color);
+            font-size: var(--font-lg);
+        }
+
         /* Tabs */
         .tabs {
             display: flex;
@@ -681,7 +831,7 @@
             border-radius: var(--radius-lg);
             padding: 32px;
             box-shadow: var(--shadow-lg);
-            max-width: 600px;
+            max-width: 800px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
@@ -1406,56 +1556,64 @@
                     </div>
                 </div>
 
-                <!-- Other sections will be added similarly -->
-                <!-- For brevity, I'm showing the structure for dashboard and users sections -->
-                <!-- The complete file would have similar structures for all sections -->
-
+                <!-- Quizzes Section -->
                 <div id="quizzesSection" class="content-section">
-                    <!-- Quizzes management content -->
+                    <!-- Content will be loaded dynamically -->
                 </div>
 
+                <!-- Marathons Section -->
                 <div id="marathonsSection" class="content-section">
-                    <!-- Marathons management content -->
+                    <!-- Content will be loaded dynamically -->
                 </div>
 
+                <!-- Interactives Section -->
                 <div id="interactivesSection" class="content-section">
-                    <!-- Interactives management content -->
+                    <!-- Content will be loaded dynamically -->
                 </div>
 
+                <!-- Posts Section -->
                 <div id="postsSection" class="content-section">
-                    <!-- Posts management content -->
+                    <!-- Content will be loaded dynamically -->
                 </div>
 
+                <!-- Shop Section -->
                 <div id="shopSection" class="content-section">
-                    <!-- Shop management content -->
+                    <!-- Content will be loaded dynamically -->
                 </div>
 
+                <!-- Purchases Section -->
                 <div id="purchasesSection" class="content-section">
-                    <!-- Purchases management content -->
+                    <!-- Content will be loaded dynamically -->
                 </div>
 
+                <!-- Roles Section -->
                 <div id="rolesSection" class="content-section">
-                    <!-- Roles management content -->
+                    <!-- Content will be loaded dynamically -->
                 </div>
 
+                <!-- Characters Section -->
                 <div id="charactersSection" class="content-section">
-                    <!-- Characters management content -->
+                    <!-- Content will be loaded dynamically -->
                 </div>
 
+                <!-- Achievements Section -->
                 <div id="achievementsSection" class="content-section">
-                    <!-- Achievements management content -->
+                    <!-- Content will be loaded dynamically -->
                 </div>
 
+                <!-- Moderation Section -->
                 <div id="moderationSection" class="content-section">
-                    <!-- Moderation content -->
+                    <!-- Content will be loaded dynamically -->
                 </div>
 
+                <!-- Admins Section -->
                 <div id="adminsSection" class="content-section">
-                    <!-- Admins management content -->
+                    <!-- Content will be loaded dynamically -->
                 </div>
 
+                <!-- Settings Section -->
                 <div id="settingsSection" class="content-section">
-                    <!-- Settings content -->
+                    <!-- Content will be loaded dynamically -->
                 </div>
             </div>
         </div>
@@ -1466,7 +1624,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title">📚 Помощь по админ панели</h3>
-                <button class="modal-close" onclick="adminApp.hideHelp()">&times;</button>
+                <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
             </div>
             <div class="p-4">
                 <h4>Основные разделы:</h4>
@@ -1498,238 +1656,457 @@
         </div>
     </div>
 
+    <!-- Модальное окно создания квиза -->
+    <div class="modal" id="createQuizModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🎯 Создать квиз</h3>
+                <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
+            </div>
+            <div class="p-4">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Название квиза *</label>
+                        <input type="text" class="form-control" id="newQuizTitle" placeholder="Введите название" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Категория *</label>
+                        <select class="form-control" id="newQuizCategory" required>
+                            <option value="">Выберите категорию</option>
+                            <option value="painting">Живопись</option>
+                            <option value="art_history">История искусства</option>
+                            <option value="fashion">Мода</option>
+                            <option value="photography">Фотография</option>
+                            <option value="general">Общее</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание</label>
+                        <textarea class="form-control" id="newQuizDescription" placeholder="Описание квиза" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Сложность *</label>
+                        <select class="form-control" id="newQuizDifficulty" required>
+                            <option value="beginner">Начинающий</option>
+                            <option value="intermediate">Средний</option>
+                            <option value="advanced">Продвинутый</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Длительность (минуты) *</label>
+                        <input type="number" class="form-control" id="newQuizDuration" value="15" min="5" max="120" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Награда за прохождение (искры)</label>
+                        <input type="number" class="form-control" id="newQuizReward" value="25" min="0" max="1000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Изображение квиза</label>
+                        <div class="file-upload" id="quizImageUpload">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div class="file-upload-text">Перетащите изображение или нажмите для загрузки</div>
+                            <div class="file-upload-hint">PNG, JPG, GIF до 5MB</div>
+                            <input type="file" id="quizImageFile" accept="image/*" style="display: none;">
+                        </div>
+                        <div class="file-preview" id="quizImagePreview"></div>
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <div class="form-title">Вопросы квиза</div>
+                    <div id="quizQuestionsContainer">
+                        <!-- Вопросы будут добавляться динамически -->
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="adminApp.addQuestion()">
+                        <i class="fas fa-plus"></i>
+                        Добавить вопрос
+                    </button>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="adminApp.createQuiz()">
+                        <i class="fas fa-plus"></i>
+                        Создать квиз
+                    </button>
+                    <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания марафона -->
+    <div class="modal" id="createMarathonModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🏃‍♂️ Создать марафон</h3>
+                <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
+            </div>
+            <div class="p-4">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Название марафона *</label>
+                        <input type="text" class="form-control" id="newMarathonTitle" placeholder="Введите название" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Категория *</label>
+                        <select class="form-control" id="newMarathonCategory" required>
+                            <option value="">Выберите категорию</option>
+                            <option value="painting">Живопись</option>
+                            <option value="drawing">Рисование</option>
+                            <option value="design">Дизайн</option>
+                            <option value="photography">Фотография</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание</label>
+                        <textarea class="form-control" id="newMarathonDescription" placeholder="Описание марафона" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Цель марафона *</label>
+                        <textarea class="form-control" id="newMarathonGoal" placeholder="Опишите цель марафона" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Длительность (дней) *</label>
+                        <input type="number" class="form-control" id="newMarathonDuration" value="7" min="1" max="30" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Сложность *</label>
+                        <select class="form-control" id="newMarathonDifficulty" required>
+                            <option value="beginner">Начинающий</option>
+                            <option value="intermediate">Средний</option>
+                            <option value="advanced">Продвинутый</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Награда за завершение (искры)</label>
+                        <input type="number" class="form-control" id="newMarathonReward" value="100" min="0" max="5000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Изображение марафона</label>
+                        <div class="file-upload" id="marathonImageUpload">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div class="file-upload-text">Перетащите изображение или нажмите для загрузки</div>
+                            <div class="file-upload-hint">PNG, JPG, GIF до 5MB</div>
+                            <input type="file" id="marathonImageFile" accept="image/*" style="display: none;">
+                        </div>
+                        <div class="file-preview" id="marathonImagePreview"></div>
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <div class="form-title">Дни марафона</div>
+                    <div id="marathonDaysContainer">
+                        <!-- Дни будут добавляться динамически -->
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="adminApp.addMarathonDay()">
+                        <i class="fas fa-plus"></i>
+                        Добавить день
+                    </button>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="adminApp.createMarathon()">
+                        <i class="fas fa-plus"></i>
+                        Создать марафон
+                    </button>
+                    <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания интерактива -->
+    <div class="modal" id="createInteractiveModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🎮 Создать интерактив</h3>
+                <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
+            </div>
+            <div class="p-4">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Название интерактива *</label>
+                        <input type="text" class="form-control" id="newInteractiveTitle" placeholder="Введите название" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Тип интерактива *</label>
+                        <select class="form-control" id="newInteractiveType" required>
+                            <option value="quiz">Квиз</option>
+                            <option value="puzzle">Пазл</option>
+                            <option value="memory">Игра на память</option>
+                            <option value="matching">Сопоставление</option>
+                            <option value="creative">Творческое задание</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Категория *</label>
+                        <select class="form-control" id="newInteractiveCategory" required>
+                            <option value="">Выберите категорию</option>
+                            <option value="painting">Живопись</option>
+                            <option value="art_history">История искусства</option>
+                            <option value="fashion">Мода</option>
+                            <option value="photography">Фотография</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание</label>
+                        <textarea class="form-control" id="newInteractiveDescription" placeholder="Описание интерактива" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Сложность *</label>
+                        <select class="form-control" id="newInteractiveDifficulty" required>
+                            <option value="beginner">Начинающий</option>
+                            <option value="intermediate">Средний</option>
+                            <option value="advanced">Продвинутый</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Награда за выполнение (искры)</label>
+                        <input type="number" class="form-control" id="newInteractiveReward" value="50" min="0" max="1000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Изображение/Видео</label>
+                        <div class="file-upload" id="interactiveMediaUpload">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-file-upload"></i>
+                            </div>
+                            <div class="file-upload-text">Перетащите файлы или нажмите для загрузки</div>
+                            <div class="file-upload-hint">Изображения, видео, аудио до 10MB</div>
+                            <input type="file" id="interactiveMediaFile" accept="image/*,video/*,audio/*" style="display: none;" multiple>
+                        </div>
+                        <div class="file-preview" id="interactiveMediaPreview"></div>
+                    </div>
+                </div>
+
+                <div class="form-card" id="interactiveContentSection">
+                    <div class="form-title">Содержание интерактива</div>
+                    <div id="interactiveQuestionsContainer">
+                        <!-- Контент будет меняться в зависимости от типа интерактива -->
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="adminApp.createInteractive()">
+                        <i class="fas fa-plus"></i>
+                        Создать интерактив
+                    </button>
+                    <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания поста -->
+    <div class="modal" id="createPostModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">📰 Создать пост</h3>
+                <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
+            </div>
+            <div class="p-4">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Заголовок *</label>
+                        <input type="text" class="form-control" id="newPostTitle" placeholder="Введите заголовок" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Тип контента *</label>
+                        <select class="form-control" id="newPostType" required>
+                            <option value="article">Статья</option>
+                            <option value="news">Новость</option>
+                            <option value="tutorial">Обучение</option>
+                            <option value="inspiration">Вдохновение</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Категория</label>
+                        <select class="form-control" id="newPostCategory">
+                            <option value="painting">Живопись</option>
+                            <option value="drawing">Рисование</option>
+                            <option value="design">Дизайн</option>
+                            <option value="photography">Фотография</option>
+                            <option value="general">Общее</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Содержание *</label>
+                        <textarea class="form-control" id="newPostContent" placeholder="Содержание поста" rows="6" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Теги (через запятую)</label>
+                        <input type="text" class="form-control" id="newPostTags" placeholder="искусство, живопись, творчество">
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <div class="form-title">Медиафайлы</div>
+                    <div class="form-group">
+                        <label class="form-label">Изображения</label>
+                        <div class="file-upload" id="postImagesUpload">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-images"></i>
+                            </div>
+                            <div class="file-upload-text">Перетащите изображения или нажмите для загрузки</div>
+                            <div class="file-upload-hint">PNG, JPG, GIF до 5MB каждое</div>
+                            <input type="file" id="postImagesFile" accept="image/*" style="display: none;" multiple>
+                        </div>
+                        <div class="file-preview" id="postImagesPreview"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Видео</label>
+                        <div class="file-upload" id="postVideosUpload">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-video"></i>
+                            </div>
+                            <div class="file-upload-text">Перетащите видео или нажмите для загрузки</div>
+                            <div class="file-upload-hint">MP4, MOV до 50MB каждое</div>
+                            <input type="file" id="postVideosFile" accept="video/*" style="display: none;" multiple>
+                        </div>
+                        <div class="file-preview" id="postVideosPreview"></div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="adminApp.createPost()">
+                        <i class="fas fa-plus"></i>
+                        Создать пост
+                    </button>
+                    <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания товара -->
+    <div class="modal" id="createItemModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🛒 Создать товар</h3>
+                <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
+            </div>
+            <div class="p-4">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Название товара *</label>
+                        <input type="text" class="form-control" id="newItemTitle" placeholder="Введите название" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Тип *</label>
+                        <select class="form-control" id="newItemType" required>
+                            <option value="video_course">Видеокурс</option>
+                            <option value="ebook">Электронная книга</option>
+                            <option value="course">Курс</option>
+                            <option value="material">Материалы</option>
+                            <option value="tool">Инструмент</option>
+                            <option value="brush_set">Набор кистей</option>
+                            <option value="paint_set">Набор красок</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Категория *</label>
+                        <select class="form-control" id="newItemCategory" required>
+                            <option value="painting">Живопись</option>
+                            <option value="drawing">Рисование</option>
+                            <option value="design">Дизайн</option>
+                            <option value="photography">Фотография</option>
+                            <option value="materials">Материалы</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Описание *</label>
+                        <textarea class="form-control" id="newItemDescription" placeholder="Описание товара" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Цена (искры) *</label>
+                        <input type="number" class="form-control" id="newItemPrice" value="100" min="10" max="10000" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Скидка (%)</label>
+                        <input type="number" class="form-control" id="newItemDiscount" value="0" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Сложность</label>
+                        <select class="form-control" id="newItemDifficulty">
+                            <option value="beginner">Начинающий</option>
+                            <option value="intermediate">Средний</option>
+                            <option value="advanced">Продвинутый</option>
+                            <option value="all">Для всех</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Длительность/Объем</label>
+                        <input type="text" class="form-control" id="newItemDuration" placeholder="2 недели, 100 страниц, 5 часов видео">
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <div class="form-title">Медиафайлы товара</div>
+                    <div class="form-group">
+                        <label class="form-label">Главное изображение *</label>
+                        <div class="file-upload" id="itemMainImageUpload">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div class="file-upload-text">Перетащите главное изображение или нажмите для загрузки</div>
+                            <div class="file-upload-hint">PNG, JPG до 5MB</div>
+                            <input type="file" id="itemMainImageFile" accept="image/*" style="display: none;">
+                        </div>
+                        <div class="file-preview" id="itemMainImagePreview"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Дополнительные изображения</label>
+                        <div class="file-upload" id="itemImagesUpload">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-images"></i>
+                            </div>
+                            <div class="file-upload-text">Перетащите изображения или нажмите для загрузки</div>
+                            <div class="file-upload-hint">PNG, JPG до 5MB каждое</div>
+                            <input type="file" id="itemImagesFile" accept="image/*" style="display: none;" multiple>
+                        </div>
+                        <div class="file-preview" id="itemImagesPreview"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Видео материалы</label>
+                        <div class="file-upload" id="itemVideosUpload">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-video"></i>
+                            </div>
+                            <div class="file-upload-text">Перетащите видео или нажмите для загрузки</div>
+                            <div class="file-upload-hint">MP4, MOV до 100MB каждое</div>
+                            <input type="file" id="itemVideosFile" accept="video/*" style="display: none;" multiple>
+                        </div>
+                        <div class="file-preview" id="itemVideosPreview"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Аудио материалы</label>
+                        <div class="file-upload" id="itemAudioUpload">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-music"></i>
+                            </div>
+                            <div class="file-upload-text">Перетащите аудио или нажмите для загрузки</div>
+                            <div class="file-upload-hint">MP3, WAV до 20MB каждое</div>
+                            <input type="file" id="itemAudioFile" accept="audio/*" style="display: none;" multiple>
+                        </div>
+                        <div class="file-preview" id="itemAudioPreview"></div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="adminApp.createItem()">
+                        <i class="fas fa-plus"></i>
+                        Создать товар
+                    </button>
+                    <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="admin.js"></script>
-
-  <!-- Модальное окно создания пользователя -->
-<div class="modal" id="createUserModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">👥 Добавить пользователя</h3>
-            <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
-        </div>
-        <div class="p-4">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">Имя *</label>
-                    <input type="text" class="form-control" id="newUserName" placeholder="Введите имя" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Username</label>
-                    <input type="text" class="form-control" id="newUserUsername" placeholder="username">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Роль *</label>
-                    <select class="form-control" id="newUserRole" required>
-                        <option value="">Выберите роль</option>
-                        <option value="student">Студент</option>
-                        <option value="teacher">Преподаватель</option>
-                        <option value="artist">Художник</option>
-                        <option value="designer">Дизайнер</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Уровень</label>
-                    <input type="number" class="form-control" id="newUserLevel" value="1" min="1" max="100">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Искры</label>
-                    <input type="number" class="form-control" id="newUserSparks" value="0" min="0">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input type="email" class="form-control" id="newUserEmail" placeholder="email@example.com">
-                </div>
-            </div>
-            <div class="form-actions">
-                <button class="btn btn-primary" onclick="adminApp.createUser()">
-                    <i class="fas fa-plus"></i>
-                    Создать пользователя
-                </button>
-                <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Модальное окно создания квиза -->
-<div class="modal" id="createQuizModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">🎯 Создать квиз</h3>
-            <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
-        </div>
-        <div class="p-4">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">Название квиза *</label>
-                    <input type="text" class="form-control" id="newQuizTitle" placeholder="Введите название" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Категория *</label>
-                    <select class="form-control" id="newQuizCategory" required>
-                        <option value="">Выберите категорию</option>
-                        <option value="painting">Живопись</option>
-                        <option value="art_history">История искусства</option>
-                        <option value="fashion">Мода</option>
-                        <option value="photography">Фотография</option>
-                        <option value="general">Общее</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Описание</label>
-                    <textarea class="form-control" id="newQuizDescription" placeholder="Описание квиза" rows="3"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Сложность *</label>
-                    <select class="form-control" id="newQuizDifficulty" required>
-                        <option value="beginner">Начинающий</option>
-                        <option value="intermediate">Средний</option>
-                        <option value="advanced">Продвинутый</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Длительность (минуты) *</label>
-                    <input type="number" class="form-control" id="newQuizDuration" value="15" min="5" max="120" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Количество вопросов</label>
-                    <input type="number" class="form-control" id="newQuizQuestions" value="10" min="1" max="50">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Награда за прохождение</label>
-                    <input type="number" class="form-control" id="newQuizReward" value="25" min="0" max="1000">
-                </div>
-            </div>
-            <div class="form-actions">
-                <button class="btn btn-primary" onclick="adminApp.createQuiz()">
-                    <i class="fas fa-plus"></i>
-                    Создать квиз
-                </button>
-                <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Модальное окно создания товара -->
-<div class="modal" id="createItemModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">🛒 Создать товар</h3>
-            <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
-        </div>
-        <div class="p-4">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">Название товара *</label>
-                    <input type="text" class="form-control" id="newItemTitle" placeholder="Введите название" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Тип *</label>
-                    <select class="form-control" id="newItemType" required>
-                        <option value="video_course">Видеокурс</option>
-                        <option value="ebook">Электронная книга</option>
-                        <option value="course">Курс</option>
-                        <option value="material">Материалы</option>
-                        <option value="tool">Инструмент</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Категория *</label>
-                    <select class="form-control" id="newItemCategory" required>
-                        <option value="painting">Живопись</option>
-                        <option value="art_history">История искусства</option>
-                        <option value="fashion">Мода</option>
-                        <option value="photography">Фотография</option>
-                        <option value="general">Общее</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Описание</label>
-                    <textarea class="form-control" id="newItemDescription" placeholder="Описание товара" rows="3"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Цена (искры) *</label>
-                    <input type="number" class="form-control" id="newItemPrice" value="100" min="10" max="10000" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Сложность</label>
-                    <select class="form-control" id="newItemDifficulty">
-                        <option value="beginner">Начинающий</option>
-                        <option value="intermediate">Средний</option>
-                        <option value="advanced">Продвинутый</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Длительность</label>
-                    <input type="text" class="form-control" id="newItemDuration" placeholder="2 недели, 30 дней и т.д.">
-                </div>
-            </div>
-            <div class="form-actions">
-                <button class="btn btn-primary" onclick="adminApp.createItem()">
-                    <i class="fas fa-plus"></i>
-                    Создать товар
-                </button>
-                <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Модальное окно создания поста -->
-<div class="modal" id="createPostModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">📰 Создать пост</h3>
-            <button class="modal-close" onclick="adminApp.hideModals()">&times;</button>
-        </div>
-        <div class="p-4">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">Заголовок *</label>
-                    <input type="text" class="form-control" id="newPostTitle" placeholder="Введите заголовок" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Тип контента *</label>
-                    <select class="form-control" id="newPostType" required>
-                        <option value="text">Текст</option>
-                        <option value="image">Изображение</option>
-                        <option value="video">Видео</option>
-                        <option value="article">Статья</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Содержание *</label>
-                    <textarea class="form-control" id="newPostContent" placeholder="Содержание поста" rows="6" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">URL изображения</label>
-                    <input type="url" class="form-control" id="newPostImage" placeholder="https://example.com/image.jpg">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Категория</label>
-                    <select class="form-control" id="newPostCategory">
-                        <option value="news">Новости</option>
-                        <option value="tutorial">Обучение</option>
-                        <option value="inspiration">Вдохновение</option>
-                        <option value="event">События</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Теги (через запятую)</label>
-                    <input type="text" class="form-control" id="newPostTags" placeholder="искусство, живопись, творчество">
-                </div>
-            </div>
-            <div class="form-actions">
-                <button class="btn btn-primary" onclick="adminApp.createPost()">
-                    <i class="fas fa-plus"></i>
-                    Создать пост
-                </button>
-                <button class="btn btn-secondary" onclick="adminApp.hideModals()">Отмена</button>
-            </div>
-        </div>
-    </div>
-</div>
 </body>
 </html>
