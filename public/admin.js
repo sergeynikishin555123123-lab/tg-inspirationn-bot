@@ -32,6 +32,9 @@ class AdminApp {
             posts: {},
             shop: {}
         };
+
+        // Текущие редактируемые элементы
+        this.editingItem = null;
         
         this.init();
     }
@@ -85,7 +88,10 @@ class AdminApp {
                     role: 'superadmin',
                     permissions: ['all'],
                     tg_first_name: 'Администратор',
-                    username: 'admin'
+                    username: 'admin',
+                    created_at: new Date().toISOString(),
+                    last_login: new Date().toISOString(),
+                    is_active: true
                 };
                 localStorage.setItem(`admin_${this.userId}`, JSON.stringify(this.admin));
             }
@@ -115,7 +121,39 @@ class AdminApp {
         // Инициализация загрузки файлов
         this.initFileUploads();
 
+        // Обработчики для динамического контента
+        this.initDynamicEventListeners();
+
         console.log('✅ Обработчики событий инициализированы');
+    }
+
+    initDynamicEventListeners() {
+        // Обработчики для элементов, которые создаются динамически
+        document.addEventListener('click', (e) => {
+            // Обработка переключения статусов
+            if (e.target.closest('[data-toggle-status]')) {
+                const button = e.target.closest('[data-toggle-status]');
+                const type = button.dataset.type;
+                const id = parseInt(button.dataset.id);
+                this.toggleStatus(type, id);
+            }
+
+            // Обработка удаления элементов
+            if (e.target.closest('[data-delete-item]')) {
+                const button = e.target.closest('[data-delete-item]');
+                const type = button.dataset.type;
+                const id = parseInt(button.dataset.id);
+                this.deleteItem(type, id);
+            }
+
+            // Обработка просмотра деталей
+            if (e.target.closest('[data-view-item]')) {
+                const button = e.target.closest('[data-view-item]');
+                const type = button.dataset.type;
+                const id = parseInt(button.dataset.id);
+                this.viewItem(type, id);
+            }
+        });
     }
 
     initFileUploads() {
@@ -217,11 +255,13 @@ class AdminApp {
             const video = document.createElement('video');
             video.src = URL.createObjectURL(file);
             video.controls = true;
+            video.style.maxWidth = '100%';
             previewItem.appendChild(video);
         } else if (file.type.startsWith('audio/')) {
             const audio = document.createElement('audio');
             audio.src = URL.createObjectURL(file);
             audio.controls = true;
+            audio.style.width = '100%';
             previewItem.appendChild(audio);
         } else {
             const icon = document.createElement('div');
@@ -247,7 +287,9 @@ class AdminApp {
 
     removeFile(fileId, category, previewElement) {
         delete this.uploadedFiles[category][fileId];
-        previewElement.remove();
+        if (previewElement) {
+            previewElement.remove();
+        }
     }
 
     initCharts() {
@@ -441,8 +483,6 @@ class AdminApp {
             const quizzesSection = document.getElementById('quizzesSection');
             quizzesSection.innerHTML = this.createQuizzesManagementHTML(quizzes);
             
-            this.initQuizzesEventListeners();
-            
         } catch (error) {
             console.error('❌ Ошибка загрузки квизов:', error);
             this.showMessage('Ошибка загрузки квизов', 'error');
@@ -516,10 +556,10 @@ class AdminApp {
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="btn btn-${quiz.is_active ? 'danger' : 'success'} btn-sm" 
-                                                onclick="adminApp.toggleQuizStatus(${quiz.id})">
+                                                data-toggle-status="quiz" data-id="${quiz.id}">
                                             <i class="fas fa-${quiz.is_active ? 'pause' : 'play'}"></i>
                                         </button>
-                                        <button class="btn btn-danger btn-sm" onclick="adminApp.deleteQuiz(${quiz.id})">
+                                        <button class="btn btn-danger btn-sm" data-delete-item="quiz" data-id="${quiz.id}">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -539,6 +579,13 @@ class AdminApp {
     }
 
     resetQuizForm() {
+        document.getElementById('newQuizTitle').value = '';
+        document.getElementById('newQuizCategory').value = '';
+        document.getElementById('newQuizDescription').value = '';
+        document.getElementById('newQuizDifficulty').value = 'beginner';
+        document.getElementById('newQuizDuration').value = '15';
+        document.getElementById('newQuizReward').value = '25';
+        
         document.getElementById('quizQuestionsContainer').innerHTML = '';
         document.getElementById('quizImagePreview').innerHTML = '';
         this.uploadedFiles.quizzes = {};
@@ -712,7 +759,8 @@ class AdminApp {
             return null;
         }
 
-        questionElements.forEach(questionElement => {
+        for (let i = 0; i < questionElements.length; i++) {
+            const questionElement = questionElements[i];
             const questionText = questionElement.querySelector('textarea[name="question_text"]').value;
             const explanation = questionElement.querySelector('textarea[name="question_explanation"]').value;
             
@@ -726,7 +774,8 @@ class AdminApp {
             const optionElements = questionElement.querySelectorAll('.option-item');
             let hasCorrectOption = false;
 
-            optionElements.forEach(optionElement => {
+            for (let j = 0; j < optionElements.length; j++) {
+                const optionElement = optionElements[j];
                 const optionText = optionElement.querySelector('input[type="text"]').value;
                 const isCorrect = optionElement.querySelector('input[type="radio"]').checked;
                 
@@ -741,7 +790,7 @@ class AdminApp {
                 });
 
                 if (isCorrect) hasCorrectOption = true;
-            });
+            }
 
             if (!hasCorrectOption) {
                 this.showMessage('Выберите правильный вариант для каждого вопроса', 'error');
@@ -759,7 +808,7 @@ class AdminApp {
                 explanation: explanation,
                 image: null // В реальном приложении здесь была бы загрузка изображения
             });
-        });
+        }
 
         return {
             title,
@@ -849,10 +898,10 @@ class AdminApp {
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="btn btn-${marathon.is_active ? 'danger' : 'success'} btn-sm" 
-                                                onclick="adminApp.toggleMarathonStatus(${marathon.id})">
+                                                data-toggle-status="marathon" data-id="${marathon.id}">
                                             <i class="fas fa-${marathon.is_active ? 'pause' : 'play'}"></i>
                                         </button>
-                                        <button class="btn btn-danger btn-sm" onclick="adminApp.deleteMarathon(${marathon.id})">
+                                        <button class="btn btn-danger btn-sm" data-delete-item="marathon" data-id="${marathon.id}">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -872,6 +921,14 @@ class AdminApp {
     }
 
     resetMarathonForm() {
+        document.getElementById('newMarathonTitle').value = '';
+        document.getElementById('newMarathonCategory').value = '';
+        document.getElementById('newMarathonDescription').value = '';
+        document.getElementById('newMarathonGoal').value = '';
+        document.getElementById('newMarathonDuration').value = '7';
+        document.getElementById('newMarathonDifficulty').value = 'beginner';
+        document.getElementById('newMarathonReward').value = '100';
+        
         document.getElementById('marathonDaysContainer').innerHTML = '';
         document.getElementById('marathonImagePreview').innerHTML = '';
         this.uploadedFiles.marathons = {};
@@ -1004,7 +1061,8 @@ class AdminApp {
             return null;
         }
 
-        dayElements.forEach(dayElement => {
+        for (let i = 0; i < dayElements.length; i++) {
+            const dayElement = dayElements[i];
             const task = dayElement.querySelector('textarea[name="day_task"]').value;
             const materials = dayElement.querySelector('textarea[name="day_materials"]').value;
             const hints = dayElement.querySelector('textarea[name="day_hints"]').value;
@@ -1023,7 +1081,7 @@ class AdminApp {
                 reward: dayReward || 0,
                 media: [] // В реальном приложении здесь были бы медиафайлы
             });
-        });
+        }
 
         return {
             title,
@@ -1035,6 +1093,762 @@ class AdminApp {
             reward,
             days
         };
+    }
+
+    // ==================== МЕТОДЫ ДЛЯ ИНТЕРАКТИВОВ ====================
+
+    async loadInteractives() {
+        try {
+            const interactives = this.getStoredData('interactives') || [];
+            const interactivesSection = document.getElementById('interactivesSection');
+            interactivesSection.innerHTML = this.createInteractivesManagementHTML(interactives);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки интерактивов:', error);
+            this.showMessage('Ошибка загрузки интерактивов', 'error');
+        }
+    }
+
+    createInteractivesManagementHTML(interactives) {
+        return `
+            <div class="table-card">
+                <div class="table-header">
+                    <h3 class="table-title">Управление интерактивами</h3>
+                    <div class="table-actions">
+                        <button class="btn btn-primary" onclick="adminApp.showCreateInteractiveForm()">
+                            <i class="fas fa-plus"></i>
+                            Создать интерактив
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Название</th>
+                                <th>Тип</th>
+                                <th>Сложность</th>
+                                <th>Награда</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="interactivesTable">
+                            ${interactives.length === 0 ? `
+                            <tr>
+                                <td colspan="7" class="text-center">
+                                    <div class="empty-state">
+                                        <div class="empty-state-icon">🎮</div>
+                                        <div class="empty-state-title">Интерактивы не найдены</div>
+                                        <div class="empty-state-description">Создайте первый интерактив</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            ` : interactives.map(interactive => `
+                            <tr>
+                                <td>${interactive.id}</td>
+                                <td>
+                                    <div style="font-weight: 600;">${interactive.title}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                        ${interactive.category}
+                                    </div>
+                                </td>
+                                <td>${this.getInteractiveTypeLabel(interactive.type)}</td>
+                                <td>
+                                    <span class="status-badge ${this.getDifficultyBadgeClass(interactive.difficulty)}">
+                                        ${this.getDifficultyLabel(interactive.difficulty)}
+                                    </span>
+                                </td>
+                                <td>${interactive.reward}✨</td>
+                                <td>
+                                    <span class="status-badge ${interactive.is_active ? 'status-active' : 'status-inactive'}">
+                                        ${interactive.is_active ? 'Активен' : 'Неактивен'}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button class="btn btn-secondary btn-sm" onclick="adminApp.viewInteractive(${interactive.id})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-warning btn-sm" onclick="adminApp.editInteractive(${interactive.id})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-${interactive.is_active ? 'danger' : 'success'} btn-sm" 
+                                                data-toggle-status="interactive" data-id="${interactive.id}">
+                                            <i class="fas fa-${interactive.is_active ? 'pause' : 'play'}"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" data-delete-item="interactive" data-id="${interactive.id}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    showCreateInteractiveForm() {
+        document.getElementById('createInteractiveModal').classList.add('active');
+        this.resetInteractiveForm();
+    }
+
+    resetInteractiveForm() {
+        document.getElementById('newInteractiveTitle').value = '';
+        document.getElementById('newInteractiveType').value = 'quiz';
+        document.getElementById('newInteractiveCategory').value = '';
+        document.getElementById('newInteractiveDescription').value = '';
+        document.getElementById('newInteractiveDifficulty').value = 'beginner';
+        document.getElementById('newInteractiveReward').value = '50';
+        
+        document.getElementById('interactiveMediaPreview').innerHTML = '';
+        this.uploadedFiles.interactives = {};
+        this.updateInteractiveContent();
+    }
+
+    updateInteractiveContent() {
+        const type = document.getElementById('newInteractiveType').value;
+        const container = document.getElementById('interactiveQuestionsContainer');
+        
+        switch (type) {
+            case 'quiz':
+                container.innerHTML = this.createQuizInteractiveContent();
+                break;
+            case 'puzzle':
+                container.innerHTML = this.createPuzzleInteractiveContent();
+                break;
+            case 'memory':
+                container.innerHTML = this.createMemoryInteractiveContent();
+                break;
+            case 'matching':
+                container.innerHTML = this.createMatchingInteractiveContent();
+                break;
+            case 'creative':
+                container.innerHTML = this.createCreativeInteractiveContent();
+                break;
+        }
+    }
+
+    createQuizInteractiveContent() {
+        return `
+            <div class="form-group">
+                <label class="form-label">Вопрос</label>
+                <textarea class="form-control" name="interactive_question" placeholder="Введите вопрос"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Правильный ответ</label>
+                <input type="text" class="form-control" name="correct_answer" placeholder="Правильный ответ">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Неправильные ответы (через запятую)</label>
+                <input type="text" class="form-control" name="wrong_answers" placeholder="Неправильный ответ 1, Неправильный ответ 2">
+            </div>
+        `;
+    }
+
+    createPuzzleInteractiveContent() {
+        return `
+            <div class="form-group">
+                <label class="form-label">Изображение для пазла</label>
+                <div class="file-upload" id="puzzleImageUpload">
+                    <div class="file-upload-icon">
+                        <i class="fas fa-puzzle-piece"></i>
+                    </div>
+                    <div class="file-upload-text">Загрузите изображение для пазла</div>
+                    <input type="file" id="puzzleImageFile" accept="image/*" style="display: none;">
+                </div>
+                <div class="file-preview" id="puzzleImagePreview"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Количество частей</label>
+                <select class="form-control" name="puzzle_pieces">
+                    <option value="4">4 части</option>
+                    <option value="9">9 частей</option>
+                    <option value="16">16 частей</option>
+                    <option value="25">25 частей</option>
+                </select>
+            </div>
+        `;
+    }
+
+    createMemoryInteractiveContent() {
+        return `
+            <div class="form-group">
+                <label class="form-label">Карточки для игры в память (пары через запятую)</label>
+                <textarea class="form-control" name="memory_cards" placeholder="Карточка 1, Карточка 2, Карточка 3, Карточка 4" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Изображения для карточек</label>
+                <div class="file-upload" id="memoryImagesUpload">
+                    <div class="file-upload-icon">
+                        <i class="fas fa-images"></i>
+                    </div>
+                    <div class="file-upload-text">Загрузите изображения для карточек</div>
+                    <input type="file" id="memoryImagesFile" accept="image/*" style="display: none;" multiple>
+                </div>
+                <div class="file-preview" id="memoryImagesPreview"></div>
+            </div>
+        `;
+    }
+
+    createMatchingInteractiveContent() {
+        return `
+            <div class="form-group">
+                <label class="form-label">Элементы для сопоставления (формат: ключ=значение, каждый с новой строки)</label>
+                <textarea class="form-control" name="matching_pairs" placeholder="Художник=Картина, Композитор=Музыка, Писатель=Книга" rows="4"></textarea>
+            </div>
+        `;
+    }
+
+    createCreativeInteractiveContent() {
+        return `
+            <div class="form-group">
+                <label class="form-label">Творческое задание</label>
+                <textarea class="form-control" name="creative_task" placeholder="Опишите творческое задание" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Критерии оценки</label>
+                <textarea class="form-control" name="evaluation_criteria" placeholder="Критерии для оценки работы" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Примеры работ</label>
+                <div class="file-upload" id="creativeExamplesUpload">
+                    <div class="file-upload-icon">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div class="file-upload-text">Загрузите примеры работ</div>
+                    <input type="file" id="creativeExamplesFile" accept="image/*" style="display: none;" multiple>
+                </div>
+                <div class="file-preview" id="creativeExamplesPreview"></div>
+            </div>
+        `;
+    }
+
+    async createInteractive() {
+        try {
+            const formData = this.getInteractiveFormData();
+            if (!formData) return;
+
+            const interactives = this.getStoredData('interactives') || [];
+            const newInteractive = {
+                id: Date.now(),
+                ...formData,
+                created_at: new Date().toISOString(),
+                is_active: true,
+                attempts_count: 0,
+                success_rate: 0
+            };
+
+            interactives.push(newInteractive);
+            this.setStoredData('interactives', interactives);
+
+            this.showMessage('Интерактив успешно создан!', 'success');
+            this.hideModals();
+            this.loadInteractives();
+
+        } catch (error) {
+            console.error('❌ Ошибка создания интерактива:', error);
+            this.showMessage('Ошибка создания интерактива', 'error');
+        }
+    }
+
+    getInteractiveFormData() {
+        const title = document.getElementById('newInteractiveTitle').value;
+        const type = document.getElementById('newInteractiveType').value;
+        const category = document.getElementById('newInteractiveCategory').value;
+        const description = document.getElementById('newInteractiveDescription').value;
+        const difficulty = document.getElementById('newInteractiveDifficulty').value;
+        const reward = parseInt(document.getElementById('newInteractiveReward').value);
+
+        if (!title || !type || !category || !difficulty) {
+            this.showMessage('Заполните все обязательные поля', 'error');
+            return null;
+        }
+
+        // Собираем контент в зависимости от типа
+        let content = {};
+        switch (type) {
+            case 'quiz':
+                content = {
+                    question: document.querySelector('textarea[name="interactive_question"]').value,
+                    correct_answer: document.querySelector('input[name="correct_answer"]').value,
+                    wrong_answers: document.querySelector('input[name="wrong_answers"]').value.split(',').map(s => s.trim())
+                };
+                break;
+            case 'puzzle':
+                content = {
+                    pieces: parseInt(document.querySelector('select[name="puzzle_pieces"]').value)
+                };
+                break;
+            case 'memory':
+                content = {
+                    cards: document.querySelector('textarea[name="memory_cards"]').value.split(',').map(s => s.trim())
+                };
+                break;
+            case 'matching':
+                const pairsText = document.querySelector('textarea[name="matching_pairs"]').value;
+                const pairs = {};
+                pairsText.split('\n').forEach(line => {
+                    const [key, value] = line.split('=');
+                    if (key && value) pairs[key.trim()] = value.trim();
+                });
+                content = { pairs };
+                break;
+            case 'creative':
+                content = {
+                    task: document.querySelector('textarea[name="creative_task"]').value,
+                    criteria: document.querySelector('textarea[name="evaluation_criteria"]').value
+                };
+                break;
+        }
+
+        return {
+            title,
+            type,
+            category,
+            description,
+            difficulty,
+            reward,
+            content
+        };
+    }
+
+    getInteractiveTypeLabel(type) {
+        const labels = {
+            'quiz': 'Квиз',
+            'puzzle': 'Пазл',
+            'memory': 'Память',
+            'matching': 'Сопоставление',
+            'creative': 'Творчество'
+        };
+        return labels[type] || type;
+    }
+
+    // ==================== МЕТОДЫ ДЛЯ ПОСТОВ ====================
+
+    async loadPosts() {
+        try {
+            const posts = this.getStoredData('posts') || [];
+            const postsSection = document.getElementById('postsSection');
+            postsSection.innerHTML = this.createPostsManagementHTML(posts);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки постов:', error);
+            this.showMessage('Ошибка загрузки постов', 'error');
+        }
+    }
+
+    createPostsManagementHTML(posts) {
+        return `
+            <div class="table-card">
+                <div class="table-header">
+                    <h3 class="table-title">Управление постами</h3>
+                    <div class="table-actions">
+                        <button class="btn btn-primary" onclick="adminApp.showCreatePostForm()">
+                            <i class="fas fa-plus"></i>
+                            Создать пост
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Заголовок</th>
+                                <th>Тип</th>
+                                <th>Категория</th>
+                                <th>Статус</th>
+                                <th>Дата</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="postsTable">
+                            ${posts.length === 0 ? `
+                            <tr>
+                                <td colspan="7" class="text-center">
+                                    <div class="empty-state">
+                                        <div class="empty-state-icon">📰</div>
+                                        <div class="empty-state-title">Посты не найдены</div>
+                                        <div class="empty-state-description">Создайте первый пост</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            ` : posts.map(post => `
+                            <tr>
+                                <td>${post.id}</td>
+                                <td>
+                                    <div style="font-weight: 600;">${post.title}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted); max-width: 300px;">
+                                        ${post.content.substring(0, 100)}...
+                                    </div>
+                                </td>
+                                <td>${this.getPostTypeLabel(post.type)}</td>
+                                <td>${post.category}</td>
+                                <td>
+                                    <span class="status-badge ${post.is_active ? 'status-active' : 'status-inactive'}">
+                                        ${post.is_active ? 'Активен' : 'Неактивен'}
+                                    </span>
+                                    ${post.featured ? '<span class="status-badge status-completed" style="margin-left: 4px;">⭐</span>' : ''}
+                                </td>
+                                <td>${this.formatDate(post.created_at)}</td>
+                                <td>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button class="btn btn-secondary btn-sm" onclick="adminApp.viewPost(${post.id})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-warning btn-sm" onclick="adminApp.editPost(${post.id})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-${post.is_active ? 'danger' : 'success'} btn-sm" 
+                                                data-toggle-status="post" data-id="${post.id}">
+                                            <i class="fas fa-${post.is_active ? 'pause' : 'play'}"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" data-delete-item="post" data-id="${post.id}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    showCreatePostForm() {
+        document.getElementById('createPostModal').classList.add('active');
+        this.resetPostForm();
+    }
+
+    resetPostForm() {
+        document.getElementById('newPostTitle').value = '';
+        document.getElementById('newPostType').value = 'article';
+        document.getElementById('newPostCategory').value = 'painting';
+        document.getElementById('newPostContent').value = '';
+        document.getElementById('newPostTags').value = '';
+        
+        document.getElementById('postImagesPreview').innerHTML = '';
+        document.getElementById('postVideosPreview').innerHTML = '';
+        this.uploadedFiles.posts = {};
+    }
+
+    async createPost() {
+        try {
+            const formData = this.getPostFormData();
+            if (!formData) return;
+
+            const posts = this.getStoredData('posts') || [];
+            const newPost = {
+                id: Date.now(),
+                ...formData,
+                created_at: new Date().toISOString(),
+                is_active: true,
+                featured: false,
+                views_count: 0,
+                likes_count: 0,
+                reviews_count: 0,
+                average_rating: 0
+            };
+
+            posts.push(newPost);
+            this.setStoredData('posts', posts);
+
+            this.showMessage('Пост успешно создан!', 'success');
+            this.hideModals();
+            this.loadPosts();
+
+        } catch (error) {
+            console.error('❌ Ошибка создания поста:', error);
+            this.showMessage('Ошибка создания поста', 'error');
+        }
+    }
+
+    getPostFormData() {
+        const title = document.getElementById('newPostTitle').value;
+        const type = document.getElementById('newPostType').value;
+        const category = document.getElementById('newPostCategory').value;
+        const content = document.getElementById('newPostContent').value;
+        const tags = document.getElementById('newPostTags').value;
+
+        if (!title || !type || !category || !content) {
+            this.showMessage('Заполните все обязательные поля', 'error');
+            return null;
+        }
+
+        return {
+            title,
+            type,
+            category,
+            content,
+            tags: tags.split(',').map(tag => tag.trim()),
+            images: [], // В реальном приложении здесь были бы изображения
+            videos: [] // В реальном приложении здесь были бы видео
+        };
+    }
+
+    getPostTypeLabel(type) {
+        const labels = {
+            'article': 'Статья',
+            'news': 'Новость',
+            'tutorial': 'Обучение',
+            'inspiration': 'Вдохновение'
+        };
+        return labels[type] || type;
+    }
+
+    // ==================== МЕТОДЫ ДЛЯ МАГАЗИНА ====================
+
+    async loadShopItems() {
+        try {
+            const items = this.getStoredData('shopItems') || [];
+            const shopSection = document.getElementById('shopSection');
+            shopSection.innerHTML = this.createShopManagementHTML(items);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки товаров:', error);
+            this.showMessage('Ошибка загрузки товаров', 'error');
+        }
+    }
+
+    createShopManagementHTML(items) {
+        const totalRevenue = items.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
+        const totalItems = items.length;
+        const activeItems = items.filter(item => item.is_active).length;
+
+        return `
+            <div class="stats-grid" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">🛒</div>
+                        <div class="stat-trend trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                            8%
+                        </div>
+                    </div>
+                    <div class="stat-value">${totalItems}</div>
+                    <div class="stat-label">Всего товаров</div>
+                </div>
+
+                <div class="stat-card success">
+                    <div class="stat-header">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-trend trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                            15%
+                        </div>
+                    </div>
+                    <div class="stat-value">${Math.round(totalRevenue)}✨</div>
+                    <div class="stat-label">Общий доход</div>
+                </div>
+
+                <div class="stat-card warning">
+                    <div class="stat-header">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-trend trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                            5%
+                        </div>
+                    </div>
+                    <div class="stat-value">${activeItems}</div>
+                    <div class="stat-label">Активных товаров</div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3 class="table-title">Управление товарами</h3>
+                    <div class="table-actions">
+                        <button class="btn btn-primary" onclick="adminApp.showCreateItemForm()">
+                            <i class="fas fa-plus"></i>
+                            Создать товар
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Товар</th>
+                                <th>Тип</th>
+                                <th>Цена</th>
+                                <th>Покупки</th>
+                                <th>Доход</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shopTable">
+                            ${items.length === 0 ? `
+                            <tr>
+                                <td colspan="8" class="text-center">
+                                    <div class="empty-state">
+                                        <div class="empty-state-icon">🛒</div>
+                                        <div class="empty-state-title">Товары не найдены</div>
+                                        <div class="empty-state-description">Создайте первый товар</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            ` : items.map(item => `
+                            <tr>
+                                <td>${item.id}</td>
+                                <td>
+                                    <div style="font-weight: 600;">${item.title}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                        ${item.category} • ${item.difficulty}
+                                    </div>
+                                </td>
+                                <td>${this.getShopItemTypeLabel(item.type)}</td>
+                                <td>
+                                    <div style="font-weight: 600;">${item.price}✨</div>
+                                    ${item.discount_percent > 0 ? `
+                                    <div style="font-size: 12px; color: var(--success-color);">
+                                        -${item.discount_percent}%
+                                    </div>
+                                    ` : ''}
+                                </td>
+                                <td>${item.purchases_count || 0}</td>
+                                <td>
+                                    <div style="font-weight: 600; color: var(--success-color);">
+                                        ${item.total_revenue || 0}✨
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge ${item.is_active ? 'status-active' : 'status-inactive'}">
+                                        ${item.is_active ? 'Активен' : 'Неактивен'}
+                                    </span>
+                                    ${item.featured ? '<span class="status-badge status-completed" style="margin-left: 4px;">⭐</span>' : ''}
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button class="btn btn-secondary btn-sm" onclick="adminApp.viewItem(${item.id})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-warning btn-sm" onclick="adminApp.editItem(${item.id})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-${item.is_active ? 'danger' : 'success'} btn-sm" 
+                                                data-toggle-status="shopItem" data-id="${item.id}">
+                                            <i class="fas fa-${item.is_active ? 'pause' : 'play'}"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" data-delete-item="shopItem" data-id="${item.id}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    showCreateItemForm() {
+        document.getElementById('createItemModal').classList.add('active');
+        this.resetItemForm();
+    }
+
+    resetItemForm() {
+        document.getElementById('newItemTitle').value = '';
+        document.getElementById('newItemType').value = 'video_course';
+        document.getElementById('newItemCategory').value = 'painting';
+        document.getElementById('newItemDescription').value = '';
+        document.getElementById('newItemPrice').value = '100';
+        document.getElementById('newItemDiscount').value = '0';
+        document.getElementById('newItemDifficulty').value = 'beginner';
+        document.getElementById('newItemDuration').value = '';
+        
+        document.getElementById('itemMainImagePreview').innerHTML = '';
+        document.getElementById('itemImagesPreview').innerHTML = '';
+        document.getElementById('itemVideosPreview').innerHTML = '';
+        document.getElementById('itemAudioPreview').innerHTML = '';
+        this.uploadedFiles.shop = {};
+    }
+
+    async createItem() {
+        try {
+            const formData = this.getItemFormData();
+            if (!formData) return;
+
+            const items = this.getStoredData('shopItems') || [];
+            const newItem = {
+                id: Date.now(),
+                ...formData,
+                created_at: new Date().toISOString(),
+                is_active: true,
+                featured: false,
+                purchases_count: 0,
+                total_revenue: 0,
+                students_count: 0
+            };
+
+            items.push(newItem);
+            this.setStoredData('shopItems', items);
+
+            this.showMessage('Товар успешно создан!', 'success');
+            this.hideModals();
+            this.loadShopItems();
+
+        } catch (error) {
+            console.error('❌ Ошибка создания товара:', error);
+            this.showMessage('Ошибка создания товара', 'error');
+        }
+    }
+
+    getItemFormData() {
+        const title = document.getElementById('newItemTitle').value;
+        const type = document.getElementById('newItemType').value;
+        const category = document.getElementById('newItemCategory').value;
+        const description = document.getElementById('newItemDescription').value;
+        const price = parseInt(document.getElementById('newItemPrice').value);
+        const discount = parseInt(document.getElementById('newItemDiscount').value) || 0;
+        const difficulty = document.getElementById('newItemDifficulty').value;
+        const duration = document.getElementById('newItemDuration').value;
+
+        if (!title || !type || !category || !description || !price) {
+            this.showMessage('Заполните все обязательные поля', 'error');
+            return null;
+        }
+
+        return {
+            title,
+            type,
+            category,
+            description,
+            price,
+            discount_percent: discount,
+            difficulty,
+            duration,
+            main_image: null, // В реальном приложении здесь было бы главное изображение
+            images: [], // В реальном приложении здесь были бы дополнительные изображения
+            videos: [], // В реальном приложении здесь были бы видео
+            audio: [] // В реальном приложении здесь были бы аудио
+        };
+    }
+
+    getShopItemTypeLabel(type) {
+        const labels = {
+            'video_course': 'Видеокурс',
+            'ebook': 'Электронная книга',
+            'course': 'Курс',
+            'material': 'Материалы',
+            'tool': 'Инструмент',
+            'brush_set': 'Набор кистей',
+            'paint_set': 'Набор красок'
+        };
+        return labels[type] || type;
     }
 
     // ==================== ОСНОВНЫЕ МЕТОДЫ ИНТЕРФЕЙСА ====================
@@ -1091,7 +1905,10 @@ class AdminApp {
             'settings': 'Настройки системы'
         };
         
-        document.getElementById('pageTitle').textContent = titles[sectionName] || 'Админ Панель';
+        const titleElement = document.getElementById('pageTitle');
+        if (titleElement) {
+            titleElement.textContent = titles[sectionName] || 'Админ Панель';
+        }
     }
 
     loadSectionData(sectionName) {
@@ -1143,10 +1960,85 @@ class AdminApp {
         }
     }
 
+    // ==================== УНИВЕРСАЛЬНЫЕ МЕТОДЫ УПРАВЛЕНИЯ ====================
+
+    async toggleStatus(type, id) {
+        try {
+            const dataKey = this.getDataKeyByType(type);
+            const items = this.getStoredData(dataKey) || [];
+            const itemIndex = items.findIndex(item => item.id === id);
+            
+            if (itemIndex !== -1) {
+                items[itemIndex].is_active = !items[itemIndex].is_active;
+                this.setStoredData(dataKey, items);
+                
+                this.showMessage(`Статус ${type} #${id} изменен`, 'success');
+                this.loadSectionData(this.currentSection);
+            }
+        } catch (error) {
+            console.error('❌ Ошибка изменения статуса:', error);
+            this.showMessage('Ошибка изменения статуса', 'error');
+        }
+    }
+
+    async deleteItem(type, id) {
+        if (!confirm(`Вы уверены, что хотите удалить ${this.getTypeLabel(type)} #${id}?`)) {
+            return;
+        }
+
+        try {
+            const dataKey = this.getDataKeyByType(type);
+            const items = this.getStoredData(dataKey) || [];
+            const filteredItems = items.filter(item => item.id !== id);
+            
+            this.setStoredData(dataKey, filteredItems);
+            
+            this.showMessage(`${this.getTypeLabel(type)} #${id} удален`, 'success');
+            this.loadSectionData(this.currentSection);
+        } catch (error) {
+            console.error('❌ Ошибка удаления:', error);
+            this.showMessage('Ошибка удаления', 'error');
+        }
+    }
+
+    getDataKeyByType(type) {
+        const mapping = {
+            'quiz': 'quizzes',
+            'marathon': 'marathons',
+            'interactive': 'interactives',
+            'post': 'posts',
+            'shopItem': 'shopItems',
+            'user': 'users',
+            'role': 'roles',
+            'character': 'characters',
+            'achievement': 'achievements',
+            'admin': 'admins'
+        };
+        return mapping[type] || type;
+    }
+
+    getTypeLabel(type) {
+        const labels = {
+            'quiz': 'Квиз',
+            'marathon': 'Марафон',
+            'interactive': 'Интерактив',
+            'post': 'Пост',
+            'shopItem': 'Товар',
+            'user': 'Пользователь',
+            'role': 'Роль',
+            'character': 'Персонаж',
+            'achievement': 'Достижение',
+            'admin': 'Администратор'
+        };
+        return labels[type] || type;
+    }
+
     // ==================== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ====================
 
     showMessage(message, type = 'info') {
         const messageArea = document.getElementById('messageArea');
+        if (!messageArea) return;
+
         const messageEl = document.createElement('div');
         messageEl.className = `message ${type}`;
         messageEl.textContent = message;
@@ -1165,13 +2057,15 @@ class AdminApp {
         document.querySelectorAll('.modal').forEach(modal => {
             modal.classList.remove('active');
         });
+        this.editingItem = null;
     }
 
     getDifficultyBadgeClass(difficulty) {
         const classes = {
             'beginner': 'status-active',
             'intermediate': 'status-completed',
-            'advanced': 'status-pending'
+            'advanced': 'status-pending',
+            'all': 'status-inactive'
         };
         return classes[difficulty] || 'status-active';
     }
@@ -1180,9 +2074,23 @@ class AdminApp {
         const labels = {
             'beginner': 'Начинающий',
             'intermediate': 'Средний',
-            'advanced': 'Продвинутый'
+            'advanced': 'Продвинутый',
+            'all': 'Для всех'
         };
         return labels[difficulty] || difficulty;
+    }
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ru-RU');
+    }
+
+    formatTime(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
     }
 
     // ==================== ГЕНЕРАЦИЯ ТЕСТОВЫХ ДАННЫХ ====================
@@ -1201,6 +2109,13 @@ class AdminApp {
                     { role: 'Студент', count: 1200 },
                     { role: 'Художник', count: 250 },
                     { role: 'Преподаватель', count: 92 }
+                ]
+            },
+            revenue: {
+                total: 12500,
+                by_item: [
+                    { item: 'Курс акварели', type: 'video_course', price: 500, purchases: 25, revenue: 12500 },
+                    { item: 'Набор кистей', type: 'brush_set', price: 300, purchases: 15, revenue: 4500 }
                 ]
             }
         };
@@ -1233,6 +2148,14 @@ class AdminApp {
                 description: 'Пройден квиз "Основы живописи"',
                 sparks_earned: 15,
                 created_at: new Date().toISOString()
+            },
+            {
+                user_name: 'Мария Сидорова',
+                user_username: 'maria_sid',
+                activity_type: 'marathon',
+                description: 'Завершен марафон "7 дней акварели"',
+                sparks_earned: 120,
+                created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
             }
         ];
         
@@ -1240,10 +2163,19 @@ class AdminApp {
         if (table) {
             table.innerHTML = activities.map(activity => `
                 <tr>
-                    <td>${activity.user_name}</td>
-                    <td>${activity.activity_type}</td>
+                    <td>
+                        <div style="font-weight: 600;">${activity.user_name}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">@${activity.user_username}</div>
+                    </td>
+                    <td>
+                        <span class="status-badge status-active">${this.getActivityTypeLabel(activity.activity_type)}</span>
+                    </td>
                     <td>${activity.description}</td>
-                    <td>${activity.sparks_earned}✨</td>
+                    <td>
+                        <span style="font-weight: 700; color: ${activity.sparks_earned >= 0 ? 'var(--success-color)' : 'var(--danger-color)'};">
+                            ${activity.sparks_earned >= 0 ? '+' : ''}${activity.sparks_earned}✨
+                        </span>
+                    </td>
                     <td>${this.formatTime(activity.created_at)}</td>
                 </tr>
             `).join('');
@@ -1260,6 +2192,14 @@ class AdminApp {
                 level: 15,
                 sparks: 12500,
                 total_activities: 342
+            },
+            {
+                name: 'Петр Иванов',
+                username: 'peter_art',
+                role: 'Студент',
+                level: 8,
+                sparks: 8900,
+                total_activities: 215
             }
         ];
         
@@ -1268,41 +2208,66 @@ class AdminApp {
             table.innerHTML = users.map((user, index) => `
                 <tr>
                     <td>${index + 1}</td>
-                    <td>${user.name}</td>
+                    <td>
+                        <div style="font-weight: 600;">${user.name}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">@${user.username}</div>
+                    </td>
                     <td>${user.role}</td>
-                    <td>${user.level}</td>
-                    <td>${user.sparks}✨</td>
-                    <td>${user.total_activities}</td>
+                    <td>
+                        <span class="status-badge status-active">${user.level}</span>
+                    </td>
+                    <td>
+                        <span style="font-weight: 700; color: var(--success-color);">
+                            ${Math.round(user.sparks).toLocaleString()}✨
+                        </span>
+                    </td>
+                    <td>${user.total_activities} действий</td>
                 </tr>
             `).join('');
         }
     }
 
+    getActivityTypeLabel(activityType) {
+        const labels = {
+            'registration': 'Регистрация',
+            'quiz': 'Квиз',
+            'marathon': 'Марафон',
+            'upload_work': 'Загрузка работы',
+            'purchase': 'Покупка',
+            'achievement': 'Достижение'
+        };
+        return labels[activityType] || activityType;
+    }
+
     async updateNavigationBadges() {
         const stats = this.getStoredData('stats') || await this.generateTestStats();
+        const quizzes = this.getStoredData('quizzes') || [];
+        const marathons = this.getStoredData('marathons') || [];
+        const interactives = this.getStoredData('interactives') || [];
+        const posts = this.getStoredData('posts') || [];
+        const shopItems = this.getStoredData('shopItems') || [];
         
         // Обновляем бейджи в навигации
         this.updateBadge('usersBadge', stats.totalUsers);
-        this.updateBadge('quizzesBadge', stats.activeQuizzes);
-        this.updateBadge('marathonsBadge', 5); // Тестовое значение
-        this.updateBadge('interactivesBadge', 8); // Тестовое значение
-        this.updateBadge('postsBadge', 25); // Тестовое значение
-        this.updateBadge('shopBadge', 15); // Тестовое значение
+        this.updateBadge('quizzesBadge', quizzes.length);
+        this.updateBadge('marathonsBadge', marathons.length);
+        this.updateBadge('interactivesBadge', interactives.length);
+        this.updateBadge('postsBadge', posts.length);
+        this.updateBadge('shopBadge', shopItems.length);
         this.updateBadge('purchasesBadge', stats.totalPurchases);
         this.updateBadge('moderationBadge', stats.pendingReviews + stats.pendingWorks);
     }
 
     updateBadge(badgeId, count) {
         const badge = document.getElementById(badgeId);
-        if (badge && count > 0) {
-            badge.textContent = count > 99 ? '99+' : count;
-            badge.style.display = 'flex';
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
         }
-    }
-
-    formatTime(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     }
 
     updateUI() {
@@ -1312,8 +2277,17 @@ class AdminApp {
         const adminRole = document.getElementById('adminRole');
         
         if (adminAvatar) adminAvatar.textContent = 'A';
-        if (adminName) adminName.textContent = 'Администратор';
-        if (adminRole) adminRole.textContent = 'Super Admin';
+        if (adminName) adminName.textContent = this.admin?.tg_first_name || 'Администратор';
+        if (adminRole) adminRole.textContent = this.getAdminRoleLabel(this.admin?.role);
+    }
+
+    getAdminRoleLabel(role) {
+        const labels = {
+            'superadmin': 'Супер администратор',
+            'admin': 'Администратор',
+            'moderator': 'Модератор'
+        };
+        return labels[role] || role;
     }
 
     async refreshData() {
@@ -1326,114 +2300,216 @@ class AdminApp {
         document.getElementById('helpModal').classList.add('active');
     }
 
-    // ==================== ЗАГЛУШКИ ДЛЯ НЕРЕАЛИЗОВАННЫХ МЕТОДОВ ====================
+    // ==================== МЕТОДЫ ДЛЯ ОСТАЛЬНЫХ РАЗДЕЛОВ ====================
 
     async loadUsers() {
-        this.showMessage('Загрузка пользователей...', 'info');
-    }
-
-    async loadInteractives() {
-        this.showMessage('Загрузка интерактивов...', 'info');
-    }
-
-    async loadPosts() {
-        this.showMessage('Загрузка постов...', 'info');
-    }
-
-    async loadShopItems() {
-        this.showMessage('Загрузка товаров...', 'info');
+        try {
+            const users = this.getStoredData('users') || await this.generateTestUsers();
+            const usersSection = document.getElementById('usersSection');
+            usersSection.innerHTML = this.createUsersManagementHTML(users);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки пользователей:', error);
+            this.showMessage('Ошибка загрузки пользователей', 'error');
+        }
     }
 
     async loadPurchases() {
-        this.showMessage('Загрузка покупок...', 'info');
+        try {
+            const purchases = this.getStoredData('purchases') || [];
+            const purchasesSection = document.getElementById('purchasesSection');
+            purchasesSection.innerHTML = this.createPurchasesManagementHTML(purchases);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки покупок:', error);
+            this.showMessage('Ошибка загрузки покупок', 'error');
+        }
     }
 
     async loadRoles() {
-        this.showMessage('Загрузка ролей...', 'info');
+        try {
+            const roles = this.getStoredData('roles') || await this.generateTestRoles();
+            const rolesSection = document.getElementById('rolesSection');
+            rolesSection.innerHTML = this.createRolesManagementHTML(roles);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки ролей:', error);
+            this.showMessage('Ошибка загрузки ролей', 'error');
+        }
     }
 
     async loadCharacters() {
-        this.showMessage('Загрузка персонажей...', 'info');
+        try {
+            const characters = this.getStoredData('characters') || [];
+            const charactersSection = document.getElementById('charactersSection');
+            charactersSection.innerHTML = this.createCharactersManagementHTML(characters);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки персонажей:', error);
+            this.showMessage('Ошибка загрузки персонажей', 'error');
+        }
     }
 
     async loadAchievements() {
-        this.showMessage('Загрузка достижений...', 'info');
+        try {
+            const achievements = this.getStoredData('achievements') || [];
+            const achievementsSection = document.getElementById('achievementsSection');
+            achievementsSection.innerHTML = this.createAchievementsManagementHTML(achievements);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки достижений:', error);
+            this.showMessage('Ошибка загрузки достижений', 'error');
+        }
     }
 
     async loadModeration() {
-        this.showMessage('Загрузка модерации...', 'info');
+        try {
+            const moderation = this.getStoredData('moderation') || { works: [], reviews: [] };
+            const moderationSection = document.getElementById('moderationSection');
+            moderationSection.innerHTML = this.createModerationManagementHTML(moderation);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки модерации:', error);
+            this.showMessage('Ошибка загрузки модерации', 'error');
+        }
     }
 
     async loadAdmins() {
-        this.showMessage('Загрузка администраторов...', 'info');
+        try {
+            const admins = this.getStoredData('admins') || [this.admin];
+            const adminsSection = document.getElementById('adminsSection');
+            adminsSection.innerHTML = this.createAdminsManagementHTML(admins);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки администраторов:', error);
+            this.showMessage('Ошибка загрузки администраторов', 'error');
+        }
     }
 
     async loadSettings() {
-        this.showMessage('Загрузка настроек...', 'info');
-    }
-
-    // Методы для интерактивов
-    showCreateInteractiveForm() {
-        this.showMessage('Форма создания интерактива', 'info');
-    }
-
-    async createInteractive() {
-        this.showMessage('Интерактив создан', 'success');
-    }
-
-    // Методы для постов
-    showCreatePostForm() {
-        document.getElementById('createPostModal').classList.add('active');
-    }
-
-    async createPost() {
-        this.showMessage('Пост создан', 'success');
-    }
-
-    // Методы для магазина
-    showCreateItemForm() {
-        document.getElementById('createItemModal').classList.add('active');
-    }
-
-    async createItem() {
-        this.showMessage('Товар создан', 'success');
-    }
-
-    // Методы управления
-    toggleQuizStatus(quizId) {
-        this.showMessage(`Статус квиза ${quizId} изменен`, 'success');
-    }
-
-    toggleMarathonStatus(marathonId) {
-        this.showMessage(`Статус марафона ${marathonId} изменен`, 'success');
-    }
-
-    deleteQuiz(quizId) {
-        if (confirm('Удалить этот квиз?')) {
-            this.showMessage('Квиз удален', 'success');
+        try {
+            const settings = this.getStoredData('settings') || await this.generateDefaultSettings();
+            const settingsSection = document.getElementById('settingsSection');
+            settingsSection.innerHTML = this.createSettingsManagementHTML(settings);
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки настроек:', error);
+            this.showMessage('Ошибка загрузки настроек', 'error');
         }
     }
 
-    deleteMarathon(marathonId) {
-        if (confirm('Удалить этот марафон?')) {
-            this.showMessage('Марафон удален', 'success');
-        }
+    // ==================== ЗАГЛУШКИ ДЛЯ НЕРЕАЛИЗОВАННЫХ МЕТОДОВ ====================
+
+    async generateTestUsers() {
+        return [
+            {
+                id: 1,
+                name: 'Тестовый пользователь',
+                username: 'test_user',
+                role: 'student',
+                level: 1,
+                sparks: 100,
+                is_premium: false,
+                last_active: new Date().toISOString()
+            }
+        ];
     }
 
+    async generateTestRoles() {
+        return [
+            {
+                id: 1,
+                name: 'Студент',
+                description: 'Основная роль для учащихся',
+                requirements: 'Регистрация в системе',
+                icon: '🎓',
+                users_count: 1200,
+                is_active: true
+            }
+        ];
+    }
+
+    async generateDefaultSettings() {
+        return [
+            { key: 'app_name', value: 'Мастерская Вдохновения' },
+            { key: 'app_version', value: '9.0.0' },
+            { key: 'contact_email', value: 'support@inspiration.ru' }
+        ];
+    }
+
+    // Методы просмотра (заглушки)
     viewQuiz(quizId) {
-        this.showMessage(`Просмотр квиза ${quizId}`, 'info');
+        this.showMessage(`Просмотр квиза #${quizId}`, 'info');
     }
 
     viewMarathon(marathonId) {
-        this.showMessage(`Просмотр марафона ${marathonId}`, 'info');
+        this.showMessage(`Просмотр марафона #${marathonId}`, 'info');
     }
 
+    viewInteractive(interactiveId) {
+        this.showMessage(`Просмотр интерактива #${interactiveId}`, 'info');
+    }
+
+    viewPost(postId) {
+        this.showMessage(`Просмотр поста #${postId}`, 'info');
+    }
+
+    viewItem(itemId) {
+        this.showMessage(`Просмотр товара #${itemId}`, 'info');
+    }
+
+    // Методы редактирования (заглушки)
     editQuiz(quizId) {
-        this.showMessage(`Редактирование квиза ${quizId}`, 'info');
+        this.showMessage(`Редактирование квиза #${quizId}`, 'info');
     }
 
     editMarathon(marathonId) {
-        this.showMessage(`Редактирование марафона ${quizId}`, 'info');
+        this.showMessage(`Редактирование марафона #${marathonId}`, 'info');
+    }
+
+    editInteractive(interactiveId) {
+        this.showMessage(`Редактирование интерактива #${interactiveId}`, 'info');
+    }
+
+    editPost(postId) {
+        this.showMessage(`Редактирование поста #${postId}`, 'info');
+    }
+
+    editItem(itemId) {
+        this.showMessage(`Редактирование товара #${itemId}`, 'info');
+    }
+
+    // HTML генераторы для остальных разделов (упрощенные)
+    createUsersManagementHTML(users) {
+        return `<div class="table-card"><p>Управление пользователями - ${users.length} пользователей</p></div>`;
+    }
+
+    createPurchasesManagementHTML(purchases) {
+        return `<div class="table-card"><p>Управление покупками - ${purchases.length} покупок</p></div>`;
+    }
+
+    createRolesManagementHTML(roles) {
+        return `<div class="table-card"><p>Управление ролями - ${roles.length} ролей</p></div>`;
+    }
+
+    createCharactersManagementHTML(characters) {
+        return `<div class="table-card"><p>Управление персонажами - ${characters.length} персонажей</p></div>`;
+    }
+
+    createAchievementsManagementHTML(achievements) {
+        return `<div class="table-card"><p>Управление достижениями - ${achievements.length} достижений</p></div>`;
+    }
+
+    createModerationManagementHTML(moderation) {
+        return `<div class="table-card"><p>Модерация - ${moderation.works.length} работ, ${moderation.reviews.length} отзывов</p></div>`;
+    }
+
+    createAdminsManagementHTML(admins) {
+        return `<div class="table-card"><p>Управление администраторами - ${admins.length} администраторов</p></div>`;
+    }
+
+    createSettingsManagementHTML(settings) {
+        return `<div class="table-card"><p>Настройки системы - ${settings.length} параметров</p></div>`;
     }
 }
 
@@ -1442,6 +2518,16 @@ const adminApp = new AdminApp();
 
 // Глобальные функции для обработчиков событий
 window.adminApp = adminApp;
+
+// Обработка изменения типа интерактива
+document.addEventListener('DOMContentLoaded', function() {
+    const interactiveTypeSelect = document.getElementById('newInteractiveType');
+    if (interactiveTypeSelect) {
+        interactiveTypeSelect.addEventListener('change', function() {
+            adminApp.updateInteractiveContent();
+        });
+    }
+});
 
 // Обработка ошибок
 window.addEventListener('error', (event) => {
