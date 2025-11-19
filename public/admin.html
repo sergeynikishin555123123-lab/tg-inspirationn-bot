@@ -1498,6 +1498,8 @@ audio {
             </div>
         </div>
 
+<!-- ==================== ПОСТЫ ==================== -->
+
 <!-- Посты -->
 <div id="posts" class="tab-content">
     <div class="card">
@@ -2193,17 +2195,18 @@ function loadTabData(tabName) {
             return icons[tabName] || '📄';
         }
 
-        // Скрыть все формы
-        function hideAllForms() {
-            document.getElementById('roleForm').style.display = 'none';
-            document.getElementById('characterForm').style.display = 'none';
-            document.getElementById('quizForm').style.display = 'none';
-            document.getElementById('marathonForm').style.display = 'none';
-            document.getElementById('interactiveForm').style.display = 'none';
-            document.getElementById('shopItemForm').style.display = 'none';
-            document.getElementById('postForm').style.display = 'none';
-            document.getElementById('adminForm').style.display = 'none';
-            currentEditingId = null;
+// Скрыть все формы
+function hideAllForms() {
+    document.getElementById('roleForm').style.display = 'none';
+    document.getElementById('characterForm').style.display = 'none';
+    document.getElementById('quizForm').style.display = 'none';
+    document.getElementById('marathonForm').style.display = 'none';
+    document.getElementById('interactiveForm').style.display = 'none';
+    document.getElementById('shopItemForm').style.display = 'none';
+    document.getElementById('postForm').style.display = 'none'; // ДОБАВИТЬ ЭТУ СТРОКУ
+    document.getElementById('adminForm').style.display = 'none'; // ДОБАВИТЬ ЭТУ СТРОКУ
+    currentEditingId = null;
+}
         }
 
         // ==================== СТАТИСТИКА ====================
