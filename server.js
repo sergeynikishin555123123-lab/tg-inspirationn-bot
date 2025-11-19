@@ -1886,6 +1886,56 @@ app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     });
 });
 
+// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ РАБОТ ПОЛЬЗОВАТЕЛЕЙ
+app.get('/api/admin/user-works', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    console.log('📥 Загрузка работ со статусом:', status);
+    
+    const works = db.user_works
+        .filter(w => w.status === status)
+        .map(work => {
+            const user = db.users.find(u => u.user_id === work.user_id);
+            return {
+                ...work,
+                user_name: user?.tg_first_name || 'Неизвестно',
+                user_username: user?.tg_username
+            };
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    res.json({ works });
+});
+
+// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ МОДЕРАЦИИ РАБОТ
+app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
+    const workId = parseInt(req.params.workId);
+    const { status, admin_comment } = req.body;
+    const adminId = req.admin.user_id;
+    
+    console.log('🔄 Модерация работы:', { workId, status });
+    
+    const work = db.user_works.find(w => w.id === workId);
+    if (!work) {
+        return res.status(404).json({ error: 'Work not found' });
+    }
+    
+    work.status = status;
+    work.moderated_at = new Date().toISOString();
+    work.moderator_id = adminId;
+    work.admin_comment = admin_comment || null;
+    
+    if (status === 'approved') {
+        addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
+    }
+    
+    res.json({ 
+        success: true, 
+        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
+        work: work
+    });
+});
+
 // Управление постами
 app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     const { status = 'pending' } = req.query;
@@ -2064,6 +2114,56 @@ app.get('/api/admin/reviews', requireAdmin, (req, res) => {
 app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
     const reviewId = parseInt(req.params.reviewId);
     const { status, admin_comment } = req.body;
+    
+    const review = db.post_reviews.find(r => r.id === reviewId);
+    if (!review) {
+        return res.status(404).json({ error: 'Review not found' });
+    }
+    
+    review.status = status;
+    review.moderated_at = new Date().toISOString();
+    review.moderator_id = req.admin.user_id;
+    review.admin_comment = admin_comment || null;
+    
+    res.json({ 
+        success: true, 
+        message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`,
+        review: review
+    });
+});
+
+// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ ЗАГРУЗКИ ОТЗЫВОВ
+app.get('/api/admin/reviews', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    console.log('📥 Загрузка отзывов со статусом:', status);
+    
+    const reviews = db.post_reviews
+        .filter(r => r.status === status)
+        .map(review => {
+            const user = db.users.find(u => u.user_id === review.user_id);
+            const post = db.channel_posts.find(p => p.post_id === review.post_id);
+            const moderator = db.admins.find(a => a.user_id === review.moderator_id);
+            
+            return {
+                ...review,
+                tg_first_name: user?.tg_first_name || 'Неизвестно',
+                tg_username: user?.tg_username,
+                post_title: post?.title || 'Пост не найден',
+                moderator_username: moderator?.username
+            };
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    res.json({ reviews });
+});
+
+// ДОБАВЬТЕ ЭТОТ МЕТОД ДЛЯ МОДЕРАЦИИ ОТЗЫВОВ
+app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
+    const reviewId = parseInt(req.params.reviewId);
+    const { status, admin_comment } = req.body;
+    
+    console.log('🔄 Модерация отзыва:', { reviewId, status });
     
     const review = db.post_reviews.find(r => r.id === reviewId);
     if (!review) {
