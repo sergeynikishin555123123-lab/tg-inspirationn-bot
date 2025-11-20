@@ -379,6 +379,22 @@ let db = {
             role: 'superadmin', 
             created_at: new Date().toISOString() 
         }
+
+                { 
+            id: 2, 
+            user_id: 781959267, 
+            username: 'admin', 
+            role: 'superadmin', 
+            created_at: new Date().toISOString() 
+        }
+
+        { 
+            id: 3, 
+            user_id: 79156202620, 
+            username: 'admin', 
+            role: 'superadmin', 
+            created_at: new Date().toISOString() 
+        }
     ],
     purchases: [],
     channel_posts: [
