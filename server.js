@@ -2480,6 +2480,7 @@ app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
         console.error('❌ Ошибка экспорта статистики:', error);
         res.status(500).json({ error: 'Ошибка экспорта статистики' });
     }
+}); // ← ДОБАВЬТЕ ЭТУ ЗАКРЫВАЮЩУЮ СКОБКУ ДЛЯ app.get()
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
