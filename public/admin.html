@@ -660,34 +660,31 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
-        /* Стили для видео превью */
-video.upload-preview {
-    max-width: 100%;
-    max-height: 300px;
-    width: 100%;
-    height: auto;
-    background: #000;
-    border-radius: 12px;
-}
+        video.upload-preview {
+            max-width: 100%;
+            max-height: 300px;
+            width: 100%;
+            height: auto;
+            background: #000;
+            border-radius: 12px;
+        }
 
-/* Стили для аудио плеера */
-audio {
-    border-radius: 25px;
-    background: #f7fafc;
-    padding: 10px;
-    width: 100%;
-    margin: 16px 0;
-}
+        audio {
+            border-radius: 25px;
+            background: #f7fafc;
+            padding: 10px;
+            width: 100%;
+            margin: 16px 0;
+        }
 
-/* Общие стили для превью */
-.upload-preview {
-    max-width: 100%;
-    max-height: 300px;
-    border-radius: 12px;
-    margin: 12px 0;
-    border: 2px solid #e2e8f0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
+        .upload-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            margin: 12px 0;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
         
         .task-item {
             background: rgba(247, 250, 252, 0.8);
@@ -1374,107 +1371,108 @@ audio {
                 </div>
 
                 <!-- Форма создания/редактирования товара -->
-<div id="shopItemForm" class="card" style="display: none;">
-    <h3 id="shopItemFormTitle" style="margin-bottom: 20px;">Добавление нового товара</h3>
-    
-    <div class="form-group">
-        <label class="form-label">Название товара:</label>
-        <input type="text" id="shopItemTitle" class="form-control" placeholder="Например: Урок акварели">
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Описание:</label>
-        <textarea id="shopItemDescription" class="form-control" rows="3" placeholder="Описание товара..."></textarea>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Тип:</label>
-        <select id="shopItemType" class="form-control" onchange="updateShopItemForm()">
-            <option value="video">🎥 Видео</option>
-            <option value="pdf">📚 PDF</option>
-            <option value="text">📝 Текст</option>
-            <option value="audio">🎧 Аудио</option>
-            <option value="image">🖼️ Изображение</option>
-        </select>
-    </div>
+                <div id="shopItemForm" class="card" style="display: none;">
+                    <h3 id="shopItemFormTitle" style="margin-bottom: 20px;">Добавление нового товара</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Название товара:</label>
+                        <input type="text" id="shopItemTitle" class="form-control" placeholder="Например: Урок акварели">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Описание:</label>
+                        <textarea id="shopItemDescription" class="form-control" rows="3" placeholder="Описание товара..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Тип:</label>
+                        <select id="shopItemType" class="form-control" onchange="updateShopItemForm()">
+                            <option value="video">🎥 Видео</option>
+                            <option value="pdf">📚 PDF</option>
+                            <option value="text">📝 Текст</option>
+                            <option value="audio">🎧 Аудио</option>
+                            <option value="image">🖼️ Изображение</option>
+                        </select>
+                    </div>
 
-    <!-- СЕКЦИЯ ДЛЯ ФАЙЛА ТОВАРА -->
-    <div class="form-group" id="shopItemFileSection">
-        <label class="form-label">Файл товара:</label>
-        
-        <div class="image-upload-area" id="shopItemFileUploadArea" onclick="document.getElementById('shopItemFileInput').click()">
-            <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
-            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки файла</div>
-            <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
-            <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
-                Поддерживаются: MP4, PDF, JPG, PNG, MP3 (макс. 10MB)
+                    <!-- СЕКЦИЯ ДЛЯ ФАЙЛА ТОВАРА -->
+                    <div class="form-group" id="shopItemFileSection">
+                        <label class="form-label">Файл товара:</label>
+                        
+                        <div class="image-upload-area" id="shopItemFileUploadArea" onclick="document.getElementById('shopItemFileInput').click()">
+                            <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
+                            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки файла</div>
+                            <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
+                            <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
+                                Поддерживаются: MP4, PDF, JPG, PNG, MP3 (макс. 10MB)
+                            </div>
+                        </div>
+                        <input type="file" id="shopItemFileInput" accept=".mp4,.pdf,.jpg,.jpeg,.png,.mp3" style="display: none;" onchange="handleShopItemFileUpload(this.files[0])">
+                        
+                        <div id="shopItemFilePreview" style="display: none;">
+                            <div id="shopItemFilePreviewContent"></div>
+                            <button class="btn btn-danger" onclick="clearShopItemFile()" style="margin-top: 12px;">
+                                🗑️ Удалить файл
+                            </button>
+                        </div>
+
+                        <!-- Старое поле URL (альтернатива) -->
+                        <div style="margin-top: 16px;">
+                            <label class="form-label">Или URL файла:</label>
+                            <input type="text" id="shopItemFileUrl" class="form-control" placeholder="https://example.com/file.mp4">
+                        </div>
+                    </div>
+
+                    <!-- СЕКЦИЯ ДЛЯ ПРЕВЬЮ ТОВАРА -->
+                    <div class="form-group">
+                        <label class="form-label">Превью товара (изображение):</label>
+                        
+                        <div class="image-upload-area" id="shopItemPreviewUploadArea" onclick="document.getElementById('shopItemPreviewInput').click()">
+                            <div style="font-size: 48px; margin-bottom: 12px;">🖼️</div>
+                            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки превью</div>
+                            <div style="color: #718096; font-size: 14px;">или перетащите изображение сюда</div>
+                            <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
+                                Поддерживаются: JPG, PNG (макс. 5MB)
+                            </div>
+                        </div>
+                        <input type="file" id="shopItemPreviewInput" accept="image/*" style="display: none;" onchange="handleShopItemPreviewUpload(this.files[0])">
+                        
+                        <div id="shopItemPreviewImagePreview" style="display: none;">
+                            <img id="shopItemPreviewImage" class="upload-preview">
+                            <button class="btn btn-danger" onclick="clearShopItemPreview()" style="margin-top: 12px;">
+                                🗑️ Удалить превью
+                            </button>
+                        </div>
+
+                        <!-- Старое поле URL (альтернатива) -->
+                        <div style="margin-top: 16px;">
+                            <label class="form-label">Или URL превью:</label>
+                            <input type="text" id="shopItemPreviewUrl" class="form-control" placeholder="https://example.com/preview.jpg">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Цена (искры):</label>
+                        <input type="number" id="shopItemPrice" class="form-control" value="10" min="0" step="0.5">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Содержимое (текст):</label>
+                        <textarea id="shopItemContent" class="form-control" rows="6" placeholder="Подробное описание содержимого..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="shopItemActive" checked> Активный товар
+                        </label>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="saveShopItem()">💾 Сохранить товар</button>
+                        <button class="btn btn-danger" onclick="hideShopItemForm()">❌ Отмена</button>
+                    </div>
+                </div>
             </div>
-        </div>
-        <input type="file" id="shopItemFileInput" accept=".mp4,.pdf,.jpg,.jpeg,.png,.mp3" style="display: none;" onchange="handleShopItemFileUpload(this.files[0])">
-        
-        <div id="shopItemFilePreview" style="display: none;">
-            <div id="shopItemFilePreviewContent"></div>
-            <button class="btn btn-danger" onclick="clearShopItemFile()" style="margin-top: 12px;">
-                🗑️ Удалить файл
-            </button>
-        </div>
-
-        <!-- Старое поле URL (альтернатива) -->
-        <div style="margin-top: 16px;">
-            <label class="form-label">Или URL файла:</label>
-            <input type="text" id="shopItemFileUrl" class="form-control" placeholder="https://example.com/file.mp4">
-        </div>
-    </div>
-
-    <!-- СЕКЦИЯ ДЛЯ ПРЕВЬЮ ТОВАРА -->
-    <div class="form-group">
-        <label class="form-label">Превью товара (изображение):</label>
-        
-        <div class="image-upload-area" id="shopItemPreviewUploadArea" onclick="document.getElementById('shopItemPreviewInput').click()">
-            <div style="font-size: 48px; margin-bottom: 12px;">🖼️</div>
-            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки превью</div>
-            <div style="color: #718096; font-size: 14px;">или перетащите изображение сюда</div>
-            <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
-                Поддерживаются: JPG, PNG (макс. 5MB)
-            </div>
-        </div>
-        <input type="file" id="shopItemPreviewInput" accept="image/*" style="display: none;" onchange="handleShopItemPreviewUpload(this.files[0])">
-        
-        <div id="shopItemPreviewImagePreview" style="display: none;">
-            <img id="shopItemPreviewImage" class="upload-preview">
-            <button class="btn btn-danger" onclick="clearShopItemPreview()" style="margin-top: 12px;">
-                🗑️ Удалить превью
-            </button>
-        </div>
-
-        <!-- Старое поле URL (альтернатива) -->
-        <div style="margin-top: 16px;">
-            <label class="form-label">Или URL превью:</label>
-            <input type="text" id="shopItemPreviewUrl" class="form-control" placeholder="https://example.com/preview.jpg">
-        </div>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Цена (искры):</label>
-        <input type="number" id="shopItemPrice" class="form-control" value="10" min="0" step="0.5">
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Содержимое (текст):</label>
-        <textarea id="shopItemContent" class="form-control" rows="6" placeholder="Подробное описание содержимого..."></textarea>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">
-            <input type="checkbox" id="shopItemActive" checked> Активный товар
-        </label>
-    </div>
-    
-    <div class="action-buttons">
-        <button class="btn btn-success" onclick="saveShopItem()">💾 Сохранить товар</button>
-        <button class="btn btn-danger" onclick="hideShopItemForm()">❌ Отмена</button>
-    </div>
-</div>
 
             <div id="shopPurchasesTab" style="display: none;">
                 <div class="card">
@@ -1697,342 +1695,159 @@ audio {
         let currentShopTab = 'items';
         let currentModerationTab = 'works';
         let interactiveImageData = null;
+        let shopItemFileData = null;
+        let shopItemPreviewData = null;
 
-// ==================== ДИАГНОСТИКА ВКЛАДОК ====================
-
-function checkTabsExistence() {
-    console.log('🔍 Проверка существования вкладок...');
-    
-    const problematicTabs = ['moderation', 'admins', 'posts'];
-    
-    problematicTabs.forEach(tabName => {
-        const tabElement = document.getElementById(tabName);
-        if (tabElement) {
-            console.log(`✅ Вкладка ${tabName} существует`);
-        } else {
-            console.error(`❌ Вкладка ${tabName} НЕ НАЙДЕНА в HTML!`);
-        }
-    });
-    
-    // Проверяем кнопки навигации
-    const navTabs = document.querySelectorAll('.nav-tab');
-    console.log('📋 Найдено кнопок навигации:', navTabs.length);
-    
-    navTabs.forEach(tab => {
-        console.log('🔘 Кнопка:', tab.textContent, 'onclick:', tab.getAttribute('onclick'));
-    });
-}
-
-// Активация всех кнопок навигации
-function activateAllNavigationTabs() {
-    console.log('🔧 Активация всех кнопок навигации...');
-    
-    const navTabs = document.querySelectorAll('.nav-tab');
-    navTabs.forEach(tab => {
-        // Убираем любые блокировки
-        tab.style.display = 'block';
-        tab.style.visibility = 'visible';
-        tab.style.opacity = '1';
-        tab.style.pointerEvents = 'auto';
-        tab.style.cursor = 'pointer';
-        
-        // Убираем disabled атрибуты
-        tab.removeAttribute('disabled');
-        tab.classList.remove('disabled');
-        
-        console.log('✅ Активирована кнопка:', tab.textContent);
-    });
-    
-    console.log('🎉 Все кнопки активированы!');
-}
-
-// Экстренное создание отсутствующих вкладок
-function createMissingTabs() {
-    console.log('🔧 Проверка и создание отсутствующих вкладок...');
-    
-    const requiredTabs = [
-        { id: 'moderation', title: 'Модерация' },
-        { id: 'admins', title: 'Админы' }, 
-        { id: 'posts', title: 'Посты' }
-    ];
-    
-    requiredTabs.forEach(tab => {
-        if (!document.getElementById(tab.id)) {
-            console.log('⚠️ Создаем отсутствующую вкладку:', tab.id);
+        // ИНИЦИАЛИЗАЦИЯ АДМИН-ПАНЕЛИ
+        async function initAdminPanel() {
+            console.log("🚀 Загрузка админ-панели");
             
-            const tabHtml = `
-                <div id="${tab.id}" class="tab-content">
-                    <div class="card">
-                        <h2>${tab.title}</h2>
-                        <div class="loading">
-                            <div style="text-align: center; padding: 40px;">
-                                <div style="font-size: 48px; margin-bottom: 16px;">🛠️</div>
-                                <h3>${tab.title}</h3>
-                                <p style="color: #718096;">Раздел в разработке</p>
-                                <button class="btn" onclick="loadTabData('${tab.id}')" style="margin-top: 20px;">
-                                    🔄 Загрузить данные
-                                </button>
-                            </div>
-                        </div>
+            // Получаем ID из URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentUserId = urlParams.get('userId');
+            
+            // Если нет ID, показываем ошибку
+            if (!currentUserId) {
+                document.body.innerHTML = `
+                    <div class="admin-login">
+                        <h1>❌ Ошибка</h1>
+                        <p>Не указан ID пользователя</p>
+                        <p style="color: #718096; font-size: 14px;">
+                            Добавьте ?userId=ВАШ_ID к URL
+                        </p>
+                        <button class="btn" onclick="location.href = '/admin?userId=898508164'" style="margin-top: 20px;">
+                            🔧 Использовать тестовый ID
+                        </button>
                     </div>
-                </div>
-            `;
-            
-            // Добавляем вкладку в конец контейнера
-            const container = document.querySelector('.container');
-            if (container) {
-                container.insertAdjacentHTML('beforeend', tabHtml);
-                console.log('✅ Вкладка создана:', tab.id);
-            }
-        }
-    });
-}
-        
-// ИНИЦИАЛИЗАЦИЯ АДМИН-ПАНЕЛИ - ПОЛНАЯ АКТИВАЦИЯ
-async function initAdminPanel() {
-    console.log("🚀 Загрузка админ-панели");
-    
-    // 1. АКТИВИРУЕМ ВСЕ КНОПКИ СРАЗУ
-    activateAllNavigationTabs();
-    
-    // 2. СОЗДАЕМ ОТСУТСТВУЮЩИЕ ВКЛАДКИ
-    createMissingTabs();
-    
-    // 3. ДИАГНОСТИКА
-    checkTabsExistence();
-    
-    // Получаем ID из URL
-    const urlParams = new URLSearchParams(window.location.search);
-    currentUserId = urlParams.get('userId');
-    
-    // Если нет ID, показываем ошибку
-    if (!currentUserId) {
-        document.body.innerHTML = `
-            <div class="admin-login">
-                <h1>❌ Ошибка</h1>
-                <p>Не указан ID пользователя</p>
-                <p style="color: #718096; font-size: 14px;">
-                    Добавьте ?userId=ВАШ_ID к URL
-                </p>
-                <button class="btn" onclick="location.href = '/admin?userId=898508164'" style="margin-top: 20px;">
-                    🔧 Использовать тестовый ID
-                </button>
-            </div>
-        `;
-        return;
-    }
-    
-    try {
-        // Проверяем доступ через API
-        const response = await fetch(`/api/admin/stats?userId=${currentUserId}`);
-        if (response.ok) {
-            currentAdmin = { user_id: currentUserId };
-            document.getElementById('adminId').textContent = currentUserId;
-            
-            console.log("✅ Все разделы доступны для пользователя:", currentUserId);
-            
-            // Загружаем данные
-            loadAllData();
-        } else {
-            // В случае ошибки все равно разрешаем доступ для тестирования
-            console.log("⚠️ Ошибка API, но разрешаем доступ для тестирования");
-            currentAdmin = { user_id: currentUserId };
-            document.getElementById('adminId').textContent = currentUserId;
-            loadAllData();
-        }
-    } catch (error) {
-        console.error('Ошибка проверки доступа:', error);
-        // В случае ошибки все равно разрешаем доступ
-        currentAdmin = { user_id: currentUserId };
-        document.getElementById('adminId').textContent = currentUserId;
-        console.log("✅ Доступ разрешен (режим разработки)");
-        loadAllData();
-    }
-}
-
-// Убираем форму логина
-function showLoginForm() {
-    // Просто запускаем админку
-    initAdminPanel();
-}
-
-        // Попытка входа
-        async function attemptLogin() {
-            const userId = document.getElementById('loginUserId').value;
-            if (!userId) {
-                alert('Введите ID администратора');
+                `;
                 return;
             }
             
             try {
-                const response = await fetch(`/api/admin/stats?userId=${userId}`);
+                // Проверяем доступ через API
+                const response = await fetch(`/api/admin/stats?userId=${currentUserId}`);
                 if (response.ok) {
-                    window.location.href = `/admin?userId=${userId}`;
+                    currentAdmin = { user_id: currentUserId };
+                    document.getElementById('adminId').textContent = currentUserId;
+                    
+                    console.log("✅ Все разделы доступны для пользователя:", currentUserId);
+                    
+                    // Загружаем данные
+                    loadAllData();
                 } else {
-                    alert('Доступ запрещен. У вас нет прав администратора.');
+                    // В случае ошибки все равно разрешаем доступ для тестирования
+                    console.log("⚠️ Ошибка API, но разрешаем доступ для тестирования");
+                    currentAdmin = { user_id: currentUserId };
+                    document.getElementById('adminId').textContent = currentUserId;
+                    loadAllData();
                 }
             } catch (error) {
-                alert('Ошибка при проверке прав доступа');
+                console.error('Ошибка проверки доступа:', error);
+                // В случае ошибки все равно разрешаем доступ
+                currentAdmin = { user_id: currentUserId };
+                document.getElementById('adminId').textContent = currentUserId;
+                console.log("✅ Доступ разрешен (режим разработки)");
+                loadAllData();
             }
         }
 
-// ==================== АКТИВАЦИЯ МОДЕРАЦИИ ====================
-
-// Загрузка данных для модерации
-async function loadModerationData() {
-    console.log('🔄 Загрузка данных для модерации...');
-    
-    try {
-        await loadWorksForModeration();
-        await loadReviewsForModeration();
-        await loadMarathonSubmissions();
-        
-        console.log('✅ Данные модерации загружены');
-    } catch (error) {
-        console.error('❌ Ошибка загрузки данных модерации:', error);
-    }
-}
-
-// Проверка доступности модерации
-function checkModerationAccess() {
-    console.log('🔐 Проверка доступа к модерации для пользователя:', currentUserId);
-    
-    // Временно разрешаем доступ всем админам
-    const hasAccess = true; // Всегда true для тестирования
-    
-    if (hasAccess) {
-        console.log('✅ Доступ к модерации разрешен');
-        // Активируем кнопку модерации
-        const moderationTab = document.querySelector('.nav-tab[onclick="showTab(\'moderation\')"]');
-        if (moderationTab) {
-            moderationTab.style.display = 'block';
-            console.log('✅ Кнопка модерации активирована');
+        // Загрузка всех данных
+        async function loadAllData() {
+            console.log('🔄 Начало загрузки всех данных...');
+            
+            try {
+                await loadStats();
+                await loadUsers();
+                await loadRoles();
+                await loadCharacters();
+                await loadQuizzes();
+                await loadMarathons();
+                await loadInteractives();
+                await loadShopItems();
+                await loadPosts();
+                await loadAdmins();
+                await loadModerationData();
+                
+                console.log('✅ Все данные успешно загружены');
+            } catch (error) {
+                console.error('❌ Ошибка загрузки данных:', error);
+            }
         }
-    } else {
-        console.log('❌ Доступ к модерации запрещен');
-    }
-    
-    return hasAccess;
-}
-        
-// Загрузка всех данных - ИСПРАВЛЕННАЯ ВЕРСИЯ
-async function loadAllData() {
-    console.log('🔄 Начало загрузки всех данных...');
-    
-    try {
-        await loadStats();
-        await loadUsers();
-        await loadRoles();
-        await loadCharacters();
-        await loadQuizzes();
-        await loadMarathons();
-        await loadInteractives();
-        await loadShopItems();
-        await loadPosts();
-        await loadAdmins();
-        
-        // Загружаем данные модерации и активируем доступ
-        await loadModerationData();
-        checkModerationAccess();
-        
-        console.log('✅ Все данные успешно загружены');
-    } catch (error) {
-        console.error('❌ Ошибка загрузки данных:', error);
-    }
-}
 
-// Показать вкладку - ПРОСТАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
-function showTab(tabName) {
-    console.log('🎯 Переключение на вкладку:', tabName);
-    
-    // Проверяем существование вкладки
-    const targetTab = document.getElementById(tabName);
-    if (!targetTab) {
-        console.error('❌ Вкладка не найдена:', tabName);
-        showMessage(`❌ Вкладка "${tabName}" не найдена`, 'error');
-        return;
-    }
-    
-    // 1. Скрыть все вкладки
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // 2. Убрать активный класс со всех кнопок
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // 3. Показать выбранную вкладку
-    targetTab.classList.add('active');
-    
-    // 4. Активировать кнопку - ПРОСТОЙ СПОСОБ
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        const onclickAttr = tab.getAttribute('onclick');
-        if (onclickAttr && onclickAttr.includes(`showTab('${tabName}')`)) {
-            tab.classList.add('active');
+        // Показать вкладку
+        function showTab(tabName) {
+            console.log('🎯 Переключение на вкладку:', tabName);
+            
+            // Проверяем существование вкладки
+            const targetTab = document.getElementById(tabName);
+            if (!targetTab) {
+                console.error('❌ Вкладка не найдена:', tabName);
+                showMessage(`❌ Вкладка "${tabName}" не найдена`, 'error');
+                return;
+            }
+            
+            // 1. Скрыть все вкладки
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 2. Убрать активный класс со всех кнопок
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 3. Показать выбранную вкладку
+            targetTab.classList.add('active');
+            
+            // 4. Активировать кнопку
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                const onclickAttr = tab.getAttribute('onclick');
+                if (onclickAttr && onclickAttr.includes(`showTab('${tabName}')`)) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // 5. Загружаем данные для вкладки
+            loadTabData(tabName);
+            
+            console.log('✅ Вкладка активирована:', tabName);
         }
-    });
-    
-    // 5. Загружаем данные для вкладки
-    loadTabData(tabName);
-    
-    console.log('✅ Вкладка активирована:', tabName);
-}
 
-// Загрузка данных для вкладки
-function loadTabData(tabName) {
-    console.log('📥 Загрузка данных для:', tabName);
-    
-    switch(tabName) {
-        case 'moderation':
-            loadWorksForModeration();
-            break;
-        case 'admins':
-            loadAdmins();
-            break;
-        case 'posts':
-            loadPosts();
-            break;
-        case 'users':
-            loadUsers();
-            break;
-        case 'roles':
-            loadRoles();
-            break;
-        case 'quizzes':
-            loadQuizzes();
-            break;
-        case 'marathons':
-            loadMarathons();
-            break;
-        case 'interactives':
-            loadInteractives();
-            break;
-        case 'shop':
-            loadShopItems();
-            break;
-        default:
-            console.log('ℹ️ Нет специальной загрузки для:', tabName);
-    }
-}
-
-        // Получить иконку для вкладки
-        function getTabIcon(tabName) {
-            const icons = {
-                'dashboard': '📊',
-                'users': '👥',
-                'roles': '🎭',
-                'characters': '👤',
-                'quizzes': '🎯',
-                'marathons': '🏃‍♂️',
-                'interactives': '🎮',
-                'shop': '🛒',
-                'posts': '📰',
-                'moderation': '⚖️',
-                'admins': '🔧'
-            };
-            return icons[tabName] || '📄';
+        // Загрузка данных для вкладки
+        function loadTabData(tabName) {
+            console.log('📥 Загрузка данных для:', tabName);
+            
+            switch(tabName) {
+                case 'moderation':
+                    loadWorksForModeration();
+                    break;
+                case 'admins':
+                    loadAdmins();
+                    break;
+                case 'posts':
+                    loadPosts();
+                    break;
+                case 'users':
+                    loadUsers();
+                    break;
+                case 'roles':
+                    loadRoles();
+                    break;
+                case 'quizzes':
+                    loadQuizzes();
+                    break;
+                case 'marathons':
+                    loadMarathons();
+                    break;
+                case 'interactives':
+                    loadInteractives();
+                    break;
+                case 'shop':
+                    loadShopItems();
+                    break;
+                default:
+                    console.log('ℹ️ Нет специальной загрузки для:', tabName);
+            }
         }
 
         // Скрыть все формы
@@ -2132,76 +1947,42 @@ function loadTabData(tabName) {
 
         // Создание графика активности
         function createActivityChart(stats) {
-            const ctx = document.getElementById('activityChart').getContext('2d');
+            const chartContainer = document.getElementById('activityChart');
             
-            // Простой линейный график
-            const activityData = {
-                labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-                datasets: [{
-                    label: 'Активность пользователей',
-                    data: [65, 59, 80, 81, 56, 55, 40],
-                    borderColor: '#667eea',
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            };
-            
-            new Chart(ctx, {
-                type: 'line',
-                data: activityData,
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
+            // Простая HTML-заглушка вместо графика
+            chartContainer.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #718096;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+                    <h4 style="margin-bottom: 8px;">Статистика активности</h4>
+                    <p>Активных пользователей сегодня: ${stats.users.active_today || 0}</p>
+                    <p>Всего активностей: ${stats.activities.total_activities || 0}</p>
+                </div>
+            `;
         }
 
-// Создание графика активности - УПРОЩЕННАЯ ВЕРСИЯ БЕЗ Chart.js
-function createActivityChart(stats) {
-    const chartContainer = document.getElementById('activityChart');
-    
-    // Простая HTML-заглушка вместо графика
-    chartContainer.innerHTML = `
-        <div style="text-align: center; padding: 40px; color: #718096;">
-            <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
-            <h4 style="margin-bottom: 8px;">Статистика активности</h4>
-            <p>Активных пользователей сегодня: ${stats.users.active_today || 0}</p>
-            <p>Всего активностей: ${stats.activities.total_activities || 0}</p>
-        </div>
-    `;
-}
-
-// Создание графика распределения по ролям - УПРОЩЕННАЯ ВЕРСИЯ
-function createRolesChart(stats) {
-    const chartContainer = document.getElementById('rolesChart');
-    
-    let rolesHtml = '';
-    stats.users.by_role.forEach(role => {
-        rolesHtml += `
-            <div style="display: flex; justify-content: between; margin-bottom: 8px; padding: 8px; background: #f7fafc; border-radius: 8px;">
-                <span style="flex: 1;">${role.role}</span>
-                <span style="font-weight: bold; color: #667eea;">${role.count}</span>
-            </div>
-        `;
-    });
-    
-    chartContainer.innerHTML = `
-        <div style="text-align: center;">
-            <h4 style="margin-bottom: 16px;">📈 Распределение по ролям</h4>
-            ${rolesHtml}
-        </div>
-    `;
-}
+        // Создание графика распределения по ролям
+        function createRolesChart(stats) {
+            const chartContainer = document.getElementById('rolesChart');
+            
+            let rolesHtml = '';
+            if (stats.users && stats.users.by_role) {
+                stats.users.by_role.forEach(role => {
+                    rolesHtml += `
+                        <div style="display: flex; justify-content: between; margin-bottom: 8px; padding: 8px; background: #f7fafc; border-radius: 8px;">
+                            <span style="flex: 1;">${role.role}</span>
+                            <span style="font-weight: bold; color: #667eea;">${role.count}</span>
+                        </div>
+                    `;
+                });
+            }
+            
+            chartContainer.innerHTML = `
+                <div style="text-align: center;">
+                    <h4 style="margin-bottom: 16px;">📈 Распределение по ролям</h4>
+                    ${rolesHtml || '<p>Нет данных о ролях</p>'}
+                </div>
+            `;
+        }
 
         // ==================== ПОЛЬЗОВАТЕЛИ ====================
 
@@ -2863,45 +2644,45 @@ function createRolesChart(stats) {
             addQuestion(); // Добавить первый вопрос по умолчанию
         }
 
-// Добавить вопрос
-function addQuestion() {
-    const questionsContainer = document.getElementById('quizQuestions');
-    const questionIndex = questionsContainer.children.length;
-    
-    const questionHtml = `
-        <div class="question-item" data-index="${questionIndex}">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h4 style="margin: 0;">Вопрос ${questionIndex + 1}</h4>
-                <button class="btn btn-danger" onclick="removeQuestion(${questionIndex})">🗑️ Удалить</button>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Текст вопроса:</label>
-                <input type="text" class="form-control question-text" placeholder="Введите вопрос">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Варианты ответов:</label>
-                <div class="option-item">
-                    <input type="radio" name="correct_${questionIndex}" value="0" checked>
-                    <input type="text" class="form-control option-text" placeholder="Вариант ответа 1">
+        // Добавить вопрос
+        function addQuestion() {
+            const questionsContainer = document.getElementById('quizQuestions');
+            const questionIndex = questionsContainer.children.length;
+            
+            const questionHtml = `
+                <div class="question-item" data-index="${questionIndex}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0;">Вопрос ${questionIndex + 1}</h4>
+                        <button class="btn btn-danger" onclick="removeQuestion(${questionIndex})">🗑️ Удалить</button>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Текст вопроса:</label>
+                        <input type="text" class="form-control question-text" placeholder="Введите вопрос">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Варианты ответов:</label>
+                        <div class="option-item">
+                            <input type="radio" name="correct_${questionIndex}" value="0" checked>
+                            <input type="text" class="form-control option-text" placeholder="Вариант ответа 1">
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="correct_${questionIndex}" value="1">
+                            <input type="text" class="form-control option-text" placeholder="Вариант ответа 2">
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="correct_${questionIndex}" value="2">
+                            <input type="text" class="form-control option-text" placeholder="Вариант ответа 3">
+                        </div>
+                        <div class="option-item">
+                            <input type="radio" name="correct_${questionIndex}" value="3">
+                            <input type="text" class="form-control option-text" placeholder="Вариант ответа 4">
+                        </div>
+                    </div>
                 </div>
-                <div class="option-item">
-                    <input type="radio" name="correct_${questionIndex}" value="1">
-                    <input type="text" class="form-control option-text" placeholder="Вариант ответа 2">
-                </div>
-                <div class="option-item">
-                    <input type="radio" name="correct_${questionIndex}" value="2">
-                    <input type="text" class="form-control option-text" placeholder="Вариант ответа 3">
-                </div>
-                <div class="option-item">
-                    <input type="radio" name="correct_${questionIndex}" value="3">
-                    <input type="text" class="form-control option-text" placeholder="Вариант ответа 4">
-                </div>
-            </div>
-        </div>
-    `;
-    
-    questionsContainer.innerHTML += questionHtml;
-}
+            `;
+            
+            questionsContainer.innerHTML += questionHtml;
+        }
 
         // Удалить вопрос
         function removeQuestion(index) {
@@ -3040,33 +2821,33 @@ function addQuestion() {
                 document.getElementById('quizActive').checked = quiz.is_active;
                 
                 // Заполнить вопросы
-const questionsContainer = document.getElementById('quizQuestions');
-questionsContainer.innerHTML = '';
+                const questionsContainer = document.getElementById('quizQuestions');
+                questionsContainer.innerHTML = '';
 
-quiz.questions.forEach((question, index) => {
-    const questionHtml = `
-        <div class="question-item" data-index="${index}">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h4 style="margin: 0;">Вопрос ${index + 1}</h4>
-                <button class="btn btn-danger" onclick="removeQuestion(${index})">🗑️ Удалить</button>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Текст вопроса:</label>
-                <input type="text" class="form-control question-text" value="${question.question}" placeholder="Введите вопрос">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Варианты ответов:</label>
-                ${question.options.map((option, optIndex) => `
-                    <div class="option-item">
-                        <input type="radio" name="correct_${index}" value="${optIndex}" ${optIndex === question.correctAnswer ? 'checked' : ''}>
-                        <input type="text" class="form-control option-text" value="${option}" placeholder="Вариант ответа ${optIndex + 1}">
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-    questionsContainer.innerHTML += questionHtml;
-});
+                quiz.questions.forEach((question, index) => {
+                    const questionHtml = `
+                        <div class="question-item" data-index="${index}">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <h4 style="margin: 0;">Вопрос ${index + 1}</h4>
+                                <button class="btn btn-danger" onclick="removeQuestion(${index})">🗑️ Удалить</button>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Текст вопроса:</label>
+                                <input type="text" class="form-control question-text" value="${question.question}" placeholder="Введите вопрос">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Варианты ответов:</label>
+                                ${question.options.map((option, optIndex) => `
+                                    <div class="option-item">
+                                        <input type="radio" name="correct_${index}" value="${optIndex}" ${optIndex === question.correctAnswer ? 'checked' : ''}>
+                                        <input type="text" class="form-control option-text" value="${option}" placeholder="Вариант ответа ${optIndex + 1}">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                    questionsContainer.innerHTML += questionHtml;
+                });
                 
             } catch (error) {
                 showMessage('❌ Ошибка загрузки квиза', 'error');
@@ -3859,71 +3640,71 @@ quiz.questions.forEach((question, index) => {
             }
         }
 
-// Отображение товаров
-function displayShopItems(items) {
-    const shopItemsList = document.getElementById('shopItemsList');
-    
-    if (items.length === 0) {
-        shopItemsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛒</div><div>Товаров не найдено</div></div>';
-        return;
-    }
-    
-    let html = '';
-    
-    items.forEach(item => {
-        const typeIcons = {
-            'video': '🎥',
-            'pdf': '📚',
-            'text': '📝',
-            'audio': '🎧',
-            'image': '🖼️'
-        };
-        
-        // Показываем превью если есть (поддерживаем base64)
-        const previewUrl = item.preview_url || '';
-        const hasPreview = previewUrl && (previewUrl.startsWith('http') || previewUrl.startsWith('data:'));
-        
-        html += `
-            <div class="shop-item-card">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                    <div style="flex: 1;">
-                        <h3 style="margin: 0 0 8px 0;">${typeIcons[item.type]} ${item.title}</h3>
-                        <p style="color: #718096; margin-bottom: 12px;">${item.description}</p>
-                        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                            <span class="badge badge-info">${item.type}</span>
-                            <span class="badge badge-success">${item.price}✨</span>
-                            ${item.file_url && item.file_url.startsWith('data:') ? 
-                                '<span class="badge badge-warning">📁 Файл загружен</span>' : ''}
-                        </div>
-                        ${hasPreview ? `
-                            <img src="${previewUrl}" class="file-preview" style="max-width: 200px; max-height: 150px;">
-                        ` : ''}
-                        ${item.content_text ? `
-                            <div class="content-preview">
-                                ${item.content_text}
+        // Отображение товаров
+        function displayShopItems(items) {
+            const shopItemsList = document.getElementById('shopItemsList');
+            
+            if (items.length === 0) {
+                shopItemsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛒</div><div>Товаров не найдено</div></div>';
+                return;
+            }
+            
+            let html = '';
+            
+            items.forEach(item => {
+                const typeIcons = {
+                    'video': '🎥',
+                    'pdf': '📚',
+                    'text': '📝',
+                    'audio': '🎧',
+                    'image': '🖼️'
+                };
+                
+                // Показываем превью если есть (поддерживаем base64)
+                const previewUrl = item.preview_url || '';
+                const hasPreview = previewUrl && (previewUrl.startsWith('http') || previewUrl.startsWith('data:'));
+                
+                html += `
+                    <div class="shop-item-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <h3 style="margin: 0 0 8px 0;">${typeIcons[item.type]} ${item.title}</h3>
+                                <p style="color: #718096; margin-bottom: 12px;">${item.description}</p>
+                                <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                                    <span class="badge badge-info">${item.type}</span>
+                                    <span class="badge badge-success">${item.price}✨</span>
+                                    ${item.file_url && item.file_url.startsWith('data:') ? 
+                                        '<span class="badge badge-warning">📁 Файл загружен</span>' : ''}
+                                </div>
+                                ${hasPreview ? `
+                                    <img src="${previewUrl}" class="file-preview" style="max-width: 200px; max-height: 150px;">
+                                ` : ''}
+                                ${item.content_text ? `
+                                    <div class="content-preview">
+                                        ${item.content_text}
+                                    </div>
+                                ` : ''}
                             </div>
-                        ` : ''}
+                            <div style="text-align: right;">
+                                <span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">
+                                    <span class="status-indicator ${item.is_active ? 'status-active' : 'status-inactive'}"></span>
+                                    ${item.is_active ? 'Активен' : 'Неактивен'}
+                                </span>
+                            </div>
+                        </div>
+                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+                            Создан: ${new Date(item.created_at).toLocaleDateString('ru-RU')}
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-warning" onclick="editShopItem(${item.id})">✏️ Редактировать</button>
+                            <button class="btn btn-danger" onclick="deleteShopItem(${item.id})">🗑️ Удалить</button>
+                        </div>
                     </div>
-                    <div style="text-align: right;">
-                        <span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">
-                            <span class="status-indicator ${item.is_active ? 'status-active' : 'status-inactive'}"></span>
-                            ${item.is_active ? 'Активен' : 'Неактивен'}
-                        </span>
-                    </div>
-                </div>
-                <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                    Создан: ${new Date(item.created_at).toLocaleDateString('ru-RU')}
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-warning" onclick="editShopItem(${item.id})">✏️ Редактировать</button>
-                    <button class="btn btn-danger" onclick="deleteShopItem(${item.id})">🗑️ Удалить</button>
-                </div>
-            </div>
-        `;
-    });
-    
-    shopItemsList.innerHTML = html;
-}
+                `;
+            });
+            
+            shopItemsList.innerHTML = html;
+        }
 
         // Показать форму товара
         function showShopItemForm() {
@@ -3942,71 +3723,71 @@ function displayShopItems(items) {
             document.getElementById('shopItemActive').checked = true;
         }
 
-// Сохранение товара (в админке)
-async function saveShopItem() {
-    const title = document.getElementById('shopItemTitle').value.trim();
-    const description = document.getElementById('shopItemDescription').value.trim();
-    const type = document.getElementById('shopItemType').value;
-    const file_url = document.getElementById('shopItemFileUrl').value.trim();
-    const preview_url = document.getElementById('shopItemPreviewUrl').value.trim();
-    const price = parseFloat(document.getElementById('shopItemPrice').value);
-    const content_text = document.getElementById('shopItemContent').value.trim();
-    const is_active = document.getElementById('shopItemActive').checked;
-    
-    if (!title || !price) {
-        alert('Заполните название и цену');
-        return;
-    }
-    
-    try {
-        const itemData = {
-            title,
-            description,
-            type,
-            // ПРИОРИТЕТ: base64 данные над URL
-            file_url: shopItemFileData || file_url,
-            preview_url: shopItemPreviewData || preview_url,
-            price,
-            content_text,
-            is_active
-        };
-        
-        console.log('Отправляемые данные товара:', {
-            ...itemData,
-            file_url: itemData.file_url ? `[base64 data: ${itemData.file_url.length} chars]` : 'empty',
-            preview_url: itemData.preview_url ? `[base64 data: ${itemData.preview_url.length} chars]` : 'empty'
-        });
-        
-        let response;
-        if (currentEditingId) {
-            response = await fetch(`/api/admin/shop/items/${currentEditingId}?userId=${currentUserId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(itemData)
-            });
-        } else {
-            response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(itemData)
-            });
+        // Сохранение товара (в админке)
+        async function saveShopItem() {
+            const title = document.getElementById('shopItemTitle').value.trim();
+            const description = document.getElementById('shopItemDescription').value.trim();
+            const type = document.getElementById('shopItemType').value;
+            const file_url = document.getElementById('shopItemFileUrl').value.trim();
+            const preview_url = document.getElementById('shopItemPreviewUrl').value.trim();
+            const price = parseFloat(document.getElementById('shopItemPrice').value);
+            const content_text = document.getElementById('shopItemContent').value.trim();
+            const is_active = document.getElementById('shopItemActive').checked;
+            
+            if (!title || !price) {
+                alert('Заполните название и цену');
+                return;
+            }
+            
+            try {
+                const itemData = {
+                    title,
+                    description,
+                    type,
+                    // ПРИОРИТЕТ: base64 данные над URL
+                    file_url: shopItemFileData || file_url,
+                    preview_url: shopItemPreviewData || preview_url,
+                    price,
+                    content_text,
+                    is_active
+                };
+                
+                console.log('Отправляемые данные товара:', {
+                    ...itemData,
+                    file_url: itemData.file_url ? `[base64 data: ${itemData.file_url.length} chars]` : 'empty',
+                    preview_url: itemData.preview_url ? `[base64 data: ${itemData.preview_url.length} chars]` : 'empty'
+                });
+                
+                let response;
+                if (currentEditingId) {
+                    response = await fetch(`/api/admin/shop/items/${currentEditingId}?userId=${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(itemData)
+                    });
+                } else {
+                    response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(itemData)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Товар успешно сохранен', 'success');
+                    hideShopItemForm();
+                    loadShopItems();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('Ошибка сохранения товара:', error);
+                showMessage('❌ Ошибка сохранения товара', 'error');
+            }
         }
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage('✅ Товар успешно сохранен', 'success');
-            hideShopItemForm();
-            loadShopItems();
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
-        }
-        
-    } catch (error) {
-        console.error('Ошибка сохранения товара:', error);
-        showMessage('❌ Ошибка сохранения товара', 'error');
-    }
-}
 
         // Редактирование товара
         async function editShopItem(itemId) {
@@ -4063,16 +3844,16 @@ async function saveShopItem() {
         }
 
         // Скрыть форму товара
-function hideShopItemForm() {
-    document.getElementById('shopItemForm').style.display = 'none';
-    currentEditingId = null;
-    
-    // ДОБАВЬ ЭТИ СТРОКИ ДЛЯ ОЧИСТКИ ФАЙЛОВ
-    shopItemFileData = null;
-    shopItemPreviewData = null;
-    clearShopItemFile();
-    clearShopItemPreview();
-}
+        function hideShopItemForm() {
+            document.getElementById('shopItemForm').style.display = 'none';
+            currentEditingId = null;
+            
+            // Очистить файлы
+            shopItemFileData = null;
+            shopItemPreviewData = null;
+            clearShopItemFile();
+            clearShopItemPreview();
+        }
 
         // Загрузка покупок
         async function loadPurchases() {
@@ -4392,31 +4173,31 @@ function hideShopItemForm() {
             }
         }
 
-// Загрузка работ для модерации - ИСПРАВЛЕННАЯ ВЕРСИЯ
-async function loadWorksForModeration() {
-    console.log('🖼️ Загрузка работ для модерации...');
-    
-    try {
-        const status = document.getElementById('workStatusFilter') ? document.getElementById('workStatusFilter').value : 'pending';
-        const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
+        // Загрузка работ для модерации
+        async function loadWorksForModeration() {
+            console.log('🖼️ Загрузка работ для модерации...');
+            
+            try {
+                const status = document.getElementById('workStatusFilter') ? document.getElementById('workStatusFilter').value : 'pending';
+                const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Работы загружены:', data.works.length);
+                
+                displayWorksForModeration(data.works);
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки работ:', error);
+                const worksList = document.getElementById('worksModerationList');
+                if (worksList) {
+                    worksList.innerHTML = '<div class="message error">Ошибка загрузки работ: ' + error.message + '</div>';
+                }
+            }
         }
-        
-        const data = await response.json();
-        console.log('✅ Работы загружены:', data.works.length);
-        
-        displayWorksForModeration(data.works);
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки работ:', error);
-        const worksList = document.getElementById('worksModerationList');
-        if (worksList) {
-            worksList.innerHTML = '<div class="message error">Ошибка загрузки работ: ' + error.message + '</div>';
-        }
-    }
-}
 
         // Отображение работ для модерации
         function displayWorksForModeration(works) {
@@ -4645,6 +4426,21 @@ async function loadWorksForModeration() {
             }
         }
 
+        // Загрузка данных для модерации
+        async function loadModerationData() {
+            console.log('🔄 Загрузка данных для модерации...');
+            
+            try {
+                await loadWorksForModeration();
+                await loadReviewsForModeration();
+                await loadMarathonSubmissions();
+                
+                console.log('✅ Данные модерации загружены');
+            } catch (error) {
+                console.error('❌ Ошибка загрузки данных модерации:', error);
+            }
+        }
+
         // ==================== АДМИНЫ ====================
 
         // Загрузка администраторов
@@ -4713,52 +4509,52 @@ async function loadWorksForModeration() {
             document.getElementById('adminForm').style.display = 'block';
         }
 
-// Сохранение админа - ИСПРАВЛЕННАЯ ВЕРСИЯ
-async function saveAdmin() {
-    const user_id = document.getElementById('adminUserId').value.trim();
-    const username = document.getElementById('adminUsername').value.trim();
-    const role = document.getElementById('adminRole').value;
-    
-    console.log('🔄 Попытка добавления админа:', { user_id, username, role });
-    
-    if (!user_id) {
-        showMessage('❌ Введите ID пользователя', 'error');
-        return;
-    }
-    
-    try {
-        const adminData = {
-            user_id: user_id,
-            username: username || 'user_' + user_id,
-            role: role
-        };
-        
-        console.log('📤 Отправка данных:', adminData);
-        
-        const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(adminData)
-        });
-        
-        const result = await response.json();
-        console.log('📋 Результат:', result);
-        
-        if (result.success) {
-            showMessage('✅ Администратор успешно добавлен', 'success');
-            hideAdminForm();
-            loadAdmins();
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
+        // Сохранение админа
+        async function saveAdmin() {
+            const user_id = document.getElementById('adminUserId').value.trim();
+            const username = document.getElementById('adminUsername').value.trim();
+            const role = document.getElementById('adminRole').value;
+            
+            console.log('🔄 Попытка добавления админа:', { user_id, username, role });
+            
+            if (!user_id) {
+                showMessage('❌ Введите ID пользователя', 'error');
+                return;
+            }
+            
+            try {
+                const adminData = {
+                    user_id: user_id,
+                    username: username || 'user_' + user_id,
+                    role: role
+                };
+                
+                console.log('📤 Отправка данных:', adminData);
+                
+                const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(adminData)
+                });
+                
+                const result = await response.json();
+                console.log('📋 Результат:', result);
+                
+                if (result.success) {
+                    showMessage('✅ Администратор успешно добавлен', 'success');
+                    hideAdminForm();
+                    loadAdmins();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('💥 Ошибка при добавлении админа:', error);
+                showMessage('❌ Ошибка добавления администратора', 'error');
+            }
         }
-        
-    } catch (error) {
-        console.error('💥 Ошибка при добавлении админа:', error);
-        showMessage('❌ Ошибка добавления администратора', 'error');
-    }
-}
 
         // Удаление админа
         async function deleteAdmin(userId) {
@@ -4793,137 +4589,134 @@ async function saveAdmin() {
 
         // ==================== МАГАЗИН - ЗАГРУЗКА ФАЙЛОВ ====================
 
-let shopItemFileData = null;
-let shopItemPreviewData = null;
-
-// Обработка загрузки файла товара
-function handleShopItemFileUpload(file) {
-    if (!file) return;
-    
-    // ПРОВЕРКА ТИПА ФАЙЛА
-    const allowedTypes = [
-        'video/mp4', 'video/webm', 'video/ogg',
-        'application/pdf',
-        'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
-        'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'
-    ];
-    
-    if (!allowedTypes.includes(file.type)) {
-        alert('❌ Неподдерживаемый тип файла. Разрешенные типы: MP4, PDF, JPG, PNG, MP3, WAV');
-        return;
-    }
-    
-    // Проверка размера файла
-    if (file.size > 10 * 1024 * 1024) {
-        alert('❌ Размер файла не должен превышать 10MB');
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        shopItemFileData = e.target.result;
-        
-        const previewContent = document.getElementById('shopItemFilePreviewContent');
-        const fileType = file.type.split('/')[0];
-        
-        if (fileType === 'video') {
-            previewContent.innerHTML = `
-                <video controls class="upload-preview">
-                    <source src="${shopItemFileData}" type="${file.type}">
-                    Ваш браузер не поддерживает видео.
-                </video>
-                <div style="text-align: center; margin-top: 8px; color: #718096;">
-                    🎥 Видео файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                </div>
-            `;
-        } else if (fileType === 'image') {
-            previewContent.innerHTML = `
-                <img src="${shopItemFileData}" class="upload-preview">
-                <div style="text-align: center; margin-top: 8px; color: #718096;">
-                    🖼️ Изображение: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                </div>
-            `;
-        } else if (file.type === 'application/pdf') {
-            previewContent.innerHTML = `
-                <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
-                    <div style="font-size: 64px; margin-bottom: 16px;">📚</div>
-                    <div style="font-weight: 600; margin-bottom: 8px;">PDF документ</div>
-                    <div style="color: #718096;">${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
-                </div>
-            `;
-        } else if (fileType === 'audio') {
-            previewContent.innerHTML = `
-                <audio controls style="width: 100%; margin: 16px 0;">
-                    <source src="${shopItemFileData}" type="${file.type}">
-                    Ваш браузер не поддерживает аудио.
-                </audio>
-                <div style="text-align: center; color: #718096;">
-                    🎧 Аудио файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                </div>
-            `;
-        } else {
-            previewContent.innerHTML = `
-                <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
-                    <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
-                    <div style="font-weight: 600; margin-bottom: 8px;">Файл: ${file.name}</div>
-                    <div style="color: #718096;">Тип: ${file.type} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
-                </div>
-            `;
+        // Обработка загрузки файла товара
+        function handleShopItemFileUpload(file) {
+            if (!file) return;
+            
+            // ПРОВЕРКА ТИПА ФАЙЛА
+            const allowedTypes = [
+                'video/mp4', 'video/webm', 'video/ogg',
+                'application/pdf',
+                'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+                'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'
+            ];
+            
+            if (!allowedTypes.includes(file.type)) {
+                alert('❌ Неподдерживаемый тип файла. Разрешенные типы: MP4, PDF, JPG, PNG, MP3, WAV');
+                return;
+            }
+            
+            // Проверка размера файла
+            if (file.size > 10 * 1024 * 1024) {
+                alert('❌ Размер файла не должен превышать 10MB');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                shopItemFileData = e.target.result;
+                
+                const previewContent = document.getElementById('shopItemFilePreviewContent');
+                const fileType = file.type.split('/')[0];
+                
+                if (fileType === 'video') {
+                    previewContent.innerHTML = `
+                        <video controls class="upload-preview">
+                            <source src="${shopItemFileData}" type="${file.type}">
+                            Ваш браузер не поддерживает видео.
+                        </video>
+                        <div style="text-align: center; margin-top: 8px; color: #718096;">
+                            🎥 Видео файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                        </div>
+                    `;
+                } else if (fileType === 'image') {
+                    previewContent.innerHTML = `
+                        <img src="${shopItemFileData}" class="upload-preview">
+                        <div style="text-align: center; margin-top: 8px; color: #718096;">
+                            🖼️ Изображение: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                        </div>
+                    `;
+                } else if (file.type === 'application/pdf') {
+                    previewContent.innerHTML = `
+                        <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
+                            <div style="font-size: 64px; margin-bottom: 16px;">📚</div>
+                            <div style="font-weight: 600; margin-bottom: 8px;">PDF документ</div>
+                            <div style="color: #718096;">${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
+                        </div>
+                    `;
+                } else if (fileType === 'audio') {
+                    previewContent.innerHTML = `
+                        <audio controls style="width: 100%; margin: 16px 0;">
+                            <source src="${shopItemFileData}" type="${file.type}">
+                            Ваш браузер не поддерживает аудио.
+                        </audio>
+                        <div style="text-align: center; color: #718096;">
+                            🎧 Аудио файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                        </div>
+                    `;
+                } else {
+                    previewContent.innerHTML = `
+                        <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
+                            <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
+                            <div style="font-weight: 600; margin-bottom: 8px;">Файл: ${file.name}</div>
+                            <div style="color: #718096;">Тип: ${file.type} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('shopItemFilePreview').style.display = 'block';
+                document.getElementById('shopItemFileUploadArea').style.display = 'none';
+                
+                // Очистить URL поле если загружаем файл
+                document.getElementById('shopItemFileUrl').value = '';
+            };
+            reader.readAsDataURL(file);
         }
-        
-        document.getElementById('shopItemFilePreview').style.display = 'block';
-        document.getElementById('shopItemFileUploadArea').style.display = 'none';
-        
-        // Очистить URL поле если загружаем файл
-        document.getElementById('shopItemFileUrl').value = '';
-    };
-    reader.readAsDataURL(file);
-}
 
-// Обработка загрузки превью товара
-function handleShopItemPreviewUpload(file) {
-    if (!file) return;
-    
-    if (!file.type.startsWith('image/')) {
-        alert('❌ Пожалуйста, выберите изображение для превью');
-        return;
-    }
-    
-    if (file.size > 5 * 1024 * 1024) {
-        alert('❌ Размер файла не должен превышать 5MB');
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        shopItemPreviewData = e.target.result;
-        document.getElementById('shopItemPreviewImage').src = shopItemPreviewData;
-        document.getElementById('shopItemPreviewImagePreview').style.display = 'block';
-        document.getElementById('shopItemPreviewUploadArea').style.display = 'none';
-        
-        // Очистить URL поле если загружаем файл
-        document.getElementById('shopItemPreviewUrl').value = '';
-    };
-    reader.readAsDataURL(file);
-}
+        // Обработка загрузки превью товара
+        function handleShopItemPreviewUpload(file) {
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                alert('❌ Пожалуйста, выберите изображение для превью');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                alert('❌ Размер файла не должен превышать 5MB');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                shopItemPreviewData = e.target.result;
+                document.getElementById('shopItemPreviewImage').src = shopItemPreviewData;
+                document.getElementById('shopItemPreviewImagePreview').style.display = 'block';
+                document.getElementById('shopItemPreviewUploadArea').style.display = 'none';
+                
+                // Очистить URL поле если загружаем файл
+                document.getElementById('shopItemPreviewUrl').value = '';
+            };
+            reader.readAsDataURL(file);
+        }
 
-// Очистить файл товара
-function clearShopItemFile() {
-    shopItemFileData = null;
-    document.getElementById('shopItemFilePreview').style.display = 'none';
-    document.getElementById('shopItemFileUploadArea').style.display = 'block';
-    document.getElementById('shopItemFileInput').value = '';
-    document.getElementById('shopItemFileUrl').value = '';
-}
+        // Очистить файл товара
+        function clearShopItemFile() {
+            shopItemFileData = null;
+            document.getElementById('shopItemFilePreview').style.display = 'none';
+            document.getElementById('shopItemFileUploadArea').style.display = 'block';
+            document.getElementById('shopItemFileInput').value = '';
+            document.getElementById('shopItemFileUrl').value = '';
+        }
 
-// Очистить превью товара
-function clearShopItemPreview() {
-    shopItemPreviewData = null;
-    document.getElementById('shopItemPreviewImagePreview').style.display = 'none';
-    document.getElementById('shopItemPreviewUploadArea').style.display = 'block';
-    document.getElementById('shopItemPreviewInput').value = '';
-    document.getElementById('shopItemPreviewUrl').value = '';
-}
+        // Очистить превью товара
+        function clearShopItemPreview() {
+            shopItemPreviewData = null;
+            document.getElementById('shopItemPreviewImagePreview').style.display = 'none';
+            document.getElementById('shopItemPreviewUploadArea').style.display = 'block';
+            document.getElementById('shopItemPreviewInput').value = '';
+            document.getElementById('shopItemPreviewUrl').value = '';
+        }
 
         // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 
@@ -4984,57 +4777,56 @@ function clearShopItemPreview() {
         });
 
         // Обработка перетаскивания файлов для магазина
-document.addEventListener('DOMContentLoaded', function() {
-    const fileUploadArea = document.getElementById('shopItemFileUploadArea');
-    const previewUploadArea = document.getElementById('shopItemPreviewUploadArea');
-    
-    // Функции для обработки перетаскивания файлов магазина
-    function setupDragAndDrop(uploadArea, callback) {
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, preventDefaults, false);
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileUploadArea = document.getElementById('shopItemFileUploadArea');
+            const previewUploadArea = document.getElementById('shopItemPreviewUploadArea');
+            
+            // Функции для обработки перетаскивания файлов магазина
+            function setupDragAndDrop(uploadArea, callback) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, unhighlight, false);
+                });
+                
+                function highlight() {
+                    uploadArea.classList.add('dragover');
+                }
+                
+                function unhighlight() {
+                    uploadArea.classList.remove('dragover');
+                }
+                
+                uploadArea.addEventListener('drop', handleDrop, false);
+                
+                function handleDrop(e) {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    callback(files[0]);
+                }
+            }
+            
+            // Настройка перетаскивания для файла товара
+            if (fileUploadArea) {
+                setupDragAndDrop(fileUploadArea, handleShopItemFileUpload);
+            }
+            
+            // Настройка перетаскивания для превью товара
+            if (previewUploadArea) {
+                setupDragAndDrop(previewUploadArea, handleShopItemPreviewUpload);
+            }
         });
-        
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, highlight, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, unhighlight, false);
-        });
-        
-        function highlight() {
-            uploadArea.classList.add('dragover');
-        }
-        
-        function unhighlight() {
-            uploadArea.classList.remove('dragover');
-        }
-        
-        uploadArea.addEventListener('drop', handleDrop, false);
-        
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            callback(files[0]);
-        }
-    }
-    
-    // Настройка перетаскивания для файла товара
-    if (fileUploadArea) {
-        setupDragAndDrop(fileUploadArea, handleShopItemFileUpload);
-    }
-    
-    // Настройка перетаскивания для превью товара
-    if (previewUploadArea) {
-        setupDragAndDrop(previewUploadArea, handleShopItemPreviewUpload);
-    }
-});
-        
     </script>
 </body>
-</html> 
+</html>
