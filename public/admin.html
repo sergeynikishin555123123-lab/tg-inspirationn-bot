@@ -1922,6 +1922,19 @@
                     </div>
                 `;
                 
+                // ДОБАВЛЯЕМ КНОПКУ ЭКСПОРТА СТАТИСТИКИ
+                const statsGrid = document.getElementById('statsGrid');
+                const exportButton = document.createElement('div');
+                exportButton.className = 'stat-card';
+                exportButton.style.cursor = 'pointer';
+                exportButton.style.background = 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)';
+                exportButton.onclick = exportFullStats;
+                exportButton.innerHTML = `
+                    <div class="stat-number" style="color: white;">📊</div>
+                    <div class="stat-label" style="color: white;">Экспорт всей статистики</div>
+                `;
+                statsGrid.appendChild(exportButton);
+                
                 // Загружаем расширенную статистику
                 await loadFullStats();
                 
@@ -1930,6 +1943,45 @@
             }
         }
 
+// Экспорт полной статистики
+async function exportFullStats() {
+    try {
+        console.log('📈 Начало экспорта полной статистики...');
+        
+        // Показываем индикатор загрузки
+        showMessage('⏳ Подготовка отчета...', 'info');
+        
+        // Создаем запрос на экспорт
+        const response = await fetch(`/api/admin/export/full-stats?userId=${currentUserId}`);
+        
+        if (!response.ok) {
+            throw new Error(`Ошибка сервера: ${response.status}`);
+        }
+        
+        // Получаем blob данных
+        const blob = await response.blob();
+        
+        // Создаем ссылку для скачивания
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `full_stats_export_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Очищаем
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        console.log('✅ Экспорт статистики завершен');
+        showMessage('✅ Полный отчет статистики успешно скачан', 'success');
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта статистики:', error);
+        showMessage(`❌ Ошибка экспорта статистики: ${error.message}`, 'error');
+    }
+}
+        
         // Загрузка полной статистики
         async function loadFullStats() {
             try {
@@ -2096,10 +2148,57 @@
             loadUsers();
         }
 
-        // Экспорт пользователей
-        function exportUsers() {
-            alert('Экспорт в CSV будет реализован в следующей версии');
+// Экспорт пользователей - ИСПРАВЛЕННАЯ ВЕРСИЯ
+async function exportUsers() {
+    try {
+        console.log('📤 Начало экспорта пользователей...');
+        
+        // Показываем индикатор загрузки
+        const exportBtn = document.querySelector('.export-btn');
+        const originalText = exportBtn.innerHTML;
+        exportBtn.innerHTML = '⏳ Экспорт...';
+        exportBtn.disabled = true;
+        
+        // Создаем запрос на экспорт
+        const response = await fetch(`/api/admin/export/users?userId=${currentUserId}`);
+        
+        if (!response.ok) {
+            throw new Error(`Ошибка сервера: ${response.status}`);
         }
+        
+        // Получаем blob данных
+        const blob = await response.blob();
+        
+        // Создаем ссылку для скачивания
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Очищаем
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Восстанавливаем кнопку
+        exportBtn.innerHTML = originalText;
+        exportBtn.disabled = false;
+        
+        console.log('✅ Экспорт пользователей завершен');
+        showMessage('✅ Отчет пользователей успешно скачан', 'success');
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта:', error);
+        
+        // Восстанавливаем кнопку
+        const exportBtn = document.querySelector('.export-btn');
+        exportBtn.innerHTML = '📊 Экспорт в CSV';
+        exportBtn.disabled = false;
+        
+        showMessage(`❌ Ошибка экспорта: ${error.message}`, 'error');
+    }
+}
 
         // ==================== РОЛИ ====================
 
