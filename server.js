@@ -545,13 +545,13 @@ let db = {
     marathon_submissions: []
 };
 
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '3gb' }));
+app.use(express.urlencoded({ limit: '3gb', extended: true }));
 app.use(cors());
-app.use(bodyParser.urlencoded({ extended: true }));
 
 // ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
-app.use(express.static(join(APP_ROOT, 'public')));
-app.use('/admin', express.static(join(APP_ROOT, 'admin')));
+app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
+app.use('/admin', express.static(join(APP_ROOT, 'admin'), { maxAge: '1d' }));
 
 app.get('/admin', (req, res) => {
     res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
