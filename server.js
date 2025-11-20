@@ -2319,6 +2319,111 @@ if (process.env.BOT_TOKEN) {
     }
 }
 
+// ==================== ЭКСПОРТ ОТЧЕТОВ ====================
+
+// Экспорт пользователей в CSV
+app.get('/api/admin/export/users', requireAdmin, (req, res) => {
+    try {
+        console.log('📊 Экспорт пользователей в CSV');
+        
+        const users = db.users.filter(u => u.is_registered);
+        
+        // Заголовки CSV
+        let csv = 'ID;Имя;Username;Роль;Персонаж;Уровень;Искры;Зарегистрирован;Последняя активность\n';
+        
+        // Данные пользователей
+        users.forEach(user => {
+            const row = [
+                user.user_id,
+                user.tg_first_name || '',
+                user.tg_username || '',
+                user.class || '',
+                user.character_name || '',
+                user.level || '',
+                user.sparks.toFixed(1),
+                new Date(user.registration_date).toLocaleDateString('ru-RU'),
+                new Date(user.last_active).toLocaleDateString('ru-RU')
+            ].map(field => `"${field}"`).join(';');
+            
+            csv += row + '\n';
+        });
+        
+        // Устанавливаем заголовки для скачивания
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="users_export.csv"');
+        res.send(csv);
+        
+        console.log('✅ CSV экспортирован, пользователей:', users.length);
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта:', error);
+        res.status(500).json({ error: 'Ошибка экспорта данных' });
+    }
+});
+
+// Экспорт статистики в CSV
+app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
+    try {
+        console.log('📈 Экспорт полной статистики в CSV');
+        
+        const users = db.users.filter(u => u.is_registered);
+        const purchases = db.purchases;
+        const activities = db.activities;
+        const works = db.user_works;
+        const quizCompletions = db.quiz_completions;
+        const marathonCompletions = db.marathon_completions.filter(m => m.completed);
+        
+        // Статистика по ролям
+        const roleStats = {};
+        db.roles.forEach(role => {
+            roleStats[role.name] = users.filter(u => u.class === role.name).length;
+        });
+        
+        let csv = 'Раздел;Показатель;Значение\n';
+        
+        // Основная статистика
+        csv += `Пользователи;Всего пользователей;${users.length}\n`;
+        csv += `Пользователи;Зарегистрировано;${users.filter(u => u.is_registered).length}\n`;
+        csv += `Пользователи;Активных сегодня;${users.filter(u => {
+            const today = new Date();
+            const lastActive = new Date(u.last_active);
+            return lastActive.toDateString() === today.toDateString();
+        }).length}\n`;
+        
+        // Статистика по ролям
+        Object.keys(roleStats).forEach(role => {
+            csv += `Роли;${role};${roleStats[role]}\n`;
+        });
+        
+        // Активности
+        csv += `Активности;Всего активностей;${activities.length}\n`;
+        csv += `Активности;Всего искр в системе;${users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)}\n`;
+        csv += `Активности;Всего покупок;${purchases.length}\n`;
+        csv += `Активности;Всего работ;${works.length}\n`;
+        csv += `Активности;Одобренных работ;${works.filter(w => w.status === 'approved').length}\n`;
+        
+        // Завершения
+        csv += `Завершения;Пройдено квизов;${quizCompletions.length}\n`;
+        csv += `Завершения;Завершено марафонов;${marathonCompletions.length}\n`;
+        
+        // Контент
+        csv += `Контент;Активных квизов;${db.quizzes.filter(q => q.is_active).length}\n`;
+        csv += `Контент;Активных марафонов;${db.marathons.filter(m => m.is_active).length}\n`;
+        csv += `Контент;Товаров в магазине;${db.shop_items.filter(i => i.is_active).length}\n`;
+        csv += `Контент;Постов в канале;${db.channel_posts.filter(p => p.is_active).length}\n`;
+        csv += `Контент;Интерактивов;${db.interactives.filter(i => i.is_active).length}\n`;
+        
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="full_stats_export.csv"');
+        res.send(csv);
+        
+        console.log('✅ Статистика экспортирована');
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта статистики:', error);
+        res.status(500).json({ error: 'Ошибка экспорта статистики' });
+    }
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
