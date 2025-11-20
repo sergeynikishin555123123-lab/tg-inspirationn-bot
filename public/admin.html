@@ -1431,9 +1431,9 @@
                             <div style="font-size: 48px; margin-bottom: 12px;">🖼️</div>
                             <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки превью</div>
                             <div style="color: #718096; font-size: 14px;">или перетащите изображение сюда</div>
-                            <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
-                                Поддерживаются: JPG, PNG (макс. 5MB)
-                            </div>
+                          <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
+    Поддерживаются: MP4, PDF, JPG, PNG, MP3 (макс. 3GB)
+</div>
                         </div>
                         <input type="file" id="shopItemPreviewInput" accept="image/*" style="display: none;" onchange="handleShopItemPreviewUpload(this.files[0])">
                         
@@ -4705,11 +4705,11 @@ async function exportUsers() {
                 return;
             }
             
-            // Проверка размера файла
-            if (file.size > 10 * 1024 * 1024) {
-                alert('❌ Размер файла не должен превышать 10MB');
-                return;
-            }
+// Проверка размера файла - увеличен до 3GB
+if (file.size > 3 * 1024 * 1024 * 1024) {
+    alert('❌ Размер файла не должен превышать 3GB');
+    return;
+}
             
             const reader = new FileReader();
             reader.onload = function(e) {
