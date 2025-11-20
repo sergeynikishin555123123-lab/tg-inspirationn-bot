@@ -3730,7 +3730,7 @@ function filterPurchasesByType(type) {
                         <div class="content-preview">
                             ${item.content_text || 'Описание содержимого...'}
                         </div>
-                        // В функции создания карточки товара ЗАМЕНИ КНОПКУ ПОКУПКИ:
+                        
 <button class="btn ${canAfford && !hasPurchased ? 'btn-success' : 'btn-secondary'}" 
         onclick="purchaseItem(${item.id})" 
         ${!canAfford || hasPurchased ? 'disabled' : ''}>
