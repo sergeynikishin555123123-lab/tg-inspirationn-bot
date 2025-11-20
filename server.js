@@ -545,9 +545,14 @@ let db = {
     marathon_submissions: []
 };
 
+// Увеличены лимиты для больших файлов (3GB)
 app.use(express.json({ limit: '3gb' }));
 app.use(express.urlencoded({ limit: '3gb', extended: true }));
 app.use(cors());
+
+// Дополнительные настройки для body-parser (если используется)
+app.use(bodyParser.json({ limit: '3gb' }));
+app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
 
 // ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
 app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
@@ -1050,6 +1055,8 @@ app.get('/api/webapp/marathons', (req, res) => {
 
 // НОВЫЙ МЕТОД ДЛЯ ОТПРАВКИ РАБОТЫ В МАРАФОНЕ
 app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
+    console.log('📤 Отправка работы марафона, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
+    
     const marathonId = parseInt(req.params.marathonId);
     const { userId, day, submission_text, submission_image } = req.body;
     
@@ -1225,6 +1232,8 @@ app.get('/api/webapp/users/:userId/activities', (req, res) => {
 
 // Работы пользователя
 app.post('/api/webapp/upload-work', (req, res) => {
+    console.log('📤 Загрузка работы, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
+    
     const { userId, title, description, imageUrl, type } = req.body;
     
     if (!userId || !title || !imageUrl) {
@@ -1693,6 +1702,8 @@ app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
 });
 
 app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
+    console.log('🛒 Создание товара, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
+    
     const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data } = req.body;
     
     if (!title || !price) {
@@ -1723,6 +1734,8 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
 });
 
 app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
+    console.log('🛒 Обновление товара, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
+    
     const itemId = parseInt(req.params.itemId);
     const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data } = req.body;
     
