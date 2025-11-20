@@ -3093,10 +3093,10 @@ function filterPurchasesByType(type) {
                 return;
             }
             
-            if (file.size > 5 * 1024 * 1024) {
-                showMessage('❌ Размер файла не должен превышать 5MB', 'error');
-                return;
-            }
+if (file.size > 3 * 1024 * 1024 * 1024) {
+    showMessage('❌ Размер файла не должен превышать 3GB', 'error');
+    return;
+}
             
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -3662,10 +3662,10 @@ function filterPurchasesByType(type) {
                 return;
             }
             
-            if (file.size > 5 * 1024 * 1024) {
-                showMessage('❌ Размер файла не должен превышать 5MB', 'error');
-                return;
-            }
+            if (file.size > 3 * 1024 * 1024 * 1024) {
+    showMessage('❌ Размер файла не должен превышать 3GB', 'error');
+    return;
+}
             
             const reader = new FileReader();
             reader.onload = function(e) {
