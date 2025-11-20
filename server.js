@@ -830,15 +830,36 @@ app.post('/api/users/register', (req, res) => {
     });
 });
 
+// ЗАМЕНИТЕ весь блок выше на этот:
 app.get('/api/webapp/roles', (req, res) => {
-    const roles = db.roles.filter(role => role.is_active);
-    res.json(roles);
+    try {
+        console.log('📋 Запрос на получение ролей');
+        const roles = db.roles.filter(role => role.is_active);
+        console.log('✅ Найдено ролей:', roles.length);
+        console.log('📝 Роли:', roles.map(r => r.name));
+        res.json(roles);
+    } catch (error) {
+        console.error('❌ Ошибка получения ролей:', error);
+        res.status(500).json({ error: 'Ошибка загрузки ролей' });
+    }
 });
 
+// ЗАМЕНИТЕ весь блок выше на этот:
 app.get('/api/webapp/characters/:roleId', (req, res) => {
-    const roleId = parseInt(req.params.roleId);
-    const characters = db.characters.filter(char => char.role_id === roleId && char.is_active);
-    res.json(characters);
+    try {
+        const roleId = parseInt(req.params.roleId);
+        console.log('👥 Запрос персонажей для роли:', roleId);
+        
+        const characters = db.characters.filter(char => 
+            char.role_id === roleId && char.is_active
+        );
+        
+        console.log('✅ Найдено персонажей:', characters.length);
+        res.json(characters);
+    } catch (error) {
+        console.error('❌ Ошибка получения персонажей:', error);
+        res.status(500).json({ error: 'Ошибка загрузки персонажей' });
+    }
 });
 
 app.get('/api/webapp/quizzes', (req, res) => {
