@@ -376,23 +376,7 @@ let db = {
             id: 1, 
             user_id: 898508164, 
             username: 'admin', 
-            role: 'superadmin', 
-            created_at: new Date().toISOString() 
-        }
-
-                { 
-            id: 2, 
-            user_id: 781959267, 
-            username: 'admin', 
-            role: 'superadmin', 
-            created_at: new Date().toISOString() 
-        }
-
-        { 
-            id: 3, 
-            user_id: 79156202620, 
-            username: 'admin', 
-            role: 'superadmin', 
+            role: 'admins', 
             created_at: new Date().toISOString() 
         }
     ],
