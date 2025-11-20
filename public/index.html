@@ -1706,53 +1706,64 @@
         let uploadedImage = null;
         let marathonUploadedImage = null;
 
-// Инициализация приложения
+// Инициализация приложения - ИСПРАВЛЕННАЯ ВЕРСИЯ
 async function initApp() {
     try {
-        // ДОБАВЬТЕ ЭТУ ПРОВЕРКУ В НАЧАЛО ФУНКЦИИ
         console.log('🚀 Инициализация приложения...');
         
-        // Инициализация Telegram WebApp
-        tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.enableClosingConfirmation();
+        // Добавьте эту проверку
+        if (typeof Telegram === 'undefined') {
+            console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
+            tg = {
+                initDataUnsafe: {
+                    user: { id: 898508164, first_name: 'Тестовый' },
+                    start_param: null
+                },
+                expand: () => console.log('📱 Expand'),
+                enableClosingConfirmation: () => console.log('🔒 Closing confirmation')
+            };
+        } else {
+            tg = window.Telegram.WebApp;
+            tg.expand();
+            tg.enableClosingConfirmation();
+        }
         
         currentUserId = tg.initDataUnsafe.user?.id || tg.initDataUnsafe.start_param?.replace('ref_', '') || 898508164;
         
         console.log('👤 User ID:', currentUserId);
         console.log('📱 Platform:', tg.platform);
                 
-                // Загружаем данные пользователя
-                await loadUserData();
-                
-                // Инициализация рисовального холста
-                initDrawingCanvas();
-                
-                // Обработчики для интерактивных вкладок
-                document.querySelectorAll('.interactive-tab').forEach(tab => {
-                    tab.addEventListener('click', function() {
-                        document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
-                        this.classList.add('active');
-                        currentInteractiveCategory = this.dataset.category;
-                        loadInteractives();
-                    });
-                });
-                
-                // Обработчики для выбора цвета
-                document.querySelectorAll('.color-picker').forEach(picker => {
-                    picker.addEventListener('click', function() {
-                        document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
-                        this.classList.add('active');
-                        currentColor = this.dataset.color;
-                        updateDrawingTool();
-                    });
-                });
-                
-            } catch (error) {
-                console.error('Ошибка инициализации:', error);
-                showMessage('❌ Ошибка загрузки приложения', 'error');
-            }
-        }
+        // Загружаем данные пользователя
+        await loadUserData();
+        
+        // Инициализация рисовального холста
+        initDrawingCanvas();
+        
+        // Обработчики для интерактивных вкладок
+        document.querySelectorAll('.interactive-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                currentInteractiveCategory = this.dataset.category;
+                loadInteractives();
+            });
+        });
+        
+        // Обработчики для выбора цвета
+        document.querySelectorAll('.color-picker').forEach(picker => {
+            picker.addEventListener('click', function() {
+                document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                currentColor = this.dataset.color;
+                updateDrawingTool();
+            });
+        });
+        
+    } catch (error) {
+        console.error('💥 Критическая ошибка инициализации:', error);
+        showMessage('❌ Ошибка загрузки приложения: ' + error.message, 'error');
+    }
+}
 
         // Загрузка данных пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
 async function loadUserData() {
@@ -1898,44 +1909,50 @@ function loadAvailableButtons() {
     console.log('✅ Кнопки загружены');
 }
 
-        // Показать экран
-        function showScreen(screenName) {
-            document.querySelectorAll('.screen').forEach(screen => {
-                screen.classList.remove('active');
-            });
-            document.getElementById(screenName).classList.add('active');
-            
-            // Загружаем данные для экрана
-            switch(screenName) {
-                case 'quizzesScreen':
-                    loadQuizzes();
-                    break;
-                case 'marathonsScreen':
-                    loadMarathons();
-                    break;
-                case 'worksScreen':
-                    loadWorks();
-                    break;
-                case 'shopScreen':
-                    loadShop();
-                    break;
-                case 'postsScreen':
-                    loadPosts();
-                    break;
-                case 'activitiesScreen':
-                    loadActivities();
-                    break;
-                case 'interactivesScreen':
-                    loadInteractives();
-                    break;
-                case 'inviteScreen':
-                    document.getElementById('inviteUserId').textContent = currentUserId;
-                    break;
-                case 'changeRoleScreen':
-                    loadRolesForChange();
-                    break;
-            }
-        }
+// Показать экран
+function showScreen(screenName) {
+    console.log('🔄 Переключение на экран:', screenName);
+    
+    document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+    });
+    document.getElementById(screenName).classList.add('active');
+    
+    // Загружаем данные для экрана
+    switch(screenName) {
+        case 'registrationScreen':
+            console.log('🎯 Загрузка экрана регистрации');
+            loadRoles();
+            break;
+        case 'quizzesScreen':
+            loadQuizzes();
+            break;
+        case 'marathonsScreen':
+            loadMarathons();
+            break;
+        case 'worksScreen':
+            loadWorks();
+            break;
+        case 'shopScreen':
+            loadShop();
+            break;
+        case 'postsScreen':
+            loadPosts();
+            break;
+        case 'activitiesScreen':
+            loadActivities();
+            break;
+        case 'interactivesScreen':
+            loadInteractives();
+            break;
+        case 'inviteScreen':
+            document.getElementById('inviteUserId').textContent = currentUserId;
+            break;
+        case 'changeRoleScreen':
+            loadRolesForChange();
+            break;
+    }
+}
 
         // ==================== СИСТЕМА СМЕНЫ РОЛИ ====================
 
@@ -2058,74 +2075,123 @@ function loadAvailableButtons() {
 
         // ==================== РЕГИСТРАЦИЯ ====================
 
-        // Регистрация - загрузка ролей
-        async function loadRoles() {
-            try {
-                const response = await fetch('/api/webapp/roles');
-                const roles = await response.json();
-                
-                const rolesList = document.getElementById('rolesList');
-                rolesList.innerHTML = '';
-                
-                roles.forEach(role => {
-                    const roleCard = document.createElement('div');
-                    roleCard.className = 'role-card';
-                    roleCard.innerHTML = `
-                        <div style="font-size: 24px; margin-bottom: 8px;">${role.icon}</div>
-                        <div style="font-weight: 600; margin-bottom: 5px;">${role.name}</div>
-                        <div style="color: #718096; font-size: 14px;">${role.description}</div>
-                    `;
-                    roleCard.onclick = () => selectRole(role);
-                    rolesList.appendChild(roleCard);
-                });
-            } catch (error) {
-                document.getElementById('rolesList').innerHTML = '<div class="error">Ошибка загрузки ролей</div>';
-            }
+// Загрузка ролей для регистрации - ИСПРАВЛЕННАЯ ВЕРСИЯ
+async function loadRoles() {
+    try {
+        console.log('🔄 Начинаем загрузку ролей...');
+        
+        const response = await fetch('/api/webapp/roles');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        const roles = await response.json();
+        console.log('✅ Роли загружены:', roles);
+        
+        const rolesList = document.getElementById('rolesList');
+        
+        if (!roles || roles.length === 0) {
+            rolesList.innerHTML = '<div class="error">Нет доступных ролей</div>';
+            return;
+        }
+        
+        rolesList.innerHTML = '';
+        
+        roles.forEach(role => {
+            const roleCard = document.createElement('div');
+            roleCard.className = 'role-card';
+            roleCard.innerHTML = `
+                <div style="font-size: 24px; margin-bottom: 8px;">${role.icon}</div>
+                <div style="font-weight: 600; margin-bottom: 5px;">${role.name}</div>
+                <div style="color: #718096; font-size: 14px;">${role.description}</div>
+            `;
+            roleCard.onclick = () => selectRole(role);
+            rolesList.appendChild(roleCard);
+        });
+        
+        console.log('🎯 Роли отображены в интерфейсе');
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки ролей:', error);
+        const rolesList = document.getElementById('rolesList');
+        rolesList.innerHTML = `
+            <div class="error">
+                Ошибка загрузки ролей: ${error.message}
+                <button class="btn" onclick="loadRoles()" style="margin-top: 10px;">
+                    🔄 Повторить
+                </button>
+            </div>
+        `;
+    }
+}
 
-        // Выбор роли
-        function selectRole(role) {
-            selectedRole = role;
-            
-            // Снимаем выделение со всех карточек
-            document.querySelectorAll('.role-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            
-            // Выделяем выбранную карточку
-            event.currentTarget.classList.add('selected');
-            
-            // Загружаем персонажей для выбранной роли
-            loadCharacters(role.id);
-        }
+// Выбор роли - ИСПРАВЛЕННАЯ ВЕРСИЯ
+function selectRole(role) {
+    console.log('🎯 Выбрана роль:', role);
+    
+    selectedRole = role;
+    
+    // Снимаем выделение со всех карточек
+    document.querySelectorAll('.role-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Выделяем выбранную карточку
+    event.currentTarget.classList.add('selected');
+    
+    // Загружаем персонажей для выбранной роли
+    loadCharacters(role.id);
+}
 
-        // Загрузка персонажей
-        async function loadCharacters(roleId) {
-            try {
-                const response = await fetch(`/api/webapp/characters/${roleId}`);
-                const characters = await response.json();
-                
-                const charactersSection = document.getElementById('charactersSection');
-                const charactersList = document.getElementById('charactersList');
-                
-                charactersSection.style.display = 'block';
-                charactersList.innerHTML = '';
-                
-                characters.forEach(character => {
-                    const characterCard = document.createElement('div');
-                    characterCard.className = 'character-card';
-                    characterCard.innerHTML = `
-                        <div style="font-weight: 600; margin-bottom: 5px;">${character.name}</div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
-                        <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
-                    `;
-                    characterCard.onclick = () => selectCharacter(character);
-                    charactersList.appendChild(characterCard);
-                });
-            } catch (error) {
-                document.getElementById('charactersList').innerHTML = '<div class="error">Ошибка загрузки персонажей</div>';
-            }
+// Загрузка персонажей - ИСПРАВЛЕННАЯ ВЕРСИЯ
+async function loadCharacters(roleId) {
+    try {
+        console.log('🔄 Загрузка персонажей для роли:', roleId);
+        
+        const response = await fetch(`/api/webapp/characters/${roleId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        const characters = await response.json();
+        console.log('✅ Персонажи загружены:', characters);
+        
+        const charactersSection = document.getElementById('charactersSection');
+        const charactersList = document.getElementById('charactersList');
+        
+        charactersSection.style.display = 'block';
+        charactersList.innerHTML = '';
+        
+        if (!characters || characters.length === 0) {
+            charactersList.innerHTML = '<div class="error">Нет доступных персонажей для этой роли</div>';
+            return;
+        }
+        
+        characters.forEach(character => {
+            const characterCard = document.createElement('div');
+            characterCard.className = 'character-card';
+            characterCard.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 5px;">${character.name}</div>
+                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
+                <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
+            `;
+            characterCard.onclick = () => selectCharacter(character);
+            charactersList.appendChild(characterCard);
+        });
+        
+        console.log('👥 Персонажи отображены');
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки персонажей:', error);
+        document.getElementById('charactersList').innerHTML = `
+            <div class="error">
+                Ошибка загрузки персонажей: ${error.message}
+            </div>
+        `;
+    }
+}
 
         // Получить описание бонуса
         function getBonusDescription(character) {
@@ -2155,44 +2221,52 @@ function loadAvailableButtons() {
             document.getElementById('completeBtn').disabled = false;
         }
 
-        // Завершение регистрации
-        async function completeRegistration() {
-            if (!selectedRole || !selectedCharacter) {
-                showMessage('❌ Выберите роль и персонажа', 'error');
-                return;
-            }
-            
-            const firstName = document.getElementById('userFirstName').value.trim();
-            if (!firstName) {
-                showMessage('❌ Введите ваше имя', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/users/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        firstName: firstName,
-                        roleId: selectedRole.id,
-                        characterId: selectedCharacter.id
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage(`✅ ${result.message}`, 'success');
-                    await loadUserData();
-                    showScreen('mainScreen');
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('❌ Ошибка регистрации', 'error');
-            }
+// Завершение регистрации - ИСПРАВЛЕННАЯ ВЕРСИЯ
+async function completeRegistration() {
+    console.log('📝 Начало регистрации...');
+    console.log('👤 Выбранная роль:', selectedRole);
+    console.log('🎭 Выбранный персонаж:', selectedCharacter);
+    
+    if (!selectedRole || !selectedCharacter) {
+        showMessage('❌ Выберите роль и персонажа', 'error');
+        return;
+    }
+    
+    const firstName = document.getElementById('userFirstName').value.trim();
+    if (!firstName) {
+        showMessage('❌ Введите ваше имя', 'error');
+        return;
+    }
+    
+    try {
+        console.log('📤 Отправка данных регистрации...');
+        
+        const response = await fetch('/api/users/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentUserId,
+                firstName: firstName,
+                roleId: selectedRole.id,
+                characterId: selectedCharacter.id
+            })
+        });
+        
+        const result = await response.json();
+        console.log('📋 Ответ сервера:', result);
+        
+        if (result.success) {
+            showMessage(`✅ ${result.message}`, 'success');
+            await loadUserData();
+            showScreen('mainScreen');
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
         }
+    } catch (error) {
+        console.error('❌ Ошибка регистрации:', error);
+        showMessage('❌ Ошибка регистрации: ' + error.message, 'error');
+    }
+}
 
 // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПОКУПОК ====================
 
