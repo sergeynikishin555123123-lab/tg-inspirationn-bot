@@ -4688,7 +4688,7 @@ async function exportUsers() {
 
         // ==================== МАГАЗИН - ЗАГРУЗКА ФАЙЛОВ ====================
 
-// Обработка загрузки файла товара - УЛУЧШЕННАЯ ВЕРСИЯ ДЛЯ БОЛЬШИХ ФАЙЛОВ
+// Обработка загрузки файла товара - УЛУЧШЕННАЯ ВЕРСИЯ ДЛЯ БОЛЬШИХ ФАЙЛОВ (до 3GB)
 function handleShopItemFileUpload(file) {
     if (!file) return;
     
@@ -4701,6 +4701,146 @@ function handleShopItemFileUpload(file) {
         'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
         'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/aac'
     ];
+    
+    if (!allowedTypes.includes(file.type)) {
+        alert('❌ Неподдерживаемый тип файла. Разрешенные типы: MP4, AVI, MKV, MOV, PDF, JPG, PNG, MP3, WAV');
+        return;
+    }
+    
+    // Проверка размера файла - увеличен до 3GB
+    if (file.size > 3 * 1024 * 1024 * 1024) {
+        alert('❌ Размер файла не должен превышать 3GB. Ваш файл: ' + 
+              (file.size / 1024 / 1024 / 1024).toFixed(2) + ' GB');
+        return;
+    }
+    
+    // Показываем индикатор загрузки для больших файлов
+    if (file.size > 100 * 1024 * 1024) { // Если файл больше 100MB
+        showMessage('⏳ Загружаем большой файл... Это может занять несколько минут', 'info');
+    }
+    
+    const reader = new FileReader();
+    
+    reader.onloadstart = function() {
+        console.log('🚀 Начало загрузки файла...');
+    };
+    
+    reader.onprogress = function(e) {
+        if (e.lengthComputable) {
+            const percentLoaded = Math.round((e.loaded / e.total) * 100);
+            console.log(`📊 Загружено: ${percentLoaded}%`);
+            
+            // Обновляем индикатор прогресса для очень больших файлов
+            if (file.size > 500 * 1024 * 1024) {
+                const progressElement = document.getElementById('uploadProgress') || createProgressElement();
+                progressElement.textContent = `Загрузка: ${percentLoaded}%`;
+            }
+        }
+    };
+    
+    reader.onload = function(e) {
+        shopItemFileData = e.target.result;
+        
+        const previewContent = document.getElementById('shopItemFilePreviewContent');
+        const fileType = file.type.split('/')[0];
+        
+        if (fileType === 'video') {
+            previewContent.innerHTML = `
+                <video controls class="upload-preview">
+                    <source src="${shopItemFileData}" type="${file.type}">
+                    Ваш браузер не поддерживает видео.
+                </video>
+                <div style="text-align: center; margin-top: 8px; color: #718096;">
+                    🎥 Видео файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+            `;
+        } else if (fileType === 'image') {
+            previewContent.innerHTML = `
+                <img src="${shopItemFileData}" class="upload-preview">
+                <div style="text-align: center; margin-top: 8px; color: #718096;">
+                    🖼️ Изображение: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+            `;
+        } else if (file.type === 'application/pdf') {
+            previewContent.innerHTML = `
+                <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">📚</div>
+                    <div style="font-weight: 600; margin-bottom: 8px;">PDF документ</div>
+                    <div style="color: #718096;">${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
+                </div>
+            `;
+        } else if (fileType === 'audio') {
+            previewContent.innerHTML = `
+                <audio controls style="width: 100%; margin: 16px 0;">
+                    <source src="${shopItemFileData}" type="${file.type}">
+                    Ваш браузер не поддерживает аудио.
+                </audio>
+                <div style="text-align: center; color: #718096;">
+                    🎧 Аудио файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+            `;
+        } else {
+            previewContent.innerHTML = `
+                <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
+                    <div style="font-weight: 600; margin-bottom: 8px;">Файл: ${file.name}</div>
+                    <div style="color: #718096;">Тип: ${file.type} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
+                </div>
+            `;
+        }
+        
+        document.getElementById('shopItemFilePreview').style.display = 'block';
+        document.getElementById('shopItemFileUploadArea').style.display = 'none';
+        
+        // Очистить URL поле если загружаем файл
+        document.getElementById('shopItemFileUrl').value = '';
+        
+        // Удаляем индикатор прогресса
+        const progressElement = document.getElementById('uploadProgress');
+        if (progressElement) {
+            progressElement.remove();
+        }
+        
+        console.log('✅ Файл успешно загружен');
+        if (file.size > 100 * 1024 * 1024) {
+            showMessage('✅ Большой файл успешно загружен', 'success');
+        }
+    };
+    
+    reader.onerror = function() {
+        console.error('❌ Ошибка загрузки файла');
+        
+        // Удаляем индикатор прогресса при ошибке
+        const progressElement = document.getElementById('uploadProgress');
+        if (progressElement) {
+            progressElement.remove();
+        }
+        
+        showMessage('❌ Ошибка загрузки файла', 'error');
+    };
+    
+    // Создаем индикатор прогресса для очень больших файлов
+    function createProgressElement() {
+        const progressElement = document.createElement('div');
+        progressElement.id = 'uploadProgress';
+        progressElement.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            z-index: 10000;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        `;
+        document.body.appendChild(progressElement);
+        return progressElement;
+    }
+    
+    reader.readAsDataURL(file);
+}
     
     if (!allowedTypes.includes(file.type)) {
         alert('❌ Неподдерживаемый тип файла. Разрешенные типы: MP4, AVI, MKV, MOV, PDF, JPG, PNG, MP3, WAV');
@@ -4812,10 +4952,10 @@ function handleShopItemFileUpload(file) {
                 return;
             }
             
-            if (file.size > 5 * 1024 * 1024) {
-                alert('❌ Размер файла не должен превышать 5MB');
-                return;
-            }
+           if (file.size > 10 * 1024 * 1024) {
+    alert('❌ Размер файла превью не должен превышать 10MB');
+    return;
+}
             
             const reader = new FileReader();
             reader.onload = function(e) {
