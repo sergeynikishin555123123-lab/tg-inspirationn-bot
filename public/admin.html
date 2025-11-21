@@ -1404,7 +1404,7 @@
                             <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки файла</div>
                             <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
                             <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
-                                Поддерживаются: MP4, PDF, JPG, PNG, MP3 (макс. 10MB)
+                                Поддерживаются: MP4, PDF, JPG, PNG, MP3 (макс. 3gb)
                             </div>
                         </div>
                         <input type="file" id="shopItemFileInput" accept=".mp4,.pdf,.jpg,.jpeg,.png,.mp3" style="display: none;" onchange="handleShopItemFileUpload(this.files[0])">
@@ -1431,9 +1431,9 @@
                             <div style="font-size: 48px; margin-bottom: 12px;">🖼️</div>
                             <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки превью</div>
                             <div style="color: #718096; font-size: 14px;">или перетащите изображение сюда</div>
-                            <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
-                                Поддерживаются: JPG, PNG (макс. 5MB)
-                            </div>
+                          <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
+    Поддерживаются: MP4, PDF, JPG, PNG, MP3 (макс. 3GB)
+</div>
                         </div>
                         <input type="file" id="shopItemPreviewInput" accept="image/*" style="display: none;" onchange="handleShopItemPreviewUpload(this.files[0])">
                         
@@ -4688,89 +4688,120 @@ async function exportUsers() {
 
         // ==================== МАГАЗИН - ЗАГРУЗКА ФАЙЛОВ ====================
 
-        // Обработка загрузки файла товара
-        function handleShopItemFileUpload(file) {
-            if (!file) return;
-            
-            // ПРОВЕРКА ТИПА ФАЙЛА
-            const allowedTypes = [
-                'video/mp4', 'video/webm', 'video/ogg',
-                'application/pdf',
-                'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
-                'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'
-            ];
-            
-            if (!allowedTypes.includes(file.type)) {
-                alert('❌ Неподдерживаемый тип файла. Разрешенные типы: MP4, PDF, JPG, PNG, MP3, WAV');
-                return;
-            }
-            
-            // Проверка размера файла
-            if (file.size > 10 * 1024 * 1024) {
-                alert('❌ Размер файла не должен превышать 10MB');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                shopItemFileData = e.target.result;
-                
-                const previewContent = document.getElementById('shopItemFilePreviewContent');
-                const fileType = file.type.split('/')[0];
-                
-                if (fileType === 'video') {
-                    previewContent.innerHTML = `
-                        <video controls class="upload-preview">
-                            <source src="${shopItemFileData}" type="${file.type}">
-                            Ваш браузер не поддерживает видео.
-                        </video>
-                        <div style="text-align: center; margin-top: 8px; color: #718096;">
-                            🎥 Видео файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </div>
-                    `;
-                } else if (fileType === 'image') {
-                    previewContent.innerHTML = `
-                        <img src="${shopItemFileData}" class="upload-preview">
-                        <div style="text-align: center; margin-top: 8px; color: #718096;">
-                            🖼️ Изображение: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </div>
-                    `;
-                } else if (file.type === 'application/pdf') {
-                    previewContent.innerHTML = `
-                        <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
-                            <div style="font-size: 64px; margin-bottom: 16px;">📚</div>
-                            <div style="font-weight: 600; margin-bottom: 8px;">PDF документ</div>
-                            <div style="color: #718096;">${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
-                        </div>
-                    `;
-                } else if (fileType === 'audio') {
-                    previewContent.innerHTML = `
-                        <audio controls style="width: 100%; margin: 16px 0;">
-                            <source src="${shopItemFileData}" type="${file.type}">
-                            Ваш браузер не поддерживает аудио.
-                        </audio>
-                        <div style="text-align: center; color: #718096;">
-                            🎧 Аудио файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </div>
-                    `;
-                } else {
-                    previewContent.innerHTML = `
-                        <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
-                            <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
-                            <div style="font-weight: 600; margin-bottom: 8px;">Файл: ${file.name}</div>
-                            <div style="color: #718096;">Тип: ${file.type} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
-                        </div>
-                    `;
-                }
-                
-                document.getElementById('shopItemFilePreview').style.display = 'block';
-                document.getElementById('shopItemFileUploadArea').style.display = 'none';
-                
-                // Очистить URL поле если загружаем файл
-                document.getElementById('shopItemFileUrl').value = '';
-            };
-            reader.readAsDataURL(file);
+// Обработка загрузки файла товара - УЛУЧШЕННАЯ ВЕРСИЯ ДЛЯ БОЛЬШИХ ФАЙЛОВ
+function handleShopItemFileUpload(file) {
+    if (!file) return;
+    
+    console.log('📁 Загружаем файл:', file.name, 'Размер:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+    
+    // ПРОВЕРКА ТИПА ФАЙЛА
+    const allowedTypes = [
+        'video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mkv', 'video/mov',
+        'application/pdf',
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+        'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/aac'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+        alert('❌ Неподдерживаемый тип файла. Разрешенные типы: MP4, AVI, MKV, MOV, PDF, JPG, PNG, MP3, WAV');
+        return;
+    }
+    
+    // Проверка размера файла - увеличен до 3GB
+    if (file.size > 3 * 1024 * 1024 * 1024) {
+        alert('❌ Размер файла не должен превышать 3GB. Ваш файл: ' + 
+              (file.size / 1024 / 1024 / 1024).toFixed(2) + ' GB');
+        return;
+    }
+    
+    // Показываем индикатор загрузки для больших файлов
+    if (file.size > 100 * 1024 * 1024) { // Если файл больше 100MB
+        showMessage('⏳ Загружаем большой файл... Это может занять несколько минут', 'info');
+    }
+    
+    const reader = new FileReader();
+    
+    reader.onloadstart = function() {
+        console.log('🚀 Начало загрузки файла...');
+    };
+    
+    reader.onprogress = function(e) {
+        if (e.lengthComputable) {
+            const percentLoaded = Math.round((e.loaded / e.total) * 100);
+            console.log(`📊 Загружено: ${percentLoaded}%`);
         }
+    };
+    
+    reader.onload = function(e) {
+        shopItemFileData = e.target.result;
+        
+        const previewContent = document.getElementById('shopItemFilePreviewContent');
+        const fileType = file.type.split('/')[0];
+        
+        if (fileType === 'video') {
+            previewContent.innerHTML = `
+                <video controls class="upload-preview">
+                    <source src="${shopItemFileData}" type="${file.type}">
+                    Ваш браузер не поддерживает видео.
+                </video>
+                <div style="text-align: center; margin-top: 8px; color: #718096;">
+                    🎥 Видео файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+            `;
+        } else if (fileType === 'image') {
+            previewContent.innerHTML = `
+                <img src="${shopItemFileData}" class="upload-preview">
+                <div style="text-align: center; margin-top: 8px; color: #718096;">
+                    🖼️ Изображение: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+            `;
+        } else if (file.type === 'application/pdf') {
+            previewContent.innerHTML = `
+                <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">📚</div>
+                    <div style="font-weight: 600; margin-bottom: 8px;">PDF документ</div>
+                    <div style="color: #718096;">${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
+                </div>
+            `;
+        } else if (fileType === 'audio') {
+            previewContent.innerHTML = `
+                <audio controls style="width: 100%; margin: 16px 0;">
+                    <source src="${shopItemFileData}" type="${file.type}">
+                    Ваш браузер не поддерживает аудио.
+                </audio>
+                <div style="text-align: center; color: #718096;">
+                    🎧 Аудио файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+            `;
+        } else {
+            previewContent.innerHTML = `
+                <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
+                    <div style="font-weight: 600; margin-bottom: 8px;">Файл: ${file.name}</div>
+                    <div style="color: #718096;">Тип: ${file.type} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
+                </div>
+            `;
+        }
+        
+        document.getElementById('shopItemFilePreview').style.display = 'block';
+        document.getElementById('shopItemFileUploadArea').style.display = 'none';
+        
+        // Очистить URL поле если загружаем файл
+        document.getElementById('shopItemFileUrl').value = '';
+        
+        console.log('✅ Файл успешно загружен');
+        if (file.size > 100 * 1024 * 1024) {
+            showMessage('✅ Большой файл успешно загружен', 'success');
+        }
+    };
+    
+    reader.onerror = function() {
+        console.error('❌ Ошибка загрузки файла');
+        showMessage('❌ Ошибка загрузки файла', 'error');
+    };
+    
+    reader.readAsDataURL(file);
+}
 
         // Обработка загрузки превью товара
         function handleShopItemPreviewUpload(file) {
@@ -4928,4 +4959,4 @@ async function exportUsers() {
         });
     </script>
 </body>
-</html>
+</html> 
