@@ -1392,6 +1392,7 @@
                             <option value="text">📝 Текст</option>
                             <option value="audio">🎧 Аудио</option>
                             <option value="image">🖼️ Изображение</option>
+                            <option value="embed">🎬 Встроенное видео (Vimeo)</option>
                         </select>
                     </div>
 
@@ -1456,6 +1457,14 @@
                         <input type="number" id="shopItemPrice" class="form-control" value="10" min="0" step="0.5">
                     </div>
                     
+                    <div class="form-group" id="embedHtmlSection" style="display: none;">
+                        <label class="form-label">HTML-код для встраивания:</label>
+                        <textarea id="shopItemEmbedHtml" class="form-control" rows="4" placeholder="Вставьте HTML-код для встраивания видео (Vimeo, YouTube и т.д.)..."></textarea>
+                        <div style="color: #718096; font-size: 14px; margin-top: 8px;">
+                            💡 Вставьте код embed из Vimeo, YouTube или другой платформы
+                        </div>
+                    </div>
+        
                     <div class="form-group">
                         <label class="form-label">Содержимое (текст):</label>
                         <textarea id="shopItemContent" class="form-control" rows="6" placeholder="Подробное описание содержимого..."></textarea>
@@ -3832,11 +3841,43 @@ async function exportUsers() {
             const price = parseFloat(document.getElementById('shopItemPrice').value);
             const content_text = document.getElementById('shopItemContent').value.trim();
             const is_active = document.getElementById('shopItemActive').checked;
+            // ↓↓↓ ДОБАВЛЯЕМ ЗДЕСЬ ↓↓↓
+            const embed_html = document.getElementById('shopItemEmbedHtml').value.trim();
+            // ↑↑↑ ДОБАВЛЯЕМ ЗДЕСЬ ↑↑↑
             
             if (!title || !price) {
                 alert('Заполните название и цену');
                 return;
             }
+            
+            // ↓↓↓ ДОБАВЛЯЕМ ПРОВЕРКУ ДЛЯ EMBED ↓↓↓
+            if (type === 'embed' && !embed_html) {
+                alert('Для типа "Встроенное видео" необходимо заполнить HTML-код');
+                return;
+            }
+            // ↑↑↑ ДОБАВЛЯЕМ ПРОВЕРКУ ДЛЯ EMBED ↑↑↑
+            
+            try {
+                const itemData = {
+                    title,
+                    description,
+                    type,
+                    // ПРИОРИТЕТ: base64 данные над URL
+                    file_url: shopItemFileData || file_url,
+                    preview_url: shopItemPreviewData || preview_url,
+                    price,
+                    content_text,
+                    is_active,
+                    // ↓↓↓ ДОБАВЛЯЕМ EMBED HTML ↓↓↓
+                    embed_html: type === 'embed' ? embed_html : ''
+                    // ↑↑↑ ДОБАВЛЯЕМ EMBED HTML ↑↑↑
+                };
+                
+            } catch (error) {
+                console.error('Ошибка сохранения товара:', error);
+                showMessage('❌ Ошибка сохранения товара', 'error');
+            }
+        }
             
             try {
                 const itemData = {
@@ -3913,6 +3954,13 @@ async function exportUsers() {
                 document.getElementById('shopItemPrice').value = item.price;
                 document.getElementById('shopItemContent').value = item.content_text || '';
                 document.getElementById('shopItemActive').checked = item.is_active;
+                // ↓↓↓ ДОБАВЛЯЕМ ЗДЕСЬ ↓↓↓
+                document.getElementById('shopItemEmbedHtml').value = item.embed_html || '';
+                // ↑↑↑ ДОБАВЛЯЕМ ЗДЕСЬ ↑↑↑
+                
+                // ↓↓↓ ОБНОВЛЯЕМ ФОРМУ ↓↓↓
+                updateShopItemForm();
+                // ↑↑↑ ОБНОВЛЯЕМ ФОРМУ ↑↑↑
                 
             } catch (error) {
                 showMessage('❌ Ошибка загрузки товара', 'error');
@@ -4952,11 +5000,41 @@ function handleShopItemFileUpload(file) {
                 setupDragAndDrop(fileUploadArea, handleShopItemFileUpload);
             }
             
-            // Настройка перетаскивания для превью товара
+// Настройка перетаскивания для превью товара
             if (previewUploadArea) {
                 setupDragAndDrop(previewUploadArea, handleShopItemPreviewUpload);
             }
         });
+
+        // ↓↓↓ ДОБАВЛЯЕМ ЗДЕСЬ ↓↓↓
+        
+        // ==================== ОБНОВЛЕНИЕ ФОРМЫ ТОВАРА ====================
+
+        // Обновить форму товара магазина
+        function updateShopItemForm() {
+            const type = document.getElementById('shopItemType').value;
+            const fileSection = document.getElementById('shopItemFileSection');
+            const embedSection = document.getElementById('embedHtmlSection');
+            
+            console.log('🔄 Обновление формы товара, тип:', type);
+            
+            // Показываем/скрываем секцию файла
+            if (type === 'text' || type === 'embed') {
+                if (fileSection) fileSection.style.display = 'none';
+            } else {
+                if (fileSection) fileSection.style.display = 'block';
+            }
+            
+            // Показываем/скрываем секцию embed HTML
+            if (type === 'embed') {
+                if (embedSection) embedSection.style.display = 'block';
+            } else {
+                if (embedSection) embedSection.style.display = 'none';
+            }
+        }
+
+        // ↑↑↑ ДОБАВЛЯЕМ ЗДЕСЬ ↑↑↑
+
     </script>
 </body>
-</html> 
+</html>
