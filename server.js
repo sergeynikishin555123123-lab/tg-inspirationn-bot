@@ -673,10 +673,12 @@ function calculateLevel(sparks) {
 function addSparks(userId, sparks, activityType, description) {
     const user = db.users.find(u => u.user_id == userId);
     if (user) {
-        user.sparks = Math.max(0, user.sparks + sparks); // Защита от отрицательных значений
+        // Обновляем баланс искр
+        user.sparks = Math.max(0, user.sparks + sparks);
         user.level = calculateLevel(user.sparks);
         user.last_active = new Date().toISOString();
         
+        // Логируем активность
         const activity = {
             id: Date.now(),
             user_id: userId,
@@ -1202,8 +1204,9 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
         return res.status(400).json({ error: 'Недостаточно искр' });
     }
     
-    // Списание искр
+    // Списание искр (ТОЛЬКО ЗДЕСЬ!)
     user.sparks -= item.price;
+    user.level = calculateLevel(user.sparks); // Обновляем уровень
     
     const purchase = {
         id: Date.now(),
@@ -1215,7 +1218,16 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
     
     db.purchases.push(purchase);
     
-    addSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
+    // Вместо этого просто логируем активность без списания искр
+    const activity = {
+        id: Date.now(),
+        user_id: userId,
+        activity_type: 'purchase',
+        sparks_earned: -item.price, // Только для записи в историю
+        description: `Покупка: ${item.title}`,
+        created_at: new Date().toISOString()
+    };
+    db.activities.push(activity);
     
     res.json({
         success: true,
