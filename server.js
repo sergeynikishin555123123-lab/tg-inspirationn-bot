@@ -545,14 +545,36 @@ let db = {
     marathon_submissions: []
 };
 
-// Увеличены лимиты для больших файлов (3GB)
-app.use(express.json({ limit: '3gb' }));
-app.use(express.urlencoded({ limit: '3gb', extended: true }));
+// ==================== НАСТРОЙКИ ДЛЯ БОЛЬШИХ ФАЙЛОВ (до 3GB) ====================
+const MAX_FILE_SIZE = 3 * 1024 * 1024 * 1024; // 3GB
+
+// УВЕЛИЧЕННЫЕ ЛИМИТЫ ДЛЯ БОЛЬШИХ ФАЙЛОВ
+app.use(express.json({ 
+    limit: MAX_FILE_SIZE,
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
+
+app.use(express.urlencoded({ 
+    limit: MAX_FILE_SIZE, 
+    extended: true 
+}));
+
 app.use(cors());
 
-// Дополнительные настройки для body-parser (если используется)
-app.use(bodyParser.json({ limit: '3gb' }));
-app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
+// Дополнительные настройки для body-parser
+app.use(bodyParser.json({ limit: MAX_FILE_SIZE }));
+app.use(bodyParser.urlencoded({ limit: MAX_FILE_SIZE, extended: true }));
+
+// Middleware для увеличения таймаутов
+app.use((req, res, next) => {
+    // Увеличиваем таймауты для больших файлов (30 минут)
+    req.setTimeout(30 * 60 * 1000); // 30 минут
+    res.setTimeout(30 * 60 * 1000); // 30 минут
+    console.log(`⏰ Установлены таймауты для ${req.method} ${req.url}`);
+    next();
+});
 
 // ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
 app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
@@ -567,6 +589,41 @@ app.get('/admin/*', (req, res) => {
 });
 
 console.log('🎨 Система инициализирована успешно!');
+
+// ==================== ОБРАБОТКА ОШИБОК БОЛЬШИХ ФАЙЛОВ ====================
+
+// Обработка ошибок больших файлов
+app.use((error, req, res, next) => {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+        console.error('❌ Файл слишком большой:', error.message);
+        return res.status(413).json({ 
+            success: false,
+            error: 'Файл слишком большой. Максимальный размер: 3GB' 
+        });
+    }
+    
+    if (error.type === 'entity.too.large') {
+        console.error('❌ Превышен лимит размера файла:', error.message);
+        return res.status(413).json({ 
+            success: false,
+            error: 'Превышен лимит размера файла. Максимальный размер: 3GB' 
+        });
+    }
+    
+    console.error('❌ Неизвестная ошибка:', error);
+    next(error);
+});
+
+// Глобальный обработчик ошибок для больших файлов
+process.on('uncaughtException', (error) => {
+    if (error.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
+        console.error('❌ Превышен максимальный размер тела запроса');
+    }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Необработанное отклонение промиса:', reason);
+});
 
 // ==================== НАСТРОЙКИ ДЛЯ БОЛЬШИХ ФАЙЛОВ ====================
 
