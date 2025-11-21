@@ -1712,7 +1712,12 @@ app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
 });
 
 app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
-    console.log('🛒 Создание товара, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
+    console.log('🛒 Создание товара, данные:', {
+        title: req.body.title,
+        type: req.body.type,
+        hasEmbed: !!req.body.embed_html,
+        embedLength: req.body.embed_html?.length
+    });
     
     const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data, embed_html } = req.body;
     
@@ -1720,19 +1725,31 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
         return res.status(400).json({ error: 'Title and price are required' });
     }
     
+    // Для embed-товаров проверяем наличие HTML
+    if (type === 'embed' && !embed_html) {
+        return res.status(400).json({ error: 'Для типа "embed" необходимо указать HTML-код' });
+    }
+    
     const newItem = {
         id: Date.now(),
         title,
         description: description || '',
         type: type || 'video',
-        file_url: file_url || file_data || '', // Поддержка base64 данных
-        preview_url: preview_url || preview_data || '', // Поддержка base64 данных
+        file_url: file_url || file_data || '',
+        preview_url: preview_url || preview_data || '',
         price: parseFloat(price),
         content_text: content_text || '',
         embed_html: embed_html || '',
         is_active: true,
         created_at: new Date().toISOString()
     };
+    
+    console.log('✅ Создан товар:', {
+        id: newItem.id,
+        type: newItem.type,
+        hasEmbed: !!newItem.embed_html,
+        embedLength: newItem.embed_html?.length
+    });
     
     db.shop_items.push(newItem);
     
@@ -1745,7 +1762,12 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
 });
 
 app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
-    console.log('🛒 Обновление товара, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
+    console.log('🛒 Обновление товара, данные:', {
+        itemId: req.params.itemId,
+        type: req.body.type,
+        hasEmbed: !!req.body.embed_html,
+        embedLength: req.body.embed_html?.length
+    });
     
     const itemId = parseInt(req.params.itemId);
     const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data, embed_html } = req.body;
@@ -1755,17 +1777,29 @@ app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
         return res.status(404).json({ error: 'Item not found' });
     }
     
+    // Для embed-товаров проверяем наличие HTML
+    if (type === 'embed' && !embed_html) {
+        return res.status(400).json({ error: 'Для типа "embed" необходимо указать HTML-код' });
+    }
+    
     if (title) item.title = title;
     if (description) item.description = description;
     if (type) item.type = type;
     if (file_url !== undefined) item.file_url = file_url;
-    if (file_data !== undefined) item.file_url = file_data; // Обновляем base64 данные
+    if (file_data !== undefined) item.file_url = file_data;
     if (preview_url !== undefined) item.preview_url = preview_url;
-    if (preview_data !== undefined) item.preview_url = preview_data; // Обновляем base64 данные
+    if (preview_data !== undefined) item.preview_url = preview_data;
     if (price) item.price = parseFloat(price);
     if (content_text) item.content_text = content_text;
     if (embed_html !== undefined) item.embed_html = embed_html;
     if (is_active !== undefined) item.is_active = is_active;
+    
+    console.log('✅ Обновлен товар:', {
+        id: item.id,
+        type: item.type,
+        hasEmbed: !!item.embed_html,
+        embedLength: item.embed_html?.length
+    });
     
     res.json({ 
         success: true, 
