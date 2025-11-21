@@ -545,13 +545,18 @@ let db = {
     marathon_submissions: []
 };
 
-app.use(express.json({ limit: '50mb' }));
+// Увеличены лимиты для больших файлов (3GB)
+app.use(express.json({ limit: '3gb' }));
+app.use(express.urlencoded({ limit: '3gb', extended: true }));
 app.use(cors());
-app.use(bodyParser.urlencoded({ extended: true }));
+
+// Дополнительные настройки для body-parser (если используется)
+app.use(bodyParser.json({ limit: '3gb' }));
+app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
 
 // ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
-app.use(express.static(join(APP_ROOT, 'public')));
-app.use('/admin', express.static(join(APP_ROOT, 'admin')));
+app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
+app.use('/admin', express.static(join(APP_ROOT, 'admin'), { maxAge: '1d' }));
 
 app.get('/admin', (req, res) => {
     res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
@@ -562,6 +567,50 @@ app.get('/admin/*', (req, res) => {
 });
 
 console.log('🎨 Система инициализирована успешно!');
+
+// ==================== НАСТРОЙКИ ДЛЯ БОЛЬШИХ ФАЙЛОВ ====================
+
+// Middleware для увеличения лимитов и таймаутов
+app.use((req, res, next) => {
+    // Увеличиваем таймауты для больших файлов (30 минут)
+    req.setTimeout(30 * 60 * 1000); // 30 минут
+    res.setTimeout(30 * 60 * 1000); // 30 минут
+    console.log(`⏰ Установлены таймауты для ${req.method} ${req.url}`);
+    next();
+});
+
+// Обработка ошибок больших файлов
+app.use((error, req, res, next) => {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+        console.error('❌ Файл слишком большой:', error.message);
+        return res.status(413).json({ 
+            success: false,
+            error: 'Файл слишком большой. Максимальный размер: 3GB' 
+        });
+    }
+    
+    if (error.type === 'entity.too.large') {
+        console.error('❌ Превышен лимит размера файла:', error.message);
+        return res.status(413).json({ 
+            success: false,
+            error: 'Превышен лимит размера файла. Максимальный размер: 3GB' 
+        });
+    }
+    
+    console.error('❌ Неизвестная ошибка:', error);
+    next(error);
+});
+
+// Глобальный обработчик ошибок для больших файлов
+process.on('uncaughtException', (error) => {
+    if (error.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
+        console.error('❌ Превышен максимальный размер тела запроса');
+    }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Необработанное отклонение промиса:', reason);
+});
 
 // УЛУЧШЕННАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР
 const SPARKS_SYSTEM = {
@@ -1006,6 +1055,8 @@ app.get('/api/webapp/marathons', (req, res) => {
 
 // НОВЫЙ МЕТОД ДЛЯ ОТПРАВКИ РАБОТЫ В МАРАФОНЕ
 app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
+    console.log('📤 Отправка работы марафона, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
+    
     const marathonId = parseInt(req.params.marathonId);
     const { userId, day, submission_text, submission_image } = req.body;
     
@@ -1181,6 +1232,8 @@ app.get('/api/webapp/users/:userId/activities', (req, res) => {
 
 // Работы пользователя
 app.post('/api/webapp/upload-work', (req, res) => {
+    console.log('📤 Загрузка работы, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
+    
     const { userId, title, description, imageUrl, type } = req.body;
     
     if (!userId || !title || !imageUrl) {
@@ -1649,6 +1702,8 @@ app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
 });
 
 app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
+    console.log('🛒 Создание товара, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
+    
     const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data } = req.body;
     
     if (!title || !price) {
@@ -1679,6 +1734,8 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
 });
 
 app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
+    console.log('🛒 Обновление товара, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
+    
     const itemId = parseInt(req.params.itemId);
     const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data } = req.body;
     
@@ -2423,6 +2480,7 @@ app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
         console.error('❌ Ошибка экспорта статистики:', error);
         res.status(500).json({ error: 'Ошибка экспорта статистики' });
     }
+}); // ← ДОБАВЬТЕ ЭТУ ЗАКРЫВАЮЩУЮ СКОБКУ ДЛЯ app.get()
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
