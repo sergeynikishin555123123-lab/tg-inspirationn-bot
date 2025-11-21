@@ -2404,24 +2404,64 @@ function generatePurchaseContent(purchase) {
             `;
 
         case 'embed':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🎬 Встроенное видео
-                    </h4>
-                    <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
-                            💡 Видео загружено через внешний сервис. Для лучшего воспроизведения используйте стабильное интернет-соединение.
+            // Проверяем разные возможные поля где может быть HTML
+            const embedHtml = purchase.embed_html || purchase.html_content || purchase.content_html || purchase.content;
+            console.log('🎬 Embed HTML найден:', !!embedHtml);
+            console.log('🎬 Embed HTML значение:', embedHtml);
+            
+            if (embedHtml) {
+                return `
+                    <div style="margin: 20px 0;">
+                        <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                            🎬 Встроенное видео
+                        </h4>
+                        <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
+                            <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
+                                💡 Видео загружено через внешний сервис. Для лучшего воспроизведения используйте стабильное интернет-соединение.
+                            </div>
+                        </div>
+                        <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 12px; overflow: hidden;">
+                            ${embedHtml}
+                        </div>
+                        <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
+                            Используйте элементы управления плеера для управления воспроизведением
                         </div>
                     </div>
-                    <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 12px; overflow: hidden;">
-                        ${purchase.embed_html || '<div style="color: white; text-align: center; padding: 50px;">HTML контент не доступен</div>'}
+                `;
+            } else {
+                // Если HTML не найден, показываем тестовое видео
+                const testHtml = `
+                    <iframe width="100%" height="100%" 
+                            src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 12px;">
+                    </iframe>
+                `;
+                
+                return `
+                    <div style="margin: 20px 0;">
+                        <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                            🎬 Встроенное видео (тестовое)
+                        </h4>
+                        <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
+                            <div style="color: #718096; font-size: 14px;">
+                                💡 Это тестовое видео YouTube для проверки работы системы
+                            </div>
+                            <div style="color: #f56565; font-size: 12px; margin-top: 8px;">
+                                ⚠️ Оригинальный HTML контент не найден в полях: embed_html, html_content, content_html
+                            </div>
+                        </div>
+                        <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 12px; overflow: hidden;">
+                            ${testHtml}
+                        </div>
+                        <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
+                            Используйте элементы управления плеера для управления воспроизведением
+                        </div>
                     </div>
-                    <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
-                        Используйте элементы управления плеера для управления воспроизведением
-                    </div>
-                </div>
-            `;
+                `;
+            }
             
         case 'link':
             return `
@@ -4052,6 +4092,9 @@ async function loadPurchasedItems() {
 // Функция для показа детальной информации о покупке
 function showPurchaseDetail(purchase) {
     console.log('🔍 Показываем детали покупки:', purchase);
+    console.log('📋 embed_html содержимое:', purchase.embed_html);
+    console.log('📋 Все поля покупки:', Object.keys(purchase));
+    console.log('🎯 Тип покупки:', purchase.type);
     
     const detailContent = document.getElementById('purchaseDetailContent');
     
