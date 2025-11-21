@@ -369,8 +369,7 @@ let db = {
             is_active: true,
             created_at: new Date().toISOString()
         },
-
-               {
+        {
             id: 5,
             title: "🎬 Видео-урок по композиции",
             description: "Эксклюзивный видео-урок по основам композиции от профессионального художника",
@@ -381,7 +380,7 @@ let db = {
             content_text: "Профессиональный видео-урок по основам композиции в живописи. Вы научитесь правильно располагать элементы на холсте, создавать гармоничные композиции и направлять взгляд зрителя.\n\nТемы урока:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с акцентами",
             is_active: true,
             created_at: new Date().toISOString()
-        } 
+        }
     ],
     activities: [],
     admins: [
@@ -391,22 +390,22 @@ let db = {
             username: 'admin', 
             role: 'admins', 
             created_at: new Date().toISOString() 
-    },
-    { 
-        id: 2, 
-        user_id: 79156202620, 
-        username: 'admin2', 
-        role: 'admins', 
-        created_at: new Date().toISOString() 
-    },
-    { 
-        id: 3, 
-        user_id: 781959267, 
-        username: 'admin3', 
-        role: 'admins', 
-        created_at: new Date().toISOString() 
-    }
-],
+        },
+        { 
+            id: 2, 
+            user_id: 79156202620, 
+            username: 'admin2', 
+            role: 'admins', 
+            created_at: new Date().toISOString() 
+        },
+        { 
+            id: 3, 
+            user_id: 781959267, 
+            username: 'admin3', 
+            role: 'admins', 
+            created_at: new Date().toISOString() 
+        }
+    ],
     purchases: [],
     channel_posts: [
         {
@@ -892,7 +891,6 @@ app.post('/api/users/register', (req, res) => {
     });
 });
 
-// ЗАМЕНИТЕ весь блок выше на этот:
 app.get('/api/webapp/roles', (req, res) => {
     try {
         console.log('📋 Запрос на получение ролей');
@@ -906,7 +904,6 @@ app.get('/api/webapp/roles', (req, res) => {
     }
 });
 
-// ЗАМЕНИТЕ весь блок выше на этот:
 app.get('/api/webapp/characters/:roleId', (req, res) => {
     try {
         const roleId = parseInt(req.params.roleId);
@@ -1717,7 +1714,7 @@ app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
 app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
     console.log('🛒 Создание товара, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
     
-    const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data } = req.body;
+    const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data, embed_html } = req.body;
     
     if (!title || !price) {
         return res.status(400).json({ error: 'Title and price are required' });
@@ -1732,6 +1729,7 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
         preview_url: preview_url || preview_data || '', // Поддержка base64 данных
         price: parseFloat(price),
         content_text: content_text || '',
+        embed_html: embed_html || '',
         is_active: true,
         created_at: new Date().toISOString()
     };
@@ -1750,7 +1748,7 @@ app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     console.log('🛒 Обновление товара, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
     
     const itemId = parseInt(req.params.itemId);
-    const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data } = req.body;
+    const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data, embed_html } = req.body;
     
     const item = db.shop_items.find(i => i.id === itemId);
     if (!item) {
@@ -1766,6 +1764,7 @@ app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     if (preview_data !== undefined) item.preview_url = preview_data; // Обновляем base64 данные
     if (price) item.price = parseFloat(price);
     if (content_text) item.content_text = content_text;
+    if (embed_html !== undefined) item.embed_html = embed_html;
     if (is_active !== undefined) item.is_active = is_active;
     
     res.json({ 
@@ -2324,34 +2323,34 @@ if (process.env.BOT_TOKEN) {
             });
         });
 
-       bot.onText(/\/admin/, (msg) => {
-    const chatId = msg.chat.id;
-    const userId = msg.from.id;
-    
-    const admin = db.admins.find(a => a.user_id == userId);
-    if (!admin) {
-        bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
-        return;
-    }
-    
-    // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
-    const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
-    const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
-    
-    const keyboard = {
-        inline_keyboard: [[
-            {
-                text: "🔧 Открыть Админ Панель",
-                url: adminUrl
+        bot.onText(/\/admin/, (msg) => {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            const admin = db.admins.find(a => a.user_id == userId);
+            if (!admin) {
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+                return;
             }
-        ]]
-    };
-    
-    bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-    });
-});
+            
+            // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
+            const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
+            const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
+            
+            const keyboard = {
+                inline_keyboard: [[
+                    {
+                        text: "🔧 Открыть Админ Панель",
+                        url: adminUrl
+                    }
+                ]]
+            };
+            
+            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            });
+        });
 
         bot.onText(/\/stats/, (msg) => {
             const chatId = msg.chat.id;
@@ -2493,7 +2492,7 @@ app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
         console.error('❌ Ошибка экспорта статистики:', error);
         res.status(500).json({ error: 'Ошибка экспорта статистики' });
     }
-}); // ← ДОБАВЬТЕ ЭТУ ЗАКРЫВАЮЩУЮ СКОБКУ ДЛЯ app.get()
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
