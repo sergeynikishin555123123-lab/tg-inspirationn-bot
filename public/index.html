@@ -2403,65 +2403,61 @@ function generatePurchaseContent(purchase) {
                 </div>
             `;
 
-        case 'embed':
-            // Проверяем разные возможные поля где может быть HTML
-            const embedHtml = purchase.embed_html || purchase.html_content || purchase.content_html || purchase.content;
-            console.log('🎬 Embed HTML найден:', !!embedHtml);
-            console.log('🎬 Embed HTML значение:', embedHtml);
-            
-            if (embedHtml) {
-                return `
-                    <div style="margin: 20px 0;">
-                        <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                            🎬 Встроенное видео
-                        </h4>
-                        <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
-                            <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
-                                💡 Видео загружено через внешний сервис. Для лучшего воспроизведения используйте стабильное интернет-соединение.
-                            </div>
-                        </div>
-                        <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 12px; overflow: hidden;">
-                            ${embedHtml}
-                        </div>
-                        <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
-                            Используйте элементы управления плеера для управления воспроизведением
-                        </div>
+case 'embed':
+    // Ищем HTML в разных возможных полях
+    const embedHtml = purchase.embed_html || purchase.html_content || purchase.content_html || purchase.content;
+    
+    console.log('🎬 Найденный embed HTML:', {
+        fromEmbedHtml: !!purchase.embed_html,
+        fromHtmlContent: !!purchase.html_content,
+        fromContentHtml: !!purchase.content_html,
+        fromContent: !!purchase.content,
+        finalLength: embedHtml?.length
+    });
+    
+    if (embedHtml && embedHtml.trim()) {
+        return `
+            <div style="margin: 20px 0;">
+                <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                    🎬 Встроенное видео
+                </h4>
+                <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
+                    <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
+                        💡 Видео загружено через внешний сервис. Для лучшего воспроизведения используйте стабильное интернет-соединение.
                     </div>
-                `;
-            } else {
-                // Если HTML не найден, показываем тестовое видео
-                const testHtml = `
-                    <iframe width="100%" height="100%" 
-                            src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
-                            frameborder="0" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowfullscreen
-                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 12px;">
-                    </iframe>
-                `;
-                
-                return `
-                    <div style="margin: 20px 0;">
-                        <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                            🎬 Встроенное видео (тестовое)
-                        </h4>
-                        <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
-                            <div style="color: #718096; font-size: 14px;">
-                                💡 Это тестовое видео YouTube для проверки работы системы
-                            </div>
-                            <div style="color: #f56565; font-size: 12px; margin-top: 8px;">
-                                ⚠️ Оригинальный HTML контент не найден в полях: embed_html, html_content, content_html
-                            </div>
-                        </div>
-                        <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 12px; overflow: hidden;">
-                            ${testHtml}
-                        </div>
-                        <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
-                            Используйте элементы управления плеера для управления воспроизведением
-                        </div>
+                </div>
+                <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 12px; overflow: hidden;">
+                    ${embedHtml}
+                </div>
+                <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
+                    Используйте элементы управления плеера для управления воспроизведением
+                </div>
+            </div>
+        `;
+    } else {
+        // Если HTML не найден, показываем информационное сообщение
+        return `
+            <div style="margin: 20px 0;">
+                <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                    🎬 Встроенное видео
+                </h4>
+                <div style="background: #fed7d7; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
+                    <div style="color: #c53030; font-size: 14px; margin-bottom: 12px;">
+                        ⚠️ Ошибка загрузки видео контента
                     </div>
-                `;
-            }
+                    <div style="color: #718096; font-size: 12px;">
+                        HTML-код для встраивания видео не найден в базе данных. 
+                        Обратитесь к администратору для исправления этой проблемы.
+                    </div>
+                </div>
+                <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">❌</div>
+                    <div style="font-weight: 600; margin-bottom: 8px;">Контент временно недоступен</div>
+                    <div style="color: #718096;">Пожалуйста, сообщите администратору о проблеме</div>
+                </div>
+            </div>
+        `;
+    }
             
         case 'link':
             return `
@@ -3927,7 +3923,33 @@ async function loadPurchasedItems() {
         const response = await fetch(`/api/webapp/users/${currentUserId}/purchases`);
         const data = await response.json();
         
-        console.log('📦 Данные покупок от API:', data);
+        console.log('📦 Данные покупок от API:', {
+            count: data.purchases?.length,
+            purchases: data.purchases?.map(p => ({
+                id: p.id,
+                title: p.title,
+                type: p.type,
+                hasEmbed: !!p.embed_html,
+                embedLength: p.embed_html?.length,
+                allFields: Object.keys(p) // Показывает все доступные поля
+            }))
+        });
+        
+        // Дополнительная детальная информация о embed-товарах
+        if (data.purchases && data.purchases.length > 0) {
+            const embedPurchases = data.purchases.filter(p => p.type === 'embed');
+            console.log('🎬 Embed-товары найдены:', {
+                count: embedPurchases.length,
+                items: embedPurchases.map(p => ({
+                    id: p.id,
+                    title: p.title,
+                    embed_html: p.embed_html ? `[${p.embed_html.length} chars]` : 'MISSING',
+                    html_content: p.html_content ? `[${p.html_content.length} chars]` : 'MISSING',
+                    content_html: p.content_html ? `[${p.content_html.length} chars]` : 'MISSING',
+                    content: p.content ? `[${p.content.length} chars]` : 'MISSING'
+                }))
+            });
+        }
         
         const purchasedList = document.getElementById('purchasedItemsList');
         purchasedList.innerHTML = '';
