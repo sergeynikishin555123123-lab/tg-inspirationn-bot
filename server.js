@@ -369,6 +369,19 @@ let db = {
             is_active: true,
             created_at: new Date().toISOString()
         }
+
+               {
+            id: 5,
+            title: "🎬 Видео-урок по композиции",
+            description: "Эксклюзивный видео-урок по основам композиции от профессионального художника",
+            type: "embed",
+            embed_html: `<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1139315921?h=93d70dfee4&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="ТИХОНОВА"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>`,
+            preview_url: "https://images.unsplash.com/photo-1492684223066-81332ee5ff30?w=300&h=200&fit=crop",
+            price: 20,
+            content_text: "Профессиональный видео-урок по основам композиции в живописи. Вы научитесь правильно располагать элементы на холсте, создавать гармоничные композиции и направлять взгляд зрителя.\n\nТемы урока:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с акцентами",
+            is_active: true,
+            created_at: new Date().toISOString()
+        } 
     ],
     activities: [],
     admins: [
