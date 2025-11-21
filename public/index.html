@@ -144,11 +144,30 @@
         }
         
         .purchase-item {
-            background: #f0fff4; 
-            border: 2px solid #9ae6b4; 
-            border-radius: 16px; 
-            padding: 20px;
-            margin-bottom: 12px;
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .purchase-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+
+        .purchase-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px 16px 0 0;
         }
         
         .work-pending { 
@@ -412,464 +431,6 @@
             font-weight: 500;
         }
         
-/* ==================== СТИЛИ ДЛЯ СИСТЕМЫ ПОКУПОК ==================== */
-
-/* Стили для медиа контента в покупках */
-.media-preview {
-    max-width: 100%;
-    border-radius: 12px;
-    margin: 12px 0;
-    border: 2px solid #e2e8f0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-}
-
-.media-preview:hover {
-    border-color: #667eea;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
-    transform: scale(1.01);
-}
-
-/* Стили для видео в покупках */
-.purchase-video {
-    width: 100%;
-    max-height: 500px;
-    border-radius: 12px;
-    background: #000;
-    margin: 12px 0;
-}
-
-/* Стили для аудио в покупках */
-.purchase-audio {
-    width: 100%;
-    margin: 12px 0;
-    border-radius: 25px;
-    background: #f7fafc;
-    padding: 10px;
-    border: 2px solid #e2e8f0;
-}
-
-/* Улучшенные стили для карточек покупок */
-.purchase-item {
-    background: #ffffff;
-    border: 2px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 20px;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.purchase-item:hover {
-    border-color: #667eea;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
-}
-
-.purchase-item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px 16px 0 0;
-}
-
-/* Стили для контента покупок */
-.content-preview {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 20px;
-    margin: 16px 0;
-    line-height: 1.6;
-    white-space: pre-line;
-    font-size: 14px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.content-preview::-webkit-scrollbar {
-    width: 6px;
-}
-
-.content-preview::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-}
-
-.content-preview::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
-}
-
-.content-preview::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
-
-/* Бейджи для типов товаров */
-.badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 12px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1;
-}
-
-.badge-info {
-    background: #bee3f8;
-    color: #2c5aa0;
-    border: 1px solid #90cdf4;
-}
-
-.badge-success {
-    background: #c6f6d5;
-    color: #276749;
-    border: 1px solid #9ae6b4;
-}
-
-.badge-warning {
-    background: #feebc8;
-    color: #dd6b20;
-    border: 1px solid #fbd38d;
-}
-
-.badge-danger {
-    background: #fed7d7;
-    color: #c53030;
-    border: 1px solid #feb2b2;
-}
-
-.badge-purple {
-    background: #e9d8fd;
-    color: #6b46c1;
-    border: 1px solid #d6bcfa;
-}
-
-/* Кнопки действий для покупок */
-.purchase-actions {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid #e2e8f0;
-}
-
-.purchase-btn {
-    flex: 1;
-    min-width: 120px;
-    padding: 12px 16px;
-    border: none;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: center;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-.purchase-btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.purchase-btn-success {
-    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
-}
-
-.purchase-btn-danger {
-    background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(245, 101, 101, 0.3);
-}
-
-.purchase-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
-
-.purchase-btn:active {
-    transform: translateY(0);
-}
-
-/* Сетка для изображений в покупках */
-.purchase-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
-    margin: 16px 0;
-}
-
-.purchase-grid-item {
-    border-radius: 8px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid #e2e8f0;
-}
-
-.purchase-grid-item:hover {
-    transform: scale(1.05);
-    border-color: #667eea;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-}
-
-.purchase-grid-item img {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-}
-
-/* Модальное окно для медиа */
-.media-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
-    padding: 20px;
-}
-
-.media-modal-content {
-    position: relative;
-    max-width: 95%;
-    max-height: 95%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.media-modal-video {
-    max-width: 100%;
-    max-height: 90vh;
-    border-radius: 8px;
-}
-
-.media-modal-image {
-    max-width: 100%;
-    max-height: 90vh;
-    object-fit: contain;
-    border-radius: 8px;
-}
-
-.media-modal-btn {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.9);
-    color: #2d3748;
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
-    cursor: pointer;
-    z-index: 10001;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-}
-
-.media-modal-btn:hover {
-    background: white;
-    transform: scale(1.1);
-}
-
-.media-modal-close {
-    top: -50px;
-    right: 0;
-    background: #f56565;
-    color: white;
-}
-
-.media-modal-download {
-    top: -50px;
-    right: 50px;
-    background: #48bb78;
-    color: white;
-}
-
-/* Поиск и фильтры для покупок */
-.purchases-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 16px;
-    background: white;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-}
-
-.purchases-filters {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.purchases-search {
-    width: 250px;
-    padding: 10px 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-.purchases-search:focus {
-    border-color: #667eea;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.purchases-filter {
-    padding: 10px 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    font-size: 14px;
-    background: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.purchases-filter:focus {
-    border-color: #667eea;
-    outline: none;
-}
-
-/* Адаптивность для мобильных */
-@media (max-width: 768px) {
-    .purchase-item {
-        padding: 16px;
-        margin-bottom: 16px;
-    }
-    
-    .purchases-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .purchases-filters {
-        width: 100%;
-    }
-    
-    .purchases-search {
-        width: 100%;
-    }
-    
-    .purchase-actions {
-        flex-direction: column;
-    }
-    
-    .purchase-btn {
-        width: 100%;
-    }
-    
-    .purchase-grid {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    }
-    
-    .media-modal {
-        padding: 10px;
-    }
-    
-    .media-modal-btn {
-        width: 35px;
-        height: 35px;
-        font-size: 16px;
-    }
-    
-    .media-modal-close {
-        top: -40px;
-    }
-    
-    .media-modal-download {
-        top: -40px;
-        right: 40px;
-    }
-}
-
-@media (max-width: 480px) {
-    .purchase-item {
-        padding: 12px;
-    }
-    
-    .content-preview {
-        padding: 16px;
-        font-size: 13px;
-    }
-    
-    .purchase-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .badge {
-        padding: 4px 8px;
-        font-size: 11px;
-    }
-}
-
-/* Анимации для покупок */
-@keyframes purchaseAppear {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.purchase-item {
-    animation: purchaseAppear 0.5s ease;
-}
-
-/* Стили для expired покупок */
-.purchase-item.expired {
-    opacity: 0.7;
-    background: #f7fafc;
-}
-
-.purchase-item.expired::before {
-    background: linear-gradient(135deg, #a0aec0 0%, #718096 100%);
-}
-
-.purchase-item.expired .purchase-btn {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* Стили для избранных покупок */
-.purchase-item.favorite {
-    border-color: #fbb6ce;
-    background: #fff5f5;
-}
-
-.purchase-item.favorite::before {
-    background: linear-gradient(135deg, #fed7d7 0%, #fbb6ce 100%);
-}
-        
         .shop-tab.active { 
             background: #667eea; 
             color: white; 
@@ -1131,6 +692,462 @@
             color: #718096;
             font-size: 14px;
             line-height: 1.4;
+        }
+        
+        /* Стили для медиа контента в покупках */
+        .media-preview {
+            max-width: 100%;
+            border-radius: 12px;
+            margin: 12px 0;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .media-preview:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+            transform: scale(1.01);
+        }
+
+        /* Стили для видео в покупках */
+        .purchase-video {
+            width: 100%;
+            max-height: 500px;
+            border-radius: 12px;
+            background: #000;
+            margin: 12px 0;
+        }
+
+        /* Стили для аудио в покупках */
+        .purchase-audio {
+            width: 100%;
+            margin: 12px 0;
+            border-radius: 25px;
+            background: #f7fafc;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+        }
+
+        /* Улучшенные стили для карточек покупок */
+        .purchase-item {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .purchase-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+
+        .purchase-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px 16px 0 0;
+        }
+
+        /* Стили для контента покупок */
+        .content-preview {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 16px 0;
+            line-height: 1.6;
+            white-space: pre-line;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .content-preview::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .content-preview::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .content-preview::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .content-preview::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Бейджи для типов товаров */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1;
+        }
+
+        .badge-info {
+            background: #bee3f8;
+            color: #2c5aa0;
+            border: 1px solid #90cdf4;
+        }
+
+        .badge-success {
+            background: #c6f6d5;
+            color: #276749;
+            border: 1px solid #9ae6b4;
+        }
+
+        .badge-warning {
+            background: #feebc8;
+            color: #dd6b20;
+            border: 1px solid #fbd38d;
+        }
+
+        .badge-danger {
+            background: #fed7d7;
+            color: #c53030;
+            border: 1px solid #feb2b2;
+        }
+
+        .badge-purple {
+            background: #e9d8fd;
+            color: #6b46c1;
+            border: 1px solid #d6bcfa;
+        }
+
+        /* Кнопки действий для покупок */
+        .purchase-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .purchase-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .purchase-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .purchase-btn-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
+        }
+
+        .purchase-btn-danger {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(245, 101, 101, 0.3);
+        }
+
+        .purchase-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .purchase-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Сетка для изображений в покупках */
+        .purchase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .purchase-grid-item {
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid #e2e8f0;
+        }
+
+        .purchase-grid-item:hover {
+            transform: scale(1.05);
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .purchase-grid-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        /* Модальное окно для медиа */
+        .media-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+
+        .media-modal-content {
+            position: relative;
+            max-width: 95%;
+            max-height: 95%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .media-modal-video {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 8px;
+        }
+
+        .media-modal-image {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .media-modal-btn {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            color: #2d3748;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .media-modal-btn:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+
+        .media-modal-close {
+            top: -50px;
+            right: 0;
+            background: #f56565;
+            color: white;
+        }
+
+        .media-modal-download {
+            top: -50px;
+            right: 50px;
+            background: #48bb78;
+            color: white;
+        }
+
+        /* Поиск и фильтры для покупок */
+        .purchases-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .purchases-filters {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .purchases-search {
+            width: 250px;
+            padding: 10px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .purchases-search:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .purchases-filter {
+            padding: 10px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .purchases-filter:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        /* Адаптивность для мобильных */
+        @media (max-width: 768px) {
+            .purchase-item {
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+            
+            .purchases-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .purchases-filters {
+                width: 100%;
+            }
+            
+            .purchases-search {
+                width: 100%;
+            }
+            
+            .purchase-actions {
+                flex-direction: column;
+            }
+            
+            .purchase-btn {
+                width: 100%;
+            }
+            
+            .purchase-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+            
+            .media-modal {
+                padding: 10px;
+            }
+            
+            .media-modal-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+            }
+            
+            .media-modal-close {
+                top: -40px;
+            }
+            
+            .media-modal-download {
+                top: -40px;
+                right: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .purchase-item {
+                padding: 12px;
+            }
+            
+            .content-preview {
+                padding: 16px;
+                font-size: 13px;
+            }
+            
+            .purchase-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .badge {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+        }
+
+        /* Анимации для покупок */
+        @keyframes purchaseAppear {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .purchase-item {
+            animation: purchaseAppear 0.5s ease;
+        }
+
+        /* Стили для expired покупок */
+        .purchase-item.expired {
+            opacity: 0.7;
+            background: #f7fafc;
+        }
+
+        .purchase-item.expired::before {
+            background: linear-gradient(135deg, #a0aec0 0%, #718096 100%);
+        }
+
+        .purchase-item.expired .purchase-btn {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Стили для избранных покупок */
+        .purchase-item.favorite {
+            border-color: #fbb6ce;
+            background: #fff5f5;
+        }
+
+        .purchase-item.favorite::before {
+            background: linear-gradient(135deg, #fed7d7 0%, #fbb6ce 100%);
         }
         
         /* Анимации */
@@ -1622,13 +1639,13 @@
                 </div>
 
                 <div id="shopPurchasedTab" style="display: none;">
-    <div id="purchasedItemsList" class="loading">
-        <div style="text-align: center; padding: 40px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-            <div>Загрузка ваших покупок...</div>
-        </div>
-    </div>
-</div>
+                    <div id="purchasedItemsList" class="loading">
+                        <div style="text-align: center; padding: 40px;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                            <div>Загрузка ваших покупок...</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1706,145 +1723,145 @@
         let uploadedImage = null;
         let marathonUploadedImage = null;
 
-// Инициализация приложения - ИСПРАВЛЕННАЯ ВЕРСИЯ
-async function initApp() {
-    try {
-        console.log('🚀 Инициализация приложения...');
-        
-        // Добавьте эту проверку
-        if (typeof Telegram === 'undefined') {
-            console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
-            tg = {
-                initDataUnsafe: {
-                    user: { id: 898508164, first_name: 'Тестовый' },
-                    start_param: null
-                },
-                expand: () => console.log('📱 Expand'),
-                enableClosingConfirmation: () => console.log('🔒 Closing confirmation')
-            };
-        } else {
-            tg = window.Telegram.WebApp;
-            tg.expand();
-            tg.enableClosingConfirmation();
-        }
-        
-        currentUserId = tg.initDataUnsafe.user?.id || tg.initDataUnsafe.start_param?.replace('ref_', '') || 898508164;
-        
-        console.log('👤 User ID:', currentUserId);
-        console.log('📱 Platform:', tg.platform);
+        // Инициализация приложения - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        async function initApp() {
+            try {
+                console.log('🚀 Инициализация приложения...');
                 
-        // Загружаем данные пользователя
-        await loadUserData();
-        
-        // Инициализация рисовального холста
-        initDrawingCanvas();
-        
-        // Обработчики для интерактивных вкладок
-        document.querySelectorAll('.interactive-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                currentInteractiveCategory = this.dataset.category;
-                loadInteractives();
-            });
-        });
-        
-        // Обработчики для выбора цвета
-        document.querySelectorAll('.color-picker').forEach(picker => {
-            picker.addEventListener('click', function() {
-                document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
-                this.classList.add('active');
-                currentColor = this.dataset.color;
-                updateDrawingTool();
-            });
-        });
-        
-    } catch (error) {
-        console.error('💥 Критическая ошибка инициализации:', error);
-        showMessage('❌ Ошибка загрузки приложения: ' + error.message, 'error');
-    }
-}
+                // Добавьте эту проверку
+                if (typeof Telegram === 'undefined') {
+                    console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
+                    tg = {
+                        initDataUnsafe: {
+                            user: { id: 898508164, first_name: 'Тестовый' },
+                            start_param: null
+                        },
+                        expand: () => console.log('📱 Expand'),
+                        enableClosingConfirmation: () => console.log('🔒 Closing confirmation')
+                    };
+                } else {
+                    tg = window.Telegram.WebApp;
+                    tg.expand();
+                    tg.enableClosingConfirmation();
+                }
+                
+                currentUserId = tg.initDataUnsafe.user?.id || tg.initDataUnsafe.start_param?.replace('ref_', '') || 898508164;
+                
+                console.log('👤 User ID:', currentUserId);
+                console.log('📱 Platform:', tg.platform);
+                        
+                // Загружаем данные пользователя
+                await loadUserData();
+                
+                // Инициализация рисовального холста
+                initDrawingCanvas();
+                
+                // Обработчики для интерактивных вкладок
+                document.querySelectorAll('.interactive-tab').forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                        currentInteractiveCategory = this.dataset.category;
+                        loadInteractives();
+                    });
+                });
+                
+                // Обработчики для выбора цвета
+                document.querySelectorAll('.color-picker').forEach(picker => {
+                    picker.addEventListener('click', function() {
+                        document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
+                        this.classList.add('active');
+                        currentColor = this.dataset.color;
+                        updateDrawingTool();
+                    });
+                });
+                
+            } catch (error) {
+                console.error('💥 Критическая ошибка инициализации:', error);
+                showMessage('❌ Ошибка загрузки приложения: ' + error.message, 'error');
+            }
+        }
 
         // Загрузка данных пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
-async function loadUserData() {
-    try {
-        const userDataElement = document.getElementById('userData');
-        userDataElement.innerHTML = '<div class="loading"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div>Загрузка данных...</div>';
-        
-        const response = await fetch(`/api/users/${currentUserId}`);
-        const data = await response.json();
-        
-        if (data.exists) {
-            currentUser = data.user;
-            showUserData();
-            loadAvailableButtons();
-        } else {
-            showWelcomeScreen();
+        async function loadUserData() {
+            try {
+                const userDataElement = document.getElementById('userData');
+                userDataElement.innerHTML = '<div class="loading"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div>Загрузка данных...</div>';
+                
+                const response = await fetch(`/api/users/${currentUserId}`);
+                const data = await response.json();
+                
+                if (data.exists) {
+                    currentUser = data.user;
+                    showUserData();
+                    loadAvailableButtons();
+                } else {
+                    showWelcomeScreen();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки пользователя:', error);
+                showMessage('❌ Ошибка загрузки данных', 'error');
+                // Показываем экран приветствия в случае ошибки
+                showWelcomeScreen();
+            }
         }
-    } catch (error) {
-        console.error('Ошибка загрузки пользователя:', error);
-        showMessage('❌ Ошибка загрузки данных', 'error');
-        // Показываем экран приветствия в случае ошибки
-        showWelcomeScreen();
-    }
-}
 
-// Показать данные пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
-function showUserData() {
-    const userDataElement = document.getElementById('userData');
-    
-    userDataElement.innerHTML = `
-        <div id="userContent">
-            <div class="user-info-grid">
-                <div class="user-info-item">
-                    <span class="user-info-label">Имя:</span>
-                    <span id="userName" class="user-info-value">${currentUser.tg_first_name}</span>
-                </div>
-                <div class="user-info-item">
-                    <span class="user-info-label">Уровень:</span>
-                    <span id="userLevel" class="user-info-value">${currentUser.level}</span>
-                </div>
-                <div class="user-info-item">
-                    <span class="user-info-label">Роль:</span>
-                    <span id="userRole" class="user-info-value">${currentUser.class || 'Не выбрана'}</span>
-                </div>
-                <div class="user-info-item">
-                    <span class="user-info-label">Персонаж:</span>
-                    <span id="userCharacter" class="user-info-value">${currentUser.character_name || 'Не выбран'}</span>
-                </div>
-            </div>
+        // Показать данные пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        function showUserData() {
+            const userDataElement = document.getElementById('userData');
             
-            <div class="sparks pulse">✨ ${currentUser.sparks.toFixed(1)}</div>
-            
-            <div id="userStats">
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-number">${currentUser.stats?.totalQuizzesCompleted || 0}</div>
-                        <div class="stat-label">Квизов</div>
+            userDataElement.innerHTML = `
+                <div id="userContent">
+                    <div class="user-info-grid">
+                        <div class="user-info-item">
+                            <span class="user-info-label">Имя:</span>
+                            <span id="userName" class="user-info-value">${currentUser.tg_first_name}</span>
+                        </div>
+                        <div class="user-info-item">
+                            <span class="user-info-label">Уровень:</span>
+                            <span id="userLevel" class="user-info-value">${currentUser.level}</span>
+                        </div>
+                        <div class="user-info-item">
+                            <span class="user-info-label">Роль:</span>
+                            <span id="userRole" class="user-info-value">${currentUser.class || 'Не выбрана'}</span>
+                        </div>
+                        <div class="user-info-item">
+                            <span class="user-info-label">Персонаж:</span>
+                            <span id="userCharacter" class="user-info-value">${currentUser.character_name || 'Не выбран'}</span>
+                        </div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${currentUser.stats?.totalWorks || 0}</div>
-                        <div class="stat-label">Работ</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${currentUser.stats?.totalMarathonsCompleted || 0}</div>
-                        <div class="stat-label">Марафонов</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${currentUser.stats?.totalInteractivesCompleted || 0}</div>
-                        <div class="stat-label">Интерактивов</div>
+                    
+                    <div class="sparks pulse">✨ ${currentUser.sparks.toFixed(1)}</div>
+                    
+                    <div id="userStats">
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-number">${currentUser.stats?.totalQuizzesCompleted || 0}</div>
+                                <div class="stat-label">Квизов</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${currentUser.stats?.totalWorks || 0}</div>
+                                <div class="stat-label">Работ</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${currentUser.stats?.totalMarathonsCompleted || 0}</div>
+                                <div class="stat-label">Марафонов</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${currentUser.stats?.totalInteractivesCompleted || 0}</div>
+                                <div class="stat-label">Интерактивов</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('welcomeBlock').style.display = 'none';
-    document.getElementById('actionsBlock').style.display = 'block';
-    
-    // Заполняем имя в форме регистрации
-    document.getElementById('userFirstName').value = currentUser.tg_first_name;
-}
+            `;
+            
+            document.getElementById('welcomeBlock').style.display = 'none';
+            document.getElementById('actionsBlock').style.display = 'block';
+            
+            // Заполняем имя в форме регистрации
+            document.getElementById('userFirstName').value = currentUser.tg_first_name;
+        }
 
         // Показать экран приветствия
         function showWelcomeScreen() {
@@ -1853,106 +1870,106 @@ function showUserData() {
             document.getElementById('actionsBlock').style.display = 'none';
         }
 
- // Загрузка доступных кнопок - ИСПРАВЛЕННАЯ ВЕРСИЯ
-function loadAvailableButtons() {
-    const buttonsContainer = document.getElementById('actionButtons');
-    const availableButtons = currentUser.available_buttons || [];
-    
-    console.log('🔄 Загрузка кнопок для пользователя:', currentUser.tg_first_name);
-    console.log('📋 Доступные кнопки:', availableButtons);
-    
-    // Всегда показываем основные кнопки, даже если их нет в available_buttons
-    const allButtons = {
-        'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary', icon: '🎯' },
-        'marathon': { text: '🏃‍♂️ Участвовать в марафоне', screen: 'marathonsScreen', color: 'btn-warning', icon: '🏃‍♂️' },
-        'works': { text: '🖼️ Мои работы', screen: 'worksScreen', color: 'btn-info', icon: '🖼️' },
-        'activities': { text: '📊 История активностей', screen: 'activitiesScreen', color: 'btn', icon: '📊' },
-        'posts': { text: '📰 Полезные материалы', screen: 'postsScreen', color: 'btn-success', icon: '📰' },
-        'shop': { text: '🛒 Магазин знаний', screen: 'shopScreen', color: 'btn-danger', icon: '🛒' },
-        'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info', icon: '👥' },
-        'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success', icon: '🎮' },
-        'change_role': { text: '🔄 Сменить роль', screen: 'changeRoleScreen', color: 'change-role-btn', icon: '🔄' }
-    };
-    
-    buttonsContainer.innerHTML = '';
-    
-    // Показываем все кнопки для зарегистрированных пользователей
-    if (currentUser.is_registered) {
-        Object.keys(allButtons).forEach(buttonKey => {
-            const buttonInfo = allButtons[buttonKey];
-            const featureCard = document.createElement('div');
-            featureCard.className = 'feature-card';
-            featureCard.style.cursor = 'pointer';
-            featureCard.innerHTML = `
-                <div class="feature-icon">${buttonInfo.icon}</div>
-                <div class="feature-title">${buttonInfo.text}</div>
-            `;
-            featureCard.onclick = () => {
-                console.log('🎯 Нажата кнопка:', buttonInfo.text);
-                showScreen(buttonInfo.screen);
+        // Загрузка доступных кнопок - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        function loadAvailableButtons() {
+            const buttonsContainer = document.getElementById('actionButtons');
+            const availableButtons = currentUser.available_buttons || [];
+            
+            console.log('🔄 Загрузка кнопок для пользователя:', currentUser.tg_first_name);
+            console.log('📋 Доступные кнопки:', availableButtons);
+            
+            // Всегда показываем основные кнопки, даже если их нет в available_buttons
+            const allButtons = {
+                'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary', icon: '🎯' },
+                'marathon': { text: '🏃‍♂️ Участвовать в марафоне', screen: 'marathonsScreen', color: 'btn-warning', icon: '🏃‍♂️' },
+                'works': { text: '🖼️ Мои работы', screen: 'worksScreen', color: 'btn-info', icon: '🖼️' },
+                'activities': { text: '📊 История активностей', screen: 'activitiesScreen', color: 'btn', icon: '📊' },
+                'posts': { text: '📰 Полезные материалы', screen: 'postsScreen', color: 'btn-success', icon: '📰' },
+                'shop': { text: '🛒 Магазин знаний', screen: 'shopScreen', color: 'btn-danger', icon: '🛒' },
+                'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info', icon: '👥' },
+                'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success', icon: '🎮' },
+                'change_role': { text: '🔄 Сменить роль', screen: 'changeRoleScreen', color: 'change-role-btn', icon: '🔄' }
             };
-            buttonsContainer.appendChild(featureCard);
-        });
-    } else {
-        // Для незарегистрированных показываем только кнопку регистрации
-        const featureCard = document.createElement('div');
-        featureCard.className = 'feature-card';
-        featureCard.style.cursor = 'pointer';
-        featureCard.innerHTML = `
-            <div class="feature-icon">🚀</div>
-            <div class="feature-title">Начать регистрацию</div>
-        `;
-        featureCard.onclick = () => showScreen('registrationScreen');
-        buttonsContainer.appendChild(featureCard);
-    }
-    
-    console.log('✅ Кнопки загружены');
-}
+            
+            buttonsContainer.innerHTML = '';
+            
+            // Показываем все кнопки для зарегистрированных пользователей
+            if (currentUser.is_registered) {
+                Object.keys(allButtons).forEach(buttonKey => {
+                    const buttonInfo = allButtons[buttonKey];
+                    const featureCard = document.createElement('div');
+                    featureCard.className = 'feature-card';
+                    featureCard.style.cursor = 'pointer';
+                    featureCard.innerHTML = `
+                        <div class="feature-icon">${buttonInfo.icon}</div>
+                        <div class="feature-title">${buttonInfo.text}</div>
+                    `;
+                    featureCard.onclick = () => {
+                        console.log('🎯 Нажата кнопка:', buttonInfo.text);
+                        showScreen(buttonInfo.screen);
+                    };
+                    buttonsContainer.appendChild(featureCard);
+                });
+            } else {
+                // Для незарегистрированных показываем только кнопку регистрации
+                const featureCard = document.createElement('div');
+                featureCard.className = 'feature-card';
+                featureCard.style.cursor = 'pointer';
+                featureCard.innerHTML = `
+                    <div class="feature-icon">🚀</div>
+                    <div class="feature-title">Начать регистрацию</div>
+                `;
+                featureCard.onclick = () => showScreen('registrationScreen');
+                buttonsContainer.appendChild(featureCard);
+            }
+            
+            console.log('✅ Кнопки загружены');
+        }
 
-// Показать экран
-function showScreen(screenName) {
-    console.log('🔄 Переключение на экран:', screenName);
-    
-    document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.remove('active');
-    });
-    document.getElementById(screenName).classList.add('active');
-    
-    // Загружаем данные для экрана
-    switch(screenName) {
-        case 'registrationScreen':
-            console.log('🎯 Загрузка экрана регистрации');
-            loadRoles();
-            break;
-        case 'quizzesScreen':
-            loadQuizzes();
-            break;
-        case 'marathonsScreen':
-            loadMarathons();
-            break;
-        case 'worksScreen':
-            loadWorks();
-            break;
-        case 'shopScreen':
-            loadShop();
-            break;
-        case 'postsScreen':
-            loadPosts();
-            break;
-        case 'activitiesScreen':
-            loadActivities();
-            break;
-        case 'interactivesScreen':
-            loadInteractives();
-            break;
-        case 'inviteScreen':
-            document.getElementById('inviteUserId').textContent = currentUserId;
-            break;
-        case 'changeRoleScreen':
-            loadRolesForChange();
-            break;
-    }
-}
+        // Показать экран
+        function showScreen(screenName) {
+            console.log('🔄 Переключение на экран:', screenName);
+            
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenName).classList.add('active');
+            
+            // Загружаем данные для экрана
+            switch(screenName) {
+                case 'registrationScreen':
+                    console.log('🎯 Загрузка экрана регистрации');
+                    loadRoles();
+                    break;
+                case 'quizzesScreen':
+                    loadQuizzes();
+                    break;
+                case 'marathonsScreen':
+                    loadMarathons();
+                    break;
+                case 'worksScreen':
+                    loadWorks();
+                    break;
+                case 'shopScreen':
+                    loadShop();
+                    break;
+                case 'postsScreen':
+                    loadPosts();
+                    break;
+                case 'activitiesScreen':
+                    loadActivities();
+                    break;
+                case 'interactivesScreen':
+                    loadInteractives();
+                    break;
+                case 'inviteScreen':
+                    document.getElementById('inviteUserId').textContent = currentUserId;
+                    break;
+                case 'changeRoleScreen':
+                    loadRolesForChange();
+                    break;
+            }
+        }
 
         // ==================== СИСТЕМА СМЕНЫ РОЛИ ====================
 
@@ -2075,123 +2092,123 @@ function showScreen(screenName) {
 
         // ==================== РЕГИСТРАЦИЯ ====================
 
-// Загрузка ролей для регистрации - ИСПРАВЛЕННАЯ ВЕРСИЯ
-async function loadRoles() {
-    try {
-        console.log('🔄 Начинаем загрузку ролей...');
-        
-        const response = await fetch('/api/webapp/roles');
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Загрузка ролей для регистрации - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        async function loadRoles() {
+            try {
+                console.log('🔄 Начинаем загрузку ролей...');
+                
+                const response = await fetch('/api/webapp/roles');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const roles = await response.json();
+                console.log('✅ Роли загружены:', roles);
+                
+                const rolesList = document.getElementById('rolesList');
+                
+                if (!roles || roles.length === 0) {
+                    rolesList.innerHTML = '<div class="error">Нет доступных ролей</div>';
+                    return;
+                }
+                
+                rolesList.innerHTML = '';
+                
+                roles.forEach(role => {
+                    const roleCard = document.createElement('div');
+                    roleCard.className = 'role-card';
+                    roleCard.innerHTML = `
+                        <div style="font-size: 24px; margin-bottom: 8px;">${role.icon}</div>
+                        <div style="font-weight: 600; margin-bottom: 5px;">${role.name}</div>
+                        <div style="color: #718096; font-size: 14px;">${role.description}</div>
+                    `;
+                    roleCard.onclick = () => selectRole(role);
+                    rolesList.appendChild(roleCard);
+                });
+                
+                console.log('🎯 Роли отображены в интерфейсе');
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки ролей:', error);
+                const rolesList = document.getElementById('rolesList');
+                rolesList.innerHTML = `
+                    <div class="error">
+                        Ошибка загрузки ролей: ${error.message}
+                        <button class="btn" onclick="loadRoles()" style="margin-top: 10px;">
+                            🔄 Повторить
+                        </button>
+                    </div>
+                `;
+            }
         }
-        
-        const roles = await response.json();
-        console.log('✅ Роли загружены:', roles);
-        
-        const rolesList = document.getElementById('rolesList');
-        
-        if (!roles || roles.length === 0) {
-            rolesList.innerHTML = '<div class="error">Нет доступных ролей</div>';
-            return;
-        }
-        
-        rolesList.innerHTML = '';
-        
-        roles.forEach(role => {
-            const roleCard = document.createElement('div');
-            roleCard.className = 'role-card';
-            roleCard.innerHTML = `
-                <div style="font-size: 24px; margin-bottom: 8px;">${role.icon}</div>
-                <div style="font-weight: 600; margin-bottom: 5px;">${role.name}</div>
-                <div style="color: #718096; font-size: 14px;">${role.description}</div>
-            `;
-            roleCard.onclick = () => selectRole(role);
-            rolesList.appendChild(roleCard);
-        });
-        
-        console.log('🎯 Роли отображены в интерфейсе');
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки ролей:', error);
-        const rolesList = document.getElementById('rolesList');
-        rolesList.innerHTML = `
-            <div class="error">
-                Ошибка загрузки ролей: ${error.message}
-                <button class="btn" onclick="loadRoles()" style="margin-top: 10px;">
-                    🔄 Повторить
-                </button>
-            </div>
-        `;
-    }
-}
 
-// Выбор роли - ИСПРАВЛЕННАЯ ВЕРСИЯ
-function selectRole(role) {
-    console.log('🎯 Выбрана роль:', role);
-    
-    selectedRole = role;
-    
-    // Снимаем выделение со всех карточек
-    document.querySelectorAll('.role-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    // Выделяем выбранную карточку
-    event.currentTarget.classList.add('selected');
-    
-    // Загружаем персонажей для выбранной роли
-    loadCharacters(role.id);
-}
+        // Выбор роли - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        function selectRole(role) {
+            console.log('🎯 Выбрана роль:', role);
+            
+            selectedRole = role;
+            
+            // Снимаем выделение со всех карточек
+            document.querySelectorAll('.role-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Выделяем выбранную карточку
+            event.currentTarget.classList.add('selected');
+            
+            // Загружаем персонажей для выбранной роли
+            loadCharacters(role.id);
+        }
 
-// Загрузка персонажей - ИСПРАВЛЕННАЯ ВЕРСИЯ
-async function loadCharacters(roleId) {
-    try {
-        console.log('🔄 Загрузка персонажей для роли:', roleId);
-        
-        const response = await fetch(`/api/webapp/characters/${roleId}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Загрузка персонажей - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        async function loadCharacters(roleId) {
+            try {
+                console.log('🔄 Загрузка персонажей для роли:', roleId);
+                
+                const response = await fetch(`/api/webapp/characters/${roleId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const characters = await response.json();
+                console.log('✅ Персонажи загружены:', characters);
+                
+                const charactersSection = document.getElementById('charactersSection');
+                const charactersList = document.getElementById('charactersList');
+                
+                charactersSection.style.display = 'block';
+                charactersList.innerHTML = '';
+                
+                if (!characters || characters.length === 0) {
+                    charactersList.innerHTML = '<div class="error">Нет доступных персонажей для этой роли</div>';
+                    return;
+                }
+                
+                characters.forEach(character => {
+                    const characterCard = document.createElement('div');
+                    characterCard.className = 'character-card';
+                    characterCard.innerHTML = `
+                        <div style="font-weight: 600; margin-bottom: 5px;">${character.name}</div>
+                        <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
+                        <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
+                    `;
+                    characterCard.onclick = () => selectCharacter(character);
+                    charactersList.appendChild(characterCard);
+                });
+                
+                console.log('👥 Персонажи отображены');
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки персонажей:', error);
+                document.getElementById('charactersList').innerHTML = `
+                    <div class="error">
+                        Ошибка загрузки персонажей: ${error.message}
+                    </div>
+                `;
+            }
         }
-        
-        const characters = await response.json();
-        console.log('✅ Персонажи загружены:', characters);
-        
-        const charactersSection = document.getElementById('charactersSection');
-        const charactersList = document.getElementById('charactersList');
-        
-        charactersSection.style.display = 'block';
-        charactersList.innerHTML = '';
-        
-        if (!characters || characters.length === 0) {
-            charactersList.innerHTML = '<div class="error">Нет доступных персонажей для этой роли</div>';
-            return;
-        }
-        
-        characters.forEach(character => {
-            const characterCard = document.createElement('div');
-            characterCard.className = 'character-card';
-            characterCard.innerHTML = `
-                <div style="font-weight: 600; margin-bottom: 5px;">${character.name}</div>
-                <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
-                <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
-            `;
-            characterCard.onclick = () => selectCharacter(character);
-            charactersList.appendChild(characterCard);
-        });
-        
-        console.log('👥 Персонажи отображены');
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки персонажей:', error);
-        document.getElementById('charactersList').innerHTML = `
-            <div class="error">
-                Ошибка загрузки персонажей: ${error.message}
-            </div>
-        `;
-    }
-}
 
         // Получить описание бонуса
         function getBonusDescription(character) {
@@ -2221,584 +2238,579 @@ async function loadCharacters(roleId) {
             document.getElementById('completeBtn').disabled = false;
         }
 
-// Завершение регистрации - ИСПРАВЛЕННАЯ ВЕРСИЯ
-async function completeRegistration() {
-    console.log('📝 Начало регистрации...');
-    console.log('👤 Выбранная роль:', selectedRole);
-    console.log('🎭 Выбранный персонаж:', selectedCharacter);
-    
-    if (!selectedRole || !selectedCharacter) {
-        showMessage('❌ Выберите роль и персонажа', 'error');
-        return;
-    }
-    
-    const firstName = document.getElementById('userFirstName').value.trim();
-    if (!firstName) {
-        showMessage('❌ Введите ваше имя', 'error');
-        return;
-    }
-    
-    try {
-        console.log('📤 Отправка данных регистрации...');
-        
-        const response = await fetch('/api/users/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: currentUserId,
-                firstName: firstName,
-                roleId: selectedRole.id,
-                characterId: selectedCharacter.id
-            })
-        });
-        
-        const result = await response.json();
-        console.log('📋 Ответ сервера:', result);
-        
-        if (result.success) {
-            showMessage(`✅ ${result.message}`, 'success');
-            await loadUserData();
-            showScreen('mainScreen');
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
+        // Завершение регистрации - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        async function completeRegistration() {
+            console.log('📝 Начало регистрации...');
+            console.log('👤 Выбранная роль:', selectedRole);
+            console.log('🎭 Выбранный персонаж:', selectedCharacter);
+            
+            if (!selectedRole || !selectedCharacter) {
+                showMessage('❌ Выберите роль и персонажа', 'error');
+                return;
+            }
+            
+            const firstName = document.getElementById('userFirstName').value.trim();
+            if (!firstName) {
+                showMessage('❌ Введите ваше имя', 'error');
+                return;
+            }
+            
+            try {
+                console.log('📤 Отправка данных регистрации...');
+                
+                const response = await fetch('/api/users/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        firstName: firstName,
+                        roleId: selectedRole.id,
+                        characterId: selectedCharacter.id
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('📋 Ответ сервера:', result);
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    await loadUserData();
+                    showScreen('mainScreen');
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Ошибка регистрации:', error);
+                showMessage('❌ Ошибка регистрации: ' + error.message, 'error');
+            }
         }
-    } catch (error) {
-        console.error('❌ Ошибка регистрации:', error);
-        showMessage('❌ Ошибка регистрации: ' + error.message, 'error');
-    }
-}
 
-// ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПОКУПОК ====================
+        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПОКУПОК ====================
 
-// Генерация содержимого покупки в зависимости от типа
-function generatePurchaseContent(purchase) {
-    const fileUrl = purchase.file_data || purchase.file_url;
-    const previewUrl = purchase.preview_data || purchase.preview_url;
-    
-    switch(purchase.type) {
-        case 'video':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🎥 Видео содержание
-                    </h4>
-                    ${previewUrl ? `
-                        <img src="${previewUrl}" class="media-preview" style="margin-bottom: 12px; cursor: pointer; max-height: 200px; object-fit: cover;" 
-                             onclick="openMediaModal('${fileUrl}', 'video')"
-                             title="Нажмите для просмотра в полном размере">
-                    ` : ''}
-                    <div style="background: #000; border-radius: 12px; overflow: hidden;">
-                        <video controls class="media-preview" style="max-height: 400px; width: 100%;">
-                            <source src="${fileUrl}" type="video/mp4">
-                            Ваш браузер не поддерживает видео.
-                        </video>
-                    </div>
-                    <div style="display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;">
-                        <button class="btn" onclick="openMediaModal('${fileUrl}', 'video')">
-                            🔍 Полный экран
-                        </button>
-                        <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}.mp4')">
-                            📥 Скачать видео
-                        </button>
-                    </div>
-                </div>
-            `;
+        // Генерация содержимого покупки в зависимости от типа
+        function generatePurchaseContent(purchase) {
+            const fileUrl = purchase.file_data || purchase.file_url;
+            const previewUrl = purchase.preview_data || purchase.preview_url;
             
-        case 'image':
-            const images = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🖼️ Изображение${images.length > 1 ? ` (${images.length} фото)` : ''}
-                    </h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                        ${images.map((imgUrl, index) => `
-                            <img src="${imgUrl}" class="media-preview" 
-                                 style="cursor: pointer; height: 200px; object-fit: cover;"
-                                 onclick="openMediaModal('${imgUrl}', 'image')"
-                                 title="Нажмите для просмотра в полном размере">
-                        `).join('')}
-                    </div>
-                    <div style="margin-top: 12px;">
-                        <button class="btn" onclick="openMediaModal('${images[0]}', 'image')">
-                            🔍 Открыть в полном размере
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-        case 'audio':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🎧 Аудио содержание
-                    </h4>
-                    <div style="background: #f7fafc; padding: 24px; border-radius: 16px; text-align: center;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">🎵</div>
-                        <audio controls style="width: 100%; max-width: 400px;">
-                            <source src="${fileUrl}" type="audio/mpeg">
-                            Ваш браузер не поддерживает аудио.
-                        </audio>
-                        <div style="margin-top: 16px; color: #718096; font-size: 14px;">
-                            Используйте элементы управления для воспроизведения
-                        </div>
-                    </div>
-                    <div style="margin-top: 12px;">
-                        <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}.mp3')">
-                            📥 Скачать аудио
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-        case 'pdf':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        📚 PDF документ
-                    </h4>
-                    <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 16px; margin: 16px 0;">
-                        <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
-                        <div style="font-weight: 600; margin-bottom: 8px; font-size: 18px;">${purchase.title}</div>
-                        <div style="color: #718096; margin-bottom: 20px;">
-                            ${purchase.pages_count ? `Документ на ${purchase.pages_count} страниц` : 'PDF документ готов к просмотру'}
-                        </div>
-                        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                            <a href="${fileUrl}" target="_blank" class="btn btn-success">
-                                👀 Открыть в браузере
-                            </a>
-                            <button class="btn" onclick="downloadPurchase('${purchase.id}', '${purchase.title}.pdf')">
-                                📥 Скачать PDF
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-        case 'text':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        📝 Текстовое содержание
-                    </h4>
-                    <div class="content-preview" style="max-height: none; background: white; padding: 24px; border-radius: 12px; white-space: pre-line; line-height: 1.6; font-size: 14px;">
-                        ${purchase.content_text || 'Содержимое временно недоступно'}
-                    </div>
-                    ${fileUrl ? `
-                        <div style="margin-top: 12px;">
-                            <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}.txt')">
-                                📥 Скачать текст
-                            </button>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-
-case 'embed':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🎬 Встроенное видео
-                    </h4>
-                    <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
-                            💡 Видео загружено через Vimeo. Для лучшего воспроизведения используйте стабильное интернет-соединение.
-                        </div>
-                    </div>
-                    <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 12px; overflow: hidden;">
-                        ${purchase.embed_html}
-                    </div>
-                    <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
-                        Используйте элементы управления плеера для управления воспроизведением
-                    </div>
-                </div>
-            `;
-            
-        case 'link':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🔗 Ссылка на ресурс
-                    </h4>
-                    <div style="background: #f0fff4; padding: 20px; border-radius: 12px; border: 1px solid #9ae6b4;">
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                            <span style="font-size: 24px;">🌐</span>
-                            <div>
-                                <div style="font-weight: 600;">Внешний ресурс</div>
-                                <div style="color: #718096; font-size: 14px;">Нажмите для перехода</div>
+            switch(purchase.type) {
+                case 'video':
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🎥 Видео содержание
+                            </h4>
+                            ${previewUrl ? `
+                                <img src="${previewUrl}" class="media-preview" style="margin-bottom: 12px; cursor: pointer; max-height: 200px; object-fit: cover;" 
+                                     onclick="openMediaModal('${fileUrl}', 'video')"
+                                     title="Нажмите для просмотра в полном размере">
+                            ` : ''}
+                            <div style="background: #000; border-radius: 12px; overflow: hidden;">
+                                <video controls class="media-preview" style="max-height: 400px; width: 100%;">
+                                    <source src="${fileUrl}" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                            <div style="display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;">
+                                <button class="btn" onclick="openMediaModal('${fileUrl}', 'video')">
+                                    🔍 Полный экран
+                                </button>
+                                <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}.mp4')">
+                                    📥 Скачать видео
+                                </button>
                             </div>
                         </div>
-                        <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; word-break: break-all; font-size: 14px;">
-                            ${purchase.external_url}
+                    `;
+                    
+                case 'image':
+                    const images = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🖼️ Изображение${images.length > 1 ? ` (${images.length} фото)` : ''}
+                            </h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                                ${images.map((imgUrl, index) => `
+                                    <img src="${imgUrl}" class="media-preview" 
+                                         style="cursor: pointer; height: 200px; object-fit: cover;"
+                                         onclick="openMediaModal('${imgUrl}', 'image')"
+                                         title="Нажмите для просмотра в полном размере">
+                                `).join('')}
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <button class="btn" onclick="openMediaModal('${images[0]}', 'image')">
+                                    🔍 Открыть в полном размере
+                                </button>
+                            </div>
                         </div>
-                        <a href="${purchase.external_url}" target="_blank" class="btn btn-success" style="width: 100%;">
-                            🔗 Перейти по ссылке
-                        </a>
-                    </div>
-                </div>
-            `;
-            
-        default:
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px;">📦 Содержимое товара</h4>
-                    <div class="info">
-                        <p>Тип содержимого: ${purchase.type}</p>
-                        ${fileUrl ? `
-                            <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}')">
-                                📥 Скачать файл
-                            </button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-    }
-}
+                    `;
+                    
+                case 'audio':
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🎧 Аудио содержание
+                            </h4>
+                            <div style="background: #f7fafc; padding: 24px; border-radius: 16px; text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">🎵</div>
+                                <audio controls style="width: 100%; max-width: 400px;">
+                                    <source src="${fileUrl}" type="audio/mpeg">
+                                    Ваш браузер не поддерживает аудио.
+                                </audio>
+                                <div style="margin-top: 16px; color: #718096; font-size: 14px;">
+                                    Используйте элементы управления для воспроизведения
+                                </div>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}.mp3')">
+                                    📥 Скачать аудио
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                case 'pdf':
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                📚 PDF документ
+                            </h4>
+                            <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 16px; margin: 16px 0;">
+                                <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
+                                <div style="font-weight: 600; margin-bottom: 8px; font-size: 18px;">${purchase.title}</div>
+                                <div style="color: #718096; margin-bottom: 20px;">
+                                    ${purchase.pages_count ? `Документ на ${purchase.pages_count} страниц` : 'PDF документ готов к просмотру'}
+                                </div>
+                                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                                    <a href="${fileUrl}" target="_blank" class="btn btn-success">
+                                        👀 Открыть в браузере
+                                    </a>
+                                    <button class="btn" onclick="downloadPurchase('${purchase.id}', '${purchase.title}.pdf')">
+                                        📥 Скачать PDF
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                case 'text':
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                📝 Текстовое содержание
+                            </h4>
+                            <div class="content-preview" style="max-height: none; background: white; padding: 24px; border-radius: 12px; white-space: pre-line; line-height: 1.6; font-size: 14px;">
+                                ${purchase.content_text || 'Содержимое временно недоступно'}
+                            </div>
+                            ${fileUrl ? `
+                                <div style="margin-top: 12px;">
+                                    <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}.txt')">
+                                        📥 Скачать текст
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+
+                case 'embed':
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🎬 Встроенное видео
+                            </h4>
+                            <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
+                                <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
+                                    💡 Видео загружено через Vimeo. Для лучшего воспроизведения используйте стабильное интернет-соединение.
+                                </div>
+                            </div>
+                            <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 12px; overflow: hidden;">
+                                ${purchase.embed_html}
+                            </div>
+                            <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
+                                Используйте элементы управления плеера для управления воспроизведением
+                            </div>
+                        </div>
+                    `;
+                    
+                case 'link':
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🔗 Ссылка на ресурс
+                            </h4>
+                            <div style="background: #f0fff4; padding: 20px; border-radius: 12px; border: 1px solid #9ae6b4;">
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                    <span style="font-size: 24px;">🌐</span>
+                                    <div>
+                                        <div style="font-weight: 600;">Внешний ресурс</div>
+                                        <div style="color: #718096; font-size: 14px;">Нажмите для перехода</div>
+                                    </div>
+                                </div>
+                                <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; word-break: break-all; font-size: 14px;">
+                                    ${purchase.external_url}
+                                </div>
+                                <a href="${purchase.external_url}" target="_blank" class="btn btn-success" style="width: 100%;">
+                                    🔗 Перейти по ссылке
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    
+                default:
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px;">📦 Содержимое товара</h4>
+                            <div class="info">
+                                <p>Тип содержимого: ${purchase.type}</p>
+                                ${fileUrl ? `
+                                    <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}')">
+                                        📥 Скачать файл
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+            }
+        }
 
         // Скачать base64 файл
-function downloadBase64File(base64Data, filename) {
-    try {
-        // Создаем временную ссылку для скачивания
-        const link = document.createElement('a');
-        link.href = base64Data;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showMessage('✅ Файл скачивается', 'success');
-    } catch (error) {
-        console.error('Ошибка скачивания base64 файла:', error);
-        showMessage('❌ Ошибка скачивания файла', 'error');
-    }
-}
-        
-
-// Получить название типа товара на русском
-function getPurchaseTypeName(type) {
-    const typeNames = {
-        'video': 'Видео',
-        'image': 'Изображение',
-        'audio': 'Аудио',
-        'pdf': 'PDF документ',
-        'text': 'Текст',
-        'link': 'Ссылка',
-        // ↓↓↓ ДОБАВЛЯЕМ ЗДЕСЬ ↓↓↓
-        'embed': 'Встроенное видео',
-        // ↑↑↑ ДОБАВЛЯЕМ ЗДЕСЬ ↑↑↑
-        'course': 'Курс',
-        'package': 'Пакет'
-    };
-    return typeNames[type] || type;
-}
-
-// Получить иконку типа товара
-function getPurchaseTypeIcon(type) {
-    const icons = {
-        'video': '🎥',
-        'image': '🖼️',
-        'audio': '🎧',
-        'pdf': '📚',
-        'text': '📝',
-        'link': '🔗',
-        // ↓↓↓ ДОБАВЛЯЕМ ЗДЕСЬ ↓↓↓
-        'embed': '🎬',
-        // ↑↑↑ ДОБАВЛЯЕМ ЗДЕСЬ ↑↑↑
-        'course': '🎓',
-        'package': '📦'
-    };
-    return icons[type] || '📄';
-}
-
-// Форматирование размера файла
-function formatFileSize(bytes) {
-    if (!bytes) return 'Неизвестно';
-    const sizes = ['Байт', 'КБ', 'МБ', 'ГБ'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-}
-
-// Получить количество дней до истечения доступа
-function getDaysLeft(expiryDate) {
-    const expiry = new Date(expiryDate);
-    const now = new Date();
-    const diffTime = expiry - now;
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-}
-
-// Скачать покупку
-async function downloadPurchase(purchaseId, fileName) {
-    try {
-        showMessage('⏳ Начинаем скачивание...', 'info');
-        
-        const response = await fetch(`/api/webapp/purchases/${purchaseId}/download`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUserId })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Создаем временную ссылку для скачивания
-            const downloadLink = document.createElement('a');
-            downloadLink.href = result.downloadUrl || result.file_url;
-            downloadLink.download = fileName;
-            downloadLink.target = '_blank';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-            
-            showMessage('✅ Файл скачивается', 'success');
-            
-            // Обновляем счетчик скачиваний
-            setTimeout(() => loadPurchasedItems(), 1000);
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
+        function downloadBase64File(base64Data, filename) {
+            try {
+                // Создаем временную ссылку для скачивания
+                const link = document.createElement('a');
+                link.href = base64Data;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showMessage('✅ Файл скачивается', 'success');
+            } catch (error) {
+                console.error('Ошибка скачивания base64 файла:', error);
+                showMessage('❌ Ошибка скачивания файла', 'error');
+            }
         }
-    } catch (error) {
-        console.error('Ошибка скачивания:', error);
-        showMessage('❌ Ошибка скачивания. Попробуйте позже.', 'error');
-    }
-}
 
-// Модальное окно для медиа
-function openMediaModal(mediaUrl, mediaType) {
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.95);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-        padding: 20px;
-    `;
-    
-    const content = document.createElement('div');
-    content.style.cssText = `
-        position: relative;
-        max-width: 95%;
-        max-height: 95%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    `;
-    
-    let mediaElement;
-    if (mediaType === 'video') {
-        mediaElement = document.createElement('video');
-        mediaElement.controls = true;
-        mediaElement.autoplay = true;
-        mediaElement.style.cssText = 'max-width: 100%; max-height: 90vh; border-radius: 8px;';
-        mediaElement.src = mediaUrl;
-        
-        // Добавляем обработчик ошибок для видео
-        mediaElement.addEventListener('error', function(e) {
-            console.error('Ошибка загрузки видео:', e);
-            showMessage('❌ Ошибка воспроизведения видео', 'error');
-        });
-        
-    } else if (mediaType === 'image') {
-        mediaElement = document.createElement('img');
-        mediaElement.style.cssText = 'max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px;';
-        mediaElement.src = mediaUrl;
-        
-        // Добавляем обработчик ошибок для изображений
-        mediaElement.addEventListener('error', function(e) {
-            console.error('Ошибка загрузки изображения:', e);
-            showMessage('❌ Ошибка загрузки изображения', 'error');
-        });
-    }
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '✕';
-    closeBtn.style.cssText = `
-        position: absolute;
-        top: -45px;
-        right: 0;
-        background: #f56565;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 35px;
-        height: 35px;
-        font-size: 18px;
-        cursor: pointer;
-        z-index: 10001;
-    `;
-    closeBtn.onclick = () => document.body.removeChild(modal);
-    
-    const downloadBtn = document.createElement('button');
-    downloadBtn.innerHTML = '📥';
-    downloadBtn.style.cssText = `
-        position: absolute;
-        top: -45px;
-        right: 45px;
-        background: #48bb78;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 35px;
-        height: 35px;
-        font-size: 18px;
-        cursor: pointer;
-        z-index: 10001;
-    `;
-    
-    // Обновляем логику скачивания для base64
-    downloadBtn.onclick = () => {
-        if (mediaUrl.startsWith('data:')) {
-            // Для base64 данных
-            const filename = `download.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
-            downloadBase64File(mediaUrl, filename);
-        } else {
-            // Для обычных URL
-            const link = document.createElement('a');
-            link.href = mediaUrl;
-            link.download = mediaUrl.split('/').pop() || 'download';
-            link.click();
+        // Получить название типа товара на русском
+        function getPurchaseTypeName(type) {
+            const typeNames = {
+                'video': 'Видео',
+                'image': 'Изображение',
+                'audio': 'Аудио',
+                'pdf': 'PDF документ',
+                'text': 'Текст',
+                'link': 'Ссылка',
+                'embed': 'Встроенное видео',
+                'course': 'Курс',
+                'package': 'Пакет'
+            };
+            return typeNames[type] || type;
         }
-    };
-    
-    content.appendChild(mediaElement);
-    content.appendChild(closeBtn);
-    content.appendChild(downloadBtn);
-    modal.appendChild(content);
-    
-    // Закрытие по клику на фон
-    modal.onclick = (e) => {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
-        }
-    };
-    
-    // Закрытие по ESC
-    const closeModal = (e) => {
-        if (e.key === 'Escape') {
-            document.body.removeChild(modal);
-            document.removeEventListener('keydown', closeModal);
-        }
-    };
-    document.addEventListener('keydown', closeModal);
-    
-    document.body.appendChild(modal);
-}
 
-// Добавить в избранное
-async function togglePurchaseFavorite(purchaseId) {
-    try {
-        const response = await fetch(`/api/webapp/purchases/${purchaseId}/favorite`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUserId })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage(result.is_favorite ? '❤️ Добавлено в избранное' : '💔 Убрано из избранного', 'success');
-            loadPurchasedItems();
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
+        // Получить иконку типа товара
+        function getPurchaseTypeIcon(type) {
+            const icons = {
+                'video': '🎥',
+                'image': '🖼️',
+                'audio': '🎧',
+                'pdf': '📚',
+                'text': '📝',
+                'link': '🔗',
+                'embed': '🎬',
+                'course': '🎓',
+                'package': '📦'
+            };
+            return icons[type] || '📄';
         }
-    } catch (error) {
-        console.error('Ошибка обновления избранного:', error);
-        showMessage('❌ Ошибка обновления избранного', 'error');
-    }
-}
 
-// Поделиться покупкой
-async function sharePurchase(purchaseId) {
-    try {
-        const response = await fetch(`/api/webapp/purchases/${purchaseId}/share`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUserId })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success && result.shareUrl) {
-            // Копируем ссылку в буфер обмена
-            await navigator.clipboard.writeText(result.shareUrl);
-            showMessage('✅ Ссылка скопирована в буфер обмена!', 'success');
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
+        // Форматирование размера файла
+        function formatFileSize(bytes) {
+            if (!bytes) return 'Неизвестно';
+            const sizes = ['Байт', 'КБ', 'МБ', 'ГБ'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
         }
-    } catch (error) {
-        console.error('Ошибка создания ссылки:', error);
-        showMessage('❌ Ошибка создания ссылки', 'error');
-    }
-}
 
-// Поиск по покупкам
-function searchPurchases(query) {
-    const purchases = document.querySelectorAll('.purchase-item');
-    let visibleCount = 0;
-    
-    purchases.forEach(purchase => {
-        const title = purchase.dataset.title;
-        const description = purchase.querySelector('p')?.textContent.toLowerCase() || '';
-        const type = purchase.dataset.type;
-        
-        const matchesSearch = !query || title.includes(query.toLowerCase()) || description.includes(query.toLowerCase());
-        
-        if (matchesSearch) {
-            purchase.style.display = 'block';
-            visibleCount++;
-        } else {
-            purchase.style.display = 'none';
+        // Получить количество дней до истечения доступа
+        function getDaysLeft(expiryDate) {
+            const expiry = new Date(expiryDate);
+            const now = new Date();
+            const diffTime = expiry - now;
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         }
-    });
-    
-    // Показываем сообщение если ничего не найдено
-    const container = document.getElementById('purchasesContainer');
-    if (visibleCount === 0 && query) {
-        if (!document.getElementById('noResults')) {
-            const noResults = document.createElement('div');
-            noResults.id = 'noResults';
-            noResults.className = 'info';
-            noResults.innerHTML = `
-                <div style="text-align: center; padding: 40px;">
-                    <div style="font-size: 64px; margin-bottom: 16px;">🔍</div>
-                    <h3 style="margin-bottom: 12px;">Ничего не найдено</h3>
-                    <p style="color: #718096;">Попробуйте изменить поисковый запрос</p>
-                </div>
+
+        // Скачать покупку
+        async function downloadPurchase(purchaseId, fileName) {
+            try {
+                showMessage('⏳ Начинаем скачивание...', 'info');
+                
+                const response = await fetch(`/api/webapp/purchases/${purchaseId}/download`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUserId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Создаем временную ссылку для скачивания
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = result.downloadUrl || result.file_url;
+                    downloadLink.download = fileName;
+                    downloadLink.target = '_blank';
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                    
+                    showMessage('✅ Файл скачивается', 'success');
+                    
+                    // Обновляем счетчик скачиваний
+                    setTimeout(() => loadPurchasedItems(), 1000);
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка скачивания:', error);
+                showMessage('❌ Ошибка скачивания. Попробуйте позже.', 'error');
+            }
+        }
+
+        // Модальное окно для медиа
+        function openMediaModal(mediaUrl, mediaType) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.95);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                padding: 20px;
             `;
-            container.appendChild(noResults);
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                position: relative;
+                max-width: 95%;
+                max-height: 95%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            `;
+            
+            let mediaElement;
+            if (mediaType === 'video') {
+                mediaElement = document.createElement('video');
+                mediaElement.controls = true;
+                mediaElement.autoplay = true;
+                mediaElement.style.cssText = 'max-width: 100%; max-height: 90vh; border-radius: 8px;';
+                mediaElement.src = mediaUrl;
+                
+                // Добавляем обработчик ошибок для видео
+                mediaElement.addEventListener('error', function(e) {
+                    console.error('Ошибка загрузки видео:', e);
+                    showMessage('❌ Ошибка воспроизведения видео', 'error');
+                });
+                
+            } else if (mediaType === 'image') {
+                mediaElement = document.createElement('img');
+                mediaElement.style.cssText = 'max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px;';
+                mediaElement.src = mediaUrl;
+                
+                // Добавляем обработчик ошибок для изображений
+                mediaElement.addEventListener('error', function(e) {
+                    console.error('Ошибка загрузки изображения:', e);
+                    showMessage('❌ Ошибка загрузки изображения', 'error');
+                });
+            }
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '✕';
+            closeBtn.style.cssText = `
+                position: absolute;
+                top: -45px;
+                right: 0;
+                background: #f56565;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 35px;
+                height: 35px;
+                font-size: 18px;
+                cursor: pointer;
+                z-index: 10001;
+            `;
+            closeBtn.onclick = () => document.body.removeChild(modal);
+            
+            const downloadBtn = document.createElement('button');
+            downloadBtn.innerHTML = '📥';
+            downloadBtn.style.cssText = `
+                position: absolute;
+                top: -45px;
+                right: 45px;
+                background: #48bb78;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 35px;
+                height: 35px;
+                font-size: 18px;
+                cursor: pointer;
+                z-index: 10001;
+            `;
+            
+            // Обновляем логику скачивания для base64
+            downloadBtn.onclick = () => {
+                if (mediaUrl.startsWith('data:')) {
+                    // Для base64 данных
+                    const filename = `download.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
+                    downloadBase64File(mediaUrl, filename);
+                } else {
+                    // Для обычных URL
+                    const link = document.createElement('a');
+                    link.href = mediaUrl;
+                    link.download = mediaUrl.split('/').pop() || 'download';
+                    link.click();
+                }
+            };
+            
+            content.appendChild(mediaElement);
+            content.appendChild(closeBtn);
+            content.appendChild(downloadBtn);
+            modal.appendChild(content);
+            
+            // Закрытие по клику на фон
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            };
+            
+            // Закрытие по ESC
+            const closeModal = (e) => {
+                if (e.key === 'Escape') {
+                    document.body.removeChild(modal);
+                    document.removeEventListener('keydown', closeModal);
+                }
+            };
+            document.addEventListener('keydown', closeModal);
+            
+            document.body.appendChild(modal);
         }
-    } else {
-        const noResults = document.getElementById('noResults');
-        if (noResults) noResults.remove();
-    }
-}
 
-// Фильтрация покупок по типу
-function filterPurchasesByType(type) {
-    const searchInput = document.getElementById('searchPurchases');
-    const searchQuery = searchInput ? searchInput.value : '';
-    
-    // Комбинируем фильтрацию по типу и поиск
-    searchPurchases(searchQuery);
-    
-    if (type !== 'all') {
-        const purchases = document.querySelectorAll('.purchase-item');
-        purchases.forEach(purchase => {
-            if (purchase.style.display !== 'none') {
-                const purchaseType = purchase.dataset.type;
-                if (purchaseType !== type) {
+        // Добавить в избранное
+        async function togglePurchaseFavorite(purchaseId) {
+            try {
+                const response = await fetch(`/api/webapp/purchases/${purchaseId}/favorite`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUserId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(result.is_favorite ? '❤️ Добавлено в избранное' : '💔 Убрано из избранного', 'success');
+                    loadPurchasedItems();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка обновления избранного:', error);
+                showMessage('❌ Ошибка обновления избранного', 'error');
+            }
+        }
+
+        // Поделиться покупкой
+        async function sharePurchase(purchaseId) {
+            try {
+                const response = await fetch(`/api/webapp/purchases/${purchaseId}/share`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUserId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.shareUrl) {
+                    // Копируем ссылку в буфер обмена
+                    await navigator.clipboard.writeText(result.shareUrl);
+                    showMessage('✅ Ссылка скопирована в буфер обмена!', 'success');
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка создания ссылки:', error);
+                showMessage('❌ Ошибка создания ссылки', 'error');
+            }
+        }
+
+        // Поиск по покупкам
+        function searchPurchases(query) {
+            const purchases = document.querySelectorAll('.purchase-item');
+            let visibleCount = 0;
+            
+            purchases.forEach(purchase => {
+                const title = purchase.dataset.title;
+                const description = purchase.querySelector('p')?.textContent.toLowerCase() || '';
+                const type = purchase.dataset.type;
+                
+                const matchesSearch = !query || title.includes(query.toLowerCase()) || description.includes(query.toLowerCase());
+                
+                if (matchesSearch) {
+                    purchase.style.display = 'block';
+                    visibleCount++;
+                } else {
                     purchase.style.display = 'none';
                 }
+            });
+            
+            // Показываем сообщение если ничего не найдено
+            const container = document.getElementById('purchasesContainer');
+            if (visibleCount === 0 && query) {
+                if (!document.getElementById('noResults')) {
+                    const noResults = document.createElement('div');
+                    noResults.id = 'noResults';
+                    noResults.className = 'info';
+                    noResults.innerHTML = `
+                        <div style="text-align: center; padding: 40px;">
+                            <div style="font-size: 64px; margin-bottom: 16px;">🔍</div>
+                            <h3 style="margin-bottom: 12px;">Ничего не найдено</h3>
+                            <p style="color: #718096;">Попробуйте изменить поисковый запрос</p>
+                        </div>
+                    `;
+                    container.appendChild(noResults);
+                }
+            } else {
+                const noResults = document.getElementById('noResults');
+                if (noResults) noResults.remove();
             }
-        });
-    }
-}
-        
+        }
+
+        // Фильтрация покупок по типу
+        function filterPurchasesByType(type) {
+            const searchInput = document.getElementById('searchPurchases');
+            const searchQuery = searchInput ? searchInput.value : '';
+            
+            // Комбинируем фильтрацию по типу и поиск
+            searchPurchases(searchQuery);
+            
+            if (type !== 'all') {
+                const purchases = document.querySelectorAll('.purchase-item');
+                purchases.forEach(purchase => {
+                    if (purchase.style.display !== 'none') {
+                        const purchaseType = purchase.dataset.type;
+                        if (purchaseType !== type) {
+                            purchase.style.display = 'none';
+                        }
+                    }
+                });
+            }
+        }
+
         // ==================== КВИЗЫ ====================
 
         // Загрузка квизов
@@ -3119,10 +3131,10 @@ function filterPurchasesByType(type) {
                 return;
             }
             
-if (file.size > 3 * 1024 * 1024 * 1024) {
-    showMessage('❌ Размер файла не должен превышать 3GB', 'error');
-    return;
-}
+            if (file.size > 3 * 1024 * 1024 * 1024) {
+                showMessage('❌ Размер файла не должен превышать 3GB', 'error');
+                return;
+            }
             
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -3689,9 +3701,9 @@ if (file.size > 3 * 1024 * 1024 * 1024) {
             }
             
             if (file.size > 3 * 1024 * 1024 * 1024) {
-    showMessage('❌ Размер файла не должен превышать 3GB', 'error');
-    return;
-}
+                showMessage('❌ Размер файла не должен превышать 3GB', 'error');
+                return;
+            }
             
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -3819,7 +3831,7 @@ if (file.size > 3 * 1024 * 1024 * 1024) {
                             <h3 style="margin: 0;">${item.title}</h3>
                             <div style="text-align: right;">
                                 <div class="spark-badge">${item.price}✨</div>
-                                                                ${!canAfford ? '<div style="color: #f56565; font-size: 12px; margin-top: 5px;">Недостаточно искр</div>' : ''}
+                                ${!canAfford ? '<div style="color: #f56565; font-size: 12px; margin-top: 5px;">Недостаточно искр</div>' : ''}
                                 ${hasPurchased ? '<div style="color: #48bb78; font-size: 12px; margin-top: 5px;">✅ Куплено</div>' : ''}
                             </div>
                         </div>
@@ -3831,11 +3843,11 @@ if (file.size > 3 * 1024 * 1024 * 1024) {
                             ${item.content_text || 'Описание содержимого...'}
                         </div>
                         
-<button class="btn ${canAfford && !hasPurchased ? 'btn-success' : 'btn-secondary'}" 
-        onclick="purchaseItem(${item.id})" 
-        ${!canAfford || hasPurchased ? 'disabled' : ''}>
-    ${hasPurchased ? '✅ Куплено' : canAfford ? '🛒 Купить' : '🔒 Недоступно'}
-</button>
+                        <button class="btn ${canAfford && !hasPurchased ? 'btn-success' : 'btn-secondary'}" 
+                                onclick="purchaseItem(${item.id})" 
+                                ${!canAfford || hasPurchased ? 'disabled' : ''}>
+                            ${hasPurchased ? '✅ Куплено' : canAfford ? '🛒 Купить' : '🔒 Недоступно'}
+                        </button>
                     `;
                     
                     shopItemsList.appendChild(itemCard);
@@ -3873,184 +3885,184 @@ if (file.size > 3 * 1024 * 1024 * 1024) {
             }
         }
 
-// ==================== СИСТЕМА ПОКУПОК ====================
+        // ==================== СИСТЕМА ПОКУПОК ====================
 
-// Загрузка купленных товаров
-async function loadPurchasedItems() {
-    try {
-        const response = await fetch(`/api/webapp/users/${currentUserId}/purchases`);
-        const data = await response.json();
-        
-        const purchasedList = document.getElementById('purchasedItemsList');
-        purchasedList.innerHTML = '';
-        
-        if (data.purchases.length === 0) {
-            purchasedList.innerHTML = `
-                <div class="info" style="text-align: center; padding: 40px;">
-                    <div style="font-size: 64px; margin-bottom: 16px;">🛒</div>
-                    <h3 style="margin-bottom: 12px;">Пока нет покупок</h3>
-                    <p style="color: #718096; margin-bottom: 20px;">Купленные товары появятся здесь</p>
-                    <button class="btn" onclick="showShopTab('items')">
-                        🛍️ Перейти в магазин
-                    </button>
-                </div>
-            `;
-            return;
+        // Загрузка купленных товаров
+        async function loadPurchasedItems() {
+            try {
+                const response = await fetch(`/api/webapp/users/${currentUserId}/purchases`);
+                const data = await response.json();
+                
+                const purchasedList = document.getElementById('purchasedItemsList');
+                purchasedList.innerHTML = '';
+                
+                if (data.purchases.length === 0) {
+                    purchasedList.innerHTML = `
+                        <div class="info" style="text-align: center; padding: 40px;">
+                            <div style="font-size: 64px; margin-bottom: 16px;">🛒</div>
+                            <h3 style="margin-bottom: 12px;">Пока нет покупок</h3>
+                            <p style="color: #718096; margin-bottom: 20px;">Купленные товары появятся здесь</p>
+                            <button class="btn" onclick="showShopTab('items')">
+                                🛍️ Перейти в магазин
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Добавляем заголовок и фильтры
+                purchasedList.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                        <h3 style="margin: 0;">📦 Мои покупки (${data.purchases.length})</h3>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <input type="text" id="searchPurchases" class="form-control" placeholder="🔍 Поиск покупок..." 
+                                   style="width: 200px; padding: 8px 12px; font-size: 14px;" oninput="searchPurchases(this.value)">
+                            <select id="filterPurchases" class="form-control" onchange="filterPurchasesByType(this.value)"
+                                    style="width: 150px; padding: 8px 12px; font-size: 14px;">
+                                <option value="all">Все типы</option>
+                                <option value="video">🎥 Видео</option>
+                                <option value="image">🖼️ Изображения</option>
+                                <option value="audio">🎧 Аудио</option>
+                                <option value="pdf">📚 PDF</option>
+                                <option value="text">📝 Текст</option>
+                                <option value="link">🔗 Ссылки</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                
+                const purchasesContainer = document.createElement('div');
+                purchasesContainer.id = 'purchasesContainer';
+                
+                data.purchases.forEach(purchase => {
+                    const purchaseCard = document.createElement('div');
+                    purchaseCard.className = 'purchase-item';
+                    purchaseCard.dataset.type = purchase.type;
+                    purchaseCard.dataset.title = purchase.title.toLowerCase();
+                    
+                    // Генерируем HTML для содержимого в зависимости от типа
+                    const contentHtml = generatePurchaseContent(purchase);
+                    
+                    purchaseCard.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                            <div style="flex: 1;">
+                                <h3 style="margin: 0 0 8px 0; color: #2d3748;">${purchase.title}</h3>
+                                <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;">
+                                    <span class="badge badge-info">${getPurchaseTypeIcon(purchase.type)} ${getPurchaseTypeName(purchase.type)}</span>
+                                    <span class="badge badge-success">Куплено за ${purchase.price_paid}✨</span>
+                                    ${purchase.download_count !== undefined ? `
+                                        <span class="badge" style="background: #e9d8fd; color: #6b46c1;">
+                                            📥 ${purchase.download_count} скачиваний
+                                        </span>
+                                    ` : ''}
+                                    ${purchase.is_favorite ? `
+                                        <span class="badge" style="background: #fed7d7; color: #c53030;">
+                                            ❤️ В избранном
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <div style="color: #718096; font-size: 14px; text-align: right;">
+                                📅 ${new Date(purchase.purchased_at).toLocaleDateString('ru-RU')}
+                            </div>
+                        </div>
+                        
+                        ${purchase.description ? `
+                            <p style="color: #718096; margin-bottom: 16px; line-height: 1.5;">${purchase.description}</p>
+                        ` : ''}
+                        
+                        <!-- Основное содержимое покупки -->
+                        ${contentHtml}
+                        
+                        <!-- Дополнительная информация -->
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap; margin: 16px 0;">
+                            ${purchase.file_size ? `
+                                <div style="display: flex; align-items: center; gap: 6px; color: #718096; font-size: 14px;">
+                                    📦 Размер: ${formatFileSize(purchase.file_size)}
+                                </div>
+                            ` : ''}
+                            
+                            ${purchase.duration ? `
+                                <div style="display: flex; align-items: center; gap: 6px; color: #718096; font-size: 14px;">
+                                    ⏱️ Длительность: ${purchase.duration}
+                                </div>
+                            ` : ''}
+                            
+                            ${purchase.pages_count ? `
+                                <div style="display: flex; align-items: center; gap: 6px; color: #718096; font-size: 14px;">
+                                    📄 Страниц: ${purchase.pages_count}
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Кнопки действий -->
+                        <div class="action-buttons" style="margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap;">
+                            ${(purchase.file_url || purchase.file_data) && purchase.type !== 'link' ? `
+                                <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}')">
+                                    📥 Скачать
+                                </button>
+                            ` : ''}
+                            
+                            ${purchase.external_url ? `
+                                <a href="${purchase.external_url}" target="_blank" class="btn btn-info">
+                                    🌐 Открыть ссылку
+                                </a>
+                            ` : ''}
+                            
+                            <button class="btn ${purchase.is_favorite ? 'btn-danger' : ''}" onclick="togglePurchaseFavorite('${purchase.id}')">
+                                ${purchase.is_favorite ? '❤️' : '🤍'} Избранное
+                            </button>
+                            
+                            <button class="btn btn-info" onclick="sharePurchase('${purchase.id}')">
+                                📤 Поделиться
+                            </button>
+                        </div>
+                        
+                        <!-- Информация о доступе -->
+                        ${purchase.access_expires ? `
+                            <div style="margin-top: 16px; padding: 12px; background: #fffaf0; border-radius: 8px; border: 1px solid #fbd38d;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="color: #dd6b20;">⏰</span>
+                                    <span style="color: #dd6b20; font-size: 14px;">
+                                        Доступ до: ${new Date(purchase.access_expires).toLocaleDateString('ru-RU')}
+                                        ${new Date(purchase.access_expires) > new Date() ? 
+                                            `(${getDaysLeft(purchase.access_expires)} дней осталось)` : 
+                                            '(доступ истек)'
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        ` : ''}
+                    `;
+                    
+                    purchasesContainer.appendChild(purchaseCard);
+                });
+                
+                purchasedList.appendChild(purchasesContainer);
+                
+            } catch (error) {
+                console.error('Ошибка загрузки покупок:', error);
+                document.getElementById('purchasedItemsList').innerHTML = '<div class="error">❌ Ошибка загрузки покупок. Попробуйте позже.</div>';
+            }
         }
-        
-        // Добавляем заголовок и фильтры
-        purchasedList.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
-                <h3 style="margin: 0;">📦 Мои покупки (${data.purchases.length})</h3>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <input type="text" id="searchPurchases" class="form-control" placeholder="🔍 Поиск покупок..." 
-                           style="width: 200px; padding: 8px 12px; font-size: 14px;" oninput="searchPurchases(this.value)">
-                    <select id="filterPurchases" class="form-control" onchange="filterPurchasesByType(this.value)"
-                            style="width: 150px; padding: 8px 12px; font-size: 14px;">
-                        <option value="all">Все типы</option>
-                        <option value="video">🎥 Видео</option>
-                        <option value="image">🖼️ Изображения</option>
-                        <option value="audio">🎧 Аудио</option>
-                        <option value="pdf">📚 PDF</option>
-                        <option value="text">📝 Текст</option>
-                        <option value="link">🔗 Ссылки</option>
-                    </select>
-                </div>
-            </div>
-        `;
-        
-        const purchasesContainer = document.createElement('div');
-        purchasesContainer.id = 'purchasesContainer';
-        
-        data.purchases.forEach(purchase => {
-            const purchaseCard = document.createElement('div');
-            purchaseCard.className = 'purchase-item';
-            purchaseCard.dataset.type = purchase.type;
-            purchaseCard.dataset.title = purchase.title.toLowerCase();
-            
-            // Генерируем HTML для содержимого в зависимости от типа
-            const contentHtml = generatePurchaseContent(purchase);
-            
-            purchaseCard.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
-                    <div style="flex: 1;">
-                        <h3 style="margin: 0 0 8px 0; color: #2d3748;">${purchase.title}</h3>
-                        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px;">
-                            <span class="badge badge-info">${getPurchaseTypeIcon(purchase.type)} ${getPurchaseTypeName(purchase.type)}</span>
-                            <span class="badge badge-success">Куплено за ${purchase.price_paid}✨</span>
-                            ${purchase.download_count !== undefined ? `
-                                <span class="badge" style="background: #e9d8fd; color: #6b46c1;">
-                                    📥 ${purchase.download_count} скачиваний
-                                </span>
-                            ` : ''}
-                            ${purchase.is_favorite ? `
-                                <span class="badge" style="background: #fed7d7; color: #c53030;">
-                                    ❤️ В избранном
-                                </span>
-                            ` : ''}
-                        </div>
-                    </div>
-                    <div style="color: #718096; font-size: 14px; text-align: right;">
-                        📅 ${new Date(purchase.purchased_at).toLocaleDateString('ru-RU')}
-                    </div>
-                </div>
-                
-                ${purchase.description ? `
-                    <p style="color: #718096; margin-bottom: 16px; line-height: 1.5;">${purchase.description}</p>
-                ` : ''}
-                
-                <!-- Основное содержимое покупки -->
-                ${contentHtml}
-                
-                <!-- Дополнительная информация -->
-                <div style="display: flex; gap: 16px; flex-wrap: wrap; margin: 16px 0;">
-                    ${purchase.file_size ? `
-                        <div style="display: flex; align-items: center; gap: 6px; color: #718096; font-size: 14px;">
-                            📦 Размер: ${formatFileSize(purchase.file_size)}
-                        </div>
-                    ` : ''}
-                    
-                    ${purchase.duration ? `
-                        <div style="display: flex; align-items: center; gap: 6px; color: #718096; font-size: 14px;">
-                            ⏱️ Длительность: ${purchase.duration}
-                        </div>
-                    ` : ''}
-                    
-                    ${purchase.pages_count ? `
-                        <div style="display: flex; align-items: center; gap: 6px; color: #718096; font-size: 14px;">
-                            📄 Страниц: ${purchase.pages_count}
-                        </div>
-                    ` : ''}
-                </div>
-                
-                <!-- Кнопки действий -->
-                <div class="action-buttons" style="margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap;">
-                    ${(purchase.file_url || purchase.file_data) && purchase.type !== 'link' ? `
-                        <button class="btn btn-success" onclick="downloadPurchase('${purchase.id}', '${purchase.title}')">
-                            📥 Скачать
-                        </button>
-                    ` : ''}
-                    
-                    ${purchase.external_url ? `
-                        <a href="${purchase.external_url}" target="_blank" class="btn btn-info">
-                            🌐 Открыть ссылку
-                        </a>
-                    ` : ''}
-                    
-                    <button class="btn ${purchase.is_favorite ? 'btn-danger' : ''}" onclick="togglePurchaseFavorite('${purchase.id}')">
-                        ${purchase.is_favorite ? '❤️' : '🤍'} Избранное
-                    </button>
-                    
-                    <button class="btn btn-info" onclick="sharePurchase('${purchase.id}')">
-                        📤 Поделиться
-                    </button>
-                </div>
-                
-                <!-- Информация о доступе -->
-                ${purchase.access_expires ? `
-                    <div style="margin-top: 16px; padding: 12px; background: #fffaf0; border-radius: 8px; border: 1px solid #fbd38d;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="color: #dd6b20;">⏰</span>
-                            <span style="color: #dd6b20; font-size: 14px;">
-                                Доступ до: ${new Date(purchase.access_expires).toLocaleDateString('ru-RU')}
-                                ${new Date(purchase.access_expires) > new Date() ? 
-                                    `(${getDaysLeft(purchase.access_expires)} дней осталось)` : 
-                                    '(доступ истек)'
-                                }
-                            </span>
-                        </div>
-                    </div>
-                ` : ''}
-            `;
-            
-            purchasesContainer.appendChild(purchaseCard);
-        });
-        
-        purchasedList.appendChild(purchasesContainer);
-        
-    } catch (error) {
-        console.error('Ошибка загрузки покупок:', error);
-        document.getElementById('purchasedItemsList').innerHTML = '<div class="error">❌ Ошибка загрузки покупок. Попробуйте позже.</div>';
-    }
-}
 
-// Функция для получения иконки типа товара
-function getPurchaseTypeIcon(type) {
-    const icons = {
-        'video': '🎥',
-        'image': '🖼️',
-        'audio': '🎧',
-        'pdf': '📚',
-        'text': '📝'
-    };
-    return icons[type] || '📄';
-}
+        // Функция для получения иконки типа товара
+        function getPurchaseTypeIcon(type) {
+            const icons = {
+                'video': '🎥',
+                'image': '🖼️',
+                'audio': '🎧',
+                'pdf': '📚',
+                'text': '📝'
+            };
+            return icons[type] || '📄';
+        }
 
-// Функция для поделиться покупкой
-function sharePurchase(purchaseId) {
-    // В реальном приложении здесь была бы логика поделиться
-    showMessage('📤 Функция "Поделиться" будет доступна в следующем обновлении', 'info');
-}
+        // Функция для поделиться покупкой
+        function sharePurchase(purchaseId) {
+            // В реальном приложении здесь была бы логика поделиться
+            showMessage('📤 Функция "Поделиться" будет доступна в следующем обновлении', 'info');
+        }
 
         // ==================== ПОСТЫ ====================
 
@@ -4283,4 +4295,4 @@ function sharePurchase(purchaseId) {
         setTimeout(animateElements, 500);
     </script>
 </body>
-</html> 
+</html>
