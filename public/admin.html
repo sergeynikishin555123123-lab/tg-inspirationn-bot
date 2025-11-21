@@ -3882,6 +3882,13 @@ async function saveShopItem() {
     const is_active = document.getElementById('shopItemActive').checked;
     const embed_html = document.getElementById('shopItemEmbedHtml').value.trim();
     
+    console.log('💾 Сохранение товара:', {
+        title,
+        type,
+        hasEmbed: !!embed_html,
+        embedLength: embed_html.length
+    });
+    
     if (!title || !price) {
         alert('Заполните название и цену');
         return;
@@ -3902,13 +3909,14 @@ async function saveShopItem() {
             price,
             content_text,
             is_active,
-            embed_html: type === 'embed' ? embed_html : ''
+            embed_html: embed_html // ВСЕГДА отправляем embed_html, даже если пустой
         };
         
-        console.log('Отправляемые данные товара:', {
+        console.log('📤 Отправляемые данные товара:', {
             ...itemData,
-            file_url: itemData.file_url ? `[base64 data: ${itemData.file_url.length} chars]` : 'empty',
-            preview_url: itemData.preview_url ? `[base64 data: ${itemData.preview_url.length} chars]` : 'empty'
+            file_url: itemData.file_url ? `[data: ${itemData.file_url.length} chars]` : 'empty',
+            preview_url: itemData.preview_url ? `[data: ${itemData.preview_url.length} chars]` : 'empty',
+            embed_html: itemData.embed_html ? `[html: ${itemData.embed_html.length} chars]` : 'empty'
         });
         
         let response;
@@ -3929,16 +3937,18 @@ async function saveShopItem() {
         const result = await response.json();
         
         if (result.success) {
+            console.log('✅ Товар сохранен:', result.item);
             showMessage('✅ Товар успешно сохранен', 'success');
             hideShopItemForm();
             loadShopItems();
         } else {
+            console.error('❌ Ошибка сохранения:', result.error);
             showMessage(`❌ ${result.error}`, 'error');
         }
         
     } catch (error) {
-        console.error('Ошибка сохранения товара:', error);
-        showMessage('❌ Ошибка сохранения товара', 'error');
+        console.error('💥 Ошибка сохранения товара:', error);
+        showMessage('❌ Ошибка сохранения товара: ' + error.message, 'error');
     }
 }
 
