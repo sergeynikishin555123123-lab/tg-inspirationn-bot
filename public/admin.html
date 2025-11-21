@@ -3843,8 +3843,6 @@ function updateShopItemForm() {
     const embedSection = document.getElementById('embedHtmlSection');
     
     console.log('🔄 Обновление формы товара, тип:', type);
-    console.log('📁 Секция файла:', fileSection);
-    console.log('🎬 Секция embed:', embedSection);
     
     if (!fileSection || !embedSection) {
         console.error('❌ Секции не найдены!');
@@ -3864,6 +3862,19 @@ function updateShopItemForm() {
     if (type === 'embed') {
         embedSection.style.display = 'block';
         console.log('🎬 Секция embed показана');
+        
+        // Автоматически заполняем примером если поле пустое
+        const embedField = document.getElementById('shopItemEmbedHtml');
+        if (!embedField.value.trim()) {
+            embedField.value = `<!-- Пример HTML для встраивания видео -->
+<iframe width="100%" height="100%" 
+        src="https://player.vimeo.com/video/VIDEO_ID" 
+        frameborder="0" 
+        allow="autoplay; fullscreen; picture-in-picture" 
+        allowfullscreen
+        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+</iframe>`;
+        }
     } else {
         embedSection.style.display = 'none';
         console.log('🎬 Секция embed скрыта');
