@@ -2393,6 +2393,26 @@ function generatePurchaseContent(purchase) {
                     ` : ''}
                 </div>
             `;
+
+case 'embed':
+            return `
+                <div style="margin: 20px 0;">
+                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                        🎬 Встроенное видео
+                    </h4>
+                    <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
+                        <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
+                            💡 Видео загружено через Vimeo. Для лучшего воспроизведения используйте стабильное интернет-соединение.
+                        </div>
+                    </div>
+                    <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 12px; overflow: hidden;">
+                        ${purchase.embed_html}
+                    </div>
+                    <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
+                        Используйте элементы управления плеера для управления воспроизведением
+                    </div>
+                </div>
+            `;
             
         case 'link':
             return `
@@ -2463,6 +2483,9 @@ function getPurchaseTypeName(type) {
         'pdf': 'PDF документ',
         'text': 'Текст',
         'link': 'Ссылка',
+        // ↓↓↓ ДОБАВЛЯЕМ ЗДЕСЬ ↓↓↓
+        'embed': 'Встроенное видео',
+        // ↑↑↑ ДОБАВЛЯЕМ ЗДЕСЬ ↑↑↑
         'course': 'Курс',
         'package': 'Пакет'
     };
@@ -2478,6 +2501,9 @@ function getPurchaseTypeIcon(type) {
         'pdf': '📚',
         'text': '📝',
         'link': '🔗',
+        // ↓↓↓ ДОБАВЛЯЕМ ЗДЕСЬ ↓↓↓
+        'embed': '🎬',
+        // ↑↑↑ ДОБАВЛЯЕМ ЗДЕСЬ ↑↑↑
         'course': '🎓',
         'package': '📦'
     };
