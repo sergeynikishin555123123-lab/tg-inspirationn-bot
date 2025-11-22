@@ -6,8 +6,6 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
-import compression from 'compression';
-import NodeCache from 'node-cache';
 
 dotenv.config();
 
@@ -15,97 +13,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const cache = new NodeCache({ stdTTL: 300 }); // 5 минут кэширования
 
 // Автоматическое определение пути для TimeWeb
 const APP_ROOT = process.cwd();
 
 console.log('🎨 Мастерская Вдохновения - Запуск системы...');
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
-
-// Оптимизированные лимиты для мобильных устройств
-const MAX_FILE_SIZE = '50mb';
-const MAX_JSON_SIZE = '10mb';
-
-app.use(compression());
-app.use(express.json({ limit: MAX_JSON_SIZE }));
-app.use(express.urlencoded({ limit: MAX_FILE_SIZE, extended: true }));
-app.use(cors());
-
-// Дополнительные настройки для body-parser
-app.use(bodyParser.json({ limit: MAX_JSON_SIZE }));
-app.use(bodyParser.urlencoded({ limit: MAX_FILE_SIZE, extended: true }));
-
-// Middleware для проверки размера base64 изображений
-app.use((req, res, next) => {
-    if (req.body.imageUrl && req.body.imageUrl.startsWith('data:image')) {
-        const base64Data = req.body.imageUrl.split(',')[1];
-        const sizeInBytes = (base64Data.length * 3) / 4;
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        
-        if (sizeInBytes > maxSize) {
-            return res.status(413).json({
-                error: 'Размер изображения слишком большой. Максимум 5MB.'
-            });
-        }
-    }
-    next();
-});
-
-// Middleware для динамических лимитов в зависимости от устройства
-app.use((req, res, next) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    if (isMobile) {
-        console.log('📱 Мобильное устройство - применяем оптимизированные настройки');
-        // Уменьшенные лимиты для мобильных
-        express.json({ limit: '5mb' })(req, res, (err) => {
-            if (err) {
-                console.error('Mobile JSON error:', err);
-                return res.status(413).json({ error: 'Файл слишком большой для мобильного устройства' });
-            }
-            next();
-        });
-    } else {
-        next();
-    }
-});
-
-// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
-app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
-app.use('/admin', express.static(join(APP_ROOT, 'admin'), { maxAge: '1d' }));
-
-app.get('/admin', (req, res) => {
-    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
-});
-
-app.get('/admin/*', (req, res) => {
-    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
-});
-
-console.log('🎨 Система инициализирована успешно!');
-
-// ==================== УТИЛИТНЫЕ ФУНКЦИИ ====================
-
-// Функция для пагинации
-function paginate(array, page = 1, limit = 10) {
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const totalPages = Math.ceil(array.length / limit);
-    
-    return {
-        data: array.slice(startIndex, endIndex),
-        pagination: {
-            current_page: parseInt(page),
-            total_pages: totalPages,
-            total_items: array.length,
-            has_next: endIndex < array.length,
-            has_prev: page > 1,
-            items_per_page: parseInt(limit)
-        }
-    };
-}
 
 // In-memory база данных с улучшенной структурой
 let db = {
@@ -456,36 +369,36 @@ let db = {
             is_active: true,
             created_at: new Date().toISOString()
         },
-        {
-            id: 5,
-            title: "🎬 Видео-урок по композиции",
-            description: "Эксклюзивный видео-урок по основам композиции от профессионального художника",
-            type: "embed",
-            embed_html: `<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1139315921?h=93d70dfee4&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="ТИХОНОВА"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>`,
-            preview_url: "https://images.unsplash.com/photo-1492684223066-81332ee5ff30?w=300&h=200&fit=crop",
-            price: 20,
-            content_text: "Профессиональный видео-урок по основам композиции в живописи. Вы научитесь правильно располагать элементы на холсте, создавать гармоничные композиции и направлять взгляд зрителя.\n\nТемы урока:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с акцентами",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 6,
-            title: "📺 Тестовое видео",
-            description: "Простой тест embed-видео",
-            type: "embed",
-            embed_html: `<div style="width: 100%; height: 400px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
-                <div style="text-align: center;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
-                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Тестовое видео</div>
-                    <div style="color: #666;">Здесь будет встроенное видео</div>
-                </div>
-            </div>`,
-            preview_url: "",
-            price: 5,
-            content_text: "Это тестовый embed-контент для проверки отображения",
-            is_active: true,
-            created_at: new Date().toISOString()
-        }  
+{
+    id: 5,
+    title: "🎬 Видео-урок по композиции",
+    description: "Эксклюзивный видео-урок по основам композиции от профессионального художника",
+    type: "embed",
+    embed_html: `<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1139315921?h=93d70dfee4&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="ТИХОНОВА"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>`,
+    preview_url: "https://images.unsplash.com/photo-1492684223066-81332ee5ff30?w=300&h=200&fit=crop",
+    price: 20,
+    content_text: "Профессиональный видео-урок по основам композиции в живописи. Вы научитесь правильно располагать элементы на холсте, создавать гармоничные композиции и направлять взгляд зрителя.\n\nТемы урока:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с акцентами",
+    is_active: true,
+    created_at: new Date().toISOString()
+},
+      {
+    id: 6,
+    title: "📺 Тестовое видео",
+    description: "Простой тест embed-видео",
+    type: "embed",
+    embed_html: `<div style="width: 100%; height: 400px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+        <div style="text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
+            <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Тестовое видео</div>
+            <div style="color: #666;">Здесь будет встроенное видео</div>
+        </div>
+    </div>`,
+    preview_url: "",
+    price: 5,
+    content_text: "Это тестовый embed-контент для проверки отображения",
+    is_active: true,
+    created_at: new Date().toISOString()
+}  
     ],
     activities: [],
     admins: [
@@ -661,6 +574,94 @@ let db = {
     interactive_submissions: [],
     marathon_submissions: []
 };
+
+// Увеличены лимиты для больших файлов (3GB)
+app.use(express.json({ limit: '3gb' }));
+app.use(express.urlencoded({ limit: '3gb', extended: true }));
+app.use(cors());
+
+// ДОБАВЬТЕ ЭТО ДЛЯ МОБИЛЬНОЙ ОПТИМИЗАЦИИ:
+// Динамические лимиты в зависимости от устройства
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    if (isMobile) {
+        console.log('📱 Мобильное устройство - уменьшаем лимиты');
+        // Уменьшенные лимиты для мобильных
+        express.json({ limit: '50mb' })(req, res, (err) => {
+            if (err) {
+                console.error('Mobile JSON error:', err);
+                return res.status(413).json({ error: 'Файл слишком большой для мобильного устройства' });
+            }
+            next();
+        });
+    } else {
+        next();
+    }
+});
+
+// Дополнительные настройки для body-parser (если используется)
+app.use(bodyParser.json({ limit: '3gb' }));
+app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
+
+// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
+app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
+app.use('/admin', express.static(join(APP_ROOT, 'admin'), { maxAge: '1d' }));
+
+app.get('/admin', (req, res) => {
+    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
+});
+
+app.get('/admin/*', (req, res) => {
+    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
+});
+
+console.log('🎨 Система инициализирована успешно!');
+
+// ==================== НАСТРОЙКИ ДЛЯ БОЛЬШИХ ФАЙЛОВ ====================
+
+// Middleware для увеличения лимитов и таймаутов
+app.use((req, res, next) => {
+    // Увеличиваем таймауты для больших файлов (30 минут)
+    req.setTimeout(30 * 60 * 1000); // 30 минут
+    res.setTimeout(30 * 60 * 1000); // 30 минут
+    console.log(`⏰ Установлены таймауты для ${req.method} ${req.url}`);
+    next();
+});
+
+// Обработка ошибок больших файлов
+app.use((error, req, res, next) => {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+        console.error('❌ Файл слишком большой:', error.message);
+        return res.status(413).json({ 
+            success: false,
+            error: 'Файл слишком большой. Максимальный размер: 3GB' 
+        });
+    }
+    
+    if (error.type === 'entity.too.large') {
+        console.error('❌ Превышен лимит размера файла:', error.message);
+        return res.status(413).json({ 
+            success: false,
+            error: 'Превышен лимит размера файла. Максимальный размер: 3GB' 
+        });
+    }
+    
+    console.error('❌ Неизвестная ошибка:', error);
+    next(error);
+});
+
+// Глобальный обработчик ошибок для больших файлов
+process.on('uncaughtException', (error) => {
+    if (error.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
+        console.error('❌ Превышен максимальный размер тела запроса');
+    }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Необработанное отклонение промиса:', reason);
+});
 
 // УЛУЧШЕННАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР
 const SPARKS_SYSTEM = {
@@ -961,20 +962,9 @@ app.get('/api/webapp/characters/:roleId', (req, res) => {
     }
 });
 
-// ОПТИМИЗИРОВАННЫЕ API С ПАГИНАЦИЕЙ И КЭШИРОВАНИЕМ
-
 app.get('/api/webapp/quizzes', (req, res) => {
     const userId = parseInt(req.query.userId);
-    const { page = 1, limit = 10 } = req.query;
-    
-    const cacheKey = `quizzes_${userId}_${page}_${limit}`;
-    const cached = cache.get(cacheKey);
-    
-    if (cached) {
-        return res.json(cached);
-    }
-    
-    let quizzes = db.quizzes.filter(q => q.is_active);
+    const quizzes = db.quizzes.filter(q => q.is_active);
     
     const quizzesWithStatus = quizzes.map(quiz => {
         const completion = db.quiz_completions.find(
@@ -999,10 +989,7 @@ app.get('/api/webapp/quizzes', (req, res) => {
         };
     });
     
-    const paginated = paginate(quizzesWithStatus, parseInt(page), parseInt(limit));
-    cache.set(cacheKey, paginated);
-    
-    res.json(paginated);
+    res.json(quizzesWithStatus);
 });
 
 // ИСПРАВЛЕННОЕ ОТПРАВЛЕНИЕ РЕЗУЛЬТАТОВ КВИЗА
@@ -1080,9 +1067,6 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
         addSparks(userId, sparksEarned, 'quiz', `Квиз: ${quiz.title}`);
     }
     
-    // Очищаем кэш для этого пользователя
-    cache.del(`quizzes_${userId}_`);
-    
     res.json({
         success: true,
         correctAnswers,
@@ -1098,16 +1082,7 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
 
 app.get('/api/webapp/marathons', (req, res) => {
     const userId = parseInt(req.query.userId);
-    const { page = 1, limit = 10 } = req.query;
-    
-    const cacheKey = `marathons_${userId}_${page}_${limit}`;
-    const cached = cache.get(cacheKey);
-    
-    if (cached) {
-        return res.json(cached);
-    }
-    
-    let marathons = db.marathons.filter(m => m.is_active);
+    const marathons = db.marathons.filter(m => m.is_active);
     
     const marathonsWithStatus = marathons.map(marathon => {
         const completion = db.marathon_completions.find(
@@ -1126,10 +1101,7 @@ app.get('/api/webapp/marathons', (req, res) => {
         };
     });
     
-    const paginated = paginate(marathonsWithStatus, parseInt(page), parseInt(limit));
-    cache.set(cacheKey, paginated);
-    
-    res.json(paginated);
+    res.json(marathonsWithStatus);
 });
 
 // НОВЫЙ МЕТОД ДЛЯ ОТПРАВКИ РАБОТЫ В МАРАФОНЕ
@@ -1209,9 +1181,6 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
         addSparks(userId, marathonBonus, 'marathon_completion', `Завершение марафона: ${marathon.title}`);
     }
     
-    // Очищаем кэш
-    cache.del(`marathons_${userId}_`);
-    
     res.json({
         success: true,
         sparksEarned,
@@ -1225,20 +1194,8 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
 });
 
 app.get('/api/webapp/shop/items', (req, res) => {
-    const { page = 1, limit = 12 } = req.query;
-    
-    const cacheKey = `shop_items_${page}_${limit}`;
-    const cached = cache.get(cacheKey);
-    
-    if (cached) {
-        return res.json(cached);
-    }
-    
     const items = db.shop_items.filter(item => item.is_active);
-    const paginated = paginate(items, parseInt(page), parseInt(limit));
-    
-    cache.set(cacheKey, paginated);
-    res.json(paginated);
+    res.json(items);
 });
 
 // ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА
@@ -1287,15 +1244,11 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
         id: Date.now(),
         user_id: userId,
         activity_type: 'purchase',
-        sparks_earned: -item.price, // Только для записи в истории
+        sparks_earned: -item.price, // Только для записи в историю
         description: `Покупка: ${item.title}`,
         created_at: new Date().toISOString()
     };
     db.activities.push(activity);
-    
-    // Очищаем кэш
-    cache.del(`shop_items_`);
-    cache.del(`users_${userId}_purchases`);
     
     res.json({
         success: true,
@@ -1307,15 +1260,6 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
 
 app.get('/api/webapp/users/:userId/purchases', (req, res) => {
     const userId = parseInt(req.params.userId);
-    const { page = 1, limit = 20 } = req.query;
-    
-    const cacheKey = `users_${userId}_purchases_${page}_${limit}`;
-    const cached = cache.get(cacheKey);
-    
-    if (cached) {
-        return res.json(cached);
-    }
-    
     const userPurchases = db.purchases
         .filter(p => p.user_id === userId)
         .map(purchase => {
@@ -1328,41 +1272,27 @@ app.get('/api/webapp/users/:userId/purchases', (req, res) => {
                 file_url: item?.file_url,
                 content_text: item?.content_text,
                 preview_url: item?.preview_url,
+                // ВАЖНО: Добавляем embed_html для embed-товаров
                 embed_html: item?.embed_html,
-                html_content: item?.embed_html,
-                content_html: item?.embed_html,
-                content: item?.embed_html,
+                html_content: item?.embed_html, // альтернативное поле
+                content_html: item?.embed_html, // альтернативное поле
+                content: item?.embed_html, // альтернативное поле
                 file_data: item?.file_url?.startsWith('data:') ? item.file_url : null,
                 preview_data: item?.preview_url?.startsWith('data:') ? item.preview_url : null
             };
         })
         .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
-    
-    const paginated = paginate(userPurchases, parseInt(page), parseInt(limit));
-    cache.set(cacheKey, paginated);
-    
-    res.json(paginated);
+        
+    res.json({ purchases: userPurchases });
 });
 
 app.get('/api/webapp/users/:userId/activities', (req, res) => {
     const userId = parseInt(req.params.userId);
-    const { page = 1, limit = 20 } = req.query;
-    
-    const cacheKey = `users_${userId}_activities_${page}_${limit}`;
-    const cached = cache.get(cacheKey);
-    
-    if (cached) {
-        return res.json(cached);
-    }
-    
     const userActivities = db.activities
         .filter(a => a.user_id === userId)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    
-    const paginated = paginate(userActivities, parseInt(page), parseInt(limit));
-    cache.set(cacheKey, paginated);
-    
-    res.json(paginated);
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 50);
+    res.json({ activities: userActivities });
 });
 
 // Работы пользователя
@@ -1396,9 +1326,6 @@ app.post('/api/webapp/upload-work', (req, res) => {
     
     addSparks(userId, SPARKS_SYSTEM.UPLOAD_WORK, 'upload_work', `Загрузка работы: ${title}`);
     
-    // Очищаем кэш
-    cache.del(`users_${userId}_works`);
-    
     res.json({
         success: true,
         message: `Работа успешно загружена! Получено +${SPARKS_SYSTEM.UPLOAD_WORK}✨. После одобрения вы получите +${SPARKS_SYSTEM.WORK_APPROVED}✨`,
@@ -1409,36 +1336,14 @@ app.post('/api/webapp/upload-work', (req, res) => {
 
 app.get('/api/webapp/users/:userId/works', (req, res) => {
     const userId = parseInt(req.params.userId);
-    const { page = 1, limit = 10 } = req.query;
-    
-    const cacheKey = `users_${userId}_works_${page}_${limit}`;
-    const cached = cache.get(cacheKey);
-    
-    if (cached) {
-        return res.json(cached);
-    }
-    
     const userWorks = db.user_works
         .filter(w => w.user_id === userId)
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    
-    const paginated = paginate(userWorks, parseInt(page), parseInt(limit));
-    cache.set(cacheKey, paginated);
-    
-    res.json(paginated);
+    res.json({ works: userWorks });
 });
 
 // Посты канала
 app.get('/api/webapp/channel-posts', (req, res) => {
-    const { page = 1, limit = 10 } = req.query;
-    
-    const cacheKey = `channel_posts_${page}_${limit}`;
-    const cached = cache.get(cacheKey);
-    
-    if (cached) {
-        return res.json(cached);
-    }
-    
     const posts = db.channel_posts
         .filter(p => p.is_active)
         .map(post => {
@@ -1451,11 +1356,8 @@ app.get('/api/webapp/channel-posts', (req, res) => {
             };
         })
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    
-    const paginated = paginate(posts, parseInt(page), parseInt(limit));
-    cache.set(cacheKey, paginated);
-    
-    res.json(paginated);
+        
+    res.json({ posts: posts });
 });
 
 app.post('/api/webapp/posts/:postId/review', (req, res) => {
@@ -1514,9 +1416,6 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
     
     addSparks(userId, sparksEarned, 'post_review', `Отзыв к посту: ${post.title}`);
     
-    // Очищаем кэш
-    cache.del(`channel_posts_`);
-    
     const message = todayReviews.length === 0 
         ? `Отзыв отправлен! +${sparksEarned}✨ (3 за отзыв + 1 за первый комментарий сегодня)`
         : `Отзыв отправлен! +${sparksEarned}✨`;
@@ -1532,20 +1431,7 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
 // API ДЛЯ ИНТЕРАКТИВОВ
 app.get('/api/webapp/interactives', (req, res) => {
     const userId = parseInt(req.query.userId);
-    const { page = 1, limit = 10, category } = req.query;
-    
-    const cacheKey = `interactives_${userId}_${category}_${page}_${limit}`;
-    const cached = cache.get(cacheKey);
-    
-    if (cached) {
-        return res.json(cached);
-    }
-    
-    let interactives = db.interactives.filter(i => i.is_active);
-    
-    if (category && category !== 'all') {
-        interactives = interactives.filter(i => i.category === category);
-    }
+    const interactives = db.interactives.filter(i => i.is_active);
     
     const interactivesWithStatus = interactives.map(interactive => {
         const completion = db.interactive_completions.find(
@@ -1560,10 +1446,7 @@ app.get('/api/webapp/interactives', (req, res) => {
         };
     });
     
-    const paginated = paginate(interactivesWithStatus, parseInt(page), parseInt(limit));
-    cache.set(cacheKey, paginated);
-    
-    res.json(paginated);
+    res.json(interactivesWithStatus);
 });
 
 app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
@@ -1611,9 +1494,6 @@ app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
         addSparks(userId, sparksEarned, 'interactive', `Интерактив: ${interactive.title}`);
     }
     
-    // Очищаем кэш
-    cache.del(`interactives_${userId}_`);
-    
     res.json({
         success: true,
         correct: isCorrect,
@@ -1647,8 +1527,6 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
 
 // Управление интерактивами
 app.get('/api/admin/interactives', requireAdmin, (req, res) => {
-    const { page = 1, limit = 20 } = req.query;
-    
     const interactives = db.interactives.map(interactive => {
         const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
         
@@ -1659,9 +1537,7 @@ app.get('/api/admin/interactives', requireAdmin, (req, res) => {
                 completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length : 0
         };
     });
-    
-    const paginated = paginate(interactives, parseInt(page), parseInt(limit));
-    res.json(paginated);
+    res.json(interactives);
 });
 
 app.post('/api/admin/interactives', requireAdmin, (req, res) => {
@@ -1688,9 +1564,6 @@ app.post('/api/admin/interactives', requireAdmin, (req, res) => {
     };
     
     db.interactives.push(newInteractive);
-    
-    // Очищаем кэш
-    cache.del('interactives_');
     
     res.json({ 
         success: true, 
@@ -1721,9 +1594,6 @@ app.put('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
     if (allow_retake !== undefined) interactive.allow_retake = allow_retake;
     if (is_active !== undefined) interactive.is_active = is_active;
     
-    // Очищаем кэш
-    cache.del('interactives_');
-    
     res.json({ 
         success: true, 
         message: 'Интерактив успешно обновлен',
@@ -1740,10 +1610,6 @@ app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) =>
     }
     
     db.interactives.splice(interactiveIndex, 1);
-    
-    // Очищаем кэш
-    cache.del('interactives_');
-    
     res.json({ success: true, message: 'Интерактив удален' });
 });
 
@@ -1897,11 +1763,7 @@ app.delete('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
 
 // Управление магазином
 app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
-    const { page = 1, limit = 20 } = req.query;
-    
-    const items = db.shop_items;
-    const paginated = paginate(items, parseInt(page), parseInt(limit));
-    res.json(paginated);
+    res.json(db.shop_items);
 });
 
 app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
@@ -1945,9 +1807,6 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
     });
     
     db.shop_items.push(newItem);
-    
-    // Очищаем кэш
-    cache.del('shop_items_');
     
     res.json({ 
         success: true, 
@@ -1997,9 +1856,6 @@ app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
         embedLength: item.embed_html?.length
     });
     
-    // Очищаем кэш
-    cache.del('shop_items_');
-    
     res.json({ 
         success: true, 
         message: 'Товар успешно обновлен',
@@ -2016,17 +1872,11 @@ app.delete('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     }
     
     db.shop_items.splice(itemIndex, 1);
-    
-    // Очищаем кэш
-    cache.del('shop_items_');
-    
     res.json({ success: true, message: 'Товар удален' });
 });
 
 // Управление квизами
 app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
-    const { page = 1, limit = 20 } = req.query;
-    
     const quizzes = db.quizzes.map(quiz => {
         const completions = db.quiz_completions.filter(qc => qc.quiz_id === quiz.id);
         return {
@@ -2036,9 +1886,7 @@ app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
                 completions.reduce((sum, qc) => sum + qc.score, 0) / completions.length : 0
         };
     });
-    
-    const paginated = paginate(quizzes, parseInt(page), parseInt(limit));
-    res.json(paginated);
+    res.json(quizzes);
 });
 
 app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
@@ -2062,9 +1910,6 @@ app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
     };
     
     db.quizzes.push(newQuiz);
-    
-    // Очищаем кэш
-    cache.del('quizzes_');
     
     res.json({ 
         success: true, 
@@ -2092,9 +1937,6 @@ app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
     if (allow_retake !== undefined) quiz.allow_retake = allow_retake;
     if (is_active !== undefined) quiz.is_active = is_active;
     
-    // Очищаем кэш
-    cache.del('quizzes_');
-    
     res.json({ 
         success: true, 
         message: 'Квиз успешно обновлен',
@@ -2111,17 +1953,11 @@ app.delete('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
     }
     
     db.quizzes.splice(quizIndex, 1);
-    
-    // Очищаем кэш
-    cache.del('quizzes_');
-    
     res.json({ success: true, message: 'Квиз удален' });
 });
 
 // Управление марафонами
 app.get('/api/admin/marathons', requireAdmin, (req, res) => {
-    const { page = 1, limit = 20 } = req.query;
-    
     const marathons = db.marathons.map(marathon => {
         const completions = db.marathon_completions.filter(mc => mc.marathon_id === marathon.id);
         return {
@@ -2130,9 +1966,7 @@ app.get('/api/admin/marathons', requireAdmin, (req, res) => {
             active_users: completions.filter(mc => !mc.completed).length
         };
     });
-    
-    const paginated = paginate(marathons, parseInt(page), parseInt(limit));
-    res.json(paginated);
+    res.json(marathons);
 });
 
 app.post('/api/admin/marathons', requireAdmin, (req, res) => {
@@ -2154,9 +1988,6 @@ app.post('/api/admin/marathons', requireAdmin, (req, res) => {
     };
     
     db.marathons.push(newMarathon);
-    
-    // Очищаем кэш
-    cache.del('marathons_');
     
     res.json({ 
         success: true, 
@@ -2182,9 +2013,6 @@ app.put('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
     if (sparks_per_day !== undefined) marathon.sparks_per_day = sparks_per_day;
     if (is_active !== undefined) marathon.is_active = is_active;
     
-    // Очищаем кэш
-    cache.del('marathons_');
-    
     res.json({ 
         success: true, 
         message: 'Марафон успешно обновлен',
@@ -2201,16 +2029,12 @@ app.delete('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
     }
     
     db.marathons.splice(marathonIndex, 1);
-    
-    // Очищаем кэш
-    cache.del('marathons_');
-    
     res.json({ success: true, message: 'Марафон удален' });
 });
 
 // Управление работами пользователей
 app.get('/api/admin/user-works', requireAdmin, (req, res) => {
-    const { status = 'pending', page = 1, limit = 20 } = req.query;
+    const { status = 'pending' } = req.query;
     
     const works = db.user_works
         .filter(w => w.status === status)
@@ -2224,8 +2048,7 @@ app.get('/api/admin/user-works', requireAdmin, (req, res) => {
         })
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     
-    const paginated = paginate(works, parseInt(page), parseInt(limit));
-    res.json(paginated);
+    res.json({ works });
 });
 
 app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
@@ -2247,9 +2070,6 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
         addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
     }
     
-    // Очищаем кэш
-    cache.del(`users_${work.user_id}_works`);
-    
     res.json({ 
         success: true, 
         message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
@@ -2259,8 +2079,6 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
 
 // Управление постами
 app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
-    const { page = 1, limit = 20 } = req.query;
-    
     const posts = db.channel_posts.map(post => {
         const admin = db.admins.find(a => a.user_id === post.admin_id);
         const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
@@ -2271,8 +2089,7 @@ app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
         };
     }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     
-    const paginated = paginate(posts, parseInt(page), parseInt(limit));
-    res.json(paginated);
+    res.json({ posts });
 });
 
 app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
@@ -2305,9 +2122,6 @@ app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
     
     db.channel_posts.push(newPost);
     
-    // Очищаем кэш
-    cache.del('channel_posts_');
-    
     res.json({ 
         success: true, 
         message: 'Пост успешно создан', 
@@ -2334,9 +2148,6 @@ app.put('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
     if (action_type !== undefined) post.action_type = action_type;
     if (action_target !== undefined) post.action_target = action_target;
     
-    // Очищаем кэш
-    cache.del('channel_posts_');
-    
     res.json({ 
         success: true, 
         message: 'Пост успешно обновлен',
@@ -2353,16 +2164,12 @@ app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
     }
     
     db.channel_posts.splice(postIndex, 1);
-    
-    // Очищаем кэш
-    cache.del('channel_posts_');
-    
     res.json({ success: true, message: 'Пост удален' });
 });
 
 // Управление отзывами
 app.get('/api/admin/reviews', requireAdmin, (req, res) => {
-    const { status = 'pending', page = 1, limit = 20 } = req.query;
+    const { status = 'pending' } = req.query;
     
     const reviews = db.post_reviews
         .filter(r => r.status === status)
@@ -2380,8 +2187,7 @@ app.get('/api/admin/reviews', requireAdmin, (req, res) => {
         })
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     
-    const paginated = paginate(reviews, parseInt(page), parseInt(limit));
-    res.json(paginated);
+    res.json({ reviews });
 });
 
 app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
@@ -2457,8 +2263,6 @@ app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
 
 // Отчет по пользователям
 app.get('/api/admin/users-report', requireAdmin, (req, res) => {
-    const { page = 1, limit = 50 } = req.query;
-    
     const users = db.users
         .filter(u => u.is_registered)
         .map(user => {
@@ -2494,8 +2298,7 @@ app.get('/api/admin/users-report', requireAdmin, (req, res) => {
         })
         .sort((a, b) => b.total_activities - a.total_activities);
     
-    const paginated = paginate(users, parseInt(page), parseInt(limit));
-    res.json(paginated);
+    res.json({ users });
 });
 
 // Полная статистика
@@ -2538,112 +2341,6 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     };
     
     res.json(stats);
-});
-
-// ==================== ЭКСПОРТ ОТЧЕТОВ ====================
-
-// Экспорт пользователей в CSV
-app.get('/api/admin/export/users', requireAdmin, (req, res) => {
-    try {
-        console.log('📊 Экспорт пользователей в CSV');
-        
-        const users = db.users.filter(u => u.is_registered);
-        
-        // Заголовки CSV
-        let csv = 'ID;Имя;Username;Роль;Персонаж;Уровень;Искры;Зарегистрирован;Последняя активность\n';
-        
-        // Данные пользователей
-        users.forEach(user => {
-            const row = [
-                user.user_id,
-                user.tg_first_name || '',
-                user.tg_username || '',
-                user.class || '',
-                user.character_name || '',
-                user.level || '',
-                user.sparks.toFixed(1),
-                new Date(user.registration_date).toLocaleDateString('ru-RU'),
-                new Date(user.last_active).toLocaleDateString('ru-RU')
-            ].map(field => `"${field}"`).join(';');
-            
-            csv += row + '\n';
-        });
-        
-        // Устанавливаем заголовки для скачивания
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename="users_export.csv"');
-        res.send(csv);
-        
-        console.log('✅ CSV экспортирован, пользователей:', users.length);
-        
-    } catch (error) {
-        console.error('❌ Ошибка экспорта:', error);
-        res.status(500).json({ error: 'Ошибка экспорта данных' });
-    }
-});
-
-// Экспорт статистики в CSV
-app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
-    try {
-        console.log('📈 Экспорт полной статистики в CSV');
-        
-        const users = db.users.filter(u => u.is_registered);
-        const purchases = db.purchases;
-        const activities = db.activities;
-        const works = db.user_works;
-        const quizCompletions = db.quiz_completions;
-        const marathonCompletions = db.marathon_completions.filter(m => m.completed);
-        
-        // Статистика по ролям
-        const roleStats = {};
-        db.roles.forEach(role => {
-            roleStats[role.name] = users.filter(u => u.class === role.name).length;
-        });
-        
-        let csv = 'Раздел;Показатель;Значение\n';
-        
-        // Основная статистика
-        csv += `Пользователи;Всего пользователей;${users.length}\n`;
-        csv += `Пользователи;Зарегистрировано;${users.filter(u => u.is_registered).length}\n`;
-        csv += `Пользователи;Активных сегодня;${users.filter(u => {
-            const today = new Date();
-            const lastActive = new Date(u.last_active);
-            return lastActive.toDateString() === today.toDateString();
-        }).length}\n`;
-        
-        // Статистика по ролям
-        Object.keys(roleStats).forEach(role => {
-            csv += `Роли;${role};${roleStats[role]}\n`;
-        });
-        
-        // Активности
-        csv += `Активности;Всего активностей;${activities.length}\n`;
-        csv += `Активности;Всего искр в системе;${users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)}\n`;
-        csv += `Активности;Всего покупок;${purchases.length}\n`;
-        csv += `Активности;Всего работ;${works.length}\n`;
-        csv += `Активности;Одобренных работ;${works.filter(w => w.status === 'approved').length}\n`;
-        
-        // Завершения
-        csv += `Завершения;Пройдено квизов;${quizCompletions.length}\n`;
-        csv += `Завершения;Завершено марафонов;${marathonCompletions.length}\n`;
-        
-        // Контент
-        csv += `Контент;Активных квизов;${db.quizzes.filter(q => q.is_active).length}\n`;
-        csv += `Контент;Активных марафонов;${db.marathons.filter(m => m.is_active).length}\n`;
-        csv += `Контент;Товаров в магазине;${db.shop_items.filter(i => i.is_active).length}\n`;
-        csv += `Контент;Постов в канале;${db.channel_posts.filter(p => p.is_active).length}\n`;
-        csv += `Контент;Интерактивов;${db.interactives.filter(i => i.is_active).length}\n`;
-        
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename="full_stats_export.csv"');
-        res.send(csv);
-        
-        console.log('✅ Статистика экспортирована');
-        
-    } catch (error) {
-        console.error('❌ Ошибка экспорта статистики:', error);
-        res.status(500).json({ error: 'Ошибка экспорта статистики' });
-    }
 });
 
 // Telegram Bot
@@ -2780,29 +2477,110 @@ if (process.env.BOT_TOKEN) {
     }
 }
 
-// Обработка ошибок
-app.use((error, req, res, next) => {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-        console.error('❌ Файл слишком большой:', error.message);
-        return res.status(413).json({ 
-            success: false,
-            error: 'Файл слишком большой. Максимальный размер: 5MB' 
+// ==================== ЭКСПОРТ ОТЧЕТОВ ====================
+
+// Экспорт пользователей в CSV
+app.get('/api/admin/export/users', requireAdmin, (req, res) => {
+    try {
+        console.log('📊 Экспорт пользователей в CSV');
+        
+        const users = db.users.filter(u => u.is_registered);
+        
+        // Заголовки CSV
+        let csv = 'ID;Имя;Username;Роль;Персонаж;Уровень;Искры;Зарегистрирован;Последняя активность\n';
+        
+        // Данные пользователей
+        users.forEach(user => {
+            const row = [
+                user.user_id,
+                user.tg_first_name || '',
+                user.tg_username || '',
+                user.class || '',
+                user.character_name || '',
+                user.level || '',
+                user.sparks.toFixed(1),
+                new Date(user.registration_date).toLocaleDateString('ru-RU'),
+                new Date(user.last_active).toLocaleDateString('ru-RU')
+            ].map(field => `"${field}"`).join(';');
+            
+            csv += row + '\n';
         });
+        
+        // Устанавливаем заголовки для скачивания
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="users_export.csv"');
+        res.send(csv);
+        
+        console.log('✅ CSV экспортирован, пользователей:', users.length);
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта:', error);
+        res.status(500).json({ error: 'Ошибка экспорта данных' });
     }
-    
-    if (error.type === 'entity.too.large') {
-        console.error('❌ Превышен лимит размера файла:', error.message);
-        return res.status(413).json({ 
-            success: false,
-            error: 'Превышен лимит размера файла. Максимальный размер: 5MB' 
+});
+
+// Экспорт статистики в CSV
+app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
+    try {
+        console.log('📈 Экспорт полной статистики в CSV');
+        
+        const users = db.users.filter(u => u.is_registered);
+        const purchases = db.purchases;
+        const activities = db.activities;
+        const works = db.user_works;
+        const quizCompletions = db.quiz_completions;
+        const marathonCompletions = db.marathon_completions.filter(m => m.completed);
+        
+        // Статистика по ролям
+        const roleStats = {};
+        db.roles.forEach(role => {
+            roleStats[role.name] = users.filter(u => u.class === role.name).length;
         });
+        
+        let csv = 'Раздел;Показатель;Значение\n';
+        
+        // Основная статистика
+        csv += `Пользователи;Всего пользователей;${users.length}\n`;
+        csv += `Пользователи;Зарегистрировано;${users.filter(u => u.is_registered).length}\n`;
+        csv += `Пользователи;Активных сегодня;${users.filter(u => {
+            const today = new Date();
+            const lastActive = new Date(u.last_active);
+            return lastActive.toDateString() === today.toDateString();
+        }).length}\n`;
+        
+        // Статистика по ролям
+        Object.keys(roleStats).forEach(role => {
+            csv += `Роли;${role};${roleStats[role]}\n`;
+        });
+        
+        // Активности
+        csv += `Активности;Всего активностей;${activities.length}\n`;
+        csv += `Активности;Всего искр в системе;${users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)}\n`;
+        csv += `Активности;Всего покупок;${purchases.length}\n`;
+        csv += `Активности;Всего работ;${works.length}\n`;
+        csv += `Активности;Одобренных работ;${works.filter(w => w.status === 'approved').length}\n`;
+        
+        // Завершения
+        csv += `Завершения;Пройдено квизов;${quizCompletions.length}\n`;
+        csv += `Завершения;Завершено марафонов;${marathonCompletions.length}\n`;
+        
+        // Контент
+        csv += `Контент;Активных квизов;${db.quizzes.filter(q => q.is_active).length}\n`;
+        csv += `Контент;Активных марафонов;${db.marathons.filter(m => m.is_active).length}\n`;
+        csv += `Контент;Товаров в магазине;${db.shop_items.filter(i => i.is_active).length}\n`;
+        csv += `Контент;Постов в канале;${db.channel_posts.filter(p => p.is_active).length}\n`;
+        csv += `Контент;Интерактивов;${db.interactives.filter(i => i.is_active).length}\n`;
+        
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="full_stats_export.csv"');
+        res.send(csv);
+        
+        console.log('✅ Статистика экспортирована');
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта статистики:', error);
+        res.status(500).json({ error: 'Ошибка экспорта статистики' });
     }
-    
-    console.error('❌ Неизвестная ошибка:', error);
-    res.status(500).json({ 
-        success: false,
-        error: 'Внутренняя ошибка сервера' 
-    });
 });
 
 const PORT = process.env.PORT || 3000;
@@ -2816,5 +2594,4 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🛒 Товаров: ${db.shop_items.length}`);
     console.log(`👥 Пользователей: ${db.users.length}`);
     console.log('✅ Все системы работают!');
-    console.log('📱 Оптимизации для мобильных устройств активированы!');
 });
