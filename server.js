@@ -7,7 +7,20 @@ import { dirname, join } from 'path';
 import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
 
-// ==================== ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ====================
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const app = express();
+
+// Автоматическое определение пути для TimeWeb
+const APP_ROOT = process.cwd();
+
+console.log('🎨 Мастерская Вдохновения - Запуск системы...');
+console.log('📁 Текущая рабочая директория:', APP_ROOT);
+
+// ==================== НАСТРОЙКИ CORS И БЕЗОПАСНОСТИ ====================
 
 // Расширенные настройки CORS
 const corsOptions = {
@@ -26,20 +39,75 @@ app.use(cors(corsOptions));
 // Обработка preflight запросов для всех маршрутов
 app.options('*', cors(corsOptions));
 
-dotenv.config();
+// ==================== УСИЛЕННЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ====================
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Middleware для мобильных устройств
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    console.log(`📱 Запрос от: ${isMobile ? 'Мобильное устройство' : 'Десктоп'} - ${req.method} ${req.url}`);
+    
+    // Устанавливаем заголовки безопасности
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    
+    // Для мобильных устройств - более либеральная политика безопасности
+    if (isMobile) {
+        res.setHeader('Content-Security-Policy', 
+            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+            "script-src * 'unsafe-inline' 'unsafe-eval'; " +
+            "connect-src * 'unsafe-inline'; " +
+            "img-src * data: blob: 'unsafe-inline'; " +
+            "frame-src *; " +
+            "style-src * 'unsafe-inline';"
+        );
+    }
+    
+    // Увеличиваем таймауты для мобильных
+    if (isMobile) {
+        req.setTimeout(300000); // 5 минут для мобильных
+        res.setTimeout(300000);
+    }
+    
+    next();
+});
 
-const app = express();
+// Увеличены лимиты для больших файлов с учетом мобильных устройств
+app.use(express.json({ 
+    limit: '3gb',
+    verify: (req, res, buf) => {
+        try {
+            JSON.parse(buf);
+        } catch (e) {
+            console.error('❌ Ошибка парсинга JSON:', e.message);
+            res.status(400).json({ error: 'Неверный формат JSON' });
+        }
+    }
+}));
 
-// Автоматическое определение пути для TimeWeb
-const APP_ROOT = process.cwd();
+app.use(express.urlencoded({ 
+    limit: '3gb', 
+    extended: true,
+    parameterLimit: 100000
+}));
 
-console.log('🎨 Мастерская Вдохновения - Запуск системы...');
-console.log('📁 Текущая рабочая директория:', APP_ROOT);
+// Дополнительные настройки body-parser
+app.use(bodyParser.json({ 
+    limit: '3gb',
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 
-// In-memory база данных с улучшенной структурой
+app.use(bodyParser.urlencoded({ 
+    limit: '3gb', 
+    extended: true,
+    parameterLimit: 100000
+}));
+
+// ==================== IN-MEMORY БАЗА ДАННЫХ ====================
 let db = {
     users: [
         {
