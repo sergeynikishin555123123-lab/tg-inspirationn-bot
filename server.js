@@ -7,6 +7,25 @@ import { dirname, join } from 'path';
 import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
 
+// ==================== ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ====================
+
+// Расширенные настройки CORS
+const corsOptions = {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'User-Agent'],
+    credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+    maxAge: 86400
+};
+
+// Применяем CORS настройки
+app.use(cors(corsOptions));
+
+// Обработка preflight запросов для всех маршрутов
+app.options('*', cors(corsOptions));
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -575,10 +594,73 @@ let db = {
     marathon_submissions: []
 };
 
-// Увеличены лимиты для больших файлов (3GB)
-app.use(express.json({ limit: '3gb' }));
-app.use(express.urlencoded({ limit: '3gb', extended: true }));
-app.use(cors());
+// ==================== УСИЛЕННЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ====================
+
+// Middleware для мобильных устройств
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    console.log(`📱 Запрос от: ${isMobile ? 'Мобильное устройство' : 'Десктоп'}`);
+    
+    // Устанавливаем заголовки безопасности
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    
+    // Для мобильных устройств - более либеральная политика безопасности
+    if (isMobile) {
+        res.setHeader('Content-Security-Policy', 
+            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+            "script-src * 'unsafe-inline' 'unsafe-eval'; " +
+            "connect-src * 'unsafe-inline'; " +
+            "img-src * data: blob: 'unsafe-inline'; " +
+            "frame-src *; " +
+            "style-src * 'unsafe-inline';"
+        );
+    }
+    
+    // Увеличиваем таймауты для мобильных
+    if (isMobile) {
+        req.setTimeout(300000); // 5 минут для мобильных
+        res.setTimeout(300000);
+    }
+    
+    next();
+});
+
+// Увеличены лимиты для больших файлов с учетом мобильных устройств
+app.use(express.json({ 
+    limit: '3gb',
+    verify: (req, res, buf) => {
+        try {
+            JSON.parse(buf);
+        } catch (e) {
+            console.error('❌ Ошибка парсинга JSON:', e.message);
+            res.status(400).json({ error: 'Неверный формат JSON' });
+        }
+    }
+}));
+
+app.use(express.urlencoded({ 
+    limit: '3gb', 
+    extended: true,
+    parameterLimit: 100000
+}));
+
+// Дополнительные настройки body-parser
+app.use(bodyParser.json({ 
+    limit: '3gb',
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
+
+app.use(bodyParser.urlencoded({ 
+    limit: '3gb', 
+    extended: true,
+    parameterLimit: 100000
+}));
 
 // ДОБАВЬТЕ ЭТО ДЛЯ МОБИЛЬНОЙ ОПТИМИЗАЦИИ:
 // Динамические лимиты в зависимости от устройства
@@ -605,15 +687,68 @@ app.use((req, res, next) => {
 app.use(bodyParser.json({ limit: '3gb' }));
 app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
 
-// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
-app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
-app.use('/admin', express.static(join(APP_ROOT, 'admin'), { maxAge: '1d' }));
+// ==================== УЛУЧШЕННАЯ РАЗДАЧА СТАТИЧЕСКИХ ФАЙЛОВ ====================
 
+// Функция для определения типа устройства
+const getDeviceType = (userAgent) => {
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
+        return 'mobile';
+    }
+    return 'desktop';
+};
+
+// Статические файлы для основного приложения
+app.use(express.static(join(APP_ROOT, 'public'), {
+    maxAge: '1d',
+    setHeaders: (res, path, stat) => {
+        const userAgent = res.req.headers['user-agent'] || '';
+        const deviceType = getDeviceType(userAgent);
+        
+        console.log(`📁 Статический файл: ${path} для ${deviceType}`);
+        
+        // Для мобильных устройств - особые настройки кэширования
+        if (deviceType === 'mobile') {
+            if (path.endsWith('.js') || path.endsWith('.css')) {
+                res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 час для JS/CSS
+            } else if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+                res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 день для изображений
+            }
+        }
+        
+        // HTML файлы не кэшируем сильно
+        if (path.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
+
+// Статические файлы для админки
+app.use('/admin', express.static(join(APP_ROOT, 'admin'), {
+    maxAge: '1d',
+    setHeaders: (res, path, stat) => {
+        // Админка всегда без кэша
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+}));
+
+// Основной маршрут
+app.get('/', (req, res) => {
+    console.log('🏠 Запрос главной страницы');
+    res.sendFile(join(APP_ROOT, 'public', 'index.html'));
+});
+
+// Маршруты админки
 app.get('/admin', (req, res) => {
+    console.log('🔧 Запрос админки');
     res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
 });
 
 app.get('/admin/*', (req, res) => {
+    console.log('🔧 Запрос админки (вложенный путь)');
     res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
 });
 
@@ -773,6 +908,76 @@ app.get('/health', (req, res) => {
         marathons: db.marathons.length,
         shop_items: db.shop_items.length,
         interactives: db.interactives.length
+    });
+});
+
+// ==================== ДИАГНОСТИЧЕСКИЕ МАРШРУТЫ ДЛЯ МОБИЛЬНЫХ ====================
+
+// Диагностика мобильного устройства
+app.get('/api/debug/device', (req, res) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    res.json({
+        userAgent: userAgent,
+        isMobile: isMobile,
+        timestamp: new Date().toISOString(),
+        headers: {
+            'accept': req.headers['accept'],
+            'content-type': req.headers['content-type'],
+            'origin': req.headers['origin']
+        }
+    });
+});
+
+// Проверка доступности API endpoints
+app.get('/api/debug/endpoints', (req, res) => {
+    const endpoints = {
+        shop: {
+            items: '/api/webapp/shop/items',
+            purchases: '/api/webapp/users/:userId/purchases'
+        },
+        interactives: {
+            list: '/api/webapp/interactives',
+            submit: '/api/webapp/interactives/:interactiveId/submit'
+        },
+        users: {
+            profile: '/api/users/:userId',
+            register: '/api/users/register'
+        }
+    };
+    
+    res.json({
+        endpoints: endpoints,
+        status: 'available'
+    });
+});
+
+// Проверка конкретно магазина и интерактивов
+app.get('/api/debug/shop-status', (req, res) => {
+    const shopItems = db.shop_items.filter(item => item.is_active);
+    const interactives = db.interactives.filter(item => item.is_active);
+    
+    res.json({
+        shop: {
+            total: shopItems.length,
+            items: shopItems.map(item => ({
+                id: item.id,
+                title: item.title,
+                type: item.type,
+                price: item.price,
+                has_embed: !!item.embed_html
+            }))
+        },
+        interactives: {
+            total: interactives.length,
+            items: interactives.map(item => ({
+                id: item.id,
+                title: item.title,
+                type: item.type,
+                category: item.category
+            }))
+        }
     });
 });
 
@@ -2581,6 +2786,72 @@ app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
         console.error('❌ Ошибка экспорта статистики:', error);
         res.status(500).json({ error: 'Ошибка экспорта статистики' });
     }
+});
+
+// ==================== ГЛОБАЛЬНЫЙ ОБРАБОТЧИК ОШИБОК ====================
+
+// Обработка 404 ошибок
+app.use('*', (req, res) => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(req.headers['user-agent'] || '');
+    
+    console.log(`❌ 404 ошибка: ${req.originalUrl} для ${isMobile ? 'мобильного' : 'десктопа'}`);
+    
+    if (isMobile) {
+        res.status(404).json({
+            success: false,
+            error: 'Страница не найдена',
+            suggestion: 'Проверьте URL или обновите приложение'
+        });
+    } else {
+        res.status(404).json({
+            success: false,
+            error: 'Page not found: ' + req.originalUrl
+        });
+    }
+});
+
+// Централизованный обработчик ошибок
+app.use((error, req, res, next) => {
+    console.error('❌ Глобальная ошибка:', error);
+    
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(req.headers['user-agent'] || '');
+    
+    // Логируем детали ошибки
+    console.log('Детали ошибки:', {
+        url: req.url,
+        method: req.method,
+        userAgent: req.headers['user-agent'],
+        isMobile: isMobile,
+        errorMessage: error.message,
+        errorStack: error.stack
+    });
+    
+    if (isMobile) {
+        // Упрощенные сообщения для мобильных пользователей
+        res.status(error.status || 500).json({
+            success: false,
+            error: 'Произошла ошибка. Пожалуйста, попробуйте позже.',
+            code: 'MOBILE_ERROR'
+        });
+    } else {
+        // Подробные сообщения для десктопа
+        res.status(error.status || 500).json({
+            success: false,
+            error: error.message || 'Internal Server Error',
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+});
+
+// Обработка необработанных исключений
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Необработанное отклонение промиса:', reason);
+    console.error('Промис:', promise);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('❌ Неперехваченное исключение:', error);
+    process.exit(1);
 });
 
 const PORT = process.env.PORT || 3000;
