@@ -1916,19 +1916,12 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
 // Управление интерактивами
 app.get('/api/admin/interactives', requireAdmin, (req, res) => {
     try {
-        const userAgent = req.headers['user-agent'] || '';
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        console.log('🎮 Админ запрос интерактивов');
         
-        console.log(`🎮 Админ запрос интерактивов (мобильный: ${isMobile})`);
-        
-        // Фильтруем как в пользовательском API
-        let interactives = db.interactives.filter(interactive => interactive.is_active !== false);
-        
-        interactives = interactives.map(interactive => {
+        const interactives = db.interactives.map(interactive => {
             const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
             
-            // Базовые данные (полные)
-            const baseData = {
+            return {
                 id: interactive.id,
                 title: interactive.title,
                 description: interactive.description,
@@ -1946,45 +1939,60 @@ app.get('/api/admin/interactives', requireAdmin, (req, res) => {
                 average_score: completions.length > 0 ? 
                     (completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length).toFixed(2) : 0
             };
-            
-            // Для мобильных - упрощаем данные, но оставляем ключевые поля
-            if (isMobile) {
-                return {
-                    id: interactive.id,
-                    title: interactive.title,
-                    type: interactive.type,
-                    category: interactive.category,
-                    image_url: interactive.image_url,
-                    question: interactive.question,
-                    options: interactive.options || [],
-                    correct_answer: interactive.correct_answer,
-                    sparks_reward: interactive.sparks_reward,
-                    allow_retake: interactive.allow_retake,
-                    is_active: interactive.is_active,
-                    completions_count: completions.length,
-                    created_at: interactive.created_at
-                };
-            }
-            
-            return baseData;
         });
         
-        console.log(`📱 Мобильная админка: отправлено ${interactives.length} интерактивов`);
+        console.log(`✅ Отправлено интерактивов: ${interactives.length}`);
         
         res.json({
             success: true,
             interactives: interactives,
-            total: interactives.length,
-            mobile_optimized: isMobile
+            total: interactives.length
         });
         
     } catch (error) {
         console.error('❌ Ошибка загрузки интерактивов для админки:', error);
         res.status(500).json({ 
             success: false,
-            error: 'Ошибка загрузки интерактивов',
-            details: error.message,
-            mobile_safe: true
+            error: 'Ошибка загрузки интерактивов'
+        });
+    }
+});
+
+// Простой тест админских маршрутов
+app.get('/api/debug/admin-simple-test', requireAdmin, (req, res) => {
+    try {
+        console.log('🧪 Простой тест админских данных');
+        
+        // Простейшие данные для проверки
+        const testData = {
+            shop_items: [
+                {
+                    id: 1,
+                    title: "Тестовый товар",
+                    type: "video",
+                    price: 10,
+                    is_active: true
+                }
+            ],
+            interactives: [
+                {
+                    id: 1,
+                    title: "Тестовый интерактив",
+                    type: "guess_era",
+                    is_active: true
+                }
+            ],
+            status: "ok",
+            timestamp: new Date().toISOString()
+        };
+        
+        res.json(testData);
+        
+    } catch (error) {
+        console.error('❌ Ошибка в простом тесте:', error);
+        res.status(500).json({
+            error: 'Simple test failed',
+            details: error.message
         });
     }
 });
@@ -2279,51 +2287,36 @@ app.delete('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
 // Управление магазином
 app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
     try {
-        const userAgent = req.headers['user-agent'] || '';
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        console.log('🛒 Админ запрос товаров магазина');
         
-        console.log(`🛒 Админ запрос товаров (мобильный: ${isMobile})`);
+        // Берем ВСЕ товары (включая неактивные) для админки
+        const items = db.shop_items.map(item => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            type: item.type,
+            file_url: item.file_url || '',
+            preview_url: item.preview_url || '',
+            price: item.price,
+            content_text: item.content_text || '',
+            embed_html: item.embed_html || '',
+            is_active: item.is_active,
+            created_at: item.created_at
+        }));
         
-        // Фильтруем только активные товары как в пользовательском API
-        let items = db.shop_items.filter(item => item.is_active !== false);
-        
-        // Для мобильных - упрощаем данные (как в пользовательском API)
-        if (isMobile) {
-            items = items.map(item => ({
-                id: item.id,
-                title: item.title,
-                description: item.description,
-                type: item.type,
-                file_url: item.file_url, // Оставляем для совместимости
-                preview_url: item.preview_url, // Оставляем для совместимости
-                price: item.price,
-                content_text: item.content_text, // Оставляем для отображения
-                embed_html: item.embed_html || '', // Оставляем но пустым если нет
-                is_active: item.is_active,
-                created_at: item.created_at,
-                // Дополнительные поля для мобильных
-                has_embed: !!item.embed_html,
-                file_exists: !!item.file_url,
-                preview_exists: !!item.preview_url
-            }));
-            
-            console.log(`📱 Мобильная админка: отправлено ${items.length} товаров`);
-        }
+        console.log(`✅ Отправлено товаров: ${items.length}`);
         
         res.json({
             success: true,
             items: items,
-            total: items.length,
-            mobile_optimized: isMobile
+            total: items.length
         });
         
     } catch (error) {
         console.error('❌ Ошибка загрузки товаров для админки:', error);
         res.status(500).json({ 
             success: false,
-            error: 'Ошибка загрузки товаров',
-            details: error.message,
-            mobile_safe: true
+            error: 'Ошибка загрузки товаров магазина'
         });
     }
 });
