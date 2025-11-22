@@ -580,6 +580,27 @@ app.use(express.json({ limit: '3gb' }));
 app.use(express.urlencoded({ limit: '3gb', extended: true }));
 app.use(cors());
 
+// ДОБАВЬТЕ ЭТО ДЛЯ МОБИЛЬНОЙ ОПТИМИЗАЦИИ:
+// Динамические лимиты в зависимости от устройства
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    if (isMobile) {
+        console.log('📱 Мобильное устройство - уменьшаем лимиты');
+        // Уменьшенные лимиты для мобильных
+        express.json({ limit: '50mb' })(req, res, (err) => {
+            if (err) {
+                console.error('Mobile JSON error:', err);
+                return res.status(413).json({ error: 'Файл слишком большой для мобильного устройства' });
+            }
+            next();
+        });
+    } else {
+        next();
+    }
+});
+
 // Дополнительные настройки для body-parser (если используется)
 app.use(bodyParser.json({ limit: '3gb' }));
 app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
