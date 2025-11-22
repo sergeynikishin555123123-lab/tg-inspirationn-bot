@@ -998,6 +998,30 @@ app.get('/api/debug/device', (req, res) => {
     });
 });
 
+// Диагностика магазина
+app.get('/api/debug/shop-debug', (req, res) => {
+    const shopItems = db.shop_items.filter(item => item.is_active);
+    
+    res.json({
+        total_items: shopItems.length,
+        items: shopItems.map(item => ({
+            id: item.id,
+            title: item.title,
+            type: item.type,
+            price: item.price,
+            has_embed: !!item.embed_html,
+            embed_length: item.embed_html ? item.embed_html.length : 0,
+            preview_url: item.preview_url ? 'exists' : 'missing',
+            is_active: item.is_active
+        })),
+        api_endpoints: {
+            shop_items: '/api/webapp/shop/items',
+            shop_purchase: '/api/webapp/shop/purchase',
+            user_purchases: '/api/webapp/users/:userId/purchases'
+        }
+    });
+});
+
 // Проверка доступности API endpoints
 app.get('/api/debug/endpoints', (req, res) => {
     const endpoints = {
@@ -1467,8 +1491,33 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
 });
 
 app.get('/api/webapp/shop/items', (req, res) => {
-    const items = db.shop_items.filter(item => item.is_active);
-    res.json(items);
+    try {
+        console.log('🛒 Запрос товаров магазина');
+        const items = db.shop_items
+            .filter(item => item.is_active)
+            .map(item => ({
+                id: item.id,
+                title: item.title,
+                description: item.description,
+                type: item.type,
+                file_url: item.file_url,
+                preview_url: item.preview_url,
+                price: item.price,
+                content_text: item.content_text,
+                embed_html: item.embed_html || '',
+                is_active: item.is_active,
+                created_at: item.created_at
+            }));
+        
+        console.log(`✅ Отправлено товаров: ${items.length}`);
+        res.json(items);
+    } catch (error) {
+        console.error('❌ Ошибка загрузки товаров:', error);
+        res.status(500).json({ 
+            error: 'Ошибка загрузки товаров магазина',
+            details: error.message 
+        });
+    }
 });
 
 // ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА
@@ -1532,31 +1581,54 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
 });
 
 app.get('/api/webapp/users/:userId/purchases', (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const userPurchases = db.purchases
-        .filter(p => p.user_id === userId)
-        .map(purchase => {
-            const item = db.shop_items.find(i => i.id === purchase.item_id);
-            return { 
-                ...purchase, 
-                title: item?.title,
-                description: item?.description,
-                type: item?.type,
-                file_url: item?.file_url,
-                content_text: item?.content_text,
-                preview_url: item?.preview_url,
-                // ВАЖНО: Добавляем embed_html для embed-товаров
-                embed_html: item?.embed_html,
-                html_content: item?.embed_html, // альтернативное поле
-                content_html: item?.embed_html, // альтернативное поле
-                content: item?.embed_html, // альтернативное поле
-                file_data: item?.file_url?.startsWith('data:') ? item.file_url : null,
-                preview_data: item?.preview_url?.startsWith('data:') ? item.preview_url : null
-            };
-        })
-        .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
+    try {
+        const userId = parseInt(req.params.userId);
+        console.log(`📦 Запрос покупок пользователя: ${userId}`);
         
-    res.json({ purchases: userPurchases });
+        const userPurchases = db.purchases
+            .filter(p => p.user_id === userId)
+            .map(purchase => {
+                const item = db.shop_items.find(i => i.id === purchase.item_id);
+                if (!item) {
+                    console.warn(`⚠️ Товар не найден для покупки: ${purchase.item_id}`);
+                    return null;
+                }
+                
+                return {
+                    id: purchase.id,
+                    user_id: purchase.user_id,
+                    item_id: purchase.item_id,
+                    price_paid: purchase.price_paid,
+                    purchased_at: purchase.purchased_at,
+                    // Информация о товаре
+                    title: item.title,
+                    description: item.description,
+                    type: item.type,
+                    file_url: item.file_url,
+                    preview_url: item.preview_url,
+                    content_text: item.content_text,
+                    // Embed контент
+                    embed_html: item.embed_html || '',
+                    html_content: item.embed_html || '',
+                    content_html: item.embed_html || '',
+                    content: item.embed_html || '',
+                    // Base64 данные если есть
+                    file_data: item.file_url?.startsWith('data:') ? item.file_url : null,
+                    preview_data: item.preview_url?.startsWith('data:') ? item.preview_url : null
+                };
+            })
+            .filter(purchase => purchase !== null)
+            .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
+        
+        console.log(`✅ Найдено покупок: ${userPurchases.length}`);
+        res.json({ purchases: userPurchases });
+    } catch (error) {
+        console.error('❌ Ошибка загрузки покупок:', error);
+        res.status(500).json({ 
+            error: 'Ошибка загрузки покупок',
+            details: error.message 
+        });
+    }
 });
 
 app.get('/api/webapp/users/:userId/activities', (req, res) => {
