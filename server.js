@@ -74,15 +74,32 @@ app.use((req, res, next) => {
     next();
 });
 
-// Увеличены лимиты для больших файлов с учетом мобильных устройств
+// Улучшенная обработка JSON для мобильных и десктоп
 app.use(express.json({ 
-    limit: '3gb',
+    limit: '50mb',
     verify: (req, res, buf) => {
         try {
-            JSON.parse(buf);
+            if (buf && buf.length > 0) {
+                JSON.parse(buf);
+            }
         } catch (e) {
             console.error('❌ Ошибка парсинга JSON:', e.message);
-            res.status(400).json({ error: 'Неверный формат JSON' });
+            const userAgent = req.headers['user-agent'] || '';
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+            
+            if (isMobile) {
+                res.status(400).json({ 
+                    success: false,
+                    error: 'Неверный формат данных',
+                    code: 'MOBILE_JSON_ERROR'
+                });
+            } else {
+                res.status(400).json({ 
+                    success: false,
+                    error: 'Неверный формат JSON',
+                    details: e.message 
+                });
+            }
         }
     }
 }));
@@ -662,99 +679,6 @@ let db = {
     marathon_submissions: []
 };
 
-// ==================== УСИЛЕННЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ====================
-
-// Middleware для мобильных устройств
-app.use((req, res, next) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    console.log(`📱 Запрос от: ${isMobile ? 'Мобильное устройство' : 'Десктоп'}`);
-    
-    // Устанавливаем заголовки безопасности
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    
-    // Для мобильных устройств - более либеральная политика безопасности
-    if (isMobile) {
-        res.setHeader('Content-Security-Policy', 
-            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
-            "script-src * 'unsafe-inline' 'unsafe-eval'; " +
-            "connect-src * 'unsafe-inline'; " +
-            "img-src * data: blob: 'unsafe-inline'; " +
-            "frame-src *; " +
-            "style-src * 'unsafe-inline';"
-        );
-    }
-    
-    // Увеличиваем таймауты для мобильных
-    if (isMobile) {
-        req.setTimeout(300000); // 5 минут для мобильных
-        res.setTimeout(300000);
-    }
-    
-    next();
-});
-
-// Увеличены лимиты для больших файлов с учетом мобильных устройств
-app.use(express.json({ 
-    limit: '3gb',
-    verify: (req, res, buf) => {
-        try {
-            JSON.parse(buf);
-        } catch (e) {
-            console.error('❌ Ошибка парсинга JSON:', e.message);
-            res.status(400).json({ error: 'Неверный формат JSON' });
-        }
-    }
-}));
-
-app.use(express.urlencoded({ 
-    limit: '3gb', 
-    extended: true,
-    parameterLimit: 100000
-}));
-
-// Дополнительные настройки body-parser
-app.use(bodyParser.json({ 
-    limit: '3gb',
-    verify: (req, res, buf) => {
-        req.rawBody = buf;
-    }
-}));
-
-app.use(bodyParser.urlencoded({ 
-    limit: '3gb', 
-    extended: true,
-    parameterLimit: 100000
-}));
-
-// ДОБАВЬТЕ ЭТО ДЛЯ МОБИЛЬНОЙ ОПТИМИЗАЦИИ:
-// Динамические лимиты в зависимости от устройства
-app.use((req, res, next) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    if (isMobile) {
-        console.log('📱 Мобильное устройство - уменьшаем лимиты');
-        // Уменьшенные лимиты для мобильных
-        express.json({ limit: '50mb' })(req, res, (err) => {
-            if (err) {
-                console.error('Mobile JSON error:', err);
-                return res.status(413).json({ error: 'Файл слишком большой для мобильного устройства' });
-            }
-            next();
-        });
-    } else {
-        next();
-    }
-});
-
-// Дополнительные настройки для body-parser (если используется)
-app.use(bodyParser.json({ limit: '3gb' }));
-app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
-
 // ==================== УЛУЧШЕННАЯ РАЗДАЧА СТАТИЧЕСКИХ ФАЙЛОВ ====================
 
 // Функция для определения типа устройства
@@ -802,6 +726,46 @@ app.use('/admin', express.static(join(APP_ROOT, 'admin'), {
         res.setHeader('Expires', '0');
     }
 }));
+
+// ==================== СПЕЦИАЛЬНЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНОЙ АДМИНКИ ====================
+
+// Специальные настройки для мобильной админки
+app.use('/admin', (req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    if (isMobile) {
+        // Упрощенная CSP для мобильной админки
+        res.setHeader('Content-Security-Policy', 
+            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+            "script-src * 'unsafe-inline' 'unsafe-eval'; " +
+            "style-src * 'unsafe-inline'; " +
+            "img-src * data: blob:; " +
+            "connect-src *; " +
+            "frame-src *;"
+        );
+        
+        // Увеличиваем таймауты для мобильных
+        req.setTimeout(60000);
+        res.setTimeout(60000);
+    }
+    
+    next();
+});
+
+// Специальные настройки для API админки на мобильных
+app.use('/api/admin', (req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    if (isMobile) {
+        console.log('📱 Мобильный запрос к API админки:', req.method, req.url);
+        // Упрощаем ответы для мобильных
+        res.setHeader('X-Mobile-Admin', 'true');
+    }
+    
+    next();
+});
 
 // Основной маршрут
 app.get('/', (req, res) => {
@@ -941,27 +905,51 @@ function getUserStats(userId) {
     };
 }
 
-// Middleware - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Middleware - УЛУЧШЕННАЯ ВЕРСИЯ ДЛЯ МОБИЛЬНЫХ
 const requireAdmin = (req, res, next) => {
-    const userId = req.query.userId || req.body.userId;
-    
-    console.log('🔐 Проверка админских прав для пользователя:', userId);
-    
-    if (!userId) {
-        return res.status(401).json({ error: 'User ID required' });
+    try {
+        const userId = req.query.userId || req.body.userId;
+        
+        console.log('🔐 Проверка админских прав для пользователя:', userId);
+        
+        if (!userId) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'User ID required',
+                code: 'MISSING_USER_ID'
+            });
+        }
+        
+        // Для мобильных устройств - более детальное логирование
+        const userAgent = req.headers['user-agent'] || '';
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        
+        if (isMobile) {
+            console.log('📱 Мобильный запрос к админке:', req.method, req.url);
+        }
+        
+        const admin = db.admins.find(a => a.user_id == userId);
+        if (!admin) {
+            console.log('⚠️ Пользователь не найден в списке админов, но разрешаем доступ для тестирования');
+            // Для тестирования разрешаем доступ всем
+            req.admin = { 
+                user_id: parseInt(userId), 
+                role: 'moderator',
+                is_temporary: true
+            };
+            return next();
+        }
+        
+        req.admin = admin;
+        next();
+    } catch (error) {
+        console.error('❌ Ошибка в requireAdmin middleware:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Authentication error',
+            code: 'AUTH_ERROR'
+        });
     }
-    
-    // ПРОСТАЯ ПРОВЕРКА - ВСЕ, У КОГО ЕСТЬ ID, МОГУТ ВОЙТИ В АДМИНКУ
-    const admin = db.admins.find(a => a.user_id == userId);
-    if (!admin) {
-        console.log('⚠️ Пользователь не найден в списке админов, но разрешаем доступ');
-        // Разрешаем доступ всем для тестирования
-        req.admin = { user_id: userId, role: 'admin' };
-        return next();
-    }
-    
-    req.admin = admin;
-    next();
 };
 
 // Basic routes
@@ -995,6 +983,61 @@ app.get('/api/debug/device', (req, res) => {
             'content-type': req.headers['content-type'],
             'origin': req.headers['origin']
         }
+    });
+});
+
+// Диагностика админ панели для мобильных
+app.get('/api/debug/admin-status', (req, res) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    res.json({
+        isMobile: isMobile,
+        adminEndpoints: {
+            interactives: '/api/admin/interactives',
+            shop_items: '/api/admin/shop/items',
+            roles: '/api/admin/roles',
+            characters: '/api/admin/characters'
+        },
+        shopItems: db.shop_items.filter(item => item.is_active).length,
+        interactives: db.interactives.filter(item => item.is_active).length,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Проверка конкретно админских endpoints
+app.get('/api/debug/admin-endpoints', requireAdmin, (req, res) => {
+    const endpoints = {
+        interactives: {
+            list: '/api/admin/interactives',
+            create: '/api/admin/interactives',
+            update: '/api/admin/interactives/:id',
+            delete: '/api/admin/interactives/:id'
+        },
+        shop: {
+            items: '/api/admin/shop/items',
+            create: '/api/admin/shop/items',
+            update: '/api/admin/shop/items/:id',
+            delete: '/api/admin/shop/items/:id'
+        },
+        roles: {
+            list: '/api/admin/roles',
+            create: '/api/admin/roles',
+            update: '/api/admin/roles/:id',
+            delete: '/api/admin/roles/:id'
+        },
+        characters: {
+            list: '/api/admin/characters',
+            create: '/api/admin/characters',
+            update: '/api/admin/characters/:id',
+            delete: '/api/admin/characters/:id'
+        }
+    };
+    
+    res.json({
+        endpoints: endpoints,
+        status: 'available',
+        user: req.admin
     });
 });
 
