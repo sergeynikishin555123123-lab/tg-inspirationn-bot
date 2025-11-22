@@ -1915,78 +1915,183 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
 
 // Управление интерактивами
 app.get('/api/admin/interactives', requireAdmin, (req, res) => {
-    const interactives = db.interactives.map(interactive => {
-        const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
+    try {
+        const userAgent = req.headers['user-agent'] || '';
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
         
-        return {
-            ...interactive,
-            completions_count: completions.length,
-            average_score: completions.length > 0 ? 
-                completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length : 0
-        };
-    });
-    res.json(interactives);
+        console.log(`🎮 Админ запрос интерактивов (мобильный: ${isMobile})`);
+        
+        let interactives = db.interactives.map(interactive => {
+            const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
+            
+            const baseData = {
+                ...interactive,
+                completions_count: completions.length,
+                average_score: completions.length > 0 ? 
+                    completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length : 0
+            };
+            
+            // Для мобильных - упрощаем данные
+            if (isMobile) {
+                return {
+                    id: interactive.id,
+                    title: interactive.title,
+                    type: interactive.type,
+                    category: interactive.category,
+                    is_active: interactive.is_active,
+                    completions_count: completions.length,
+                    sparks_reward: interactive.sparks_reward,
+                    created_at: interactive.created_at
+                };
+            }
+            
+            return baseData;
+        });
+        
+        console.log(`📱 Мобильная админка: отправлено ${interactives.length} интерактивов`);
+        
+        res.json({
+            success: true,
+            interactives: interactives,
+            total: interactives.length,
+            mobile_optimized: isMobile
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки интерактивов для админки:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка загрузки интерактивов',
+            mobile_safe: true
+        });
+    }
 });
 
 app.post('/api/admin/interactives', requireAdmin, (req, res) => {
-    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake } = req.body;
-    
-    if (!title || !type || !category) {
-        return res.status(400).json({ error: 'Title, type and category are required' });
+    try {
+        const userAgent = req.headers['user-agent'] || '';
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        
+        console.log(`🎮 Создание интерактива (мобильный: ${isMobile})`, {
+            title: req.body.title,
+            type: req.body.type,
+            category: req.body.category
+        });
+        
+        const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake } = req.body;
+        
+        if (!title || !type || !category) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Название, тип и категория обязательны',
+                mobile_safe: true
+            });
+        }
+        
+        const newInteractive = {
+            id: Date.now(),
+            title,
+            description: description || '',
+            type,
+            category,
+            image_url: image_url || '',
+            question: question || '',
+            options: options || [],
+            correct_answer: correct_answer || 0,
+            sparks_reward: sparks_reward || SPARKS_SYSTEM.INTERACTIVE_COMPLETION,
+            allow_retake: allow_retake || false,
+            is_active: true,
+            created_at: new Date().toISOString()
+        };
+        
+        db.interactives.push(newInteractive);
+        
+        // Для мобильных - упрощенный ответ
+        const responseInteractive = isMobile ? {
+            id: newInteractive.id,
+            title: newInteractive.title,
+            type: newInteractive.type,
+            category: newInteractive.category,
+            is_active: newInteractive.is_active,
+            sparks_reward: newInteractive.sparks_reward
+        } : newInteractive;
+        
+        res.json({ 
+            success: true, 
+            message: 'Интерактив успешно создан', 
+            interactiveId: newInteractive.id,
+            interactive: responseInteractive,
+            mobile_optimized: isMobile
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка создания интерактива:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка создания интерактива',
+            mobile_safe: true
+        });
     }
-    
-    const newInteractive = {
-        id: Date.now(),
-        title,
-        description: description || '',
-        type,
-        category,
-        image_url: image_url || '',
-        question: question || '',
-        options: options || [],
-        correct_answer: correct_answer || 0,
-        sparks_reward: sparks_reward || SPARKS_SYSTEM.INTERACTIVE_COMPLETION,
-        allow_retake: allow_retake || false,
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.interactives.push(newInteractive);
-    
-    res.json({ 
-        success: true, 
-        message: 'Интерактив успешно создан', 
-        interactiveId: newInteractive.id,
-        interactive: newInteractive
-    });
 });
 
 app.put('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
-    const interactiveId = parseInt(req.params.interactiveId);
-    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
-    
-    const interactive = db.interactives.find(i => i.id === interactiveId);
-    if (!interactive) {
-        return res.status(404).json({ error: 'Interactive not found' });
+    try {
+        const userAgent = req.headers['user-agent'] || '';
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        
+        console.log(`🎮 Обновление интерактива (мобильный: ${isMobile})`, {
+            interactiveId: req.params.interactiveId
+        });
+        
+        const interactiveId = parseInt(req.params.interactiveId);
+        const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
+        
+        const interactive = db.interactives.find(i => i.id === interactiveId);
+        if (!interactive) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Интерактив не найден',
+                mobile_safe: true
+            });
+        }
+        
+        if (title) interactive.title = title;
+        if (description) interactive.description = description;
+        if (type) interactive.type = type;
+        if (category) interactive.category = category;
+        if (image_url) interactive.image_url = image_url;
+        if (question) interactive.question = question;
+        if (options) interactive.options = options;
+        if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
+        if (sparks_reward !== undefined) interactive.sparks_reward = sparks_reward;
+        if (allow_retake !== undefined) interactive.allow_retake = allow_retake;
+        if (is_active !== undefined) interactive.is_active = is_active;
+        
+        // Для мобильных - упрощенный ответ
+        const responseInteractive = isMobile ? {
+            id: interactive.id,
+            title: interactive.title,
+            type: interactive.type,
+            category: interactive.category,
+            is_active: interactive.is_active,
+            sparks_reward: interactive.sparks_reward
+        } : interactive;
+        
+        res.json({ 
+            success: true, 
+            message: 'Интерактив успешно обновлен',
+            interactive: responseInteractive,
+            mobile_optimized: isMobile
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка обновления интерактива:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка обновления интерактива',
+            mobile_safe: true
+        });
     }
-    
-    if (title) interactive.title = title;
-    if (description) interactive.description = description;
-    if (type) interactive.type = type;
-    if (category) interactive.category = category;
-    if (image_url) interactive.image_url = image_url;
-    if (question) interactive.question = question;
-    if (options) interactive.options = options;
-    if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
-    if (sparks_reward !== undefined) interactive.sparks_reward = sparks_reward;
-    if (allow_retake !== undefined) interactive.allow_retake = allow_retake;
-    if (is_active !== undefined) interactive.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Интерактив успешно обновлен',
-        interactive: interactive
-    });
 });
 
 app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
@@ -2151,104 +2256,198 @@ app.delete('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
 
 // Управление магазином
 app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
-    res.json(db.shop_items);
+    try {
+        const userAgent = req.headers['user-agent'] || '';
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        
+        console.log(`🛒 Админ запрос товаров (мобильный: ${isMobile})`);
+        
+        let items = db.shop_items;
+        
+        // Для мобильных - упрощаем данные
+        if (isMobile) {
+            items = items.map(item => ({
+                id: item.id,
+                title: item.title,
+                description: item.description,
+                type: item.type,
+                price: item.price,
+                is_active: item.is_active,
+                created_at: item.created_at,
+                // Упрощенные данные для мобильных
+                has_embed: !!item.embed_html,
+                embed_preview: item.embed_html ? item.embed_html.substring(0, 100) + '...' : null,
+                file_exists: !!item.file_url,
+                preview_exists: !!item.preview_url
+            }));
+            
+            console.log(`📱 Мобильная админка: отправлено ${items.length} упрощенных товаров`);
+        }
+        
+        res.json({
+            success: true,
+            items: items,
+            total: items.length,
+            mobile_optimized: isMobile
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки товаров для админки:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка загрузки товаров',
+            mobile_safe: true
+        });
+    }
 });
 
 app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
-    console.log('🛒 Создание товара, данные:', {
-        title: req.body.title,
-        type: req.body.type,
-        hasEmbed: !!req.body.embed_html,
-        embedLength: req.body.embed_html?.length
-    });
-    
-    const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data, embed_html } = req.body;
-    
-    if (!title || !price) {
-        return res.status(400).json({ error: 'Title and price are required' });
+    try {
+        const userAgent = req.headers['user-agent'] || '';
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        
+        console.log(`🛒 Создание товара (мобильный: ${isMobile})`, {
+            title: req.body.title,
+            type: req.body.type,
+            hasEmbed: !!req.body.embed_html
+        });
+        
+        const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data, embed_html } = req.body;
+        
+        if (!title || !price) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Название и цена обязательны',
+                mobile_safe: true
+            });
+        }
+        
+        // Для embed-товаров проверяем наличие HTML
+        if (type === 'embed' && !embed_html) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Для типа "embed" необходимо указать HTML-код',
+                mobile_safe: true
+            });
+        }
+        
+        const newItem = {
+            id: Date.now(),
+            title,
+            description: description || '',
+            type: type || 'video',
+            file_url: file_url || file_data || '',
+            preview_url: preview_url || preview_data || '',
+            price: parseFloat(price),
+            content_text: content_text || '',
+            embed_html: embed_html || '',
+            is_active: true,
+            created_at: new Date().toISOString()
+        };
+        
+        db.shop_items.push(newItem);
+        
+        // Для мобильных - упрощенный ответ
+        const responseItem = isMobile ? {
+            id: newItem.id,
+            title: newItem.title,
+            type: newItem.type,
+            price: newItem.price,
+            is_active: newItem.is_active,
+            has_embed: !!newItem.embed_html
+        } : newItem;
+        
+        console.log('✅ Товар создан:', { id: newItem.id, type: newItem.type });
+        
+        res.json({ 
+            success: true, 
+            message: 'Товар успешно создан', 
+            itemId: newItem.id,
+            item: responseItem,
+            mobile_optimized: isMobile
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка создания товара:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка создания товара',
+            mobile_safe: true
+        });
     }
-    
-    // Для embed-товаров проверяем наличие HTML
-    if (type === 'embed' && !embed_html) {
-        return res.status(400).json({ error: 'Для типа "embed" необходимо указать HTML-код' });
-    }
-    
-    const newItem = {
-        id: Date.now(),
-        title,
-        description: description || '',
-        type: type || 'video',
-        file_url: file_url || file_data || '',
-        preview_url: preview_url || preview_data || '',
-        price: parseFloat(price),
-        content_text: content_text || '',
-        embed_html: embed_html || '',
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    console.log('✅ Создан товар:', {
-        id: newItem.id,
-        type: newItem.type,
-        hasEmbed: !!newItem.embed_html,
-        embedLength: newItem.embed_html?.length
-    });
-    
-    db.shop_items.push(newItem);
-    
-    res.json({ 
-        success: true, 
-        message: 'Товар успешно создан', 
-        itemId: newItem.id,
-        item: newItem
-    });
 });
 
 app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
-    console.log('🛒 Обновление товара, данные:', {
-        itemId: req.params.itemId,
-        type: req.body.type,
-        hasEmbed: !!req.body.embed_html,
-        embedLength: req.body.embed_html?.length
-    });
-    
-    const itemId = parseInt(req.params.itemId);
-    const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data, embed_html } = req.body;
-    
-    const item = db.shop_items.find(i => i.id === itemId);
-    if (!item) {
-        return res.status(404).json({ error: 'Item not found' });
+    try {
+        const userAgent = req.headers['user-agent'] || '';
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        
+        console.log(`🛒 Обновление товара (мобильный: ${isMobile})`, {
+            itemId: req.params.itemId,
+            type: req.body.type,
+            hasEmbed: !!req.body.embed_html
+        });
+        
+        const itemId = parseInt(req.params.itemId);
+        const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data, embed_html } = req.body;
+        
+        const item = db.shop_items.find(i => i.id === itemId);
+        if (!item) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Товар не найден',
+                mobile_safe: true
+            });
+        }
+        
+        // Для embed-товаров проверяем наличие HTML
+        if (type === 'embed' && !embed_html) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Для типа "embed" необходимо указать HTML-код',
+                mobile_safe: true
+            });
+        }
+        
+        if (title) item.title = title;
+        if (description) item.description = description;
+        if (type) item.type = type;
+        if (file_url !== undefined) item.file_url = file_url;
+        if (file_data !== undefined) item.file_url = file_data;
+        if (preview_url !== undefined) item.preview_url = preview_url;
+        if (preview_data !== undefined) item.preview_url = preview_data;
+        if (price) item.price = parseFloat(price);
+        if (content_text) item.content_text = content_text;
+        if (embed_html !== undefined) item.embed_html = embed_html;
+        if (is_active !== undefined) item.is_active = is_active;
+        
+        // Для мобильных - упрощенный ответ
+        const responseItem = isMobile ? {
+            id: item.id,
+            title: item.title,
+            type: item.type,
+            price: item.price,
+            is_active: item.is_active,
+            has_embed: !!item.embed_html
+        } : item;
+        
+        console.log('✅ Товар обновлен:', { id: item.id, type: item.type });
+        
+        res.json({ 
+            success: true, 
+            message: 'Товар успешно обновлен',
+            item: responseItem,
+            mobile_optimized: isMobile
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка обновления товара:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка обновления товара',
+            mobile_safe: true
+        });
     }
-    
-    // Для embed-товаров проверяем наличие HTML
-    if (type === 'embed' && !embed_html) {
-        return res.status(400).json({ error: 'Для типа "embed" необходимо указать HTML-код' });
-    }
-    
-    if (title) item.title = title;
-    if (description) item.description = description;
-    if (type) item.type = type;
-    if (file_url !== undefined) item.file_url = file_url;
-    if (file_data !== undefined) item.file_url = file_data;
-    if (preview_url !== undefined) item.preview_url = preview_url;
-    if (preview_data !== undefined) item.preview_url = preview_data;
-    if (price) item.price = parseFloat(price);
-    if (content_text) item.content_text = content_text;
-    if (embed_html !== undefined) item.embed_html = embed_html;
-    if (is_active !== undefined) item.is_active = is_active;
-    
-    console.log('✅ Обновлен товар:', {
-        id: item.id,
-        type: item.type,
-        hasEmbed: !!item.embed_html,
-        embedLength: item.embed_html?.length
-    });
-    
-    res.json({ 
-        success: true, 
-        message: 'Товар успешно обновлен',
-        item: item
-    });
 });
 
 app.delete('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
