@@ -1189,7 +1189,174 @@
             .user-info-grid {
                 grid-template-columns: 1fr;
             }
+
+            @media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .card {
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+    
+    /* Упростите интерфейс магазина для мобильных */
+    .shop-item, .interactive-card {
+        padding: 12px;
+    }
+    
+    .purchase-item {
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        margin: 4px 0;
+        padding: 14px;
+    }
+    
+    /* Оптимизация изображений */
+    .media-preview, .work-image {
+        max-width: 100%;
+        height: auto;
+        max-height: 200px;
+    }
+    
+    .sparks {
+        font-size: 32px;
+        padding: 12px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    
+    .feature-card {
+        padding: 16px;
+    }
+    
+    /* Упростите навигацию */
+    .works-tabs, .shop-tabs, .interactive-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .works-tab, .shop-tab, .interactive-tab {
+        flex: 1;
+        min-width: 120px;
+        padding: 10px;
+        font-size: 14px;
+    }
+    
+    /* Оптимизация контента магазина */
+    .content-preview {
+        max-height: 150px;
+        font-size: 12px;
+        padding: 12px;
+    }
+    
+    .purchase-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .purchase-btn {
+        width: 100%;
+        margin: 2px 0;
+    }
+}
+
+/* ДОПОЛНИТЕЛЬНО ДЛЯ ОЧЕНЬ МАЛЕНЬКИХ ЭКРАНОВ */
+@media (max-width: 480px) {
+    .container {
+        padding: 5px;
+    }
+    
+    .card {
+        padding: 12px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .user-info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .header-title {
+        font-size: 20px;
+    }
+    
+    .header-subtitle {
+        font-size: 14px;
+    }
+    
+    /* Оптимизация магазина */
+    .purchase-actions {
+        flex-direction: column;
+    }
+    
+    .purchase-btn {
+        width: 100%;
+        margin: 4px 0;
+    }
+    
+    /* Оптимизация интерактивов */
+    .drawing-canvas {
+        height: 250px;
+    }
+    
+    .drawing-tools {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .drawing-tool {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    /* Упрощение интерфейса интерактивов */
+    .interactive-image {
+        max-width: 100%;
+        max-height: 150px;
+    }
+    
+    .option {
+        padding: 12px;
+        font-size: 14px;
+    }
+}
+
+/* СООБЩЕНИЯ ДЛЯ МОБИЛЬНЫХ */
+.mobile-message {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #f56565;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    z-index: 10000;
+    max-width: 90%;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.mobile-message.success {
+    background: #48bb78;
+}
+
+.mobile-message.info {
+    background: #4299e1;
+}
         }
+        
         
         /* Специальные стили для кнопки смены роли */
         .change-role-btn {
@@ -1711,49 +1878,190 @@
         // Глобальные переменные
         let tg = null;
         let currentUser = null;
-        let currentUserId = null;
-        let selectedRole = null;
-        let selectedCharacter = null;
-        let currentQuiz = null;
-        let currentAnswers = [];
-        let currentQuestionIndex = 0;
-        let currentMarathon = null;
-        let currentMarathonDay = 1;
-        let currentInteractive = null;
-        let currentWorksTab = 'view';
-        let currentShopTab = 'items';
-        let currentInteractiveCategory = 'all';
-        let drawingCanvas = null;
-        let drawingContext = null;
-        let isDrawing = false;
-        let lastX = 0;
-        let lastY = 0;
-        let currentColor = '#000000';
-        let currentTool = 'brush';
-        let uploadedImage = null;
-        let marathonUploadedImage = null;
+let currentUserId = null;
+let selectedRole = null;
+let selectedCharacter = null;
+let currentQuiz = null;
+let currentAnswers = [];
+let currentQuestionIndex = 0;
+let currentMarathon = null;
+let currentMarathonDay = 1;
+let currentInteractive = null;
+let currentWorksTab = 'view';
+let currentShopTab = 'items';
+let currentInteractiveCategory = 'all';
+let drawingCanvas = null;
+let drawingContext = null;
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+let currentColor = '#000000';
+let currentTool = 'brush';
+let uploadedImage = null;
+let marathonUploadedImage = null;
 
-        // Инициализация приложения - ИСПРАВЛЕННАЯ ВЕРСИЯ
-        async function initApp() {
-            try {
-                console.log('🚀 Инициализация приложения...');
-                
-                // Добавьте эту проверку
-                if (typeof Telegram === 'undefined') {
-                    console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
-                    tg = {
-                        initDataUnsafe: {
-                            user: { id: 898508164, first_name: 'Тестовый' },
-                            start_param: null
-                        },
-                        expand: () => console.log('📱 Expand'),
-                        enableClosingConfirmation: () => console.log('🔒 Closing confirmation')
-                    };
-                } else {
-                    tg = window.Telegram.WebApp;
-                    tg.expand();
-                    tg.enableClosingConfirmation();
-                }
+// ========== ДОБАВЬТЕ ЭТИ ФУНКЦИИ ДЛЯ МОБИЛЬНОЙ ОПТИМИЗАЦИИ ==========
+
+// Проверка мобильного устройства
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Инициализация мобильных оптимизаций
+function initMobileOptimizations() {
+    if (!isMobileDevice()) return;
+    
+    console.log('📱 Активированы мобильные оптимизации');
+    
+    // Предотвращаем масштабирование на инпутах
+    document.addEventListener('touchstart', function() {}, {passive: true});
+    
+    // Оптимизация для медленных соединений
+    if (navigator.connection) {
+        const connection = navigator.connection;
+        if (connection.saveData || connection.effectiveType.includes('2g')) {
+            enableLowDataMode();
+        }
+    }
+    
+    // Добавляем обработчики ошибок для мобильных
+    initMobileErrorHandling();
+}
+
+// Режим для медленных соединений
+function enableLowDataMode() {
+    console.log('📱 Активирован режим для медленных соединений');
+    
+    // Откладываем загрузку тяжелых ресурсов
+    const heavyElements = document.querySelectorAll('.media-preview, .interactive-image, .work-image');
+    heavyElements.forEach(el => {
+        el.setAttribute('loading', 'lazy');
+        if (el.tagName === 'IMG' && el.src) {
+            // Добавляем параметры для уменьшения качества
+            if (!el.src.includes('?')) {
+                el.src = el.src + '?quality=low&width=300';
+            }
+        }
+    });
+}
+
+// Обработчики ошибок для мобильных
+function initMobileErrorHandling() {
+    // Глобальный обработчик ошибок
+    window.addEventListener('error', function(e) {
+        console.error('📱 Мобильная ошибка:', e.error);
+        showMobileMessage('Произошла ошибка. Попробуйте обновить страницу.', 'error');
+    });
+    
+    // Обработчик ошибок Promise
+    window.addEventListener('unhandledrejection', function(e) {
+        console.error('📱 Необработанная ошибка Promise:', e.reason);
+        showMobileMessage('Ошибка загрузки данных. Проверьте соединение.', 'error');
+    });
+    
+    // Обработчик изменения соединения
+    window.addEventListener('online', function() {
+        showMobileMessage('Соединение восстановлено', 'success');
+    });
+    
+    window.addEventListener('offline', function() {
+        showMobileMessage('Нет соединения с интернетом', 'error');
+    });
+}
+
+// Показать сообщение для мобильных
+function showMobileMessage(message, type = 'info') {
+    // Удаляем предыдущие сообщения
+    const existingMessages = document.querySelectorAll('.mobile-message');
+    existingMessages.forEach(msg => msg.remove());
+    
+    const messageEl = document.createElement('div');
+    messageEl.className = `mobile-message ${type}`;
+    messageEl.textContent = message;
+    messageEl.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${type === 'error' ? '#f56565' : type === 'success' ? '#48bb78' : '#4299e1'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        max-width: 90%;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        font-size: 14px;
+        font-weight: 500;
+    `;
+    
+    document.body.appendChild(messageEl);
+    
+    setTimeout(() => {
+        if (messageEl.parentNode) {
+            messageEl.parentNode.removeChild(messageEl);
+        }
+    }, 4000);
+}
+
+// Оптимизированная загрузка изображений для мобильных
+function handleImageUploadMobile(file, maxSizeMB = 3) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Проверка размера для мобильных
+            if (file.size > maxSizeMB * 1024 * 1024) {
+                reject(new Error(`Размер файла не должен превышать ${maxSizeMB}MB на мобильном устройстве`));
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                // Для мобильных используем оригинальный размер без сжатия
+                resolve(e.target.result);
+            };
+            
+            reader.onerror = function() {
+                reject(new Error('Ошибка чтения файла'));
+            };
+            
+            reader.readAsDataURL(file);
+            
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+// Инициализация приложения - ИСПРАВЛЕННАЯ ВЕРСИЯ
+async function initApp() {
+    try {
+        console.log('🚀 Инициализация приложения...');
+        
+        // ДОБАВЬТЕ ЭТО ДЛЯ МОБИЛЬНОЙ ОПТИМИЗАЦИИ:
+        // Проверка мобильного устройства и инициализация оптимизаций
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+            console.log('📱 Мобильное устройство обнаружено');
+            initMobileOptimizations();
+        }
+        
+        // Добавьте эту проверку
+        if (typeof Telegram === 'undefined') {
+            console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
+            tg = {
+                initDataUnsafe: {
+                    user: { id: 898508164, first_name: 'Тестовый' },
+                    start_param: null
+                },
+                expand: () => console.log('📱 Expand'),
+                enableClosingConfirmation: () => console.log('🔒 Closing confirmation')
+            };
+        } else {
+            tg = window.Telegram.WebApp;
+            tg.expand();
+            tg.enableClosingConfirmation();
+        }
                 
                 currentUserId = tg.initDataUnsafe.user?.id || tg.initDataUnsafe.start_param?.replace('ref_', '') || 898508164;
                 
@@ -3243,13 +3551,20 @@ function formatFileSize(bytes) {
         // ==================== ИНТЕРАКТИВЫ ====================
 
         // Загрузка интерактивов
-        async function loadInteractives() {
-            try {
-                const response = await fetch(`/api/webapp/interactives?userId=${currentUserId}`);
-                const interactives = await response.json();
-                
-                const interactivesList = document.getElementById('interactivesList');
-                interactivesList.innerHTML = '';
+async function loadInteractives() {
+    try {
+        // ДОБАВЬТЕ ПРОВЕРКУ ДЛЯ МОБИЛЬНЫХ
+        if (isMobileDevice()) {
+            showMobileMessage('Загружаем интерактивы...', 'info');
+        }
+        
+        const response = await fetch(`/api/webapp/interactives?userId=${currentUserId}`);
+        if (!response.ok) throw new Error('Ошибка загрузки интерактивов');
+        
+        const interactives = await response.json();
+        
+        const interactivesList = document.getElementById('interactivesList');
+        interactivesList.innerHTML = '';
                 
                 const filteredInteractives = currentInteractiveCategory === 'all' 
                     ? interactives 
@@ -3719,14 +4034,28 @@ function formatFileSize(bytes) {
             }
         }
 
-        // Обработка загрузки изображения
-        function handleImageUpload(file) {
-            if (!file) return;
-            
-            if (!file.type.startsWith('image/')) {
-                showMessage('❌ Пожалуйста, выберите изображение', 'error');
-                return;
-            }
+// Обработка загрузки изображения
+function handleImageUpload(file) {
+    if (!file) return;
+    
+    // ДОБАВЬТЕ ПРОВЕРКУ ДЛЯ МОБИЛЬНЫХ
+    if (isMobileDevice()) {
+        const maxSize = 3; // 3MB для мобильных
+        if (file.size > maxSize * 1024 * 1024) {
+            showMobileMessage(`❌ Размер файла не должен превышать ${maxSize}MB на мобильном устройстве`, 'error');
+            return;
+        }
+    } else {
+        if (file.size > 3 * 1024 * 1024 * 1024) {
+            showMessage('❌ Размер файла не должен превышать 3GB', 'error');
+            return;
+        }
+    }
+    
+    if (!file.type.startsWith('image/')) {
+        showMessage('❌ Пожалуйста, выберите изображение', 'error');
+        return;
+    }
             
             if (file.size > 3 * 1024 * 1024 * 1024) {
                 showMessage('❌ Размер файла не должен превышать 3GB', 'error');
@@ -3834,13 +4163,20 @@ function formatFileSize(bytes) {
         }
 
         // Загрузка товаров магазина
-        async function loadShopItems() {
-            try {
-                const response = await fetch('/api/webapp/shop/items');
-                const data = await response.json();
-                
-                const shopItemsList = document.getElementById('shopItemsList');
-                shopItemsList.innerHTML = '';
+async function loadShopItems() {
+    try {
+        // ДОБАВЬТЕ ПРОВЕРКУ ДЛЯ МОБИЛЬНЫХ
+        if (isMobileDevice()) {
+            showMobileMessage('Загружаем магазин...', 'info');
+        }
+        
+        const response = await fetch('/api/webapp/shop/items');
+        if (!response.ok) throw new Error('Ошибка загрузки магазина');
+        
+        const data = await response.json();
+        
+        const shopItemsList = document.getElementById('shopItemsList');
+        shopItemsList.innerHTML = '';
                 
                 if (data.length === 0) {
                     shopItemsList.innerHTML = '<div class="info">Пока нет доступных товаров</div>';
