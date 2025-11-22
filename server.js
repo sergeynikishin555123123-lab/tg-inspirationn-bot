@@ -74,32 +74,15 @@ app.use((req, res, next) => {
     next();
 });
 
-// Улучшенная обработка JSON для мобильных и десктоп
+// Увеличены лимиты для больших файлов с учетом мобильных устройств
 app.use(express.json({ 
-    limit: '50mb',
+    limit: '3gb',
     verify: (req, res, buf) => {
         try {
-            if (buf && buf.length > 0) {
-                JSON.parse(buf);
-            }
+            JSON.parse(buf);
         } catch (e) {
             console.error('❌ Ошибка парсинга JSON:', e.message);
-            const userAgent = req.headers['user-agent'] || '';
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-            
-            if (isMobile) {
-                res.status(400).json({ 
-                    success: false,
-                    error: 'Неверный формат данных',
-                    code: 'MOBILE_JSON_ERROR'
-                });
-            } else {
-                res.status(400).json({ 
-                    success: false,
-                    error: 'Неверный формат JSON',
-                    details: e.message 
-                });
-            }
+            res.status(400).json({ error: 'Неверный формат JSON' });
         }
     }
 }));
@@ -679,6 +662,99 @@ let db = {
     marathon_submissions: []
 };
 
+// ==================== УСИЛЕННЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ====================
+
+// Middleware для мобильных устройств
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    console.log(`📱 Запрос от: ${isMobile ? 'Мобильное устройство' : 'Десктоп'}`);
+    
+    // Устанавливаем заголовки безопасности
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    
+    // Для мобильных устройств - более либеральная политика безопасности
+    if (isMobile) {
+        res.setHeader('Content-Security-Policy', 
+            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+            "script-src * 'unsafe-inline' 'unsafe-eval'; " +
+            "connect-src * 'unsafe-inline'; " +
+            "img-src * data: blob: 'unsafe-inline'; " +
+            "frame-src *; " +
+            "style-src * 'unsafe-inline';"
+        );
+    }
+    
+    // Увеличиваем таймауты для мобильных
+    if (isMobile) {
+        req.setTimeout(300000); // 5 минут для мобильных
+        res.setTimeout(300000);
+    }
+    
+    next();
+});
+
+// Увеличены лимиты для больших файлов с учетом мобильных устройств
+app.use(express.json({ 
+    limit: '3gb',
+    verify: (req, res, buf) => {
+        try {
+            JSON.parse(buf);
+        } catch (e) {
+            console.error('❌ Ошибка парсинга JSON:', e.message);
+            res.status(400).json({ error: 'Неверный формат JSON' });
+        }
+    }
+}));
+
+app.use(express.urlencoded({ 
+    limit: '3gb', 
+    extended: true,
+    parameterLimit: 100000
+}));
+
+// Дополнительные настройки body-parser
+app.use(bodyParser.json({ 
+    limit: '3gb',
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
+
+app.use(bodyParser.urlencoded({ 
+    limit: '3gb', 
+    extended: true,
+    parameterLimit: 100000
+}));
+
+// ДОБАВЬТЕ ЭТО ДЛЯ МОБИЛЬНОЙ ОПТИМИЗАЦИИ:
+// Динамические лимиты в зависимости от устройства
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    if (isMobile) {
+        console.log('📱 Мобильное устройство - уменьшаем лимиты');
+        // Уменьшенные лимиты для мобильных
+        express.json({ limit: '50mb' })(req, res, (err) => {
+            if (err) {
+                console.error('Mobile JSON error:', err);
+                return res.status(413).json({ error: 'Файл слишком большой для мобильного устройства' });
+            }
+            next();
+        });
+    } else {
+        next();
+    }
+});
+
+// Дополнительные настройки для body-parser (если используется)
+app.use(bodyParser.json({ limit: '3gb' }));
+app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
+
 // ==================== УЛУЧШЕННАЯ РАЗДАЧА СТАТИЧЕСКИХ ФАЙЛОВ ====================
 
 // Функция для определения типа устройства
@@ -726,46 +802,6 @@ app.use('/admin', express.static(join(APP_ROOT, 'admin'), {
         res.setHeader('Expires', '0');
     }
 }));
-
-// ==================== СПЕЦИАЛЬНЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНОЙ АДМИНКИ ====================
-
-// Специальные настройки для мобильной админки
-app.use('/admin', (req, res, next) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    if (isMobile) {
-        // Упрощенная CSP для мобильной админки
-        res.setHeader('Content-Security-Policy', 
-            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
-            "script-src * 'unsafe-inline' 'unsafe-eval'; " +
-            "style-src * 'unsafe-inline'; " +
-            "img-src * data: blob:; " +
-            "connect-src *; " +
-            "frame-src *;"
-        );
-        
-        // Увеличиваем таймауты для мобильных
-        req.setTimeout(60000);
-        res.setTimeout(60000);
-    }
-    
-    next();
-});
-
-// Специальные настройки для API админки на мобильных
-app.use('/api/admin', (req, res, next) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    if (isMobile) {
-        console.log('📱 Мобильный запрос к API админки:', req.method, req.url);
-        // Упрощаем ответы для мобильных
-        res.setHeader('X-Mobile-Admin', 'true');
-    }
-    
-    next();
-});
 
 // Основной маршрут
 app.get('/', (req, res) => {
@@ -905,51 +941,27 @@ function getUserStats(userId) {
     };
 }
 
-// Middleware - УЛУЧШЕННАЯ ВЕРСИЯ ДЛЯ МОБИЛЬНЫХ
+// Middleware - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const requireAdmin = (req, res, next) => {
-    try {
-        const userId = req.query.userId || req.body.userId;
-        
-        console.log('🔐 Проверка админских прав для пользователя:', userId);
-        
-        if (!userId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'User ID required',
-                code: 'MISSING_USER_ID'
-            });
-        }
-        
-        // Для мобильных устройств - более детальное логирование
-        const userAgent = req.headers['user-agent'] || '';
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-        
-        if (isMobile) {
-            console.log('📱 Мобильный запрос к админке:', req.method, req.url);
-        }
-        
-        const admin = db.admins.find(a => a.user_id == userId);
-        if (!admin) {
-            console.log('⚠️ Пользователь не найден в списке админов, но разрешаем доступ для тестирования');
-            // Для тестирования разрешаем доступ всем
-            req.admin = { 
-                user_id: parseInt(userId), 
-                role: 'moderator',
-                is_temporary: true
-            };
-            return next();
-        }
-        
-        req.admin = admin;
-        next();
-    } catch (error) {
-        console.error('❌ Ошибка в requireAdmin middleware:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Authentication error',
-            code: 'AUTH_ERROR'
-        });
+    const userId = req.query.userId || req.body.userId;
+    
+    console.log('🔐 Проверка админских прав для пользователя:', userId);
+    
+    if (!userId) {
+        return res.status(401).json({ error: 'User ID required' });
     }
+    
+    // ПРОСТАЯ ПРОВЕРКА - ВСЕ, У КОГО ЕСТЬ ID, МОГУТ ВОЙТИ В АДМИНКУ
+    const admin = db.admins.find(a => a.user_id == userId);
+    if (!admin) {
+        console.log('⚠️ Пользователь не найден в списке админов, но разрешаем доступ');
+        // Разрешаем доступ всем для тестирования
+        req.admin = { user_id: userId, role: 'admin' };
+        return next();
+    }
+    
+    req.admin = admin;
+    next();
 };
 
 // Basic routes
@@ -983,61 +995,6 @@ app.get('/api/debug/device', (req, res) => {
             'content-type': req.headers['content-type'],
             'origin': req.headers['origin']
         }
-    });
-});
-
-// Диагностика админ панели для мобильных
-app.get('/api/debug/admin-status', (req, res) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    res.json({
-        isMobile: isMobile,
-        adminEndpoints: {
-            interactives: '/api/admin/interactives',
-            shop_items: '/api/admin/shop/items',
-            roles: '/api/admin/roles',
-            characters: '/api/admin/characters'
-        },
-        shopItems: db.shop_items.filter(item => item.is_active).length,
-        interactives: db.interactives.filter(item => item.is_active).length,
-        timestamp: new Date().toISOString()
-    });
-});
-
-// Проверка конкретно админских endpoints
-app.get('/api/debug/admin-endpoints', requireAdmin, (req, res) => {
-    const endpoints = {
-        interactives: {
-            list: '/api/admin/interactives',
-            create: '/api/admin/interactives',
-            update: '/api/admin/interactives/:id',
-            delete: '/api/admin/interactives/:id'
-        },
-        shop: {
-            items: '/api/admin/shop/items',
-            create: '/api/admin/shop/items',
-            update: '/api/admin/shop/items/:id',
-            delete: '/api/admin/shop/items/:id'
-        },
-        roles: {
-            list: '/api/admin/roles',
-            create: '/api/admin/roles',
-            update: '/api/admin/roles/:id',
-            delete: '/api/admin/roles/:id'
-        },
-        characters: {
-            list: '/api/admin/characters',
-            create: '/api/admin/characters',
-            update: '/api/admin/characters/:id',
-            delete: '/api/admin/characters/:id'
-        }
-    };
-    
-    res.json({
-        endpoints: endpoints,
-        status: 'available',
-        user: req.admin
     });
 });
 
@@ -1915,213 +1872,78 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
 
 // Управление интерактивами
 app.get('/api/admin/interactives', requireAdmin, (req, res) => {
-    try {
-        console.log('🎮 Админ запрос интерактивов');
+    const interactives = db.interactives.map(interactive => {
+        const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
         
-        const interactives = db.interactives.map(interactive => {
-            const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
-            
-            return {
-                id: interactive.id,
-                title: interactive.title,
-                description: interactive.description,
-                type: interactive.type,
-                category: interactive.category,
-                image_url: interactive.image_url,
-                question: interactive.question,
-                options: interactive.options || [],
-                correct_answer: interactive.correct_answer,
-                sparks_reward: interactive.sparks_reward,
-                allow_retake: interactive.allow_retake,
-                is_active: interactive.is_active,
-                created_at: interactive.created_at,
-                completions_count: completions.length,
-                average_score: completions.length > 0 ? 
-                    (completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length).toFixed(2) : 0
-            };
-        });
-        
-        console.log(`✅ Отправлено интерактивов: ${interactives.length}`);
-        
-        res.json({
-            success: true,
-            interactives: interactives,
-            total: interactives.length
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки интерактивов для админки:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка загрузки интерактивов'
-        });
-    }
-});
-
-// Простой тест админских маршрутов
-app.get('/api/debug/admin-simple-test', requireAdmin, (req, res) => {
-    try {
-        console.log('🧪 Простой тест админских данных');
-        
-        // Простейшие данные для проверки
-        const testData = {
-            shop_items: [
-                {
-                    id: 1,
-                    title: "Тестовый товар",
-                    type: "video",
-                    price: 10,
-                    is_active: true
-                }
-            ],
-            interactives: [
-                {
-                    id: 1,
-                    title: "Тестовый интерактив",
-                    type: "guess_era",
-                    is_active: true
-                }
-            ],
-            status: "ok",
-            timestamp: new Date().toISOString()
+        return {
+            ...interactive,
+            completions_count: completions.length,
+            average_score: completions.length > 0 ? 
+                completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length : 0
         };
-        
-        res.json(testData);
-        
-    } catch (error) {
-        console.error('❌ Ошибка в простом тесте:', error);
-        res.status(500).json({
-            error: 'Simple test failed',
-            details: error.message
-        });
-    }
+    });
+    res.json(interactives);
 });
 
 app.post('/api/admin/interactives', requireAdmin, (req, res) => {
-    try {
-        const userAgent = req.headers['user-agent'] || '';
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-        
-        console.log(`🎮 Создание интерактива (мобильный: ${isMobile})`, {
-            title: req.body.title,
-            type: req.body.type,
-            category: req.body.category
-        });
-        
-        const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake } = req.body;
-        
-        if (!title || !type || !category) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Название, тип и категория обязательны',
-                mobile_safe: true
-            });
-        }
-        
-        const newInteractive = {
-            id: Date.now(),
-            title,
-            description: description || '',
-            type,
-            category,
-            image_url: image_url || '',
-            question: question || '',
-            options: options || [],
-            correct_answer: correct_answer || 0,
-            sparks_reward: sparks_reward || SPARKS_SYSTEM.INTERACTIVE_COMPLETION,
-            allow_retake: allow_retake || false,
-            is_active: true,
-            created_at: new Date().toISOString()
-        };
-        
-        db.interactives.push(newInteractive);
-        
-        // Для мобильных - упрощенный ответ
-        const responseInteractive = isMobile ? {
-            id: newInteractive.id,
-            title: newInteractive.title,
-            type: newInteractive.type,
-            category: newInteractive.category,
-            is_active: newInteractive.is_active,
-            sparks_reward: newInteractive.sparks_reward
-        } : newInteractive;
-        
-        res.json({ 
-            success: true, 
-            message: 'Интерактив успешно создан', 
-            interactiveId: newInteractive.id,
-            interactive: responseInteractive,
-            mobile_optimized: isMobile
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка создания интерактива:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка создания интерактива',
-            mobile_safe: true
-        });
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake } = req.body;
+    
+    if (!title || !type || !category) {
+        return res.status(400).json({ error: 'Title, type and category are required' });
     }
+    
+    const newInteractive = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        type,
+        category,
+        image_url: image_url || '',
+        question: question || '',
+        options: options || [],
+        correct_answer: correct_answer || 0,
+        sparks_reward: sparks_reward || SPARKS_SYSTEM.INTERACTIVE_COMPLETION,
+        allow_retake: allow_retake || false,
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.interactives.push(newInteractive);
+    
+    res.json({ 
+        success: true, 
+        message: 'Интерактив успешно создан', 
+        interactiveId: newInteractive.id,
+        interactive: newInteractive
+    });
 });
 
 app.put('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
-    try {
-        const userAgent = req.headers['user-agent'] || '';
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-        
-        console.log(`🎮 Обновление интерактива (мобильный: ${isMobile})`, {
-            interactiveId: req.params.interactiveId
-        });
-        
-        const interactiveId = parseInt(req.params.interactiveId);
-        const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
-        
-        const interactive = db.interactives.find(i => i.id === interactiveId);
-        if (!interactive) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Интерактив не найден',
-                mobile_safe: true
-            });
-        }
-        
-        if (title) interactive.title = title;
-        if (description) interactive.description = description;
-        if (type) interactive.type = type;
-        if (category) interactive.category = category;
-        if (image_url) interactive.image_url = image_url;
-        if (question) interactive.question = question;
-        if (options) interactive.options = options;
-        if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
-        if (sparks_reward !== undefined) interactive.sparks_reward = sparks_reward;
-        if (allow_retake !== undefined) interactive.allow_retake = allow_retake;
-        if (is_active !== undefined) interactive.is_active = is_active;
-        
-        // Для мобильных - упрощенный ответ
-        const responseInteractive = isMobile ? {
-            id: interactive.id,
-            title: interactive.title,
-            type: interactive.type,
-            category: interactive.category,
-            is_active: interactive.is_active,
-            sparks_reward: interactive.sparks_reward
-        } : interactive;
-        
-        res.json({ 
-            success: true, 
-            message: 'Интерактив успешно обновлен',
-            interactive: responseInteractive,
-            mobile_optimized: isMobile
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка обновления интерактива:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка обновления интерактива',
-            mobile_safe: true
-        });
+    const interactiveId = parseInt(req.params.interactiveId);
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
+    
+    const interactive = db.interactives.find(i => i.id === interactiveId);
+    if (!interactive) {
+        return res.status(404).json({ error: 'Interactive not found' });
     }
+    
+    if (title) interactive.title = title;
+    if (description) interactive.description = description;
+    if (type) interactive.type = type;
+    if (category) interactive.category = category;
+    if (image_url) interactive.image_url = image_url;
+    if (question) interactive.question = question;
+    if (options) interactive.options = options;
+    if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
+    if (sparks_reward !== undefined) interactive.sparks_reward = sparks_reward;
+    if (allow_retake !== undefined) interactive.allow_retake = allow_retake;
+    if (is_active !== undefined) interactive.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Интерактив успешно обновлен',
+        interactive: interactive
+    });
 });
 
 app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
@@ -2286,187 +2108,104 @@ app.delete('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
 
 // Управление магазином
 app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
-    try {
-        console.log('🛒 Админ запрос товаров магазина');
-        
-        // Берем ВСЕ товары (включая неактивные) для админки
-        const items = db.shop_items.map(item => ({
-            id: item.id,
-            title: item.title,
-            description: item.description,
-            type: item.type,
-            file_url: item.file_url || '',
-            preview_url: item.preview_url || '',
-            price: item.price,
-            content_text: item.content_text || '',
-            embed_html: item.embed_html || '',
-            is_active: item.is_active,
-            created_at: item.created_at
-        }));
-        
-        console.log(`✅ Отправлено товаров: ${items.length}`);
-        
-        res.json({
-            success: true,
-            items: items,
-            total: items.length
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки товаров для админки:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка загрузки товаров магазина'
-        });
-    }
+    res.json(db.shop_items);
 });
+
 app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
-    try {
-        const userAgent = req.headers['user-agent'] || '';
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-        
-        console.log(`🛒 Создание товара (мобильный: ${isMobile})`, {
-            title: req.body.title,
-            type: req.body.type,
-            hasEmbed: !!req.body.embed_html
-        });
-        
-        const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data, embed_html } = req.body;
-        
-        if (!title || !price) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Название и цена обязательны',
-                mobile_safe: true
-            });
-        }
-        
-        // Для embed-товаров проверяем наличие HTML
-        if (type === 'embed' && !embed_html) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Для типа "embed" необходимо указать HTML-код',
-                mobile_safe: true
-            });
-        }
-        
-        const newItem = {
-            id: Date.now(),
-            title,
-            description: description || '',
-            type: type || 'video',
-            file_url: file_url || file_data || '',
-            preview_url: preview_url || preview_data || '',
-            price: parseFloat(price),
-            content_text: content_text || '',
-            embed_html: embed_html || '',
-            is_active: true,
-            created_at: new Date().toISOString()
-        };
-        
-        db.shop_items.push(newItem);
-        
-        // Для мобильных - упрощенный ответ
-        const responseItem = isMobile ? {
-            id: newItem.id,
-            title: newItem.title,
-            type: newItem.type,
-            price: newItem.price,
-            is_active: newItem.is_active,
-            has_embed: !!newItem.embed_html
-        } : newItem;
-        
-        console.log('✅ Товар создан:', { id: newItem.id, type: newItem.type });
-        
-        res.json({ 
-            success: true, 
-            message: 'Товар успешно создан', 
-            itemId: newItem.id,
-            item: responseItem,
-            mobile_optimized: isMobile
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка создания товара:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка создания товара',
-            mobile_safe: true
-        });
+    console.log('🛒 Создание товара, данные:', {
+        title: req.body.title,
+        type: req.body.type,
+        hasEmbed: !!req.body.embed_html,
+        embedLength: req.body.embed_html?.length
+    });
+    
+    const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data, embed_html } = req.body;
+    
+    if (!title || !price) {
+        return res.status(400).json({ error: 'Title and price are required' });
     }
+    
+    // Для embed-товаров проверяем наличие HTML
+    if (type === 'embed' && !embed_html) {
+        return res.status(400).json({ error: 'Для типа "embed" необходимо указать HTML-код' });
+    }
+    
+    const newItem = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        type: type || 'video',
+        file_url: file_url || file_data || '',
+        preview_url: preview_url || preview_data || '',
+        price: parseFloat(price),
+        content_text: content_text || '',
+        embed_html: embed_html || '',
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    console.log('✅ Создан товар:', {
+        id: newItem.id,
+        type: newItem.type,
+        hasEmbed: !!newItem.embed_html,
+        embedLength: newItem.embed_html?.length
+    });
+    
+    db.shop_items.push(newItem);
+    
+    res.json({ 
+        success: true, 
+        message: 'Товар успешно создан', 
+        itemId: newItem.id,
+        item: newItem
+    });
 });
 
 app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
-    try {
-        const userAgent = req.headers['user-agent'] || '';
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-        
-        console.log(`🛒 Обновление товара (мобильный: ${isMobile})`, {
-            itemId: req.params.itemId,
-            type: req.body.type,
-            hasEmbed: !!req.body.embed_html
-        });
-        
-        const itemId = parseInt(req.params.itemId);
-        const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data, embed_html } = req.body;
-        
-        const item = db.shop_items.find(i => i.id === itemId);
-        if (!item) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Товар не найден',
-                mobile_safe: true
-            });
-        }
-        
-        // Для embed-товаров проверяем наличие HTML
-        if (type === 'embed' && !embed_html) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Для типа "embed" необходимо указать HTML-код',
-                mobile_safe: true
-            });
-        }
-        
-        if (title) item.title = title;
-        if (description) item.description = description;
-        if (type) item.type = type;
-        if (file_url !== undefined) item.file_url = file_url;
-        if (file_data !== undefined) item.file_url = file_data;
-        if (preview_url !== undefined) item.preview_url = preview_url;
-        if (preview_data !== undefined) item.preview_url = preview_data;
-        if (price) item.price = parseFloat(price);
-        if (content_text) item.content_text = content_text;
-        if (embed_html !== undefined) item.embed_html = embed_html;
-        if (is_active !== undefined) item.is_active = is_active;
-        
-        // Для мобильных - упрощенный ответ
-        const responseItem = isMobile ? {
-            id: item.id,
-            title: item.title,
-            type: item.type,
-            price: item.price,
-            is_active: item.is_active,
-            has_embed: !!item.embed_html
-        } : item;
-        
-        console.log('✅ Товар обновлен:', { id: item.id, type: item.type });
-        
-        res.json({ 
-            success: true, 
-            message: 'Товар успешно обновлен',
-            item: responseItem,
-            mobile_optimized: isMobile
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка обновления товара:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка обновления товара',
-            mobile_safe: true
-        });
+    console.log('🛒 Обновление товара, данные:', {
+        itemId: req.params.itemId,
+        type: req.body.type,
+        hasEmbed: !!req.body.embed_html,
+        embedLength: req.body.embed_html?.length
+    });
+    
+    const itemId = parseInt(req.params.itemId);
+    const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data, embed_html } = req.body;
+    
+    const item = db.shop_items.find(i => i.id === itemId);
+    if (!item) {
+        return res.status(404).json({ error: 'Item not found' });
     }
+    
+    // Для embed-товаров проверяем наличие HTML
+    if (type === 'embed' && !embed_html) {
+        return res.status(400).json({ error: 'Для типа "embed" необходимо указать HTML-код' });
+    }
+    
+    if (title) item.title = title;
+    if (description) item.description = description;
+    if (type) item.type = type;
+    if (file_url !== undefined) item.file_url = file_url;
+    if (file_data !== undefined) item.file_url = file_data;
+    if (preview_url !== undefined) item.preview_url = preview_url;
+    if (preview_data !== undefined) item.preview_url = preview_data;
+    if (price) item.price = parseFloat(price);
+    if (content_text) item.content_text = content_text;
+    if (embed_html !== undefined) item.embed_html = embed_html;
+    if (is_active !== undefined) item.is_active = is_active;
+    
+    console.log('✅ Обновлен товар:', {
+        id: item.id,
+        type: item.type,
+        hasEmbed: !!item.embed_html,
+        embedLength: item.embed_html?.length
+    });
+    
+    res.json({ 
+        success: true, 
+        message: 'Товар успешно обновлен',
+        item: item
+    });
 });
 
 app.delete('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
