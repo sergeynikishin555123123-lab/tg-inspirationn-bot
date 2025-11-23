@@ -1108,88 +1108,35 @@
             <div class="card">
                 <h2 style="margin-bottom: 20px;">👥 Управление пользователями</h2>
                 
-<div class="filters">
-    <div class="search-box">
-        <input type="text" id="userSearch" class="search-input" placeholder="Поиск пользователей..." oninput="filterUsers()">
-    </div>
-    <select class="filter-select" id="roleFilter" onchange="filterUsers()">
-        <option value="">Все роли</option>
-    </select>
-    <select class="filter-select" id="levelFilter" onchange="filterUsers()">
-        <option value="">Все уровни</option>
-        <option value="Ученик">Ученик</option>
-        <option value="Искатель">Искатель</option>
-        <option value="Знаток">Знаток</option>
-        <option value="Мастер">Мастер</option>
-        <option value="Наставник">Наставник</option>
-    </select>
-    
-    <!-- КНОПКА НАЧИСЛЕНИЯ ИСКР -->
-    <button class="btn btn-success" onclick="showSparksForm()">
-        ✨ Начислить искры
-    </button>
-    
-    <button class="export-btn" onclick="exportUsers()">
-        📊 Экспорт в CSV
-    </button>
-</div>
+                <div class="filters">
+                    <div class="search-box">
+                        <input type="text" id="userSearch" class="search-input" placeholder="Поиск пользователей..." oninput="filterUsers()">
+                    </div>
+                    <select class="filter-select" id="roleFilter" onchange="filterUsers()">
+                        <option value="">Все роли</option>
+                    </select>
+                    <select class="filter-select" id="levelFilter" onchange="filterUsers()">
+                        <option value="">Все уровни</option>
+                        <option value="Ученик">Ученик</option>
+                        <option value="Искатель">Искатель</option>
+                        <option value="Знаток">Знаток</option>
+                        <option value="Мастер">Мастер</option>
+                        <option value="Наставник">Наставник</option>
+                    </select>
+                    <button class="export-btn" onclick="exportUsers()">
+                        📊 Экспорт в CSV
+                    </button>
+                </div>
 
-<div id="usersList" class="loading">
-    Загрузка пользователей...
-</div>
+                <div id="usersList" class="loading">
+                    Загрузка пользователей...
+                </div>
 
-<!-- Пагинация -->
-<div class="pagination" id="usersPagination"></div>
-
-<!-- Форма начисления искр -->
-<div id="sparksForm" class="card" style="display: none;">
-    <h3 style="margin-bottom: 20px;">✨ Начисление искр пользователям</h3>
-    
-    <div class="form-group">
-        <label class="form-label">Выберите пользователей:</label>
-        <div style="max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
-            <div id="usersCheckboxList">
-                <!-- Список пользователей с чекбоксами загружается динамически -->
-                <div class="loading">Загрузка пользователей...</div>
+                <!-- Пагинация -->
+                <div class="pagination" id="usersPagination"></div>
             </div>
         </div>
-        <div style="margin-top: 8px;">
-            <button class="btn btn-info" onclick="selectAllUsers()">✅ Выбрать всех</button>
-            <button class="btn btn-info" onclick="deselectAllUsers()">❌ Снять выделение</button>
-        </div>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Количество искр:</label>
-        <input type="number" id="sparksAmount" class="form-control" value="10" min="0.5" step="0.5" placeholder="Введите количество искр">
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Причина начисления:</label>
-        <select id="sparksReason" class="form-control">
-            <option value="bonus">🎁 Бонус за активность</option>
-            <option value="event">🎉 Участие в мероприятии</option>
-            <option value="correction">⚖️ Корректировка баланса</option>
-            <option value="reward">🏆 Награда за достижения</option>
-            <option value="other">📝 Другая причина</option>
-        </select>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Комментарий (опционально):</label>
-        <textarea id="sparksComment" class="form-control" rows="3" placeholder="Дополнительный комментарий..."></textarea>
-    </div>
-    
-    <div class="action-buttons">
-        <button class="btn btn-success" onclick="addSparksToUsers()">💫 Начислить искры</button>
-        <button class="btn btn-danger" onclick="hideSparksForm()">❌ Отмена</button>
-    </div>
-    
-    <div id="sparksPreview" style="display: none; margin-top: 20px; padding: 16px; background: #f7fafc; border-radius: 8px;">
-        <h4>📋 Предпросмотр операции:</h4>
-        <div id="sparksPreviewContent"></div>
-    </div>
-</div>
+
         <!-- Роли -->
         <div id="roles" class="tab-content">
             <div class="card">
@@ -2312,298 +2259,195 @@
         }
 
         // Отображение пользователей
-function displayUsers(users) {
-    const usersList = document.getElementById('usersList');
-    const isMobile = window.innerWidth < 768;
-    
-    if (users.length === 0) {
-        usersList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div>Пользователей не найдено</div></div>';
-        return;
-    }
-    
-    if (isMobile) {
-        // Карточки для мобильных
-        let html = '';
-        users.forEach(user => {
-            html += `
-                <div class="card" style="margin-bottom: 16px;">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                        <div style="flex: 1;">
-                            <h4 style="margin: 0 0 8px 0;">${user.name}</h4>
-                            <div style="color: #718096; margin-bottom: 8px;">
-                                Роль: ${user.role || 'Не выбрана'} • Уровень: ${user.level}
-                            </div>
-                            <div style="color: #667eea; font-weight: bold; margin-bottom: 8px;">
-                                ${user.sparks.toFixed(1)}✨
-                            </div>
-                            <div style="font-size: 12px; color: #718096;">
-                                Активность: ${new Date(user.last_active).toLocaleDateString('ru-RU')}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="user-stats">
-                        <div class="user-stat-item">
-                            <div class="user-stat-number">${user.total_quizzes || 0}</div>
-                            <div class="user-stat-label">Квизов</div>
-                        </div>
-                        <div class="user-stat-item">
-                            <div class="user-stat-number">${user.total_works || 0}</div>
-                            <div class="user-stat-label">Работ</div>
-                        </div>
-                        <div class="user-stat-item">
-                            <div class="user-stat-number">${user.total_activities || 0}</div>
-                            <div class="user-stat-label">Актив.</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        usersList.innerHTML = html;
-    } else {
-        // Таблица для десктопов
-        let html = `
-            <div class="users-table-container">
-                <table class="users-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Имя</th>
-                            <th>Роль</th>
-                            <th>Уровень</th>
-                            <th>Искры</th>
-                            <th>Активность</th>
-                            <th>Статистика</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        users.forEach(user => {
-            html += `
-                <tr>
-                    <td>${user.id}</td>
-                    <td>
-                        <strong>${user.name}</strong>
-                        ${user.username ? `<br><small>@${user.username}</small>` : ''}
-                    </td>
-                    <td>
-                        ${user.role || 'Не выбрана'}
-                        ${user.character ? `<br><small>${user.character}</small>` : ''}
-                    </td>
-                    <td>
-                        <span class="badge badge-info">${user.level}</span>
-                    </td>
-                    <td>
-                        <strong>${user.sparks.toFixed(1)}</strong>✨
-                    </td>
-                    <td>
-                        <small>Рег: ${new Date(user.registration_date).toLocaleDateString('ru-RU')}</small><br>
-                        <small>Акт: ${new Date(user.last_active).toLocaleDateString('ru-RU')}</small>
-                    </td>
-                    <td>
-                        <div class="user-stats">
-                            <div class="user-stat-item">
-                                <div class="user-stat-number">${user.total_quizzes || 0}</div>
-                                <div class="user-stat-label">Квизов</div>
-                            </div>
-                            <div class="user-stat-item">
-                                <div class="user-stat-number">${user.total_works || 0}</div>
-                                <div class="user-stat-label">Работ</div>
-                            </div>
-                            <div class="user-stat-item">
-                                <div class="user-stat-number">${user.total_activities || 0}</div>
-                                <div class="user-stat-label">Актив.</div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-        
-        html += '</tbody></table></div>';
-        usersList.innerHTML = html;
-    }
-}
-
-// ==================== НАЧИСЛЕНИЕ ИСКР ====================
-
-// Показать форму начисления искр
-function showSparksForm() {
-    document.getElementById('sparksForm').style.display = 'block';
-    populateUsersCheckboxList();
-    document.getElementById('sparksPreview').style.display = 'none';
-}
-
-// Скрыть форму начисления искр
-function hideSparksForm() {
-    document.getElementById('sparksForm').style.display = 'none';
-    document.getElementById('sparksAmount').value = '10';
-    document.getElementById('sparksReason').value = 'bonus';
-    document.getElementById('sparksComment').value = '';
-}
-
-// Заполнить список пользователей с чекбоксами
-function populateUsersCheckboxList() {
-    const container = document.getElementById('usersCheckboxList');
-    
-    if (!window.allUsers || window.allUsers.length === 0) {
-        container.innerHTML = '<div class="message warning">Сначала загрузите пользователей</div>';
-        return;
-    }
-    
-    let html = '';
-    window.allUsers.forEach(user => {
-        html += `
-            <div class="button-checkbox">
-                <input type="checkbox" id="user_${user.id}" value="${user.id}" data-name="${user.name}" data-sparks="${user.sparks}">
-                <label for="user_${user.id}">
-                    ${user.name} 
-                    <span style="color: #718096;">(ID: ${user.id}, текущие искры: ${user.sparks.toFixed(1)}✨)</span>
-                </label>
-            </div>
-        `;
-    });
-    
-    container.innerHTML = html;
-    
-    // Добавить обработчики для предпросмотра
-    document.querySelectorAll('#usersCheckboxList input[type="checkbox"]').forEach(checkbox => {
-        checkbox.addEventListener('change', updateSparksPreview);
-    });
-    document.getElementById('sparksAmount').addEventListener('input', updateSparksPreview);
-}
-
-// Выбрать всех пользователей
-function selectAllUsers() {
-    document.querySelectorAll('#usersCheckboxList input[type="checkbox"]').forEach(checkbox => {
-        checkbox.checked = true;
-        checkbox.parentElement.classList.add('checked');
-    });
-    updateSparksPreview();
-}
-
-// Снять выделение со всех пользователей
-function deselectAllUsers() {
-    document.querySelectorAll('#usersCheckboxList input[type="checkbox"]').forEach(checkbox => {
-        checkbox.checked = false;
-        checkbox.parentElement.classList.remove('checked');
-    });
-    updateSparksPreview();
-}
-
-// Обновить предпросмотр операции
-function updateSparksPreview() {
-    const selectedUsers = Array.from(document.querySelectorAll('#usersCheckboxList input[type="checkbox"]:checked'));
-    const sparksAmount = parseFloat(document.getElementById('sparksAmount').value) || 0;
-    
-    const preview = document.getElementById('sparksPreview');
-    const previewContent = document.getElementById('sparksPreviewContent');
-    
-    if (selectedUsers.length === 0 || sparksAmount <= 0) {
-        preview.style.display = 'none';
-        return;
-    }
-    
-    let previewHtml = `
-        <div style="margin-bottom: 12px;">
-            <strong>Выбрано пользователей:</strong> ${selectedUsers.length}
-        </div>
-        <div style="margin-bottom: 12px;">
-            <strong>Будет начислено:</strong> ${sparksAmount} искр каждому
-        </div>
-        <div style="margin-bottom: 12px;">
-            <strong>Общая сумма:</strong> ${(sparksAmount * selectedUsers.length).toFixed(1)} искр
-        </div>
-        <div style="max-height: 150px; overflow-y: auto;">
-            <strong>Список пользователей:</strong>
-            <ul style="margin: 8px 0; padding-left: 20px;">
-    `;
-    
-    selectedUsers.slice(0, 10).forEach(checkbox => {
-        const userName = checkbox.getAttribute('data-name');
-        const currentSparks = parseFloat(checkbox.getAttribute('data-sparks'));
-        const newSparks = currentSparks + sparksAmount;
-        previewHtml += `<li>${userName} (${currentSparks.toFixed(1)} → ${newSparks.toFixed(1)}✨)</li>`;
-    });
-    
-    if (selectedUsers.length > 10) {
-        previewHtml += `<li>... и еще ${selectedUsers.length - 10} пользователей</li>`;
-    }
-    
-    previewHtml += `</ul></div>`;
-    previewContent.innerHTML = previewHtml;
-    preview.style.display = 'block';
-}
-
-// Начислить искры выбранным пользователям
-async function addSparksToUsers() {
-    const selectedUsers = Array.from(document.querySelectorAll('#usersCheckboxList input[type="checkbox"]:checked'));
-    const sparksAmount = parseFloat(document.getElementById('sparksAmount').value);
-    const reason = document.getElementById('sparksReason').value;
-    const comment = document.getElementById('sparksComment').value.trim();
-    
-    if (selectedUsers.length === 0) {
-        showMessage('❌ Выберите хотя бы одного пользователя', 'error');
-        return;
-    }
-    
-    if (!sparksAmount || sparksAmount <= 0) {
-        showMessage('❌ Введите корректное количество искр', 'error');
-        return;
-    }
-    
-    if (!confirm(`Начислить ${sparksAmount} искр ${selectedUsers.length} пользователям?`)) {
-        return;
-    }
-    
-    try {
-        // Показываем индикатор загрузки
-        showMessage('⏳ Начисляем искры...', 'info');
-        
-        const userIds = selectedUsers.map(checkbox => parseInt(checkbox.value));
-        
-        const response = await fetch(`/api/admin/users/add-sparks?userId=${currentUserId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                user_ids: userIds,
-                sparks_amount: sparksAmount,
-                reason: reason,
-                comment: comment,
-                admin_id: currentUserId
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage(`✅ Успешно начислено ${sparksAmount} искр ${selectedUsers.length} пользователям`, 'success');
-            hideSparksForm();
+        function displayUsers(users) {
+            const usersList = document.getElementById('usersList');
+            const isMobile = window.innerWidth < 768;
             
-            // Обновляем список пользователей
-            loadUsers();
-            
-            // Показываем детали операции если есть
-            if (result.details) {
-                console.log('Детали операции:', result.details);
+            if (users.length === 0) {
+                usersList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div>Пользователей не найдено</div></div>';
+                return;
             }
             
-        } else {
-            showMessage(`❌ Ошибка: ${result.error}`, 'error');
+            if (isMobile) {
+                // Карточки для мобильных
+                let html = '';
+                users.forEach(user => {
+                    html += `
+                        <div class="card" style="margin-bottom: 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                <div style="flex: 1;">
+                                    <h4 style="margin: 0 0 8px 0;">${user.name}</h4>
+                                    <div style="color: #718096; margin-bottom: 8px;">
+                                        Роль: ${user.role || 'Не выбрана'} • Уровень: ${user.level}
+                                    </div>
+                                    <div style="color: #667eea; font-weight: bold; margin-bottom: 8px;">
+                                        ${user.sparks.toFixed(1)}✨
+                                    </div>
+                                    <div style="font-size: 12px; color: #718096;">
+                                        Активность: ${new Date(user.last_active).toLocaleDateString('ru-RU')}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="user-stats">
+                                <div class="user-stat-item">
+                                    <div class="user-stat-number">${user.total_quizzes || 0}</div>
+                                    <div class="user-stat-label">Квизов</div>
+                                </div>
+                                <div class="user-stat-item">
+                                    <div class="user-stat-number">${user.total_works || 0}</div>
+                                    <div class="user-stat-label">Работ</div>
+                                </div>
+                                <div class="user-stat-item">
+                                    <div class="user-stat-number">${user.total_activities || 0}</div>
+                                    <div class="user-stat-label">Актив.</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                usersList.innerHTML = html;
+            } else {
+                // Таблица для десктопов
+                let html = `
+                    <div class="users-table-container">
+                        <table class="users-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя</th>
+                                    <th>Роль</th>
+                                    <th>Уровень</th>
+                                    <th>Искры</th>
+                                    <th>Активность</th>
+                                    <th>Статистика</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                users.forEach(user => {
+                    html += `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>
+                                <strong>${user.name}</strong>
+                                ${user.username ? `<br><small>@${user.username}</small>` : ''}
+                            </td>
+                            <td>
+                                ${user.role || 'Не выбрана'}
+                                ${user.character ? `<br><small>${user.character}</small>` : ''}
+                            </td>
+                            <td>
+                                <span class="badge badge-info">${user.level}</span>
+                            </td>
+                            <td>
+                                <strong>${user.sparks.toFixed(1)}</strong>✨
+                            </td>
+                            <td>
+                                <small>Рег: ${new Date(user.registration_date).toLocaleDateString('ru-RU')}</small><br>
+                                <small>Акт: ${new Date(user.last_active).toLocaleDateString('ru-RU')}</small>
+                            </td>
+                            <td>
+                                <div class="user-stats">
+                                    <div class="user-stat-item">
+                                        <div class="user-stat-number">${user.total_quizzes || 0}</div>
+                                        <div class="user-stat-label">Квизов</div>
+                                    </div>
+                                    <div class="user-stat-item">
+                                        <div class="user-stat-number">${user.total_works || 0}</div>
+                                        <div class="user-stat-label">Работ</div>
+                                    </div>
+                                    <div class="user-stat-item">
+                                        <div class="user-stat-number">${user.total_activities || 0}</div>
+                                        <div class="user-stat-label">Актив.</div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+                usersList.innerHTML = html;
+            }
         }
-        
-    } catch (error) {
-        console.error('Ошибка начисления искр:', error);
-        showMessage('❌ Ошибка начисления искр', 'error');
-    }
-}
 
-// ==================== ПАГИНАЦИЯ ====================
+        // Заполнение фильтра ролей
+        function populateRoleFilter(users) {
+            const roles = [...new Set(users.map(user => user.role).filter(role => role))];
+            const roleFilter = document.getElementById('roleFilter');
+            
+            roleFilter.innerHTML = '<option value="">Все роли</option>';
+            roles.forEach(role => {
+                const option = document.createElement('option');
+                option.value = role;
+                option.textContent = role;
+                roleFilter.appendChild(option);
+            });
+        }
 
-// Создание пагинации
-function createPagination(containerId, type, pagination) {
-    // ... следующий раздел ...
-}
+        // Фильтрация пользователей
+        function filterUsers() {
+            const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+            const roleFilter = document.getElementById('roleFilter').value;
+            const levelFilter = document.getElementById('levelFilter').value;
+            
+            // В реальном приложении здесь был бы запрос к серверу
+            // Для демонстрации просто перезагружаем список
+            loadUsers();
+        }
+
+        // Экспорт пользователей
+        async function exportUsers() {
+            try {
+                console.log('📤 Начало экспорта пользователей...');
+                
+                // Показываем индикатор загрузки
+                const exportBtn = document.querySelector('.export-btn');
+                const originalText = exportBtn.innerHTML;
+                exportBtn.innerHTML = '⏳ Экспорт...';
+                exportBtn.disabled = true;
+                
+                // Создаем запрос на экспорт
+                const response = await fetch(`/api/admin/export/users?userId=${currentUserId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Ошибка сервера: ${response.status}`);
+                }
+                
+                // Получаем blob данных
+                const blob = await response.blob();
+                
+                // Создаем ссылку для скачивания
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Очищаем
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                // Восстанавливаем кнопку
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
+                
+                console.log('✅ Экспорт пользователей завершен');
+                showMessage('✅ Отчет пользователей успешно скачан', 'success');
+                
+            } catch (error) {
+                console.error('❌ Ошибка экспорта:', error);
+                
+                // Восстанавливаем кнопку
+                const exportBtn = document.querySelector('.export-btn');
+                exportBtn.innerHTML = '📊 Экспорт в CSV';
+                exportBtn.disabled = false;
+                
+                showMessage(`❌ Ошибка экспорта: ${error.message}`, 'error');
+            }
+        }
 
         // ==================== ПАГИНАЦИЯ ====================
 
