@@ -2358,134 +2358,137 @@
         }
 
         // Отображение пользователей
-        function displayUsers(users) {
-            const usersList = document.getElementById('usersList');
-            const isMobile = window.innerWidth < 768;
-            
-            if (users.length === 0) {
-                usersList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div>Пользователей не найдено</div></div>';
-                return;
-            }
-            
-            if (isMobile) {
-                // Карточки для мобильных
-                let html = '';
-                users.forEach(user => {
-                    html += `
-                        <div class="card" style="margin-bottom: 16px;">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                                <div style="flex: 1;">
-                                    <h4 style="margin: 0 0 8px 0;">${user.name}</h4>
-                                    <div style="color: #718096; margin-bottom: 8px;">
-                                        Роль: ${user.role || 'Не выбрана'} • Уровень: ${user.level}
-                                    </div>
-                                    <div style="color: #667eea; font-weight: bold; margin-bottom: 8px;">
-                                        ${user.sparks.toFixed(1)}✨
-                                    </div>
-                                    <div style="font-size: 12px; color: #718096;">
-                                        Активность: ${new Date(user.last_active).toLocaleDateString('ru-RU')}
-                                    </div>
-                                </div>
+      // Отображение пользователей
+function displayUsers(users) {
+    const usersList = document.getElementById('usersList');
+    const isMobile = window.innerWidth < 768;
+    
+    if (users.length === 0) {
+        usersList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div>Пользователей не найдено</div></div>';
+        return;
+    }
+    
+    if (isMobile) {
+        // Карточки для мобильных
+        let html = '';
+        users.forEach(user => {
+            html += `
+                <div class="card" style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 8px 0;">${user.name}</h4>
+                            <div style="color: #718096; margin-bottom: 8px;">
+                                Роль: ${user.role || 'Не выбрана'} • Уровень: ${user.level}
                             </div>
-                            <div class="user-stats">
-                                <div class="user-stat-item">
-                                    <div class="user-stat-number">${user.total_quizzes || 0}</div>
-                                    <div class="user-stat-label">Квизов</div>
-                                </div>
-                                <div class="user-stat-item">
-                                    <div class="user-stat-number">${user.total_works || 0}</div>
-                                    <div class="user-stat-label">Работ</div>
-                                </div>
-                                <div class="user-stat-item">
-                                    <div class="user-stat-number">${user.total_activities || 0}</div>
-                                    <div class="user-stat-label">Актив.</div>
-                                </div>
+                            <div style="color: #667eea; font-weight: bold; margin-bottom: 8px;">
+                                ${user.sparks.toFixed(1)}✨
                             </div>
-                            <div class="action-buttons">
-                                <button class="btn btn-info" onclick="showAddSparksModal(${user.id}, '${user.name.replace(/'/g, "\\'")}')">
-                                    💫 Начислить искры
-                                </button>
+                            <div style="font-size: 12px; color: #718096;">
+                                Активность: ${new Date(user.last_active).toLocaleDateString('ru-RU')}
                             </div>
                         </div>
-                    `;
-                });
-                usersList.innerHTML = html;
-            } else {
-                // Таблица для десктопов
-                let html = `
-                    <div class="users-table-container">
-                        <table class="users-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Имя</th>
-                                    <th>Роль</th>
-                                    <th>Уровень</th>
-                                    <th>Искры</th>
-                                    <th>Активность</th>
-                                    <th>Статистика</th>
-                                    <th>Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                
-                users.forEach(user => {
-                    html += `
+                    </div>
+                    <div class="user-stats">
+                        <div class="user-stat-item">
+                            <div class="user-stat-number">${user.total_quizzes || 0}</div>
+                            <div class="user-stat-label">Квизов</div>
+                        </div>
+                        <div class="user-stat-item">
+                            <div class="user-stat-number">${user.total_works || 0}</div>
+                            <div class="user-stat-label">Работ</div>
+                        </div>
+                        <div class="user-stat-item">
+                            <div class="user-stat-number">${user.total_activities || 0}</div>
+                            <div class="user-stat-label">Актив.</div>
+                        </div>
+                    </div>
+                    <!-- ДОБАВЛЕНА КНОПКА НАЧИСЛЕНИЯ ИСКР -->
+                    <div class="action-buttons">
+                        <button class="btn btn-info" onclick="showAddSparksModal(${user.id}, '${user.name.replace(/'/g, "\\'")}')">
+                            💫 Начислить искры
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        usersList.innerHTML = html;
+    } else {
+        // Таблица для десктопов
+        let html = `
+            <div class="users-table-container">
+                <table class="users-table">
+                    <thead>
                         <tr>
-                            <td>${user.id}</td>
-                            <td>
-                                <strong>${user.name}</strong>
-                                ${user.username ? `<br><small>@${user.username}</small>` : ''}
-                            </td>
-                            <td>
-                                ${user.role || 'Не выбрана'}
-                                ${user.character ? `<br><small>${user.character}</small>` : ''}
-                            </td>
-                            <td>
-                                <span class="badge badge-info">${user.level}</span>
-                            </td>
-                            <td>
-                                <strong>${user.sparks.toFixed(1)}</strong>✨
-                            </td>
-                            <td>
-                                <small>Рег: ${new Date(user.registration_date).toLocaleDateString('ru-RU')}</small><br>
-                                <small>Акт: ${new Date(user.last_active).toLocaleDateString('ru-RU')}</small>
-                            </td>
-                            <td>
-                                <div class="user-stats">
-                                    <div class="user-stat-item">
-                                        <div class="user-stat-number">${user.total_quizzes || 0}</div>
-                                        <div class="user-stat-label">Квизов</div>
-                                    </div>
-                                    <div class="user-stat-item">
-                                        <div class="user-stat-number">${user.total_works || 0}</div>
-                                        <div class="user-stat-label">Работ</div>
-                                    </div>
-                                    <div class="user-stat-item">
-                                        <div class="user-stat-number">${user.total_activities || 0}</div>
-                                        <div class="user-stat-label">Актив.</div>
-                                    </div>
-                                </div>
-                            </td>
-                            // В таблице пользователей найти строку с кнопкой и ОБНОВИТЬ её:
-                            <td>
-                                <div style="display: flex; flex-direction: column; gap: 8px;">
-                                    <button class="btn btn-info" onclick="showAddSparksModal(${user.id}, '${user.name.replace(/'/g, "\\'")}')">
-                                        💫 Начислить искры
-                                    </button>
-                                    <button class="btn btn-warning" onclick="viewUserDetails(${user.id})" style="font-size: 12px; padding: 6px 12px;">
-                                        📊 Детали
-                                    </button>
-                                </div>
-                            </td>
-                    `;
-                });
-                
-                html += '</tbody></table></div>';
-                usersList.innerHTML = html;
-            }
-        }
+                            <th>ID</th>
+                            <th>Имя</th>
+                            <th>Роль</th>
+                            <th>Уровень</th>
+                            <th>Искры</th>
+                            <th>Активность</th>
+                            <th>Статистика</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        users.forEach(user => {
+            html += `
+                <tr>
+                    <td>${user.id}</td>
+                    <td>
+                        <strong>${user.name}</strong>
+                        ${user.username ? `<br><small>@${user.username}</small>` : ''}
+                    </td>
+                    <td>
+                        ${user.role || 'Не выбрана'}
+                        ${user.character ? `<br><small>${user.character}</small>` : ''}
+                    </td>
+                    <td>
+                        <span class="badge badge-info">${user.level}</span>
+                    </td>
+                    <td>
+                        <strong>${user.sparks.toFixed(1)}</strong>✨
+                    </td>
+                    <td>
+                        <small>Рег: ${new Date(user.registration_date).toLocaleDateString('ru-RU')}</small><br>
+                        <small>Акт: ${new Date(user.last_active).toLocaleDateString('ru-RU')}</small>
+                    </td>
+                    <td>
+                        <div class="user-stats">
+                            <div class="user-stat-item">
+                                <div class="user-stat-number">${user.total_quizzes || 0}</div>
+                                <div class="user-stat-label">Квизов</div>
+                            </div>
+                            <div class="user-stat-item">
+                                <div class="user-stat-number">${user.total_works || 0}</div>
+                                <div class="user-stat-label">Работ</div>
+                            </div>
+                            <div class="user-stat-item">
+                                <div class="user-stat-number">${user.total_activities || 0}</div>
+                                <div class="user-stat-label">Актив.</div>
+                            </div>
+                        </div>
+                    </td>
+                    <!-- ДОБАВЛЕНА КНОПКА НАЧИСЛЕНИЯ ИСКР -->
+                    <td>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <button class="btn btn-info" onclick="showAddSparksModal(${user.id}, '${user.name.replace(/'/g, "\\'")}')">
+                                💫 Начислить искры
+                            </button>
+                            <button class="btn btn-warning" onclick="viewUserDetails(${user.id})" style="font-size: 12px; padding: 6px 12px;">
+                                📊 Детали
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        usersList.innerHTML = html;
+    }
+}
 
         // Заполнение фильтра ролей
         function populateRoleFilter(users) {
