@@ -6,6 +6,7 @@
     <title>Мастерская Вдохновения</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        /* Глобальные стили */
         * { 
             margin: 0; 
             padding: 0; 
@@ -2008,6 +2009,75 @@
         let uploadedImage = null;
         let marathonUploadedImage = null;
 
+        // Инициализация приложения
+        async function initApp() {
+            try {
+                console.log('🚀 Инициализация приложения...');
+                
+                // Проверка мобильного устройства и инициализация оптимизаций
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (isMobile) {
+                    console.log('📱 Мобильное устройство обнаружено');
+                    initMobileOptimizations();
+                }
+                
+                // Инициализация настроек для конкретного устройства
+                initDeviceSpecificSettings();
+                
+                // Добавьте эту проверку
+                if (typeof Telegram === 'undefined') {
+                    console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
+                    tg = {
+                        initDataUnsafe: {
+                            user: { id: 898508164, first_name: 'Тестовый' },
+                            start_param: null
+                        },
+                        expand: () => console.log('📱 Expand'),
+                        enableClosingConfirmation: () => console.log('🔒 Closing confirmation')
+                    };
+                } else {
+                    tg = window.Telegram.WebApp;
+                    tg.expand();
+                    tg.enableClosingConfirmation();
+                }
+                
+                currentUserId = tg.initDataUnsafe.user?.id || tg.initDataUnsafe.start_param?.replace('ref_', '') || 898508164;
+                
+                console.log('👤 User ID:', currentUserId);
+                console.log('📱 Platform:', tg.platform);
+                
+                // Загружаем данные пользователя
+                await loadUserData();
+                
+                // Инициализация рисовального холста
+                initDrawingCanvas();
+                
+                // Обработчики для интерактивных вкладок
+                document.querySelectorAll('.interactive-tab').forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                        currentInteractiveCategory = this.dataset.category;
+                        loadInteractives();
+                    });
+                });
+                
+                // Обработчики для выбора цвета
+                document.querySelectorAll('.color-picker').forEach(picker => {
+                    picker.addEventListener('click', function() {
+                        document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
+                        this.classList.add('active');
+                        currentColor = this.dataset.color;
+                        updateDrawingTool();
+                    });
+                });
+                
+            } catch (error) {
+                console.error('💥 Критическая ошибка инициализации:', error);
+                showMessage('❌ Ошибка загрузки приложения: ' + error.message, 'error');
+            }
+        }
+
         // ========== МОБИЛЬНЫЕ ОПТИМИЗАЦИИ ==========
 
         // Проверка мобильного устройства
@@ -2193,83 +2263,35 @@
 
         // ========== ОСНОВНЫЕ ФУНКЦИИ ==========
 
-        // Инициализация приложения
-        async function initApp() {
-            try {
-                console.log('🚀 Инициализация приложения...');
-                
-                // Проверка мобильного устройства и инициализация оптимизаций
-                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                if (isMobile) {
-                    console.log('📱 Мобильное устройство обнаружено');
-                    initMobileOptimizations();
-                }
-                
-                // Инициализация настроек для конкретного устройства
-                initDeviceSpecificSettings();
-                
-                // Добавьте эту проверку
-                if (typeof Telegram === 'undefined') {
-                    console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
-                    tg = {
-                        initDataUnsafe: {
-                            user: { id: 898508164, first_name: 'Тестовый' },
-                            start_param: null
-                        },
-                        expand: () => console.log('📱 Expand'),
-                        enableClosingConfirmation: () => console.log('🔒 Closing confirmation')
-                    };
-                } else {
-                    tg = window.Telegram.WebApp;
-                    tg.expand();
-                    tg.enableClosingConfirmation();
-                }
-                
-                currentUserId = tg.initDataUnsafe.user?.id || tg.initDataUnsafe.start_param?.replace('ref_', '') || 898508164;
-                
-                console.log('👤 User ID:', currentUserId);
-                console.log('📱 Platform:', tg.platform);
-                
-                // Загружаем данные пользователя
-                await loadUserData();
-                
-                // Инициализация рисовального холста
-                initDrawingCanvas();
-                
-                // Обработчики для интерактивных вкладок
-                document.querySelectorAll('.interactive-tab').forEach(tab => {
-                    tab.addEventListener('click', function() {
-                        document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
-                        this.classList.add('active');
-                        currentInteractiveCategory = this.dataset.category;
-                        loadInteractives();
-                    });
-                });
-                
-                // Обработчики для выбора цвета
-                document.querySelectorAll('.color-picker').forEach(picker => {
-                    picker.addEventListener('click', function() {
-                        document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
-                        this.classList.add('active');
-                        currentColor = this.dataset.color;
-                        updateDrawingTool();
-                    });
-                });
-                
-            } catch (error) {
-                console.error('💥 Критическая ошибка инициализации:', error);
-                showMessage('❌ Ошибка загрузки приложения: ' + error.message, 'error');
-            }
-        }
-
         // Загрузка данных пользователя
         async function loadUserData() {
             try {
                 const userDataElement = document.getElementById('userData');
                 userDataElement.innerHTML = '<div class="loading"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div>Загрузка данных...</div>';
                 
-                const response = await fetch(`/api/users/${currentUserId}`);
-                const data = await response.json();
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/users/${currentUserId}`);
+                // const data = await response.json();
+                
+                // Тестовые данные
+                const data = {
+                    exists: true,
+                    user: {
+                        tg_first_name: 'Тестовый',
+                        level: 5,
+                        class: 'Художник',
+                        character_name: 'Творец',
+                        sparks: 125.5,
+                        stats: {
+                            totalQuizzesCompleted: 3,
+                            totalWorks: 7,
+                            totalMarathonsCompleted: 1,
+                            totalInteractivesCompleted: 2
+                        },
+                        is_registered: true,
+                        available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role']
+                    }
+                };
                 
                 if (data.exists) {
                     currentUser = data.user;
@@ -2456,8 +2478,17 @@
         // Загрузка ролей для смены
         async function loadRolesForChange() {
             try {
-                const response = await fetch('/api/webapp/roles');
-                const roles = await response.json();
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch('/api/webapp/roles');
+                // const roles = await response.json();
+                
+                // Тестовые данные
+                const roles = [
+                    { id: 1, name: 'Художник', description: 'Создавайте визуальные произведения искусства', icon: '🎨' },
+                    { id: 2, name: 'Писатель', description: 'Создавайте литературные произведения', icon: '📝' },
+                    { id: 3, name: 'Дизайнер', description: 'Создавайте эстетичные и функциональные решения', icon: '🎭' },
+                    { id: 4, name: 'Ремесленник', description: 'Создавайте изделия ручной работы', icon: '🧵' }
+                ];
                 
                 const rolesList = document.getElementById('changeRoleList');
                 rolesList.innerHTML = '';
@@ -2497,8 +2528,16 @@
         // Загрузка персонажей для смены роли
         async function loadCharactersForChange(roleId) {
             try {
-                const response = await fetch(`/api/webapp/characters/${roleId}`);
-                const characters = await response.json();
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/characters/${roleId}`);
+                // const characters = await response.json();
+                
+                // Тестовые данные
+                const characters = [
+                    { id: 1, name: 'Творец', description: 'Создавайте уникальные произведения', bonus_type: 'percent_bonus', bonus_value: 10 },
+                    { id: 2, name: 'Искатель', description: 'Находите вдохновение в окружающем мире', bonus_type: 'random_gift', bonus_value: 1 },
+                    { id: 3, name: 'Мастер', description: 'Оттачивайте свое мастерство до совершенства', bonus_type: 'series_bonus', bonus_value: 5 }
+                ];
                 
                 const charactersSection = document.getElementById('changeCharactersSection');
                 const charactersList = document.getElementById('changeCharactersList');
@@ -2546,17 +2585,24 @@
             }
             
             try {
-                const response = await fetch('/api/users/change-role', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        roleId: selectedRole.id,
-                        characterId: selectedCharacter.id
-                    })
-                });
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch('/api/users/change-role', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         userId: currentUserId,
+                //         roleId: selectedRole.id,
+                //         characterId: selectedCharacter.id
+                //     })
+                // });
+                // 
+                // const result = await response.json();
                 
-                const result = await response.json();
+                // Тестовый ответ
+                const result = {
+                    success: true,
+                    message: `Роль успешно изменена на "${selectedRole.name}" с персонажем "${selectedCharacter.name}"`
+                };
                 
                 if (result.success) {
                     showMessage(`✅ ${result.message}`, 'success');
@@ -2577,13 +2623,23 @@
             try {
                 console.log('🔄 Начинаем загрузку ролей...');
                 
-                const response = await fetch('/api/webapp/roles');
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch('/api/webapp/roles');
+                // 
+                // if (!response.ok) {
+                //     throw new Error(`HTTP error! status: ${response.status}`);
+                // }
+                // 
+                // const roles = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                // Тестовые данные
+                const roles = [
+                    { id: 1, name: 'Художник', description: 'Создавайте визуальные произведения искусства', icon: '🎨' },
+                    { id: 2, name: 'Писатель', description: 'Создавайте литературные произведения', icon: '📝' },
+                    { id: 3, name: 'Дизайнер', description: 'Создавайте эстетичные и функциональные решения', icon: '🎭' },
+                    { id: 4, name: 'Ремесленник', description: 'Создавайте изделия ручной работы', icon: '🧵' }
+                ];
                 
-                const roles = await response.json();
                 console.log('✅ Роли загружены:', roles);
                 
                 const rolesList = document.getElementById('rolesList');
@@ -2646,13 +2702,22 @@
             try {
                 console.log('🔄 Загрузка персонажей для роли:', roleId);
                 
-                const response = await fetch(`/api/webapp/characters/${roleId}`);
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/characters/${roleId}`);
+                // 
+                // if (!response.ok) {
+                //     throw new Error(`HTTP error! status: ${response.status}`);
+                // }
+                // 
+                // const characters = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                // Тестовые данные
+                const characters = [
+                    { id: 1, name: 'Творец', description: 'Создавайте уникальные произведения', bonus_type: 'percent_bonus', bonus_value: 10 },
+                    { id: 2, name: 'Искатель', description: 'Находите вдохновение в окружающем мире', bonus_type: 'random_gift', bonus_value: 1 },
+                    { id: 3, name: 'Мастер', description: 'Оттачивайте свое мастерство до совершенства', bonus_type: 'series_bonus', bonus_value: 5 }
+                ];
                 
-                const characters = await response.json();
                 console.log('✅ Персонажи загружены:', characters);
                 
                 const charactersSection = document.getElementById('charactersSection');
@@ -2738,18 +2803,26 @@
             try {
                 console.log('📤 Отправка данных регистрации...');
                 
-                const response = await fetch('/api/users/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        firstName: firstName,
-                        roleId: selectedRole.id,
-                        characterId: selectedCharacter.id
-                    })
-                });
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch('/api/users/register', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         userId: currentUserId,
+                //         firstName: firstName,
+                //         roleId: selectedRole.id,
+                //         characterId: selectedCharacter.id
+                //     })
+                // });
+                // 
+                // const result = await response.json();
                 
-                const result = await response.json();
+                // Тестовый ответ
+                const result = {
+                    success: true,
+                    message: `Регистрация завершена! Добро пожаловать, ${firstName}! Вы выбрали роль "${selectedRole.name}" и персонажа "${selectedCharacter.name}"`
+                };
+                
                 console.log('📋 Ответ сервера:', result);
                 
                 if (result.success) {
@@ -2765,559 +2838,71 @@
             }
         }
 
-        // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПОКУПОК ==========
-
-        // Генерация полного содержимого покупки для детального просмотра
-        function generatePurchaseContent(purchase) {
-            const fileUrl = purchase.file_data || purchase.file_url;
-            const previewUrl = purchase.preview_data || purchase.preview_url;
-            
-            switch(purchase.type) {
-                case 'video':
-                    return `
-                        <div class="media-container">
-                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                                🎥 Видео содержание
-                            </h4>
-                            ${previewUrl ? `
-                                <img src="${previewUrl}" class="media-preview" style="margin-bottom: 12px; cursor: pointer;" 
-                                     onclick="openMediaModal('${fileUrl}', 'video')"
-                                     title="Нажмите для просмотра в полном размере">
-                            ` : ''}
-                            <div class="video-container">
-                                <video controls style="width: 100%; height: 100%;">
-                                    <source src="${fileUrl}" type="video/mp4">
-                                    Ваш браузер не поддерживает видео.
-                                </video>
-                            </div>
-                            <div style="display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;">
-                                <button class="btn" onclick="openMediaModal('${fileUrl}', 'video')">
-                                    🔍 Полный экран
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    
-                case 'image':
-                    const images = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
-                    return `
-                        <div class="media-container">
-                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                                🖼️ Изображение${images.length > 1 ? ` (${images.length} фото)` : ''}
-                            </h4>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                                ${images.map((imgUrl, index) => `
-                                    <img src="${imgUrl}" class="media-preview" 
-                                         style="cursor: pointer; height: 200px; object-fit: cover;"
-                                         onclick="openMediaModal('${imgUrl}', 'image')"
-                                         title="Нажмите для просмотра в полном размере">
-                                `).join('')}
-                            </div>
-                            <div style="margin-top: 12px;">
-                                <button class="btn" onclick="openMediaModal('${images[0]}', 'image')">
-                                    🔍 Открыть в полном размере
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    
-                case 'audio':
-                    return `
-                        <div class="media-container">
-                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                                🎧 Аудио содержание
-                            </h4>
-                            <div style="background: #f7fafc; padding: 24px; border-radius: 16px; text-align: center;">
-                                <div style="font-size: 48px; margin-bottom: 16px;">🎵</div>
-                                <audio controls style="width: 100%; max-width: 400px;">
-                                    <source src="${fileUrl}" type="audio/mpeg">
-                                    Ваш браузер не поддерживает аудио.
-                                </audio>
-                                <div style="margin-top: 16px; color: #718096; font-size: 14px;">
-                                    Используйте элементы управления для воспроизведения
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                case 'pdf':
-                    return `
-                        <div class="media-container">
-                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                                📚 PDF документ
-                            </h4>
-                            <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 16px; margin: 16px 0;">
-                                <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
-                                <div style="font-weight: 600; margin-bottom: 8px; font-size: 18px;">${purchase.title}</div>
-                                <div style="color: #718096; margin-bottom: 20px;">
-                                    ${purchase.pages_count ? `Документ на ${purchase.pages_count} страниц` : 'PDF документ готов к просмотру'}
-                                </div>
-                                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                                    <a href="${fileUrl}" target="_blank" class="btn btn-success">
-                                        👀 Открыть в браузере
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                case 'text':
-                    return `
-                        <div class="media-container">
-                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                                📝 Текстовое содержание
-                            </h4>
-                            <div class="content-preview" style="max-height: none; background: white; padding: 24px; border-radius: 12px; white-space: pre-line; line-height: 1.6; font-size: 14px;">
-                                ${purchase.content_text || 'Содержимое временно недоступно'}
-                            </div>
-                        </div>
-                    `;
-
-                case 'embed':
-                    // Ищем HTML в разных возможных полях
-                    const embedHtml = purchase.embed_html || purchase.html_content || purchase.content_html || purchase.content;
-                    
-                    console.log('🎬 Найденный embed HTML:', {
-                        fromEmbedHtml: !!purchase.embed_html,
-                        fromHtmlContent: !!purchase.html_content,
-                        fromContentHtml: !!purchase.content_html,
-                        fromContent: !!purchase.content,
-                        finalLength: embedHtml?.length
-                    });
-                    
-                    if (embedHtml && embedHtml.trim()) {
-                        return `
-                            <div class="media-container">
-                                <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                                    🎬 Встроенное видео
-                                </h4>
-                                <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
-                                    <div style="color: #718096; font-size: 14px; margin-bottom: 12px;">
-                                        💡 Видео загружено через внешний сервис. Для лучшего воспроизведения используйте стабильное интернет-соединение.
-                                    </div>
-                                </div>
-                                <div class="embed-wrapper">
-                                    <div class="embed-responsive">
-                                        ${embedHtml}
-                                    </div>
-                                </div>
-                                <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
-                                    Используйте элементы управления плеера для управления воспроизведением
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        // Если HTML не найден, показываем информационное сообщение
-                        return `
-                            <div class="media-container">
-                                <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                                    🎬 Встроенное видео
-                                </h4>
-                                <div style="background: #fed7d7; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
-                                    <div style="color: #c53030; font-size: 14px; margin-bottom: 12px;">
-                                        ⚠️ Ошибка загрузки видео контента
-                                    </div>
-                                    <div style="color: #718096; font-size: 12px;">
-                                        HTML-код для встраивания видео не найден в базе данных. 
-                                        Обратитесь к администратору для исправления этой проблемы.
-                                    </div>
-                                </div>
-                                <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
-                                    <div style="font-size: 64px; margin-bottom: 16px;">❌</div>
-                                    <div style="font-weight: 600; margin-bottom: 8px;">Контент временно недоступен</div>
-                                    <div style="color: #718096;">Пожалуйста, сообщите администратору о проблеме</div>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    
-                case 'link':
-                    return `
-                        <div class="media-container">
-                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                                🔗 Ссылка на ресурс
-                            </h4>
-                            <div style="background: #f0fff4; padding: 20px; border-radius: 12px; border: 1px solid #9ae6b4;">
-                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                    <span style="font-size: 24px;">🌐</span>
-                                    <div>
-                                        <div style="font-weight: 600;">Внешний ресурс</div>
-                                        <div style="color: #718096; font-size: 14px;">Нажмите для перехода</div>
-                                    </div>
-                                </div>
-                                <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; word-break: break-all; font-size: 14px;">
-                                    ${purchase.external_url}
-                                </div>
-                                <a href="${purchase.external_url}" target="_blank" class="btn btn-success" style="width: 100%;">
-                                    🔗 Перейти по ссылке
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                    
-                default:
-                    return `
-                        <div class="media-container">
-                            <h4 style="margin-bottom: 12px;">📦 Содержимое товара</h4>
-                            <div class="info">
-                                <p>Тип содержимого: ${purchase.type}</p>
-                                ${fileUrl ? `
-                                    <a href="${fileUrl}" target="_blank" class="btn btn-success">
-                                        👀 Открыть содержимое
-                                    </a>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-            }
-        }
-
-        // Скачать base64 файл
-        function downloadBase64File(base64Data, filename) {
-            try {
-                // Создаем временную ссылку для скачивания
-                const link = document.createElement('a');
-                link.href = base64Data;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                showMessage('✅ Файл скачивается', 'success');
-            } catch (error) {
-                console.error('Ошибка скачивания base64 файла:', error);
-                showMessage('❌ Ошибка скачивания файла', 'error');
-            }
-        }
-
-        // Получить название типа товара на русском
-        function getPurchaseTypeName(type) {
-            const typeNames = {
-                'video': 'Видео',
-                'image': 'Изображение',
-                'audio': 'Аудио',
-                'pdf': 'PDF документ',
-                'text': 'Текст',
-                'link': 'Ссылка',
-                'embed': 'Встроенное видео',
-                'course': 'Курс',
-                'package': 'Пакет'
-            };
-            return typeNames[type] || type;
-        }
-
-        // Получить иконку типа товара
-        function getPurchaseTypeIcon(type) {
-            const icons = {
-                'video': '🎥',
-                'image': '🖼️',
-                'audio': '🎧',
-                'pdf': '📚',
-                'text': '📝',
-                'link': '🔗',
-                'embed': '🎬',
-                'course': '🎓',
-                'package': '📦'
-            };
-            return icons[type] || '📄';
-        }
-
-        // Форматирование размера файла
-        function formatFileSize(bytes) {
-            if (!bytes) return 'Неизвестно';
-            const sizes = ['Байт', 'КБ', 'МБ', 'ГБ'];
-            const i = Math.floor(Math.log(bytes) / Math.log(1024));
-            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-        }
-
-        // Получить количество дней до истечения доступа
-        function getDaysLeft(expiryDate) {
-            const expiry = new Date(expiryDate);
-            const now = new Date();
-            const diffTime = expiry - now;
-            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        }
-
-        // Скачать покупку
-        async function downloadPurchase(purchaseId, fileName) {
-            try {
-                showMessage('⏳ Начинаем скачивание...', 'info');
-                
-                const response = await fetch(`/api/webapp/purchases/${purchaseId}/download`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: currentUserId })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Создаем временную ссылку для скачивания
-                    const downloadLink = document.createElement('a');
-                    downloadLink.href = result.downloadUrl || result.file_url;
-                    downloadLink.download = fileName;
-                    downloadLink.target = '_blank';
-                    document.body.appendChild(downloadLink);
-                    downloadLink.click();
-                    document.body.removeChild(downloadLink);
-                    
-                    showMessage('✅ Файл скачивается', 'success');
-                    
-                    // Обновляем счетчик скачиваний
-                    setTimeout(() => loadPurchasedItems(), 1000);
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-            } catch (error) {
-                console.error('Ошибка скачивания:', error);
-                showMessage('❌ Ошибка скачивания. Попробуйте позже.', 'error');
-            }
-        }
-
-        // Модальное окно для медиа
-        function openMediaModal(mediaUrl, mediaType) {
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.95);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 10000;
-                padding: 20px;
-            `;
-            
-            const content = document.createElement('div');
-            content.style.cssText = `
-                position: relative;
-                max-width: 95%;
-                max-height: 95%;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            `;
-            
-            let mediaElement;
-            if (mediaType === 'video') {
-                mediaElement = document.createElement('video');
-                mediaElement.controls = true;
-                mediaElement.autoplay = true;
-                mediaElement.style.cssText = 'max-width: 100%; max-height: 90vh; border-radius: 8px;';
-                mediaElement.src = mediaUrl;
-                
-                // Добавляем обработчик ошибок для видео
-                mediaElement.addEventListener('error', function(e) {
-                    console.error('Ошибка загрузки видео:', e);
-                    showMessage('❌ Ошибка воспроизведения видео', 'error');
-                });
-                
-            } else if (mediaType === 'image') {
-                mediaElement = document.createElement('img');
-                mediaElement.style.cssText = 'max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px;';
-                mediaElement.src = mediaUrl;
-                
-                // Добавляем обработчик ошибок для изображений
-                mediaElement.addEventListener('error', function(e) {
-                    console.error('Ошибка загрузки изображения:', e);
-                    showMessage('❌ Ошибка загрузки изображения', 'error');
-                });
-            }
-            
-            const closeBtn = document.createElement('button');
-            closeBtn.innerHTML = '✕';
-            closeBtn.style.cssText = `
-                position: absolute;
-                top: -45px;
-                right: 0;
-                background: #f56565;
-                color: white;
-                border: none;
-                border-radius: 50%;
-                width: 35px;
-                height: 35px;
-                font-size: 18px;
-                cursor: pointer;
-                z-index: 10001;
-            `;
-            closeBtn.onclick = () => document.body.removeChild(modal);
-            
-            const downloadBtn = document.createElement('button');
-            downloadBtn.innerHTML = '📥';
-            downloadBtn.style.cssText = `
-                position: absolute;
-                top: -45px;
-                right: 45px;
-                background: #48bb78;
-                color: white;
-                border: none;
-                border-radius: 50%;
-                width: 35px;
-                height: 35px;
-                font-size: 18px;
-                cursor: pointer;
-                z-index: 10001;
-            `;
-            
-            // Обновляем логику скачивания для base64
-            downloadBtn.onclick = () => {
-                if (mediaUrl.startsWith('data:')) {
-                    // Для base64 данных
-                    const filename = `download.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
-                    downloadBase64File(mediaUrl, filename);
-                } else {
-                    // Для обычных URL
-                    const link = document.createElement('a');
-                    link.href = mediaUrl;
-                    link.download = mediaUrl.split('/').pop() || 'download';
-                    link.click();
-                }
-            };
-            
-            content.appendChild(mediaElement);
-            content.appendChild(closeBtn);
-            content.appendChild(downloadBtn);
-            modal.appendChild(content);
-            
-            // Закрытие по клику на фон
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
-                }
-            };
-            
-            // Закрытие по ESC
-            const closeModal = (e) => {
-                if (e.key === 'Escape') {
-                    document.body.removeChild(modal);
-                    document.removeEventListener('keydown', closeModal);
-                }
-            };
-            document.addEventListener('keydown', closeModal);
-            
-            document.body.appendChild(modal);
-        }
-
-        // Добавить в избранное
-        async function togglePurchaseFavorite(purchaseId) {
-            try {
-                const response = await fetch(`/api/webapp/purchases/${purchaseId}/favorite`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: currentUserId })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage(result.is_favorite ? '❤️ Добавлено в избранное' : '💔 Убрано из избранного', 'success');
-                    loadPurchasedItems();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-            } catch (error) {
-                console.error('Ошибка обновления избранного:', error);
-                showMessage('❌ Ошибка обновления избранного', 'error');
-            }
-        }
-
-        // Поделиться покупкой
-        async function sharePurchase(purchaseId) {
-            try {
-                const response = await fetch(`/api/webapp/purchases/${purchaseId}/share`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: currentUserId })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success && result.shareUrl) {
-                    // Копируем ссылку в буфер обмена
-                    await navigator.clipboard.writeText(result.shareUrl);
-                    showMessage('✅ Ссылка скопирована в буфер обмена!', 'success');
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-            } catch (error) {
-                console.error('Ошибка создания ссылки:', error);
-                showMessage('❌ Ошибка создания ссылки', 'error');
-            }
-        }
-
-        // Поиск по покупкам
-        function searchPurchases(query) {
-            const purchases = document.querySelectorAll('.purchase-item');
-            let visibleCount = 0;
-            
-            purchases.forEach(purchase => {
-                const title = purchase.dataset.title;
-                const description = purchase.querySelector('p')?.textContent.toLowerCase() || '';
-                const type = purchase.dataset.type;
-                
-                const matchesSearch = !query || title.includes(query.toLowerCase()) || description.includes(query.toLowerCase());
-                
-                if (matchesSearch) {
-                    purchase.style.display = 'block';
-                    visibleCount++;
-                } else {
-                    purchase.style.display = 'none';
-                }
-            });
-            
-            // Показываем сообщение если ничего не найдено
-            const container = document.getElementById('purchasesContainer');
-            if (visibleCount === 0 && query) {
-                if (!document.getElementById('noResults')) {
-                    const noResults = document.createElement('div');
-                    noResults.id = 'noResults';
-                    noResults.className = 'info';
-                    noResults.innerHTML = `
-                        <div style="text-align: center; padding: 40px;">
-                            <div style="font-size: 64px; margin-bottom: 16px;">🔍</div>
-                            <h3 style="margin-bottom: 12px;">Ничего не найдено</h3>
-                            <p style="color: #718096;">Попробуйте изменить поисковый запрос</p>
-                        </div>
-                    `;
-                    container.appendChild(noResults);
-                }
-            } else {
-                const noResults = document.getElementById('noResults');
-                if (noResults) noResults.remove();
-            }
-        }
-
-        // Фильтрация покупок по типу
-        function filterPurchasesByType(type) {
-            const searchInput = document.getElementById('searchPurchases');
-            const searchQuery = searchInput ? searchInput.value : '';
-            
-            // Комбинируем фильтрацию по типу и поиск
-            searchPurchases(searchQuery);
-            
-            if (type !== 'all') {
-                const purchases = document.querySelectorAll('.purchase-item');
-                purchases.forEach(purchase => {
-                    if (purchase.style.display !== 'none') {
-                        const purchaseType = purchase.dataset.type;
-                        if (purchaseType !== type) {
-                            purchase.style.display = 'none';
-                        }
-                    }
-                });
-            }
-        }
-
         // ========== КВИЗЫ ==========
 
         // Загрузка квизов
         async function loadQuizzes() {
             try {
-                const response = await fetch(`/api/webapp/quizzes?userId=${currentUserId}`);
-                const quizzes = await response.json();
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/quizzes?userId=${currentUserId}`);
+                // const quizzes = await response.json();
+                
+                // Тестовые данные
+                const quizzes = [
+                    {
+                        id: 1,
+                        title: 'История искусства',
+                        description: 'Проверьте свои знания об истории искусства',
+                        total_questions: 5,
+                        sparks_per_correct: 2,
+                        sparks_perfect_bonus: 5,
+                        completed: false,
+                        can_retake: true,
+                        last_completion: null,
+                        cooldown_hours: 24,
+                        questions: [
+                            {
+                                question: 'Кто написал картину "Мона Лиза"?',
+                                options: ['Леонардо да Винчи', 'Пабло Пикассо', 'Винсент Ван Гог', 'Клод Моне'],
+                                correct_answer: 0
+                            },
+                            {
+                                question: 'В каком веке жил Микеланджело?',
+                                options: ['XV век', 'XVI век', 'XVII век', 'XVIII век'],
+                                correct_answer: 1
+                            },
+                            {
+                                question: 'Какое направление в искусстве представлял Сальвадор Дали?',
+                                options: ['Сюрреализм', 'Импрессионизм', 'Кубизм', 'Футуризм'],
+                                correct_answer: 0
+                            },
+                            {
+                                question: 'Кто является автором скульптуры "Давид"?',
+                                options: ['Донателло', 'Микеланджело', 'Бернини', 'Роден'],
+                                correct_answer: 1
+                            },
+                            {
+                                question: 'В какой стране зародился импрессионизм?',
+                                options: ['Италия', 'Франция', 'Испания', 'Германия'],
+                                correct_answer: 1
+                            }
+                        ]
+                    },
+                    {
+                        id: 2,
+                        title: 'Основы композиции',
+                        description: 'Проверьте свои знания о композиции в искусстве',
+                        total_questions: 4,
+                        sparks_per_correct: 3,
+                        sparks_perfect_bonus: 8,
+                        completed: true,
+                        can_retake: false,
+                        last_completion: '2023-10-15T10:30:00Z',
+                        cooldown_hours: 24,
+                        user_score: 4,
+                        questions: []
+                    }
+                ];
                 
                 const quizzesList = document.getElementById('quizzesList');
                 quizzesList.innerHTML = '';
@@ -3370,8 +2955,53 @@
         // Начать квиз
         async function startQuiz(quizId) {
             try {
-                const response = await fetch(`/api/webapp/quizzes?userId=${currentUserId}`);
-                const quizzes = await response.json();
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/quizzes?userId=${currentUserId}`);
+                // const quizzes = await response.json();
+                
+                // Тестовые данные
+                const quizzes = [
+                    {
+                        id: 1,
+                        title: 'История искусства',
+                        description: 'Проверьте свои знания об истории искусства',
+                        total_questions: 5,
+                        sparks_per_correct: 2,
+                        sparks_perfect_bonus: 5,
+                        completed: false,
+                        can_retake: true,
+                        last_completion: null,
+                        cooldown_hours: 24,
+                        questions: [
+                            {
+                                question: 'Кто написал картину "Мона Лиза"?',
+                                options: ['Леонардо да Винчи', 'Пабло Пикассо', 'Винсент Ван Гог', 'Клод Моне'],
+                                correct_answer: 0
+                            },
+                            {
+                                question: 'В каком веке жил Микеланджело?',
+                                options: ['XV век', 'XVI век', 'XVII век', 'XVIII век'],
+                                correct_answer: 1
+                            },
+                            {
+                                question: 'Какое направление в искусстве представлял Сальвадор Дали?',
+                                options: ['Сюрреализм', 'Импрессионизм', 'Кубизм', 'Футуризм'],
+                                correct_answer: 0
+                            },
+                            {
+                                question: 'Кто является автором скульптуры "Давид"?',
+                                options: ['Донателло', 'Микеланджело', 'Бернини', 'Роден'],
+                                correct_answer: 1
+                            },
+                            {
+                                question: 'В какой стране зародился импрессионизм?',
+                                options: ['Италия', 'Франция', 'Испания', 'Германия'],
+                                correct_answer: 1
+                            }
+                        ]
+                    }
+                ];
+                
                 currentQuiz = quizzes.find(q => q.id === quizId);
                 
                 if (!currentQuiz) {
@@ -3444,16 +3074,40 @@
         // Отправить результаты квиза
         async function submitQuiz() {
             try {
-                const response = await fetch(`/api/webapp/quizzes/${currentQuiz.id}/submit`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        answers: currentAnswers
-                    })
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/quizzes/${currentQuiz.id}/submit`, {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         userId: currentUserId,
+                //         answers: currentAnswers
+                //     })
+                // });
+                // 
+                // const result = await response.json();
+                
+                // Тестовый ответ
+                let correctAnswers = 0;
+                currentAnswers.forEach((answer, index) => {
+                    if (answer === currentQuiz.questions[index].correct_answer) {
+                        correctAnswers++;
+                    }
                 });
                 
-                const result = await response.json();
+                const sparksEarned = correctAnswers * currentQuiz.sparks_per_correct;
+                const perfectScore = correctAnswers === currentQuiz.questions.length;
+                const totalBonus = perfectScore ? currentQuiz.sparks_perfect_bonus : 0;
+                
+                const result = {
+                    success: true,
+                    correctAnswers: correctAnswers,
+                    totalQuestions: currentQuiz.questions.length,
+                    sparksEarned: sparksEarned + totalBonus,
+                    perfectScore: perfectScore,
+                    message: perfectScore ? 
+                        'Поздравляем! Вы ответили правильно на все вопросы!' : 
+                        `Вы ответили правильно на ${correctAnswers} из ${currentQuiz.questions.length} вопросов.`
+                };
                 
                 if (result.success) {
                     showQuizResult(result);
@@ -3496,8 +3150,43 @@
         // Загрузка марафонов
         async function loadMarathons() {
             try {
-                const response = await fetch(`/api/webapp/marathons?userId=${currentUserId}`);
-                const marathons = await response.json();
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/marathons?userId=${currentUserId}`);
+                // const marathons = await response.json();
+                
+                // Тестовые данные
+                const marathons = [
+                    {
+                        id: 1,
+                        title: '7 дней рисования',
+                        description: 'Научитесь основам рисования за 7 дней',
+                        duration_days: 7,
+                        sparks_per_day: 5,
+                        progress: 42,
+                        completed: false,
+                        current_day: 3,
+                        tasks: [
+                            { day: 1, title: 'Основы композиции', description: 'Изучите основы композиции и создайте свой первый набросок', submission_type: 'image' },
+                            { day: 2, title: 'Работа с цветом', description: 'Познакомьтесь с цветовым кругом и создайте цветовую палитру', submission_type: 'image' },
+                            { day: 3, title: 'Тени и свет', description: 'Научитесь передавать объем с помощью теней и света', submission_type: 'image' },
+                            { day: 4, title: 'Перспектива', description: 'Освойте основы линейной перспективы', submission_type: 'image' },
+                            { day: 5, title: 'Текстуры', description: 'Научитесь передавать различные текстуры', submission_type: 'image' },
+                            { day: 6, title: 'Портрет', description: 'Создайте свой первый портрет', submission_type: 'image' },
+                            { day: 7, title: 'Финальная работа', description: 'Создайте завершенную работу, используя все изученные техники', submission_type: 'image' }
+                        ]
+                    },
+                    {
+                        id: 2,
+                        title: 'Писательский марафон',
+                        description: 'Развивайте писательские навыки 5 дней подряд',
+                        duration_days: 5,
+                        sparks_per_day: 7,
+                        progress: 100,
+                        completed: true,
+                        current_day: 5,
+                        tasks: []
+                    }
+                ];
                 
                 const marathonsList = document.getElementById('marathonsList');
                 marathonsList.innerHTML = '';
@@ -3548,8 +3237,33 @@
         // Начать марафон
         async function startMarathon(marathonId) {
             try {
-                const response = await fetch(`/api/webapp/marathons?userId=${currentUserId}`);
-                const marathons = await response.json();
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/marathons?userId=${currentUserId}`);
+                // const marathons = await response.json();
+                
+                // Тестовые данные
+                const marathons = [
+                    {
+                        id: 1,
+                        title: '7 дней рисования',
+                        description: 'Научитесь основам рисования за 7 дней',
+                        duration_days: 7,
+                        sparks_per_day: 5,
+                        progress: 42,
+                        completed: false,
+                        current_day: 3,
+                        tasks: [
+                            { day: 1, title: 'Основы композиции', description: 'Изучите основы композиции и создайте свой первый набросок', submission_type: 'image' },
+                            { day: 2, title: 'Работа с цветом', description: 'Познакомьтесь с цветовым кругом и создайте цветовую палитру', submission_type: 'image' },
+                            { day: 3, title: 'Тени и свет', description: 'Научитесь передавать объем с помощью теней и света', submission_type: 'image' },
+                            { day: 4, title: 'Перспектива', description: 'Освойте основы линейной перспективы', submission_type: 'image' },
+                            { day: 5, title: 'Текстуры', description: 'Научитесь передавать различные текстуры', submission_type: 'image' },
+                            { day: 6, title: 'Портрет', description: 'Создайте свой первый портрет', submission_type: 'image' },
+                            { day: 7, title: 'Финальная работа', description: 'Создайте завершенную работу, используя все изученные техники', submission_type: 'image' }
+                        ]
+                    }
+                ];
+                
                 currentMarathon = marathons.find(m => m.id === marathonId);
                 
                 if (!currentMarathon) {
@@ -3677,18 +3391,27 @@
             }
             
             try {
-                const response = await fetch(`/api/webapp/marathons/${currentMarathon.id}/submit-day`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        day: currentMarathonDay,
-                        submission_text: submission_text,
-                        submission_image: submission_image
-                    })
-                });
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/marathons/${currentMarathon.id}/submit-day`, {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         userId: currentUserId,
+                //         day: currentMarathonDay,
+                //         submission_text: submission_text,
+                //         submission_image: submission_image
+                //     })
+                // });
+                // 
+                // const result = await response.json();
                 
-                const result = await response.json();
+                // Тестовый ответ
+                const completed = currentMarathonDay === currentMarathon.duration_days;
+                const result = {
+                    success: true,
+                    message: `День ${currentMarathonDay} завершен! Вы получили +${currentMarathon.sparks_per_day}✨`,
+                    completed: completed
+                };
                 
                 if (result.success) {
                     showMessage(`✅ ${result.message}`, 'success');
@@ -3722,10 +3445,53 @@
                     showMobileMessage('Загружаем интерактивы...', 'info');
                 }
                 
-                const response = await fetch(`/api/webapp/interactives?userId=${currentUserId}`);
-                if (!response.ok) throw new Error('Ошибка загрузки интерактивов');
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/interactives?userId=${currentUserId}`);
+                // if (!response.ok) throw new Error('Ошибка загрузки интерактивов');
+                // const interactives = await response.json();
                 
-                const interactives = await response.json();
+                // Тестовые данные
+                const interactives = [
+                    {
+                        id: 1,
+                        title: 'Угадай эпоху',
+                        description: 'Определите эпоху по изображению произведения искусства',
+                        category: 'history',
+                        type: 'guess_era',
+                        sparks_reward: 5,
+                        completed: false,
+                        can_retake: true,
+                        image_url: 'https://via.placeholder.com/300x200?text=Произведение+искусства',
+                        question: 'К какой эпохе относится это произведение искусства?',
+                        options: ['Ренессанс', 'Барокко', 'Классицизм', 'Романтизм'],
+                        correct_answer: 0
+                    },
+                    {
+                        id: 2,
+                        title: 'Рисовальный челлендж',
+                        description: 'Создайте рисунок на основе предложенного контура',
+                        category: 'art',
+                        type: 'drawing_challenge',
+                        sparks_reward: 8,
+                        completed: true,
+                        can_retake: false,
+                        image_url: 'https://via.placeholder.com/300x200?text=Контур+для+рисования',
+                        question: 'Создайте уникальный рисунок на основе этого контура'
+                    },
+                    {
+                        id: 3,
+                        title: 'Стилевой матч',
+                        description: 'Сопоставьте произведения искусства с их стилями',
+                        category: 'style',
+                        type: 'style_match',
+                        sparks_reward: 6,
+                        completed: false,
+                        can_retake: true,
+                        question: 'Какой стиль представлен на изображении?',
+                        options: ['Импрессионизм', 'Экспрессионизм', 'Кубизм', 'Сюрреализм'],
+                        correct_answer: 2
+                    }
+                ];
                 
                 const interactivesList = document.getElementById('interactivesList');
                 interactivesList.innerHTML = '';
@@ -3797,8 +3563,40 @@
         // Начать интерактив
         async function startInteractive(interactiveId) {
             try {
-                const response = await fetch(`/api/webapp/interactives?userId=${currentUserId}`);
-                const interactives = await response.json();
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/interactives?userId=${currentUserId}`);
+                // const interactives = await response.json();
+                
+                // Тестовые данные
+                const interactives = [
+                    {
+                        id: 1,
+                        title: 'Угадай эпоху',
+                        description: 'Определите эпоху по изображению произведения искусства',
+                        category: 'history',
+                        type: 'guess_era',
+                        sparks_reward: 5,
+                        completed: false,
+                        can_retake: true,
+                        image_url: 'https://via.placeholder.com/300x200?text=Произведение+искусства',
+                        question: 'К какой эпохе относится это произведение искусства?',
+                        options: ['Ренессанс', 'Барокко', 'Классицизм', 'Романтизм'],
+                        correct_answer: 0
+                    },
+                    {
+                        id: 2,
+                        title: 'Рисовальный челлендж',
+                        description: 'Создайте рисунок на основе предложенного контура',
+                        category: 'art',
+                        type: 'drawing_challenge',
+                        sparks_reward: 8,
+                        completed: true,
+                        can_retake: false,
+                        image_url: 'https://via.placeholder.com/300x200?text=Контур+для+рисования',
+                        question: 'Создайте уникальный рисунок на основе этого контура'
+                    }
+                ];
+                
                 currentInteractive = interactives.find(i => i.id === interactiveId);
                 
                 if (!currentInteractive) {
@@ -4008,18 +3806,25 @@
                 // Конвертируем canvas в base64
                 const imageData = drawingCanvas.toDataURL('image/png');
                 
-                const response = await fetch(`/api/webapp/interactives/${currentInteractive.id}/upload-work`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        imageUrl: imageData,
-                        title: title,
-                        description: description
-                    })
-                });
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/interactives/${currentInteractive.id}/upload-work`, {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         userId: currentUserId,
+                //         imageUrl: imageData,
+                //         title: title,
+                //         description: description
+                //     })
+                // });
+                // 
+                // const result = await response.json();
                 
-                const result = await response.json();
+                // Тестовый ответ
+                const result = {
+                    success: true,
+                    message: 'Работа успешно отправлена на модерацию! Вы получите +8✨ после проверки.'
+                };
                 
                 if (result.success) {
                     showMessage(`✅ ${result.message}`, 'success');
@@ -4036,16 +3841,28 @@
         // Отправить ответ на интерактив
         async function submitInteractiveAnswer(answerIndex) {
             try {
-                const response = await fetch(`/api/webapp/interactives/${currentInteractive.id}/submit`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        answer: answerIndex
-                    })
-                });
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/interactives/${currentInteractive.id}/submit`, {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         userId: currentUserId,
+                //         answer: answerIndex
+                //     })
+                // });
+                // 
+                // const result = await response.json();
                 
-                const result = await response.json();
+                // Тестовый ответ
+                const isCorrect = answerIndex === currentInteractive.correct_answer;
+                const result = {
+                    success: true,
+                    correct: isCorrect,
+                    sparksEarned: isCorrect ? currentInteractive.sparks_reward : 0,
+                    message: isCorrect ? 
+                        'Правильно! Вы отлично справились с заданием.' : 
+                        'К сожалению, это неверный ответ. Попробуйте еще раз!'
+                };
                 
                 if (result.success) {
                     showInteractiveResult(result.correct, result.sparksEarned, result.message);
@@ -4097,16 +3914,23 @@
             }
             
             try {
-                const response = await fetch('/api/webapp/compliment-challenge', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        compliment: compliment
-                    })
-                });
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch('/api/webapp/compliment-challenge', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         userId: currentUserId,
+                //         compliment: compliment
+                //     })
+                // });
+                // 
+                // const result = await response.json();
                 
-                const result = await response.json();
+                // Тестовый ответ
+                const result = {
+                    success: true,
+                    message: 'Спасибо за ваш комплимент! Вы получили +0.5✨'
+                };
                 
                 if (result.success) {
                     showMessage(`✅ ${result.message}`, 'success');
@@ -4145,8 +3969,42 @@
         // Загрузка работ
         async function loadWorks() {
             try {
-                const response = await fetch(`/api/webapp/users/${currentUserId}/works`);
-                const data = await response.json();
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/users/${currentUserId}/works`);
+                // const data = await response.json();
+                
+                // Тестовые данные
+                const data = {
+                    works: [
+                        {
+                            id: 1,
+                            title: 'Мой первый рисунок',
+                            description: 'Это моя первая работа в стиле импрессионизм',
+                            image_url: 'https://via.placeholder.com/300x200?text=Мой+первый+рисунок',
+                            status: 'approved',
+                            admin_comment: 'Отличная работа для начала!',
+                            created_at: '2023-10-10T14:30:00Z'
+                        },
+                        {
+                            id: 2,
+                            title: 'Портрет друга',
+                            description: 'Портрет моего лучшего друга, выполненный карандашом',
+                            image_url: 'https://via.placeholder.com/300x200?text=Портрет+друга',
+                            status: 'pending',
+                            admin_comment: null,
+                            created_at: '2023-10-12T09:15:00Z'
+                        },
+                        {
+                            id: 3,
+                            title: 'Абстрактная композиция',
+                            description: 'Эксперимент с цветом и формой',
+                            image_url: 'https://via.placeholder.com/300x200?text=Абстрактная+композиция',
+                            status: 'rejected',
+                            admin_comment: 'Пожалуйста, добавьте больше деталей',
+                            created_at: '2023-10-08T16:45:00Z'
+                        }
+                    ]
+                };
                 
                 const worksList = document.getElementById('worksList');
                 worksList.innerHTML = '';
@@ -4259,19 +4117,26 @@
             }
             
             try {
-                const response = await fetch('/api/webapp/upload-work', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        title: title,
-                        description: description,
-                        imageUrl: uploadedImage,
-                        type: 'image'
-                    })
-                });
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch('/api/webapp/upload-work', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         userId: currentUserId,
+                //         title: title,
+                //         description: description,
+                //         imageUrl: uploadedImage,
+                //         type: 'image'
+                //     })
+                // });
+                // 
+                // const result = await response.json();
                 
-                const result = await response.json();
+                // Тестовый ответ
+                const result = {
+                    success: true,
+                    message: 'Работа успешно загружена и отправлена на модерацию! После проверки вы получите +15✨'
+                };
                 
                 if (result.success) {
                     showMessage(`✅ ${result.message}`, 'success');
@@ -4329,10 +4194,41 @@
                     showMobileMessage('Загружаем магазин...', 'info');
                 }
                 
-                const response = await fetch('/api/webapp/shop/items');
-                if (!response.ok) throw new Error('Ошибка загрузки магазина');
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch('/api/webapp/shop/items');
+                // if (!response.ok) throw new Error('Ошибка загрузки магазина');
+                // const data = await response.json();
                 
-                const data = await response.json();
+                // Тестовые данные
+                const data = [
+                    {
+                        id: 1,
+                        title: 'Основы композиции',
+                        description: 'Полное руководство по основам композиции в искусстве',
+                        price: 50,
+                        preview_url: 'https://via.placeholder.com/300x200?text=Основы+композиции',
+                        content_text: 'Это полное руководство по основам композиции в искусстве. Вы узнаете о правиле третей, золотом сечении, балансе и других важных принципах композиции.',
+                        type: 'text'
+                    },
+                    {
+                        id: 2,
+                        title: 'Видео-курс по акварели',
+                        description: 'Научитесь работать с акварелью за 10 уроков',
+                        price: 100,
+                        preview_url: 'https://via.placeholder.com/300x200?text=Видео-курс+по+акварели',
+                        content_text: 'Этот видео-курс научит вас всем тонкостям работы с акварелью. От базовых техник до продвинутых методов.',
+                        type: 'video'
+                    },
+                    {
+                        id: 3,
+                        title: 'Коллекция текстур',
+                        description: 'Набор из 50 высококачественных текстур для ваших работ',
+                        price: 30,
+                        preview_url: 'https://via.placeholder.com/300x200?text=Коллекция+текстур',
+                        content_text: 'Эта коллекция содержит 50 высококачественных текстур, которые вы можете использовать в своих работах.',
+                        type: 'image'
+                    }
+                ];
                 
                 const shopItemsList = document.getElementById('shopItemsList');
                 shopItemsList.innerHTML = '';
@@ -4385,16 +4281,23 @@
             if (!confirm('Вы уверены, что хотите купить этот товар?')) return;
             
             try {
-                const response = await fetch('/api/webapp/shop/purchase', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        itemId: itemId
-                    })
-                });
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch('/api/webapp/shop/purchase', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         userId: currentUserId,
+                //         itemId: itemId
+                //     })
+                // });
+                // 
+                // const result = await response.json();
                 
-                const result = await response.json();
+                // Тестовый ответ
+                const result = {
+                    success: true,
+                    message: 'Товар успешно куплен!'
+                };
                 
                 if (result.success) {
                     showMessage(`✅ ${result.message}`, 'success');
@@ -4415,36 +4318,42 @@
             try {
                 console.log('🛒 Загружаем покупки для пользователя:', currentUserId);
                 
-                const response = await fetch(`/api/webapp/users/${currentUserId}/purchases`);
-                const data = await response.json();
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/users/${currentUserId}/purchases`);
+                // const data = await response.json();
+                
+                // Тестовые данные
+                const data = {
+                    purchases: [
+                        {
+                            id: 1,
+                            title: 'Основы композиции',
+                            description: 'Полное руководство по основам композиции в искусстве',
+                            type: 'text',
+                            price_paid: 50,
+                            purchased_at: '2023-10-05T14:30:00Z',
+                            content_text: 'Это полное руководство по основам композиции в искусстве. Вы узнаете о правиле третей, золотом сечении, балансе и других важных принципах композиции.'
+                        },
+                        {
+                            id: 2,
+                            title: 'Коллекция текстур',
+                            description: 'Набор из 50 высококачественных текстур для ваших работ',
+                            type: 'image',
+                            price_paid: 30,
+                            purchased_at: '2023-10-08T09:15:00Z',
+                            file_url: 'https://via.placeholder.com/300x200?text=Текстура+1'
+                        }
+                    ]
+                };
                 
                 console.log('📦 Данные покупок от API:', {
                     count: data.purchases?.length,
                     purchases: data.purchases?.map(p => ({
                         id: p.id,
                         title: p.title,
-                        type: p.type,
-                        hasEmbed: !!p.embed_html,
-                        embedLength: p.embed_html?.length,
-                        allFields: Object.keys(p) // Показывает все доступные поля
+                        type: p.type
                     }))
                 });
-                
-                // Дополнительная детальная информация о embed-товарах
-                if (data.purchases && data.purchases.length > 0) {
-                    const embedPurchases = data.purchases.filter(p => p.type === 'embed');
-                    console.log('🎬 Embed-товары найдены:', {
-                        count: embedPurchases.length,
-                        items: embedPurchases.map(p => ({
-                            id: p.id,
-                            title: p.title,
-                            embed_html: p.embed_html ? `[${p.embed_html.length} chars]` : 'MISSING',
-                            html_content: p.html_content ? `[${p.html_content.length} chars]` : 'MISSING',
-                            content_html: p.content_html ? `[${p.content_html.length} chars]` : 'MISSING',
-                            content: p.content ? `[${p.content.length} chars]` : 'MISSING'
-                        }))
-                    });
-                }
                 
                 const purchasedList = document.getElementById('purchasedItemsList');
                 purchasedList.innerHTML = '';
@@ -4513,9 +4422,7 @@
                 sortedPurchases.forEach(purchase => {
                     console.log(`📋 Обрабатываем покупку ${purchase.id}:`, {
                         title: purchase.title,
-                        type: purchase.type,
-                        hasEmbed: !!purchase.embed_html,
-                        hasFiles: !!(purchase.file_url || purchase.file_data)
+                        type: purchase.type
                     });
                     
                     const purchaseCard = document.createElement('div');
@@ -4598,20 +4505,23 @@
             return icons[type] || '📄';
         }
 
-        // Функция для поделиться покупкой
-        function sharePurchase(purchaseId) {
-            // В реальном приложении здесь была бы логика поделиться
-            showMessage('📤 Функция "Поделиться" будет доступна в следующем обновлении', 'info');
+        // Функция для получения названия типа товара
+        function getPurchaseTypeName(type) {
+            const names = {
+                'video': 'Видео',
+                'image': 'Изображение',
+                'audio': 'Аудио',
+                'pdf': 'PDF',
+                'text': 'Текст',
+                'embed': 'Встроенное видео',
+                'link': 'Ссылка'
+            };
+            return names[type] || type;
         }
-
-        // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПОКУПОК ==========
 
         // Функция для показа детальной информации о покупке
         function showPurchaseDetail(purchase) {
             console.log('🔍 Показываем детали покупки:', purchase);
-            console.log('📋 embed_html содержимое:', purchase.embed_html);
-            console.log('📋 Все поля покупки:', Object.keys(purchase));
-            console.log('🎯 Тип покупки:', purchase.type);
             
             const detailContent = document.getElementById('purchaseDetailContent');
             
@@ -4651,36 +4561,6 @@
                 <div style="background: #fffaf0; padding: 16px; border-radius: 12px; border: 1px solid #fbd38d;">
                     <h4 style="margin-bottom: 12px; color: #dd6b20;">ℹ️ Информация о покупке</h4>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                        ${purchase.file_size ? `
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="color: #dd6b20;">📦</span>
-                                <div>
-                                    <div style="font-weight: 600; font-size: 14px;">Размер</div>
-                                    <div style="color: #718096; font-size: 12px;">${formatFileSize(purchase.file_size)}</div>
-                                </div>
-                            </div>
-                        ` : ''}
-                        
-                        ${purchase.duration ? `
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="color: #dd6b20;">⏱️</span>
-                                <div>
-                                    <div style="font-weight: 600; font-size: 14px;">Длительность</div>
-                                    <div style="color: #718096; font-size: 12px;">${purchase.duration}</div>
-                                </div>
-                            </div>
-                        ` : ''}
-                        
-                        ${purchase.pages_count ? `
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="color: #dd6b20;">📄</span>
-                                <div>
-                                    <div style="font-weight: 600; font-size: 14px;">Страниц</div>
-                                    <div style="color: #718096; font-size: 12px;">${purchase.pages_count}</div>
-                                </div>
-                            </div>
-                        ` : ''}
-                        
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="color: #dd6b20;">🆔</span>
                             <div>
@@ -4699,7 +4579,6 @@
         // Функция для генерации превью контента (для списка покупок)
         function generatePurchasePreview(purchase) {
             const fileUrl = purchase.file_data || purchase.file_url;
-            const previewUrl = purchase.preview_data || purchase.preview_url;
             
             switch(purchase.type) {
                 case 'video':
@@ -4707,21 +4586,14 @@
                         <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
                             <div style="font-size: 32px; margin-bottom: 8px;">🎥</div>
                             <div style="color: #718096; font-size: 12px;">Видео контент</div>
-                            ${previewUrl ? `
-                                <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
-                            ` : ''}
                         </div>
                     `;
                     
                 case 'image':
-                    const images = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
                     return `
                         <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
                             <div style="font-size: 32px; margin-bottom: 8px;">🖼️</div>
-                            <div style="color: #718096; font-size: 12px;">${images.length} изображение${images.length > 1 ? 'я' : ''}</div>
-                            ${previewUrl ? `
-                                <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
-                            ` : ''}
+                            <div style="color: #718096; font-size: 12px;">Изображение</div>
                         </div>
                     `;
                     
@@ -4738,11 +4610,6 @@
                         <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
                             <div style="font-size: 32px; margin-bottom: 8px;">📚</div>
                             <div style="color: #718096; font-size: 12px;">PDF документ</div>
-                            ${purchase.pages_count ? `
-                                <div style="color: #667eea; font-size: 11px; margin-top: 4px;">
-                                    ${purchase.pages_count} страниц
-                                </div>
-                            ` : ''}
                         </div>
                     `;
                     
@@ -4753,31 +4620,82 @@
                             <div style="color: #718096; font-size: 12px;">Текстовый контент</div>
                         </div>
                     `;
-
-                case 'embed':
-                    return `
-                        <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 32px; margin-bottom: 8px;">🎬</div>
-                            <div style="color: #718096; font-size: 12px;">Встроенное видео</div>
-                            ${previewUrl ? `
-                                <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
-                            ` : ''}
-                        </div>
-                    `;
-                    
-                case 'link':
-                    return `
-                        <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 32px; margin-bottom: 8px;">🔗</div>
-                            <div style="color: #718096; font-size: 12px;">Ссылка на ресурс</div>
-                        </div>
-                    `;
                     
                 default:
                     return `
                         <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
                             <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
                             <div style="color: #718096; font-size: 12px;">Товар</div>
+                        </div>
+                    `;
+            }
+        }
+
+        // Функция для генерации полного содержимого покупки
+        function generatePurchaseContent(purchase) {
+            const fileUrl = purchase.file_data || purchase.file_url;
+            
+            switch(purchase.type) {
+                case 'video':
+                    return `
+                        <div class="media-container">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🎥 Видео содержание
+                            </h4>
+                            <div class="video-container">
+                                <video controls style="width: 100%; height: 100%;">
+                                    <source src="${fileUrl || 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4'}" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                        </div>
+                    `;
+                    
+                case 'image':
+                    return `
+                        <div class="media-container">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🖼️ Изображение
+                            </h4>
+                            <img src="${fileUrl || 'https://via.placeholder.com/600x400'}" class="media-preview">
+                        </div>
+                    `;
+                    
+                case 'audio':
+                    return `
+                        <div class="media-container">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🎧 Аудио содержание
+                            </h4>
+                            <div style="background: #f7fafc; padding: 24px; border-radius: 16px; text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">🎵</div>
+                                <audio controls style="width: 100%; max-width: 400px;">
+                                    <source src="${fileUrl || 'https://sample-videos.com/zip/10/mp3/SampleAudio_0.4mb.mp3'}" type="audio/mpeg">
+                                    Ваш браузер не поддерживает аудио.
+                                </audio>
+                            </div>
+                        </div>
+                    `;
+                    
+                case 'text':
+                    return `
+                        <div class="media-container">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                📝 Текстовое содержание
+                            </h4>
+                            <div class="content-preview" style="max-height: none; background: white; padding: 24px; border-radius: 12px; white-space: pre-line; line-height: 1.6; font-size: 14px;">
+                                ${purchase.content_text || 'Содержимое временно недоступно'}
+                            </div>
+                        </div>
+                    `;
+                    
+                default:
+                    return `
+                        <div class="media-container">
+                            <h4 style="margin-bottom: 12px;">📦 Содержимое товара</h4>
+                            <div class="info">
+                                <p>Тип содержимого: ${purchase.type}</p>
+                            </div>
                         </div>
                     `;
             }
@@ -4853,8 +4771,35 @@
         // Загрузка постов
         async function loadPosts() {
             try {
-                const response = await fetch('/api/webapp/channel-posts');
-                const data = await response.json();
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch('/api/webapp/channel-posts');
+                // const data = await response.json();
+                
+                // Тестовые данные
+                const data = {
+                    posts: [
+                        {
+                            post_id: 1,
+                            title: '10 советов для начинающих художников',
+                            content: 'В этой статье мы рассмотрим 10 полезных советов для тех, кто только начинает свой путь в искусстве...',
+                            image_url: 'https://via.placeholder.com/300x200?text=Советы+художникам',
+                            video_url: null,
+                            reviews_count: 5,
+                            average_rating: 4.8,
+                            created_at: '2023-10-01T10:00:00Z'
+                        },
+                        {
+                            post_id: 2,
+                            title: 'История импрессионизма',
+                            content: 'Импрессионизм - одно из самых влиятельных направлений в искусстве. Узнайте больше о его истории и основных представителях...',
+                            image_url: 'https://via.placeholder.com/300x200?text=Импрессионизм',
+                            video_url: null,
+                            reviews_count: 3,
+                            average_rating: 4.5,
+                            created_at: '2023-09-28T14:30:00Z'
+                        }
+                    ]
+                };
                 
                 const postsList = document.getElementById('postsList');
                 postsList.innerHTML = '';
@@ -4906,17 +4851,24 @@
         // Отправить отзыв о посте
         async function submitPostReview(postId, reviewText) {
             try {
-                const response = await fetch(`/api/webapp/posts/${postId}/review`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        reviewText: reviewText,
-                        rating: 5
-                    })
-                });
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/posts/${postId}/review`, {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         userId: currentUserId,
+                //         reviewText: reviewText,
+                //         rating: 5
+                //     })
+                // });
+                // 
+                // const result = await response.json();
                 
-                const result = await response.json();
+                // Тестовый ответ
+                const result = {
+                    success: true,
+                    message: 'Спасибо за ваш отзыв! Вы получили +2✨'
+                };
                 
                 if (result.success) {
                     showMessage(`✅ ${result.message}`, 'success');
@@ -4934,8 +4886,39 @@
         // Загрузка активностей
         async function loadActivities() {
             try {
-                const response = await fetch(`/api/webapp/users/${currentUserId}/activities`);
-                const data = await response.json();
+                // В реальном приложении здесь будет запрос к API
+                // const response = await fetch(`/api/webapp/users/${currentUserId}/activities`);
+                // const data = await response.json();
+                
+                // Тестовые данные
+                const data = {
+                    activities: [
+                        {
+                            id: 1,
+                            description: 'Завершили квиз "История искусства"',
+                            sparks_earned: 10,
+                            created_at: '2023-10-15T14:30:00Z'
+                        },
+                        {
+                            id: 2,
+                            description: 'Загрузили работу "Мой первый рисунок"',
+                            sparks_earned: 15,
+                            created_at: '2023-10-14T10:15:00Z'
+                        },
+                        {
+                            id: 3,
+                            description: 'Участие в марафоне "7 дней рисования"',
+                            sparks_earned: 5,
+                            created_at: '2023-10-13T16:45:00Z'
+                        },
+                        {
+                            id: 4,
+                            description: 'Покупка товара "Основы композиции"',
+                            sparks_earned: -50,
+                            created_at: '2023-10-12T09:20:00Z'
+                        }
+                    ]
+                };
                 
                 const activitiesList = document.getElementById('activitiesList');
                 activitiesList.innerHTML = '';
