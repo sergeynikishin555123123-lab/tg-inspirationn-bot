@@ -758,33 +758,20 @@ app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
 
 // ==================== УЛУЧШЕННАЯ РАЗДАЧА СТАТИЧЕСКИХ ФАЙЛОВ ====================
 
-// Функция для определения типа устройства
-const getDeviceType = (userAgent) => {
-    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
-        return 'mobile';
-    }
-    return 'desktop';
-};
-
-// Статические файлы для основного приложения
+// Простые статические файлы для всех устройств
 app.use(express.static(join(APP_ROOT, 'public'), {
     maxAge: '1d',
     setHeaders: (res, path, stat) => {
-        const userAgent = res.req.headers['user-agent'] || '';
-        const deviceType = getDeviceType(userAgent);
+        console.log(`📁 Статический файл: ${path}`);
         
-        console.log(`📁 Статический файл: ${path} для ${deviceType}`);
-        
-        // Для мобильных устройств - особые настройки кэширования
-        if (deviceType === 'mobile') {
-            if (path.endsWith('.js') || path.endsWith('.css')) {
-                res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 час для JS/CSS
-            } else if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
-                res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 день для изображений
-            }
+        // ОДИНАКОВЫЕ настройки для всех устройств
+        if (path.endsWith('.js') || path.endsWith('.css')) {
+            res.setHeader('Cache-Control', 'public, max-age=3600');
+        } else if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+            res.setHeader('Cache-Control', 'public, max-age=86400');
         }
         
-        // HTML файлы не кэшируем сильно
+        // HTML файлы не кэшируем
         if (path.endsWith('.html')) {
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
             res.setHeader('Pragma', 'no-cache');
@@ -804,20 +791,44 @@ app.use('/admin', express.static(join(APP_ROOT, 'admin'), {
     }
 }));
 
-// Основной маршрут
+// ==================== ОСНОВНЫЕ МАРШРУТЫ ДЛЯ ВСЕХ УСТРОЙСТВ ====================
+
+// Основной маршрут - для всех устройств
 app.get('/', (req, res) => {
-    console.log('🏠 Запрос главной страницы');
-    res.sendFile(join(APP_ROOT, 'public', 'index.html'));
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    console.log(`🏠 Запрос главной страницы от: ${isMobile ? 'мобильного' : 'десктопа'}`);
+    console.log('📁 Путь к файлу:', join(APP_ROOT, 'public', 'index.html'));
+    
+    // Проверяем существование файла
+    const filePath = join(APP_ROOT, 'public', 'index.html');
+    if (!existsSync(filePath)) {
+        console.error('❌ index.html не найден по пути:', filePath);
+        return res.status(404).json({ error: 'Главная страница не найдена' });
+    }
+    
+    res.sendFile(filePath);
 });
 
-// Маршруты админки
+// Маршруты админки - для всех устройств
 app.get('/admin', (req, res) => {
-    console.log('🔧 Запрос админки');
-    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    console.log(`🔧 Запрос админки от: ${isMobile ? 'мобильного' : 'десктопа'}`);
+    
+    const filePath = join(APP_ROOT, 'admin', 'index.html');
+    if (!existsSync(filePath)) {
+        console.error('❌ admin/index.html не найден по пути:', filePath);
+        return res.status(404).json({ error: 'Админка не найдена' });
+    }
+    
+    res.sendFile(filePath);
 });
 
 app.get('/admin/*', (req, res) => {
-    console.log('🔧 Запрос админки (вложенный путь)');
+    console.log('🔧 Запрос админки (вложенный путь):', req.path);
     res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
 });
 
