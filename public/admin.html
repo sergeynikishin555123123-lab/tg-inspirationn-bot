@@ -5842,6 +5842,112 @@ async function submitSparksAddition() {
             document.getElementById('adminRole').value = 'moderator';
         }
 
+        // ==================== ФУНКЦИИ ДЛЯ РАБОТЫ С ИСКРАМИ ====================
+
+        // Показать модальное окно начисления искр
+        function showAddSparksModal(userId, userName) {
+            selectedUserIdForSparks = userId;
+            document.getElementById('selectedUserName').textContent = userName;
+            document.getElementById('sparksAmount').value = '10';
+            document.getElementById('sparksReason').value = '';
+            document.getElementById('addSparksModal').style.display = 'flex';
+            
+            // Дополнительно загружаем текущий баланс пользователя
+            loadUserCurrentBalance(userId);
+        }
+
+        // Загрузить текущий баланс пользователя
+        async function loadUserCurrentBalance(userId) {
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/full-stats?userId=${currentUserId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const balanceElement = document.getElementById('currentUserBalance');
+                    if (balanceElement) {
+                        balanceElement.textContent = `Текущий баланс: ${data.user.sparks}✨`;
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки баланса:', error);
+            }
+        }
+
+        // Закрыть модальное окно начисления искр
+        function closeAddSparksModal() {
+            document.getElementById('addSparksModal').style.display = 'none';
+            selectedUserIdForSparks = null;
+        }
+
+        // Отправить начисление искр
+        async function submitSparksAddition() {
+            const sparksAmount = parseFloat(document.getElementById('sparksAmount').value);
+            const reason = document.getElementById('sparksReason').value.trim();
+            
+            if (!sparksAmount || sparksAmount <= 0) {
+                showMessage('❌ Введите корректное количество искр', 'error');
+                return;
+            }
+            
+            if (!reason) {
+                showMessage('❌ Укажите причину начисления', 'error');
+                return;
+            }
+            
+            if (sparksAmount > 1000) {
+                if (!confirm(`Вы уверены, что хотите начислить ${sparksAmount} искр? Это очень большое количество!`)) {
+                    return;
+                }
+            }
+            
+            try {
+                // Показываем индикатор загрузки
+                const submitBtn = document.querySelector('#addSparksModal .btn-success');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '⏳ Начисление...';
+                submitBtn.disabled = true;
+                
+                const response = await fetch(`/api/admin/users/${selectedUserIdForSparks}/add-sparks?userId=${currentUserId}`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Admin-Id': currentUserId 
+                    },
+                    body: JSON.stringify({
+                        sparks: sparksAmount,
+                        reason: reason
+                    })
+                });
+                
+                const result = await response.json();
+                
+                // Восстанавливаем кнопку
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    closeAddSparksModal();
+                    
+                    // Обновляем данные
+                    setTimeout(() => {
+                        loadUsers();
+                        loadStats();
+                    }, 1000);
+                    
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка начисления искр:', error);
+                showMessage('❌ Ошибка соединения с сервером', 'error');
+                
+                // Восстанавливаем кнопку в случае ошибки
+                const submitBtn = document.querySelector('#addSparksModal .btn-success');
+                submitBtn.innerHTML = '💫 Начислить искры';
+                submitBtn.disabled = false;
+            }
+        }
+ 
         // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 
         // Показать сообщение
