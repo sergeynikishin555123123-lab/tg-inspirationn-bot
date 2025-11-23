@@ -900,6 +900,58 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
+        /* Модальное окно */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #718096;
+        }
+
+        .close:hover {
+            color: #2d3748;
+        }
+        
         /* Мобильная адаптация */
         @media (max-width: 1200px) {
             .analytics-grid {
@@ -1125,6 +1177,10 @@
                     </select>
                     <button class="export-btn" onclick="exportUsers()">
                         📊 Экспорт в CSV
+                    </button>
+                    <!-- ДОБАВЛЕНА КНОПКА ЭКСПОРТА В EXCEL -->
+                    <button class="export-btn" style="background: #48bb78;" onclick="exportUsersExcel()">
+                        📈 Экспорт в Excel
                     </button>
                 </div>
 
@@ -1865,6 +1921,34 @@
             </div>
         </div>
 
+        <!-- Модальное окно для начисления искр -->
+        <div id="addSparksModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🎁 Начисление искр пользователю</h3>
+                    <span class="close" onclick="closeAddSparksModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Пользователь:</label>
+                        <div id="selectedUserName" style="font-weight: 600; padding: 8px; background: #f7fafc; border-radius: 8px;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Количество искр:</label>
+                        <input type="number" id="sparksAmount" class="form-control" min="0.5" step="0.5" value="10">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Причина начисления:</label>
+                        <textarea id="sparksReason" class="form-control" rows="3" placeholder="Укажите причину начисления искр..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" onclick="submitSparksAddition()">💫 Начислить искры</button>
+                    <button class="btn btn-danger" onclick="closeAddSparksModal()">❌ Отмена</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Сообщения -->
         <div id="messageArea"></div>
     </div>
@@ -1879,6 +1963,7 @@
         let interactiveImageData = null;
         let shopItemFileData = null;
         let shopItemPreviewData = null;
+        let selectedUserIdForSparks = null;
 
         // Пагинация
         const paginationConfig = {
@@ -2302,6 +2387,11 @@
                                     <div class="user-stat-label">Актив.</div>
                                 </div>
                             </div>
+                            <div class="action-buttons">
+                                <button class="btn btn-info" onclick="showAddSparksModal(${user.id}, '${user.name.replace(/'/g, "\\'")}')">
+                                    💫 Начислить искры
+                                </button>
+                            </div>
                         </div>
                     `;
                 });
@@ -2320,6 +2410,7 @@
                                     <th>Искры</th>
                                     <th>Активность</th>
                                     <th>Статистика</th>
+                                    <th>Действия</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -2362,6 +2453,11 @@
                                         <div class="user-stat-label">Актив.</div>
                                     </div>
                                 </div>
+                            </td>
+                            <td>
+                                <button class="btn btn-info" onclick="showAddSparksModal(${user.id}, '${user.name.replace(/'/g, "\\'")}')">
+                                    💫 Начислить искры
+                                </button>
                             </td>
                         </tr>
                     `;
@@ -2446,6 +2542,104 @@
                 exportBtn.disabled = false;
                 
                 showMessage(`❌ Ошибка экспорта: ${error.message}`, 'error');
+            }
+        }
+
+        // Экспорт пользователей в Excel
+        async function exportUsersExcel() {
+            try {
+                console.log('📤 Начало экспорта пользователей в Excel...');
+                
+                const exportBtn = document.querySelector('.export-btn[style*="background: #48bb78"]');
+                const originalText = exportBtn.innerHTML;
+                exportBtn.innerHTML = '⏳ Экспорт в Excel...';
+                exportBtn.disabled = true;
+                
+                const response = await fetch(`/api/admin/export/users-excel?userId=${currentUserId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Ошибка сервера: ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `users_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
+                
+                console.log('✅ Экспорт в Excel завершен');
+                showMessage('✅ Отчет пользователей в Excel успешно скачан', 'success');
+                
+            } catch (error) {
+                console.error('❌ Ошибка экспорта в Excel:', error);
+                const exportBtn = document.querySelector('.export-btn[style*="background: #48bb78"]');
+                exportBtn.innerHTML = '📈 Экспорт в Excel';
+                exportBtn.disabled = false;
+                showMessage(`❌ Ошибка экспорта в Excel: ${error.message}`, 'error');
+            }
+        }
+
+        // ==================== МОДАЛЬНОЕ ОКНО НАЧИСЛЕНИЯ ИСКР ====================
+
+        // Показать модальное окно начисления искр
+        function showAddSparksModal(userId, userName) {
+            selectedUserIdForSparks = userId;
+            document.getElementById('selectedUserName').textContent = userName;
+            document.getElementById('sparksAmount').value = '10';
+            document.getElementById('sparksReason').value = '';
+            document.getElementById('addSparksModal').style.display = 'flex';
+        }
+
+        // Закрыть модальное окно
+        function closeAddSparksModal() {
+            document.getElementById('addSparksModal').style.display = 'none';
+            selectedUserIdForSparks = null;
+        }
+
+        // Отправить начисление искр
+        async function submitSparksAddition() {
+            const sparksAmount = parseFloat(document.getElementById('sparksAmount').value);
+            const reason = document.getElementById('sparksReason').value.trim();
+            
+            if (!sparksAmount || sparksAmount <= 0) {
+                showMessage('❌ Введите корректное количество искр', 'error');
+                return;
+            }
+            
+            if (!reason) {
+                showMessage('❌ Укажите причину начисления', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/users/${selectedUserIdForSparks}/add-sparks?userId=${currentUserId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sparks: sparksAmount,
+                        reason: reason
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    closeAddSparksModal();
+                    loadUsers(); // Перезагружаем список пользователей
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка начисления искр', 'error');
             }
         }
 
