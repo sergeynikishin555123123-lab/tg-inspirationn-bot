@@ -1979,21 +1979,96 @@
         let shopItemPreviewData = null;
         let selectedUserIdForSparks = null;
 
-        // Пагинация
-        const paginationConfig = {
-            users: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            roles: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            characters: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            quizzes: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            marathons: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            interactives: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            shopItems: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            posts: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            admins: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            works: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            reviews: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            purchases: { currentPage: 1, totalPages: 1, pageSize: 20 }
-        };
+        // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
+
+        // Показать вкладку
+        function showTab(tabName) {
+            console.log('🎯 Переключение на вкладку:', tabName);
+            
+            // Проверяем существование вкладки
+            const targetTab = document.getElementById(tabName);
+            if (!targetTab) {
+                console.error('❌ Вкладка не найдена:', tabName);
+                showMessage(`❌ Вкладка "${tabName}" не найдена`, 'error');
+                return;
+            }
+            
+            // 1. Скрыть все вкладки
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 2. Убрать активный класс со всех кнопок
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 3. Показать выбранную вкладку
+            targetTab.classList.add('active');
+            
+            // 4. Активировать кнопку
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                const onclickAttr = tab.getAttribute('onclick');
+                if (onclickAttr && onclickAttr.includes(`showTab('${tabName}')`)) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // 5. Загружаем данные для вкладки
+            loadTabData(tabName);
+            
+            console.log('✅ Вкладка активирована:', tabName);
+        }
+
+        // Загрузка данных для вкладки
+        function loadTabData(tabName) {
+            console.log('📥 Загрузка данных для:', tabName);
+            
+            switch(tabName) {
+                case 'moderation':
+                    loadWorksForModeration();
+                    break;
+                case 'admins':
+                    loadAdmins();
+                    break;
+                case 'posts':
+                    loadPosts();
+                    break;
+                case 'users':
+                    loadUsers();
+                    break;
+                case 'roles':
+                    loadRoles();
+                    break;
+                case 'quizzes':
+                    loadQuizzes();
+                    break;
+                case 'marathons':
+                    loadMarathons();
+                    break;
+                case 'interactives':
+                    loadInteractives();
+                    break;
+                case 'shop':
+                    loadShopItems();
+                    break;
+                default:
+                    console.log('ℹ️ Нет специальной загрузки для:', tabName);
+            }
+        }
+
+        // Скрыть все формы
+        function hideAllForms() {
+            document.getElementById('roleForm').style.display = 'none';
+            document.getElementById('characterForm').style.display = 'none';
+            document.getElementById('quizForm').style.display = 'none';
+            document.getElementById('marathonForm').style.display = 'none';
+            document.getElementById('interactiveForm').style.display = 'none';
+            document.getElementById('shopItemForm').style.display = 'none';
+            document.getElementById('postForm').style.display = 'none';
+            document.getElementById('adminForm').style.display = 'none';
+            currentEditingId = null;
+        }
 
         // ИНИЦИАЛИЗАЦИЯ АДМИН-ПАНЕЛИ
         async function initAdminPanel() {
@@ -4670,7 +4745,56 @@ async function submitSparksAddition() {
             clearShopItemPreview();
         }
 
+      // ==================== ВКЛАДКИ МАГАЗИНА И МОДЕРАЦИИ ====================
 
+        // Показать вкладку магазина
+        function showShopTab(tab) {
+            currentShopTab = tab;
+            
+            document.querySelectorAll('.tab-subnav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            document.getElementById('shopItemsTab').style.display = 'none';
+            document.getElementById('shopPurchasesTab').style.display = 'none';
+            
+            if (tab === 'items') {
+                document.querySelector('.tab-subnav-item[onclick="showShopTab(\'items\')"]').classList.add('active');
+                document.getElementById('shopItemsTab').style.display = 'block';
+            } else if (tab === 'purchases') {
+                document.querySelector('.tab-subnav-item[onclick="showShopTab(\'purchases\')"]').classList.add('active');
+                document.getElementById('shopPurchasesTab').style.display = 'block';
+                loadPurchases();
+            }
+        }
+
+        // Показать вкладку модерации
+        function showModerationTab(tab) {
+            currentModerationTab = tab;
+            
+            document.querySelectorAll('.tab-subnav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            document.getElementById('moderationWorksTab').style.display = 'none';
+            document.getElementById('moderationReviewsTab').style.display = 'none';
+            document.getElementById('moderationMarathonTab').style.display = 'none';
+            
+            if (tab === 'works') {
+                document.querySelector('.tab-subnav-item[onclick="showModerationTab(\'works\')"]').classList.add('active');
+                document.getElementById('moderationWorksTab').style.display = 'block';
+                loadWorksForModeration();
+            } else if (tab === 'reviews') {
+                document.querySelector('.tab-subnav-item[onclick="showModerationTab(\'reviews\')"]').classList.add('active');
+                document.getElementById('moderationReviewsTab').style.display = 'block';
+                loadReviewsForModeration();
+            } else if (tab === 'marathon') {
+                document.querySelector('.tab-subnav-item[onclick="showModerationTab(\'marathon\')"]').classList.add('active');
+                document.getElementById('moderationMarathonTab').style.display = 'block';
+                loadMarathonSubmissions();
+            }
+        }
+        
         // ==================== ФУНКЦИИ ДЛЯ РАБОТЫ С ИСКРАМИ ====================
 
         // Показать модальное окно начисления искр
