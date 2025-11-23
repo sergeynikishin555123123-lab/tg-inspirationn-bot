@@ -20,11 +20,25 @@ console.log('📁 Текущая рабочая директория:', APP_ROOT
 
 // ==================== НАСТРОЙКИ CORS И БЕЗОПАСНОСТИ ====================
 
-// Расширенные настройки CORS
+// Расширенные настройки CORS для Telegram Web App
 const corsOptions = {
-    origin: '*',
+    origin: function (origin, callback) {
+        // Разрешаем все домены для Telegram Web App
+        const allowedOrigins = [
+            'https://web.telegram.org',
+            'https://oauth.telegram.org',
+            process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-e112.twc1.net'
+        ];
+        
+        // Разрешаем все origin для разработки
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(null, true); // Все равно разрешаем для тестирования
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'User-Agent'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'User-Agent', 'tgwebviewdata'],
     credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 204,
@@ -37,6 +51,36 @@ app.use(cors(corsOptions));
 // Обработка preflight запросов для всех маршрутов
 app.options('*', cors(corsOptions));
 
+// ==================== СПЕЦИАЛЬНЫЕ НАСТРОЙКИ ДЛЯ TELEGRAM WEB APP ====================
+
+// Middleware для Telegram Web App
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isTelegramWebApp = userAgent.includes('Telegram') || 
+                           req.headers['sec-fetch-site'] === 'cross-site' ||
+                           req.query.tgWebAppData;
+    
+    // Для Telegram Web App убираем ограничивающие заголовки
+    if (isTelegramWebApp) {
+        console.log('📱 Telegram Web App запрос');
+        
+        // Убираем X-Frame-Options для Telegram
+        res.removeHeader('X-Frame-Options');
+        
+        // Более либеральная политика безопасности для Telegram
+        res.setHeader('Content-Security-Policy', 
+            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+            "script-src * 'unsafe-inline' 'unsafe-eval'; " +
+            "connect-src * 'unsafe-inline'; " +
+            "img-src * data: blob: 'unsafe-inline'; " +
+            "frame-src *; " +
+            "style-src * 'unsafe-inline';"
+        );
+    }
+    
+    next();
+});
+
 // ==================== УСИЛЕННЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ====================
 
 // Middleware для мобильных устройств
@@ -48,7 +92,6 @@ app.use((req, res, next) => {
     
     // Устанавливаем заголовки безопасности
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     
     // Для мобильных устройств - более либеральная политика безопасности
@@ -756,23 +799,26 @@ app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
 // ==================== УЛУЧШЕННАЯ РАЗДАЧА СТАТИЧЕСКИХ ФАЙЛОВ ====================
 
 // Простые статические файлы для всех устройств
+// Статические файлы для основного приложения
 app.use(express.static(join(APP_ROOT, 'public'), {
     maxAge: '1d',
     setHeaders: (res, path, stat) => {
         console.log(`📁 Статический файл: ${path}`);
         
-        // ОДИНАКОВЫЕ настройки для всех устройств
+        // Для Telegram Web App - особые настройки
+        if (path.endsWith('.html')) {
+            // Убираем X-Frame-Options для HTML файлов
+            res.removeHeader('X-Frame-Options');
+            
+            // Разрешаем embedding в iframe
+            res.setHeader('X-Frame-Options', 'ALLOWALL');
+        }
+        
+        // Остальные настройки кэширования...
         if (path.endsWith('.js') || path.endsWith('.css')) {
             res.setHeader('Cache-Control', 'public, max-age=3600');
         } else if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
             res.setHeader('Cache-Control', 'public, max-age=86400');
-        }
-        
-        // HTML файлы не кэшируем
-        if (path.endsWith('.html')) {
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            res.setHeader('Pragma', 'no-cache');
-            res.setHeader('Expires', '0');
         }
     }
 }));
