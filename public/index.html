@@ -1037,7 +1037,74 @@
             outline: none;
         }
 
-        /* Адаптивность для мобильных */
+        /* АДАПТИВНЫЕ СТИЛИ ДЛЯ ВИДЕО И МЕДИА */
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 соотношение */
+            margin: 16px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .video-container iframe,
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .media-container {
+            max-width: 100%;
+            margin: 16px 0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .media-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Улучшенные стили для embed-контента */
+        .embed-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            margin: 20px 0;
+        }
+
+        .embed-responsive {
+            position: relative;
+            display: block;
+            width: 100%;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .embed-responsive::before {
+            display: block;
+            content: "";
+            padding-top: 56.25%; /* 16:9 соотношение */
+        }
+
+        .embed-responsive iframe {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        /* Адаптивные настройки для разных устройств */
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -1161,6 +1228,15 @@
                 width: 100%;
                 margin: 2px 0;
             }
+
+            /* Адаптивные настройки для видео */
+            .video-container {
+                padding-bottom: 75%; /* 4:3 для мобильных */
+            }
+            
+            .media-container {
+                margin: 12px 0;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1238,6 +1314,16 @@
             .option {
                 padding: 12px;
                 font-size: 14px;
+            }
+
+            /* Адаптивные настройки для видео */
+            .video-container {
+                padding-bottom: 100%; /* 1:1 для маленьких экранов */
+            }
+            
+            .media-container {
+                margin: 8px 0;
+                border-radius: 8px;
             }
         }
 
@@ -1372,6 +1458,23 @@
             color: #718096;
             font-size: 14px;
             margin: 0 12px;
+        }
+
+        /* Классы для разных типов устройств */
+        .mobile-device .video-container {
+            padding-bottom: 75%;
+        }
+
+        .tablet-device .media-container,
+        .tablet-device .video-container {
+            max-width: 90%;
+            margin: 20px auto;
+        }
+
+        .desktop-device .media-container,
+        .desktop-device .video-container {
+            max-width: 800px;
+            margin: 20px auto;
         }
     </style>
 </head>
@@ -1912,6 +2015,56 @@
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         }
 
+        // Функция для определения типа устройства и применения соответствующих настроек
+        function initDeviceSpecificSettings() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isTablet = /iPad|Android/i.test(navigator.userAgent) && !/Mobile/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                document.body.classList.add('mobile-device');
+                applyMobileSettings();
+            } else if (isTablet) {
+                document.body.classList.add('tablet-device');
+                applyTabletSettings();
+            } else {
+                document.body.classList.add('desktop-device');
+                applyDesktopSettings();
+            }
+        }
+
+        function applyMobileSettings() {
+            // Настройки для мобильных устройств
+            const videos = document.querySelectorAll('video');
+            videos.forEach(video => {
+                video.setAttribute('playsinline', '');
+                video.setAttribute('webkit-playsinline', '');
+            });
+            
+            // Оптимизация загрузки медиа для мобильных
+            const images = document.querySelectorAll('img[data-src]');
+            images.forEach(img => {
+                img.src = img.dataset.src;
+            });
+        }
+
+        function applyTabletSettings() {
+            // Настройки для планшетов
+            const containers = document.querySelectorAll('.media-container, .video-container');
+            containers.forEach(container => {
+                container.style.maxWidth = '90%';
+                container.style.margin = '20px auto';
+            });
+        }
+
+        function applyDesktopSettings() {
+            // Настройки для десктопов
+            const containers = document.querySelectorAll('.media-container, .video-container');
+            containers.forEach(container => {
+                container.style.maxWidth = '800px';
+                container.style.margin = '20px auto';
+            });
+        }
+
         // Инициализация мобильных оптимизаций
         function initMobileOptimizations() {
             if (!isMobileDevice()) return;
@@ -2051,6 +2204,9 @@
                     console.log('📱 Мобильное устройство обнаружено');
                     initMobileOptimizations();
                 }
+                
+                // Инициализация настроек для конкретного устройства
+                initDeviceSpecificSettings();
                 
                 // Добавьте эту проверку
                 if (typeof Telegram === 'undefined') {
@@ -2619,17 +2775,17 @@
             switch(purchase.type) {
                 case 'video':
                     return `
-                        <div style="margin: 20px 0;">
+                        <div class="media-container">
                             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
                                 🎥 Видео содержание
                             </h4>
                             ${previewUrl ? `
-                                <img src="${previewUrl}" class="media-preview" style="margin-bottom: 12px; cursor: pointer; max-height: 200px; object-fit: cover;" 
+                                <img src="${previewUrl}" class="media-preview" style="margin-bottom: 12px; cursor: pointer;" 
                                      onclick="openMediaModal('${fileUrl}', 'video')"
                                      title="Нажмите для просмотра в полном размере">
                             ` : ''}
-                            <div style="background: #000; border-radius: 12px; overflow: hidden;">
-                                <video controls class="media-preview" style="max-height: 400px; width: 100%;">
+                            <div class="video-container">
+                                <video controls style="width: 100%; height: 100%;">
                                     <source src="${fileUrl}" type="video/mp4">
                                     Ваш браузер не поддерживает видео.
                                 </video>
@@ -2645,7 +2801,7 @@
                 case 'image':
                     const images = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
                     return `
-                        <div style="margin: 20px 0;">
+                        <div class="media-container">
                             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
                                 🖼️ Изображение${images.length > 1 ? ` (${images.length} фото)` : ''}
                             </h4>
@@ -2667,7 +2823,7 @@
                     
                 case 'audio':
                     return `
-                        <div style="margin: 20px 0;">
+                        <div class="media-container">
                             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
                                 🎧 Аудио содержание
                             </h4>
@@ -2686,7 +2842,7 @@
                     
                 case 'pdf':
                     return `
-                        <div style="margin: 20px 0;">
+                        <div class="media-container">
                             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
                                 📚 PDF документ
                             </h4>
@@ -2707,7 +2863,7 @@
                     
                 case 'text':
                     return `
-                        <div style="margin: 20px 0;">
+                        <div class="media-container">
                             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
                                 📝 Текстовое содержание
                             </h4>
@@ -2731,7 +2887,7 @@
                     
                     if (embedHtml && embedHtml.trim()) {
                         return `
-                            <div style="margin: 20px 0;">
+                            <div class="media-container">
                                 <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
                                     🎬 Встроенное видео
                                 </h4>
@@ -2740,8 +2896,10 @@
                                         💡 Видео загружено через внешний сервис. Для лучшего воспроизведения используйте стабильное интернет-соединение.
                                     </div>
                                 </div>
-                                <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 12px; overflow: hidden;">
-                                    ${embedHtml}
+                                <div class="embed-wrapper">
+                                    <div class="embed-responsive">
+                                        ${embedHtml}
+                                    </div>
                                 </div>
                                 <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
                                     Используйте элементы управления плеера для управления воспроизведением
@@ -2751,7 +2909,7 @@
                     } else {
                         // Если HTML не найден, показываем информационное сообщение
                         return `
-                            <div style="margin: 20px 0;">
+                            <div class="media-container">
                                 <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
                                     🎬 Встроенное видео
                                 </h4>
@@ -2775,7 +2933,7 @@
                     
                 case 'link':
                     return `
-                        <div style="margin: 20px 0;">
+                        <div class="media-container">
                             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
                                 🔗 Ссылка на ресурс
                             </h4>
@@ -2799,7 +2957,7 @@
                     
                 default:
                     return `
-                        <div style="margin: 20px 0;">
+                        <div class="media-container">
                             <h4 style="margin-bottom: 12px;">📦 Содержимое товара</h4>
                             <div class="info">
                                 <p>Тип содержимого: ${purchase.type}</p>
@@ -4856,7 +5014,10 @@
         }
 
         // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', initApp);
+        document.addEventListener('DOMContentLoaded', function() {
+            initApp();
+            initDeviceSpecificSettings();
+        });
 
         // Обработка перетаскивания файлов
         document.addEventListener('DOMContentLoaded', function() {
