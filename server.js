@@ -15,9 +15,6 @@ const __dirname = dirname(__filename);
 const app = express();
 const APP_ROOT = process.cwd();
 
-// Автоматическое определение пути для TimeWeb
-const APP_ROOT = process.cwd();
-
 console.log('🎨 Мастерская Вдохновения - Запуск системы...');
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 
