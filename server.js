@@ -2608,6 +2608,197 @@ app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Админ удален' });
 });
 
+// ==================== РУЧНОЕ УПРАВЛЕНИЕ ИСКРАМИ АДМИНИСТРАТОРОМ ====================
+
+// Получить список пользователей для админки
+app.get('/api/admin/users-list', requireAdmin, (req, res) => {
+    try {
+        const { page = 1, limit = 50, search = '' } = req.query;
+        const users = db.users.filter(u => u.is_registered);
+        
+        // Фильтрация по поиску
+        let filteredUsers = users;
+        if (search) {
+            const searchLower = search.toLowerCase();
+            filteredUsers = users.filter(u => 
+                u.tg_first_name?.toLowerCase().includes(searchLower) ||
+                u.tg_username?.toLowerCase().includes(searchLower) ||
+                u.class?.toLowerCase().includes(searchLower)
+            );
+        }
+        
+        // Пагинация
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + parseInt(limit);
+        const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+        
+        // Форматируем ответ
+        const usersWithStats = paginatedUsers.map(user => {
+            const stats = getUserStats(user.user_id);
+            return {
+                id: user.user_id,
+                name: user.tg_first_name,
+                username: user.tg_username,
+                role: user.class,
+                character: user.character_name,
+                sparks: user.sparks,
+                level: user.level,
+                total_quizzes: stats.totalQuizzesCompleted,
+                total_works: stats.totalWorks,
+                total_marathons: stats.totalMarathonsCompleted,
+                total_interactives: stats.totalInteractivesCompleted,
+                total_activities: stats.totalActivities,
+                registration_date: user.registration_date,
+                last_active: user.last_active
+            };
+        });
+        
+        res.json({
+            users: usersWithStats,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(filteredUsers.length / limit),
+                totalUsers: filteredUsers.length,
+                hasNext: endIndex < filteredUsers.length,
+                hasPrev: startIndex > 0
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки пользователей:', error);
+        res.status(500).json({ error: 'Ошибка загрузки списка пользователей' });
+    }
+});
+
+// Ручное начисление искр администратором
+app.post('/api/admin/users/:userId/add-sparks', requireAdmin, (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const { sparks, reason } = req.body;
+        
+        console.log('🎁 Начисление искр администратором:', {
+            adminId: req.admin.user_id,
+            targetUserId: userId,
+            sparks: sparks,
+            reason: reason
+        });
+        
+        if (!sparks || !reason) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Количество искр и причина обязательны' 
+            });
+        }
+        
+        const user = db.users.find(u => u.user_id === userId);
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Пользователь не найден' 
+            });
+        }
+        
+        const sparksAmount = parseFloat(sparks);
+        
+        if (sparksAmount <= 0) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Количество искр должно быть положительным' 
+            });
+        }
+        
+        // Начисляем искры
+        const activity = addSparks(
+            userId, 
+            sparksAmount, 
+            'admin_bonus', 
+            `Бонус от администратора: ${reason}`, 
+            req.admin.user_id
+        );
+        
+        console.log('✅ Искры успешно начислены:', {
+            userName: user.tg_first_name,
+            oldBalance: user.sparks - sparksAmount,
+            newBalance: user.sparks,
+            sparksAdded: sparksAmount
+        });
+        
+        res.json({
+            success: true,
+            message: `Пользователю ${user.tg_first_name} начислено ${sparksAmount}✨`,
+            newBalance: user.sparks,
+            activity: activity,
+            user: {
+                id: user.user_id,
+                name: user.tg_first_name,
+                sparks: user.sparks,
+                level: user.level
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка начисления искр:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Внутренняя ошибка сервера при начислении искр' 
+        });
+    }
+});
+
+// Полная статистика пользователя для админки
+app.get('/api/admin/users/:userId/full-stats', requireAdmin, (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const user = db.users.find(u => u.user_id === userId);
+        
+        if (!user) {
+            return res.status(404).json({ error: 'Пользователь не найден' });
+        }
+        
+        const stats = getUserStats(userId);
+        const activities = db.activities
+            .filter(a => a.user_id === userId)
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            .slice(0, 20);
+        
+        const purchases = db.purchases.filter(p => p.user_id === userId);
+        const works = db.user_works.filter(w => w.user_id === userId);
+        const quizCompletions = db.quiz_completions.filter(q => q.user_id === userId);
+        const marathonCompletions = db.marathon_completions.filter(m => m.user_id === userId);
+        const interactiveCompletions = db.interactive_completions.filter(i => i.user_id === userId);
+        
+        res.json({
+            user: {
+                id: user.user_id,
+                name: user.tg_first_name,
+                username: user.tg_username,
+                role: user.class,
+                character: user.character_name,
+                sparks: user.sparks,
+                level: user.level,
+                is_registered: user.is_registered,
+                registration_date: user.registration_date,
+                last_active: user.last_active
+            },
+            stats: {
+                ...stats,
+                totalPurchases: purchases.length,
+                totalSpent: purchases.reduce((sum, p) => sum + p.price_paid, 0),
+                worksByStatus: {
+                    pending: works.filter(w => w.status === 'pending').length,
+                    approved: works.filter(w => w.status === 'approved').length,
+                    rejected: works.filter(w => w.status === 'rejected').length
+                }
+            },
+            recentActivities: activities
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки статистики:', error);
+        res.status(500).json({ error: 'Ошибка загрузки статистики пользователя' });
+    }
+});
+
 // ==================== РУЧНОЕ НАЧИСЛЕНИЕ ИСКР ====================
 
 // РУЧНОЕ НАЧИСЛЕНИЕ ИСКР АДМИНИСТРАТОРОМ
