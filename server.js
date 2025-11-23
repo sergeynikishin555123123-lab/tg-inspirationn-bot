@@ -2608,6 +2608,59 @@ app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Админ удален' });
 });
 
+// ==================== РУЧНОЕ НАЧИСЛЕНИЕ ИСКР ====================
+
+// РУЧНОЕ НАЧИСЛЕНИЕ ИСКР АДМИНИСТРАТОРОМ
+app.post('/api/admin/users/:userId/add-sparks', requireAdmin, (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const { sparks, reason } = req.body;
+    
+    if (!sparks || !reason) {
+        return res.status(400).json({ error: 'Количество искр и причина обязательны' });
+    }
+    
+    const user = db.users.find(u => u.user_id === userId);
+    if (!user) {
+        return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+    
+    const sparksAmount = parseFloat(sparks);
+    
+    if (sparksAmount <= 0) {
+        return res.status(400).json({ error: 'Количество искр должно быть положительным' });
+    }
+    
+    // Начисляем искры через существующую функцию
+    const activity = addSparks(userId, sparksAmount, 'admin_bonus', `Бонус от администратора: ${reason}`, req.admin.user_id);
+    
+    res.json({
+        success: true,
+        message: `Пользователю ${user.tg_first_name} начислено ${sparksAmount}✨`,
+        newBalance: user.sparks,
+        activity: activity
+    });
+});
+
+// Получить информацию о пользователе для модального окна
+app.get('/api/admin/users/:userId/info', requireAdmin, (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const user = db.users.find(u => u.user_id === userId);
+    
+    if (!user) {
+        return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+    
+    res.json({
+        success: true,
+        user: {
+            id: user.user_id,
+            name: user.tg_first_name,
+            username: user.tg_username,
+            currentSparks: user.sparks
+        }
+    });
+});
+
 // Отчет по пользователям
 app.get('/api/admin/users-report', requireAdmin, (req, res) => {
     const users = db.users
