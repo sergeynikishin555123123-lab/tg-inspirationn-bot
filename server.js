@@ -22,16 +22,15 @@ console.log('📁 Текущая рабочая директория:', APP_ROOT
 
 // ==================== НАСТРОЙКИ CORS И БЕЗОПАСНОСТИ ====================
 
-// Расширенные настройки CORS
-const corsOptions = {
+// УПРОЩЕННЫЕ CORS ДЛЯ PC
+app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'User-Agent'],
-    credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-    maxAge: 86400
-};
+    allowedHeaders: '*'
+}));
+
+// Обработка preflight запросов
+app.options('*', cors());
 
 // Применяем CORS настройки
 app.use(cors(corsOptions));
@@ -765,59 +764,43 @@ const getDeviceType = (userAgent) => {
     return 'desktop';
 };
 
-// Статические файлы для основного приложения
-app.use(express.static(join(APP_ROOT, 'public'), {
-    maxAge: '1d',
-    setHeaders: (res, path, stat) => {
-        const userAgent = res.req.headers['user-agent'] || '';
-        const deviceType = getDeviceType(userAgent);
-        
-        console.log(`📁 Статический файл: ${path} для ${deviceType}`);
-        
-        // Для мобильных устройств - особые настройки кэширования
-        if (deviceType === 'mobile') {
-            if (path.endsWith('.js') || path.endsWith('.css')) {
-                res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 час для JS/CSS
-            } else if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
-                res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 день для изображений
-            }
-        }
-        
-        // HTML файлы не кэшируем сильно
-        if (path.endsWith('.html')) {
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            res.setHeader('Pragma', 'no-cache');
-            res.setHeader('Expires', '0');
-        }
-    }
-}));
+// УПРОЩЕННАЯ РАЗДАЧА СТАТИЧЕСКИХ ФАЙЛОВ ДЛЯ PC
+app.use(express.static(join(APP_ROOT, 'public')));
 
-// Статические файлы для админки
-app.use('/admin', express.static(join(APP_ROOT, 'admin'), {
-    maxAge: '1d',
-    setHeaders: (res, path, stat) => {
-        // Админка всегда без кэша
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-    }
-}));
+// Дополнительный путь для админки
+app.use('/admin', express.static(join(APP_ROOT, 'public')));
 
-// Основной маршрут
+// ОСНОВНОЙ МАРШРУТ ДЛЯ PC
 app.get('/', (req, res) => {
-    console.log('🏠 Запрос главной страницы');
+    console.log('🏠 Запрос главной страницы для PC');
     res.sendFile(join(APP_ROOT, 'public', 'index.html'));
 });
 
-// Маршруты админки
+// МАРШРУТ ДЛЯ АДМИНКИ
 app.get('/admin', (req, res) => {
-    console.log('🔧 Запрос админки');
-    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
+    console.log('🔧 Запрос админки для PC');
+    res.sendFile(join(APP_ROOT, 'public', 'admin.html'));
 });
 
-app.get('/admin/*', (req, res) => {
-    console.log('🔧 Запрос админки (вложенный путь)');
-    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
+app.get('/admin.html', (req, res) => {
+    console.log('🔧 Прямой запрос admin.html');
+    res.sendFile(join(APP_ROOT, 'public', 'admin.html'));
+});
+
+// УНИВЕРСАЛЬНЫЙ МАРШРУТ ДЛЯ SPA
+app.get('*', (req, res) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    console.log(`🌐 Универсальный маршрут: ${req.path} (${isMobile ? 'мобильный' : 'PC'})`);
+    
+    // Для админских путей
+    if (req.path.startsWith('/admin') || req.path === '/admin.html') {
+        return res.sendFile(join(APP_ROOT, 'public', 'admin.html'));
+    }
+    
+    // Для всех остальных путей - основное приложение
+    res.sendFile(join(APP_ROOT, 'public', 'index.html'));
 });
 
 console.log('🎨 Система инициализирована успешно!');
