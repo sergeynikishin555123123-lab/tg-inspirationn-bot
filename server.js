@@ -6,7 +6,6 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
-import ExcelJS from 'exceljs';
 
 dotenv.config();
 
@@ -84,23 +83,10 @@ app.use((req, res, next) => {
 
 // ==================== УСИЛЕННЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ====================
 
-// Улучшенные настройки для адаптивного отображения
+// Middleware для мобильных устройств
 app.use((req, res, next) => {
     const userAgent = req.headers['user-agent'] || '';
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    // Динамические настройки контента в зависимости от устройства
-    if (isMobile) {
-        res.locals.deviceType = 'mobile';
-        res.locals.maxFileSize = '50mb';
-        res.locals.videoWidth = '100%';
-        res.locals.videoHeight = 'auto';
-    } else {
-        res.locals.deviceType = 'desktop';
-        res.locals.maxFileSize = '3gb';
-        res.locals.videoWidth = '800px';
-        res.locals.videoHeight = '450px';
-    }
     
     console.log(`📱 Запрос от: ${isMobile ? 'Мобильное устройство' : 'Десктоп'} - ${req.method} ${req.url}`);
     
@@ -161,151 +147,6 @@ app.use(bodyParser.urlencoded({
     extended: true,
     parameterLimit: 100000
 }));
-
-// Динамические лимиты в зависимости от устройства
-app.use((req, res, next) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    if (isMobile) {
-        console.log('📱 Мобильное устройство - уменьшаем лимиты');
-        // Уменьшенные лимиты для мобильных
-        express.json({ limit: '50mb' })(req, res, (err) => {
-            if (err) {
-                console.error('Mobile JSON error:', err);
-                return res.status(413).json({ error: 'Файл слишком большой для мобильного устройства' });
-            }
-            next();
-        });
-    } else {
-        next();
-    }
-});
-
-// ==================== УЛУЧШЕННАЯ РАЗДАЧА СТАТИЧЕСКИХ ФАЙЛОВ ====================
-
-// Простые статические файлы для всех устройств
-// Статические файлы для основного приложения
-app.use(express.static(join(APP_ROOT, 'public'), {
-    maxAge: '1d',
-    setHeaders: (res, path, stat) => {
-        console.log(`📁 Статический файл: ${path}`);
-        
-        // Для Telegram Web App - особые настройки
-        if (path.endsWith('.html')) {
-            // Убираем X-Frame-Options для HTML файлов
-            res.removeHeader('X-Frame-Options');
-            
-            // Разрешаем embedding в iframe
-            res.setHeader('X-Frame-Options', 'ALLOWALL');
-        }
-        
-        // Остальные настройки кэширования...
-        if (path.endsWith('.js') || path.endsWith('.css')) {
-            res.setHeader('Cache-Control', 'public, max-age=3600');
-        } else if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
-            res.setHeader('Cache-Control', 'public, max-age=86400');
-        }
-    }
-}));
-
-// Статические файлы для админки
-app.use('/admin', express.static(join(APP_ROOT, 'admin'), {
-    maxAge: '1d',
-    setHeaders: (res, path, stat) => {
-        // Админка всегда без кэша
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-    }
-}));
-
-// ==================== ОСНОВНЫЕ МАРШРУТЫ ДЛЯ ВСЕХ УСТРОЙСТВ ====================
-
-// Основной маршрут - для всех устройств
-app.get('/', (req, res) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    console.log(`🏠 Запрос главной страницы от: ${isMobile ? 'мобильного' : 'десктопа'}`);
-    console.log('📁 Путь к файлу:', join(APP_ROOT, 'public', 'index.html'));
-    
-    // Проверяем существование файла
-    const filePath = join(APP_ROOT, 'public', 'index.html');
-    if (!existsSync(filePath)) {
-        console.error('❌ index.html не найден по пути:', filePath);
-        return res.status(404).json({ error: 'Главная страница не найдена' });
-    }
-    
-    res.sendFile(filePath);
-});
-
-// Маршруты админки - для всех устройств
-app.get('/admin', (req, res) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    console.log(`🔧 Запрос админки от: ${isMobile ? 'мобильного' : 'десктопа'}`);
-    
-    const filePath = join(APP_ROOT, 'admin', 'index.html');
-    if (!existsSync(filePath)) {
-        console.error('❌ admin/index.html не найден по пути:', filePath);
-        return res.status(404).json({ error: 'Админка не найдена' });
-    }
-    
-    res.sendFile(filePath);
-});
-
-app.get('/admin/*', (req, res) => {
-    console.log('🔧 Запрос админки (вложенный путь):', req.path);
-    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
-});
-
-console.log('🎨 Система инициализирована успешно!');
-
-// ==================== НАСТРОЙКИ ДЛЯ БОЛЬШИХ ФАЙЛОВ ====================
-
-// Middleware для увеличения лимитов и таймаутов
-app.use((req, res, next) => {
-    // Увеличиваем таймауты для больших файлов (30 минут)
-    req.setTimeout(30 * 60 * 1000); // 30 минут
-    res.setTimeout(30 * 60 * 1000); // 30 минут
-    console.log(`⏰ Установлены таймауты для ${req.method} ${req.url}`);
-    next();
-});
-
-// Обработка ошибок больших файлов
-app.use((error, req, res, next) => {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-        console.error('❌ Файл слишком большой:', error.message);
-        return res.status(413).json({ 
-            success: false,
-            error: 'Файл слишком большой. Максимальный размер: 3GB' 
-        });
-    }
-    
-    if (error.type === 'entity.too.large') {
-        console.error('❌ Превышен лимит размера файла:', error.message);
-        return res.status(413).json({ 
-            success: false,
-            error: 'Превышен лимит размера файла. Максимальный размер: 3GB' 
-        });
-    }
-    
-    console.error('❌ Неизвестная ошибка:', error);
-    next(error);
-});
-
-// Глобальный обработчик ошибок для больших файлов
-process.on('uncaughtException', (error) => {
-    if (error.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
-        console.error('❌ Превышен максимальный размер тела запроса');
-    }
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ Необработанное отклонение промиса:', reason);
-});
 
 // ==================== IN-MEMORY БАЗА ДАННЫХ ====================
 let db = {
@@ -656,36 +497,36 @@ let db = {
             is_active: true,
             created_at: new Date().toISOString()
         },
-        {
-            id: 5,
-            title: "🎬 Видео-урок по композиции",
-            description: "Эксклюзивный видео-урок по основам композиции от профессионального художника",
-            type: "embed",
-            embed_html: `<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1139315921?h=93d70dfee4&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="ТИХОНОВА"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>`,
-            preview_url: "https://images.unsplash.com/photo-1492684223066-81332ee5ff30?w=300&h=200&fit=crop",
-            price: 20,
-            content_text: "Профессиональный видео-урок по основам композиции в живописи. Вы научитесь правильно располагать элементы на холсте, создавать гармоничные композиции и направлять взгляд зрителя.\n\nТемы урока:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с акцентами",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 6,
-            title: "📺 Тестовое видео",
-            description: "Простой тест embed-видео",
-            type: "embed",
-            embed_html: `<div style="width: 100%; height: 400px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
-                <div style="text-align: center;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
-                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Тестовое видео</div>
-                    <div style="color: #666;">Здесь будет встроенное видео</div>
-                </div>
-            </div>`,
-            preview_url: "",
-            price: 5,
-            content_text: "Это тестовый embed-контент для проверки отображения",
-            is_active: true,
-            created_at: new Date().toISOString()
-        }  
+{
+    id: 5,
+    title: "🎬 Видео-урок по композиции",
+    description: "Эксклюзивный видео-урок по основам композиции от профессионального художника",
+    type: "embed",
+    embed_html: `<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1139315921?h=93d70dfee4&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="ТИХОНОВА"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>`,
+    preview_url: "https://images.unsplash.com/photo-1492684223066-81332ee5ff30?w=300&h=200&fit=crop",
+    price: 20,
+    content_text: "Профессиональный видео-урок по основам композиции в живописи. Вы научитесь правильно располагать элементы на холсте, создавать гармоничные композиции и направлять взгляд зрителя.\n\nТемы урока:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с акцентами",
+    is_active: true,
+    created_at: new Date().toISOString()
+},
+      {
+    id: 6,
+    title: "📺 Тестовое видео",
+    description: "Простой тест embed-видео",
+    type: "embed",
+    embed_html: `<div style="width: 100%; height: 400px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+        <div style="text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
+            <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Тестовое видео</div>
+            <div style="color: #666;">Здесь будет встроенное видео</div>
+        </div>
+    </div>`,
+    preview_url: "",
+    price: 5,
+    content_text: "Это тестовый embed-контент для проверки отображения",
+    is_active: true,
+    created_at: new Date().toISOString()
+}  
     ],
     activities: [],
     admins: [
@@ -862,8 +703,225 @@ let db = {
     marathon_submissions: []
 };
 
-// ==================== УСИЛЕННАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР ====================
+// ==================== УСИЛЕННЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ====================
 
+// Middleware для мобильных устройств
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    console.log(`📱 Запрос от: ${isMobile ? 'Мобильное устройство' : 'Десктоп'}`);
+    
+    // Устанавливаем заголовки безопасности
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    
+    // Для мобильных устройств - более либеральная политика безопасности
+    if (isMobile) {
+        res.setHeader('Content-Security-Policy', 
+            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+            "script-src * 'unsafe-inline' 'unsafe-eval'; " +
+            "connect-src * 'unsafe-inline'; " +
+            "img-src * data: blob: 'unsafe-inline'; " +
+            "frame-src *; " +
+            "style-src * 'unsafe-inline';"
+        );
+    }
+    
+    // Увеличиваем таймауты для мобильных
+    if (isMobile) {
+        req.setTimeout(300000); // 5 минут для мобильных
+        res.setTimeout(300000);
+    }
+    
+    next();
+});
+
+// Увеличены лимиты для больших файлов с учетом мобильных устройств
+app.use(express.json({ 
+    limit: '3gb',
+    verify: (req, res, buf) => {
+        try {
+            JSON.parse(buf);
+        } catch (e) {
+            console.error('❌ Ошибка парсинга JSON:', e.message);
+            res.status(400).json({ error: 'Неверный формат JSON' });
+        }
+    }
+}));
+
+app.use(express.urlencoded({ 
+    limit: '3gb', 
+    extended: true,
+    parameterLimit: 100000
+}));
+
+// Дополнительные настройки body-parser
+app.use(bodyParser.json({ 
+    limit: '3gb',
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
+
+app.use(bodyParser.urlencoded({ 
+    limit: '3gb', 
+    extended: true,
+    parameterLimit: 100000
+}));
+
+// ДОБАВЬТЕ ЭТО ДЛЯ МОБИЛЬНОЙ ОПТИМИЗАЦИИ:
+// Динамические лимиты в зависимости от устройства
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    if (isMobile) {
+        console.log('📱 Мобильное устройство - уменьшаем лимиты');
+        // Уменьшенные лимиты для мобильных
+        express.json({ limit: '50mb' })(req, res, (err) => {
+            if (err) {
+                console.error('Mobile JSON error:', err);
+                return res.status(413).json({ error: 'Файл слишком большой для мобильного устройства' });
+            }
+            next();
+        });
+    } else {
+        next();
+    }
+});
+
+// Дополнительные настройки для body-parser (если используется)
+app.use(bodyParser.json({ limit: '3gb' }));
+app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
+
+// ==================== УЛУЧШЕННАЯ РАЗДАЧА СТАТИЧЕСКИХ ФАЙЛОВ ====================
+
+// Простые статические файлы для всех устройств
+// Статические файлы для основного приложения
+app.use(express.static(join(APP_ROOT, 'public'), {
+    maxAge: '1d',
+    setHeaders: (res, path, stat) => {
+        console.log(`📁 Статический файл: ${path}`);
+        
+        // Для Telegram Web App - особые настройки
+        if (path.endsWith('.html')) {
+            // Убираем X-Frame-Options для HTML файлов
+            res.removeHeader('X-Frame-Options');
+            
+            // Разрешаем embedding в iframe
+            res.setHeader('X-Frame-Options', 'ALLOWALL');
+        }
+        
+        // Остальные настройки кэширования...
+        if (path.endsWith('.js') || path.endsWith('.css')) {
+            res.setHeader('Cache-Control', 'public, max-age=3600');
+        } else if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+        }
+    }
+}));
+
+// Статические файлы для админки
+app.use('/admin', express.static(join(APP_ROOT, 'admin'), {
+    maxAge: '1d',
+    setHeaders: (res, path, stat) => {
+        // Админка всегда без кэша
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+}));
+
+// ==================== ОСНОВНЫЕ МАРШРУТЫ ДЛЯ ВСЕХ УСТРОЙСТВ ====================
+
+// Основной маршрут - для всех устройств
+app.get('/', (req, res) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    console.log(`🏠 Запрос главной страницы от: ${isMobile ? 'мобильного' : 'десктопа'}`);
+    console.log('📁 Путь к файлу:', join(APP_ROOT, 'public', 'index.html'));
+    
+    // Проверяем существование файла
+    const filePath = join(APP_ROOT, 'public', 'index.html');
+    if (!existsSync(filePath)) {
+        console.error('❌ index.html не найден по пути:', filePath);
+        return res.status(404).json({ error: 'Главная страница не найдена' });
+    }
+    
+    res.sendFile(filePath);
+});
+
+// Маршруты админки - для всех устройств
+app.get('/admin', (req, res) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    
+    console.log(`🔧 Запрос админки от: ${isMobile ? 'мобильного' : 'десктопа'}`);
+    
+    const filePath = join(APP_ROOT, 'admin', 'index.html');
+    if (!existsSync(filePath)) {
+        console.error('❌ admin/index.html не найден по пути:', filePath);
+        return res.status(404).json({ error: 'Админка не найдена' });
+    }
+    
+    res.sendFile(filePath);
+});
+
+app.get('/admin/*', (req, res) => {
+    console.log('🔧 Запрос админки (вложенный путь):', req.path);
+    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
+});
+
+console.log('🎨 Система инициализирована успешно!');
+
+// ==================== НАСТРОЙКИ ДЛЯ БОЛЬШИХ ФАЙЛОВ ====================
+
+// Middleware для увеличения лимитов и таймаутов
+app.use((req, res, next) => {
+    // Увеличиваем таймауты для больших файлов (30 минут)
+    req.setTimeout(30 * 60 * 1000); // 30 минут
+    res.setTimeout(30 * 60 * 1000); // 30 минут
+    console.log(`⏰ Установлены таймауты для ${req.method} ${req.url}`);
+    next();
+});
+
+// Обработка ошибок больших файлов
+app.use((error, req, res, next) => {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+        console.error('❌ Файл слишком большой:', error.message);
+        return res.status(413).json({ 
+            success: false,
+            error: 'Файл слишком большой. Максимальный размер: 3GB' 
+        });
+    }
+    
+    if (error.type === 'entity.too.large') {
+        console.error('❌ Превышен лимит размера файла:', error.message);
+        return res.status(413).json({ 
+            success: false,
+            error: 'Превышен лимит размера файла. Максимальный размер: 3GB' 
+        });
+    }
+    
+    console.error('❌ Неизвестная ошибка:', error);
+    next(error);
+});
+
+// Глобальный обработчик ошибок для больших файлов
+process.on('uncaughtException', (error) => {
+    if (error.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
+        console.error('❌ Превышен максимальный размер тела запроса');
+    }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Необработанное отклонение промиса:', reason);
+});
+
+// УЛУЧШЕННАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР
 const SPARKS_SYSTEM = {
     QUIZ_PER_CORRECT_ANSWER: 1,
     QUIZ_PERFECT_BONUS: 5,
@@ -891,7 +949,7 @@ function calculateLevel(sparks) {
     return 'Ученик';
 }
 
-function addSparks(userId, sparks, activityType, description, adminId = null) {
+function addSparks(userId, sparks, activityType, description) {
     const user = db.users.find(u => u.user_id == userId);
     if (user) {
         // Обновляем баланс искр
@@ -906,7 +964,6 @@ function addSparks(userId, sparks, activityType, description, adminId = null) {
             activity_type: activityType,
             sparks_earned: sparks,
             description: description,
-            admin_id: adminId, // Добавляем ID администратора если начисление ручное
             created_at: new Date().toISOString()
         };
         
@@ -961,6 +1018,21 @@ const requireAdmin = (req, res, next) => {
     req.admin = admin;
     next();
 };
+
+// Basic routes
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        version: '7.0.0',
+        database: 'In-Memory',
+        users: db.users.length,
+        quizzes: db.quizzes.length,
+        marathons: db.marathons.length,
+        shop_items: db.shop_items.length,
+        interactives: db.interactives.length
+    });
+});
 
 // ==================== ДИАГНОСТИЧЕСКИЕ МАРШРУТЫ ДЛЯ МОБИЛЬНЫХ ====================
 
@@ -1053,23 +1125,6 @@ app.get('/api/debug/shop-status', (req, res) => {
                 category: item.category
             }))
         }
-    });
-});
-
-// ==================== ОСНОВНЫЕ API МАРШРУТЫ ====================
-
-// Basic routes
-app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'OK', 
-        timestamp: new Date().toISOString(),
-        version: '7.0.0',
-        database: 'In-Memory',
-        users: db.users.length,
-        quizzes: db.quizzes.length,
-        marathons: db.marathons.length,
-        shop_items: db.shop_items.length,
-        interactives: db.interactives.length
     });
 });
 
@@ -1850,8 +1905,6 @@ app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
     });
 });
 
-// ==================== АДМИН API ====================
-
 // Admin API
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
     const stats = {
@@ -2608,250 +2661,6 @@ app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Админ удален' });
 });
 
-// ==================== РУЧНОЕ УПРАВЛЕНИЕ ИСКРАМИ АДМИНИСТРАТОРОМ ====================
-
-// Получить список пользователей для админки
-app.get('/api/admin/users-list', requireAdmin, (req, res) => {
-    try {
-        const { page = 1, limit = 50, search = '' } = req.query;
-        const users = db.users.filter(u => u.is_registered);
-        
-        // Фильтрация по поиску
-        let filteredUsers = users;
-        if (search) {
-            const searchLower = search.toLowerCase();
-            filteredUsers = users.filter(u => 
-                u.tg_first_name?.toLowerCase().includes(searchLower) ||
-                u.tg_username?.toLowerCase().includes(searchLower) ||
-                u.class?.toLowerCase().includes(searchLower)
-            );
-        }
-        
-        // Пагинация
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + parseInt(limit);
-        const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-        
-        // Форматируем ответ
-        const usersWithStats = paginatedUsers.map(user => {
-            const stats = getUserStats(user.user_id);
-            return {
-                id: user.user_id,
-                name: user.tg_first_name,
-                username: user.tg_username,
-                role: user.class,
-                character: user.character_name,
-                sparks: user.sparks,
-                level: user.level,
-                total_quizzes: stats.totalQuizzesCompleted,
-                total_works: stats.totalWorks,
-                total_marathons: stats.totalMarathonsCompleted,
-                total_interactives: stats.totalInteractivesCompleted,
-                total_activities: stats.totalActivities,
-                registration_date: user.registration_date,
-                last_active: user.last_active
-            };
-        });
-        
-        res.json({
-            users: usersWithStats,
-            pagination: {
-                currentPage: parseInt(page),
-                totalPages: Math.ceil(filteredUsers.length / limit),
-                totalUsers: filteredUsers.length,
-                hasNext: endIndex < filteredUsers.length,
-                hasPrev: startIndex > 0
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки пользователей:', error);
-        res.status(500).json({ error: 'Ошибка загрузки списка пользователей' });
-    }
-});
-
-// Ручное начисление искр администратором
-app.post('/api/admin/users/:userId/add-sparks', requireAdmin, (req, res) => {
-    try {
-        const userId = parseInt(req.params.userId);
-        const { sparks, reason } = req.body;
-        
-        console.log('🎁 Начисление искр администратором:', {
-            adminId: req.admin.user_id,
-            targetUserId: userId,
-            sparks: sparks,
-            reason: reason
-        });
-        
-        if (!sparks || !reason) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Количество искр и причина обязательны' 
-            });
-        }
-        
-        const user = db.users.find(u => u.user_id === userId);
-        if (!user) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Пользователь не найден' 
-            });
-        }
-        
-        const sparksAmount = parseFloat(sparks);
-        
-        if (sparksAmount <= 0) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Количество искр должно быть положительным' 
-            });
-        }
-        
-        // Начисляем искры
-        const activity = addSparks(
-            userId, 
-            sparksAmount, 
-            'admin_bonus', 
-            `Бонус от администратора: ${reason}`, 
-            req.admin.user_id
-        );
-        
-        console.log('✅ Искры успешно начислены:', {
-            userName: user.tg_first_name,
-            oldBalance: user.sparks - sparksAmount,
-            newBalance: user.sparks,
-            sparksAdded: sparksAmount
-        });
-        
-        res.json({
-            success: true,
-            message: `Пользователю ${user.tg_first_name} начислено ${sparksAmount}✨`,
-            newBalance: user.sparks,
-            activity: activity,
-            user: {
-                id: user.user_id,
-                name: user.tg_first_name,
-                sparks: user.sparks,
-                level: user.level
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка начисления искр:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Внутренняя ошибка сервера при начислении искр' 
-        });
-    }
-});
-
-// Полная статистика пользователя для админки
-app.get('/api/admin/users/:userId/full-stats', requireAdmin, (req, res) => {
-    try {
-        const userId = parseInt(req.params.userId);
-        const user = db.users.find(u => u.user_id === userId);
-        
-        if (!user) {
-            return res.status(404).json({ error: 'Пользователь не найден' });
-        }
-        
-        const stats = getUserStats(userId);
-        const activities = db.activities
-            .filter(a => a.user_id === userId)
-            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-            .slice(0, 20);
-        
-        const purchases = db.purchases.filter(p => p.user_id === userId);
-        const works = db.user_works.filter(w => w.user_id === userId);
-        const quizCompletions = db.quiz_completions.filter(q => q.user_id === userId);
-        const marathonCompletions = db.marathon_completions.filter(m => m.user_id === userId);
-        const interactiveCompletions = db.interactive_completions.filter(i => i.user_id === userId);
-        
-        res.json({
-            user: {
-                id: user.user_id,
-                name: user.tg_first_name,
-                username: user.tg_username,
-                role: user.class,
-                character: user.character_name,
-                sparks: user.sparks,
-                level: user.level,
-                is_registered: user.is_registered,
-                registration_date: user.registration_date,
-                last_active: user.last_active
-            },
-            stats: {
-                ...stats,
-                totalPurchases: purchases.length,
-                totalSpent: purchases.reduce((sum, p) => sum + p.price_paid, 0),
-                worksByStatus: {
-                    pending: works.filter(w => w.status === 'pending').length,
-                    approved: works.filter(w => w.status === 'approved').length,
-                    rejected: works.filter(w => w.status === 'rejected').length
-                }
-            },
-            recentActivities: activities
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки статистики:', error);
-        res.status(500).json({ error: 'Ошибка загрузки статистики пользователя' });
-    }
-});
-
-// ==================== РУЧНОЕ НАЧИСЛЕНИЕ ИСКР ====================
-
-// РУЧНОЕ НАЧИСЛЕНИЕ ИСКР АДМИНИСТРАТОРОМ
-app.post('/api/admin/users/:userId/add-sparks', requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const { sparks, reason } = req.body;
-    
-    if (!sparks || !reason) {
-        return res.status(400).json({ error: 'Количество искр и причина обязательны' });
-    }
-    
-    const user = db.users.find(u => u.user_id === userId);
-    if (!user) {
-        return res.status(404).json({ error: 'Пользователь не найден' });
-    }
-    
-    const sparksAmount = parseFloat(sparks);
-    
-    if (sparksAmount <= 0) {
-        return res.status(400).json({ error: 'Количество искр должно быть положительным' });
-    }
-    
-    // Начисляем искры через существующую функцию
-    const activity = addSparks(userId, sparksAmount, 'admin_bonus', `Бонус от администратора: ${reason}`, req.admin.user_id);
-    
-    res.json({
-        success: true,
-        message: `Пользователю ${user.tg_first_name} начислено ${sparksAmount}✨`,
-        newBalance: user.sparks,
-        activity: activity
-    });
-});
-
-// Получить информацию о пользователе для модального окна
-app.get('/api/admin/users/:userId/info', requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const user = db.users.find(u => u.user_id === userId);
-    
-    if (!user) {
-        return res.status(404).json({ error: 'Пользователь не найден' });
-    }
-    
-    res.json({
-        success: true,
-        user: {
-            id: user.user_id,
-            name: user.tg_first_name,
-            username: user.tg_username,
-            currentSparks: user.sparks
-        }
-    });
-});
-
 // Отчет по пользователям
 app.get('/api/admin/users-report', requireAdmin, (req, res) => {
     const users = db.users
@@ -2933,213 +2742,6 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     
     res.json(stats);
 });
-
-// ==================== ЭКСПОРТ ОТЧЕТОВ ====================
-
-// Экспорт пользователей в CSV
-app.get('/api/admin/export/users', requireAdmin, (req, res) => {
-    try {
-        console.log('📊 Экспорт пользователей в CSV');
-        
-        const users = db.users.filter(u => u.is_registered);
-        
-        // Заголовки CSV
-        let csv = 'ID;Имя;Username;Роль;Персонаж;Уровень;Искры;Зарегистрирован;Последняя активность\n';
-        
-        // Данные пользователей
-        users.forEach(user => {
-            const row = [
-                user.user_id,
-                user.tg_first_name || '',
-                user.tg_username || '',
-                user.class || '',
-                user.character_name || '',
-                user.level || '',
-                user.sparks.toFixed(1),
-                new Date(user.registration_date).toLocaleDateString('ru-RU'),
-                new Date(user.last_active).toLocaleDateString('ru-RU')
-            ].map(field => `"${field}"`).join(';');
-            
-            csv += row + '\n';
-        });
-        
-        // Устанавливаем заголовки для скачивания
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename="users_export.csv"');
-        res.send(csv);
-        
-        console.log('✅ CSV экспортирован, пользователей:', users.length);
-        
-    } catch (error) {
-        console.error('❌ Ошибка экспорта:', error);
-        res.status(500).json({ error: 'Ошибка экспорта данных' });
-    }
-});
-
-// ЭКСПОРТ ПОЛЬЗОВАТЕЛЕЙ В EXCEL
-app.get('/api/admin/export/users-excel', requireAdmin, async (req, res) => {
-    try {
-        console.log('📊 Экспорт пользователей в Excel');
-        
-        const users = db.users.filter(u => u.is_registered);
-        
-        // Создаем новую книгу Excel
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Пользователи');
-        
-        // Заголовки столбцов
-        worksheet.columns = [
-            { header: 'ID', key: 'id', width: 10 },
-            { header: 'Имя', key: 'name', width: 20 },
-            { header: 'Username', key: 'username', width: 15 },
-            { header: 'Роль', key: 'role', width: 15 },
-            { header: 'Персонаж', key: 'character', width: 20 },
-            { header: 'Уровень', key: 'level', width: 12 },
-            { header: 'Искры', key: 'sparks', width: 12 },
-            { header: 'Квизов пройдено', key: 'quizzes', width: 15 },
-            { header: 'Работ загружено', key: 'works', width: 15 },
-            { header: 'Марафонов завершено', key: 'marathons', width: 18 },
-            { header: 'Интерактивов пройдено', key: 'interactives', width: 20 },
-            { header: 'Дата регистрации', key: 'registration_date', width: 15 },
-            { header: 'Последняя активность', key: 'last_active', width: 15 }
-        ];
-        
-        // Данные пользователей
-        users.forEach(user => {
-            const stats = getUserStats(user.user_id);
-            worksheet.addRow({
-                id: user.user_id,
-                name: user.tg_first_name || '',
-                username: user.tg_username || '',
-                role: user.class || '',
-                character: user.character_name || '',
-                level: user.level || '',
-                sparks: user.sparks.toFixed(1),
-                quizzes: stats.totalQuizzesCompleted || 0,
-                works: stats.totalWorks || 0,
-                marathons: stats.totalMarathonsCompleted || 0,
-                interactives: stats.totalInteractivesCompleted || 0,
-                registration_date: new Date(user.registration_date).toLocaleDateString('ru-RU'),
-                last_active: new Date(user.last_active).toLocaleDateString('ru-RU')
-            });
-        });
-        
-        // Стили для заголовков
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFE6E6FA' }
-        };
-        
-        // Устанавливаем заголовки для скачивания
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', 'attachment; filename="users_export.xlsx"');
-        
-        // Записываем книгу в ответ
-        await workbook.xlsx.write(res);
-        res.end();
-        
-        console.log('✅ Excel экспортирован, пользователей:', users.length);
-        
-    } catch (error) {
-        console.error('❌ Ошибка экспорта Excel:', error);
-        res.status(500).json({ error: 'Ошибка экспорта данных в Excel' });
-    }
-});
-
-// Экспорт статистики в CSV
-app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
-    try {
-        console.log('📈 Экспорт полной статистики в CSV');
-        
-        const users = db.users.filter(u => u.is_registered);
-        const purchases = db.purchases;
-        const activities = db.activities;
-        const works = db.user_works;
-        const quizCompletions = db.quiz_completions;
-        const marathonCompletions = db.marathon_completions.filter(m => m.completed);
-        
-        // Статистика по ролям
-        const roleStats = {};
-        db.roles.forEach(role => {
-            roleStats[role.name] = users.filter(u => u.class === role.name).length;
-        });
-        
-        let csv = 'Раздел;Показатель;Значение\n';
-        
-        // Основная статистика
-        csv += `Пользователи;Всего пользователей;${users.length}\n`;
-        csv += `Пользователи;Зарегистрировано;${users.filter(u => u.is_registered).length}\n`;
-        csv += `Пользователи;Активных сегодня;${users.filter(u => {
-            const today = new Date();
-            const lastActive = new Date(u.last_active);
-            return lastActive.toDateString() === today.toDateString();
-        }).length}\n`;
-        
-        // Статистика по ролям
-        Object.keys(roleStats).forEach(role => {
-            csv += `Роли;${role};${roleStats[role]}\n`;
-        });
-        
-        // Активности
-        csv += `Активности;Всего активностей;${activities.length}\n`;
-        csv += `Активности;Всего искр в системе;${users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)}\n`;
-        csv += `Активности;Всего покупок;${purchases.length}\n`;
-        csv += `Активности;Всего работ;${works.length}\n`;
-        csv += `Активности;Одобренных работ;${works.filter(w => w.status === 'approved').length}\n`;
-        
-        // Завершения
-        csv += `Завершения;Пройдено квизов;${quizCompletions.length}\n`;
-        csv += `Завершения;Завершено марафонов;${marathonCompletions.length}\n`;
-        
-        // Контент
-        csv += `Контент;Активных квизов;${db.quizzes.filter(q => q.is_active).length}\n`;
-        csv += `Контент;Активных марафонов;${db.marathons.filter(m => m.is_active).length}\n`;
-        csv += `Контент;Товаров в магазине;${db.shop_items.filter(i => i.is_active).length}\n`;
-        csv += `Контент;Постов в канале;${db.channel_posts.filter(p => p.is_active).length}\n`;
-        csv += `Контент;Интерактивов;${db.interactives.filter(i => i.is_active).length}\n`;
-        
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename="full_stats_export.csv"');
-        res.send(csv);
-        
-        console.log('✅ Статистика экспортирована');
-        
-    } catch (error) {
-        console.error('❌ Ошибка экспорта статистики:', error);
-        res.status(500).json({ error: 'Ошибка экспорта статистики' });
-    }
-});
-
-// РУЧНОЕ НАЧИСЛЕНИЕ ИСКР АДМИНИСТРАТОРОМ
-app.post('/api/admin/users/:userId/add-sparks', requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const { sparks, reason } = req.body;
-    
-    if (!sparks || !reason) {
-        return res.status(400).json({ error: 'Количество искр и причина обязательны' });
-    }
-    
-    const user = db.users.find(u => u.user_id === userId);
-    if (!user) {
-        return res.status(404).json({ error: 'Пользователь не найден' });
-    }
-    
-    const sparksAmount = parseFloat(sparks);
-    
-    // Начисляем искры
-    const activity = addSparks(userId, sparksAmount, 'admin_bonus', `Бонус от администратора: ${reason}`, req.admin.user_id);
-    
-    res.json({
-        success: true,
-        message: `Пользователю ${user.tg_first_name} начислено ${sparksAmount}✨`,
-        newBalance: user.sparks,
-        activity: activity
-    });
-});
-
-// ==================== TELEGRAM BOT ====================
 
 // Telegram Bot
 let bot;
@@ -3274,6 +2876,112 @@ if (process.env.BOT_TOKEN) {
         console.error('❌ Ошибка инициализации бота:', error);
     }
 }
+
+// ==================== ЭКСПОРТ ОТЧЕТОВ ====================
+
+// Экспорт пользователей в CSV
+app.get('/api/admin/export/users', requireAdmin, (req, res) => {
+    try {
+        console.log('📊 Экспорт пользователей в CSV');
+        
+        const users = db.users.filter(u => u.is_registered);
+        
+        // Заголовки CSV
+        let csv = 'ID;Имя;Username;Роль;Персонаж;Уровень;Искры;Зарегистрирован;Последняя активность\n';
+        
+        // Данные пользователей
+        users.forEach(user => {
+            const row = [
+                user.user_id,
+                user.tg_first_name || '',
+                user.tg_username || '',
+                user.class || '',
+                user.character_name || '',
+                user.level || '',
+                user.sparks.toFixed(1),
+                new Date(user.registration_date).toLocaleDateString('ru-RU'),
+                new Date(user.last_active).toLocaleDateString('ru-RU')
+            ].map(field => `"${field}"`).join(';');
+            
+            csv += row + '\n';
+        });
+        
+        // Устанавливаем заголовки для скачивания
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="users_export.csv"');
+        res.send(csv);
+        
+        console.log('✅ CSV экспортирован, пользователей:', users.length);
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта:', error);
+        res.status(500).json({ error: 'Ошибка экспорта данных' });
+    }
+});
+
+// Экспорт статистики в CSV
+app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
+    try {
+        console.log('📈 Экспорт полной статистики в CSV');
+        
+        const users = db.users.filter(u => u.is_registered);
+        const purchases = db.purchases;
+        const activities = db.activities;
+        const works = db.user_works;
+        const quizCompletions = db.quiz_completions;
+        const marathonCompletions = db.marathon_completions.filter(m => m.completed);
+        
+        // Статистика по ролям
+        const roleStats = {};
+        db.roles.forEach(role => {
+            roleStats[role.name] = users.filter(u => u.class === role.name).length;
+        });
+        
+        let csv = 'Раздел;Показатель;Значение\n';
+        
+        // Основная статистика
+        csv += `Пользователи;Всего пользователей;${users.length}\n`;
+        csv += `Пользователи;Зарегистрировано;${users.filter(u => u.is_registered).length}\n`;
+        csv += `Пользователи;Активных сегодня;${users.filter(u => {
+            const today = new Date();
+            const lastActive = new Date(u.last_active);
+            return lastActive.toDateString() === today.toDateString();
+        }).length}\n`;
+        
+        // Статистика по ролям
+        Object.keys(roleStats).forEach(role => {
+            csv += `Роли;${role};${roleStats[role]}\n`;
+        });
+        
+        // Активности
+        csv += `Активности;Всего активностей;${activities.length}\n`;
+        csv += `Активности;Всего искр в системе;${users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)}\n`;
+        csv += `Активности;Всего покупок;${purchases.length}\n`;
+        csv += `Активности;Всего работ;${works.length}\n`;
+        csv += `Активности;Одобренных работ;${works.filter(w => w.status === 'approved').length}\n`;
+        
+        // Завершения
+        csv += `Завершения;Пройдено квизов;${quizCompletions.length}\n`;
+        csv += `Завершения;Завершено марафонов;${marathonCompletions.length}\n`;
+        
+        // Контент
+        csv += `Контент;Активных квизов;${db.quizzes.filter(q => q.is_active).length}\n`;
+        csv += `Контент;Активных марафонов;${db.marathons.filter(m => m.is_active).length}\n`;
+        csv += `Контент;Товаров в магазине;${db.shop_items.filter(i => i.is_active).length}\n`;
+        csv += `Контент;Постов в канале;${db.channel_posts.filter(p => p.is_active).length}\n`;
+        csv += `Контент;Интерактивов;${db.interactives.filter(i => i.is_active).length}\n`;
+        
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="full_stats_export.csv"');
+        res.send(csv);
+        
+        console.log('✅ Статистика экспортирована');
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта статистики:', error);
+        res.status(500).json({ error: 'Ошибка экспорта статистики' });
+    }
+});
 
 // ==================== ГЛОБАЛЬНЫЙ ОБРАБОТЧИК ОШИБОК ====================
 
