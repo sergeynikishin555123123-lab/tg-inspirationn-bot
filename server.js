@@ -2606,6 +2606,180 @@ app.post('/api/interactives/:interactiveId/submit', requireUser, (req, res) => {
     });
 });
 
+// ==================== АДМИН СТАТИСТИКА И УПРАВЛЕНИЕ ====================
+
+app.get('/api/admin/dashboard', requireAdmin, (req, res) => {
+    const stats = {
+        users: {
+            total: db.users.length,
+            active_today: db.users.filter(u => {
+                const lastActive = new Date(u.last_active);
+                const today = new Date();
+                return lastActive.toDateString() === today.toDateString();
+            }).length,
+            new_today: db.users.filter(u => {
+                const regDate = new Date(u.registration_date);
+                const today = new Date();
+                return regDate.toDateString() === today.toDateString();
+            }).length
+        },
+        content: {
+            quizzes: db.quizzes.length,
+            active_quizzes: db.quizzes.filter(q => q.is_active).length,
+            marathons: db.marathons.length,
+            active_marathons: db.marathons.filter(m => m.is_active).length,
+            works: db.user_works.length,
+            pending_works: db.user_works.filter(w => w.status === 'pending').length
+        },
+        activities: {
+            total: db.activities.length,
+            today: db.activities.filter(a => {
+                const activityDate = new Date(a.created_at);
+                const today = new Date();
+                return activityDate.toDateString() === today.toDateString();
+            }).length,
+            sparks_distributed: db.activities.reduce((sum, a) => sum + a.sparks_earned, 0)
+        },
+        system: {
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+            cache: cache.getStats()
+        }
+    };
+
+    res.json(stats);
+});
+
+// API endpoint для проверки прав администратора
+app.get('/api/admin/auth', requireAdmin, (req, res) => {
+    res.json({
+        authenticated: true,
+        admin: {
+            user_id: req.admin.user_id,
+            username: req.admin.username,
+            role: req.admin.role,
+            permissions: req.admin.permissions
+        }
+    });
+});
+
+// ==================== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ====================
+
+app.get('/api/admin/users', requireAdmin, paginate, (req, res) => {
+    const { page, limit, offset } = req.pagination;
+    const { search, role, status } = req.query;
+    
+    let users = db.users;
+    
+    if (search) {
+        const searchLower = search.toLowerCase();
+        users = users.filter(u => 
+            u.tg_first_name.toLowerCase().includes(searchLower) ||
+            u.tg_username?.toLowerCase().includes(searchLower) ||
+            u.user_id.toString().includes(search)
+        );
+    }
+    
+    if (role) {
+        users = users.filter(u => u.class === role);
+    }
+    
+    if (status === 'active') {
+        users = users.filter(u => {
+            const lastActive = new Date(u.last_active);
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            return lastActive > weekAgo;
+        });
+    } else if (status === 'inactive') {
+        users = users.filter(u => {
+            const lastActive = new Date(u.last_active);
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            return lastActive <= weekAgo;
+        });
+    }
+    
+    const total = users.length;
+    const paginatedUsers = users.slice(offset, offset + limit);
+    
+    // Обогащаем данными
+    const usersWithStats = paginatedUsers.map(user => {
+        const activities = db.activities.filter(a => a.user_id == user.user_id);
+        const works = db.user_works.filter(w => w.user_id == user.user_id);
+        const quizzes = db.quiz_completions.filter(q => q.user_id == user.user_id);
+        
+        return {
+            ...user,
+            stats: {
+                total_activities: activities.length,
+                total_works: works.length,
+                approved_works: works.filter(w => w.status === 'approved').length,
+                total_quizzes: quizzes.length,
+                total_sparks_earned: activities.reduce((sum, a) => sum + a.sparks_earned, 0),
+                last_activity: activities.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+            }
+        };
+    });
+    
+    res.json({
+        users: usersWithStats,
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    });
+});
+
+// ==================== СИСТЕМНЫЕ ЛОГИ ====================
+
+app.get('/api/admin/logs', requireAdmin, paginate, (req, res) => {
+    const { page, limit, offset } = req.pagination;
+    const { type, level, startDate, endDate } = req.query;
+    
+    let logs = [...db.system_logs, ...db.security_events].sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+    );
+    
+    if (type) {
+        logs = logs.filter(log => log.type === type);
+    }
+    
+    if (level) {
+        logs = logs.filter(log => log.data?.level === level);
+    }
+    
+    if (startDate) {
+        const start = new Date(startDate);
+        logs = logs.filter(log => new Date(log.created_at) >= start);
+    }
+    
+    if (endDate) {
+        const end = new Date(endDate);
+        logs = logs.filter(log => new Date(log.created_at) <= end);
+    }
+    
+    const total = logs.length;
+    const paginatedLogs = logs.slice(offset, offset + limit);
+    
+    res.json({
+        logs: paginatedLogs,
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    });
+});
+
+// ==================== ЦЕНТРАЛИЗОВАННАЯ ОБРАБОТКА ОШИБОК ====================
+
+// Обработчик 404
+app.use((req, res) => {
+    Logger.warn('Маршрут не найден', {
+        path: req.url,
+        method: req.method,
+        ip: req.ip
+    });
+    
+    res.status(404).json({ 
+        error: 'Маршрут не найден',
+        path: req.url,
+        method: req.method
+    });
+});
+
 // ==================== СИСТЕМА ДОСТИЖЕНИЙ ====================
 
 function checkQuizAchievements(userId) {
@@ -3182,8 +3356,28 @@ app.use((error, req, res, next) => {
 
 // ==================== ЗАПУСК СЕРВЕРА ====================
 
+// Статические файлы
 app.use(express.static(join(APP_ROOT, 'public')));
-app.use('/admin', express.static(join(APP_ROOT, 'admin')));
+
+// Главная страница приложения
+app.get('/', (req, res) => {
+    const indexPath = join(APP_ROOT, 'public', 'index.html');
+    if (existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).json({ error: 'Main application not found' });
+    }
+});
+
+// Маршрут для админ-панели
+app.get('/admin', (req, res) => {
+    const adminPath = join(APP_ROOT, 'public', 'admin.html');
+    if (existsSync(adminPath)) {
+        res.sendFile(adminPath);
+    } else {
+        res.status(404).json({ error: 'Admin panel not found' });
+    }
+});
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
@@ -3194,21 +3388,14 @@ process.on('SIGTERM', () => {
     });
 });
 
-process.on('SIGINT', () => {
-    Logger.info('Получен SIGINT, начинаем graceful shutdown');
-    app.server.close(() => {
-        Logger.info('Сервер остановлен');
-        process.exit(0);
-    });
-});
-
 app.server = app.listen(config.port, '0.0.0.0', () => {
     initializeDemoData();
     
-    console.log(`\n🚀 СЕРВЕР ПОЛНОСТЬЮ РЕАЛИЗОВАН И ЗАПУЩЕН НА ПОРТУ ${config.port}`);
+    console.log(`\n🚀 СЕРВЕР ЗАПУЩЕН НА ПОРТУ ${config.port}`);
     console.log(`📱 WebApp: ${config.appUrl}`);
     console.log(`🔧 Admin: ${config.appUrl}/admin`);
     console.log(`🔗 WebSocket: ws://localhost:${config.port}`);
+    console.log(`✅ Админ-панель доступна по: ${config.appUrl}/admin?userId=898508164`);
     if (telegramBot) {
         console.log(`🤖 Telegram Bot: активен`);
     }
