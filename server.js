@@ -92,17 +92,26 @@ const config = {
 
 // ==================== СИСТЕМА ЛОГИРОВАНИЯ ====================
 class Logger {
-    static logFile = join(APP_ROOT, 'logs', 'application.log');
+    static getLogFile() {
+        // В production пишем в stdout или временный файл
+        if (process.env.NODE_ENV === 'production') {
+            return process.env.LOG_FILE || '/tmp/application.log';
+        }
+        return join(LOGS_DIR, 'application.log');
+    }
     
-    static ensureLogDirectory() {
-        const logDir = join(APP_ROOT, 'logs');
-        if (!existsSync(logDir)) {
-            mkdirSync(logDir, { recursive: true });
+    static canWriteToFile() {
+        try {
+            const testFile = join(LOGS_DIR, 'test-write.log');
+            writeFileSync(testFile, 'test');
+            unlinkSync(testFile);
+            return true;
+        } catch {
+            return false;
         }
     }
     
     static writeLog(level, message, data = {}) {
-        this.ensureLogDirectory();
         const timestamp = new Date().toISOString();
         const logEntry = {
             timestamp,
@@ -113,10 +122,9 @@ class Logger {
         };
         
         const logLine = JSON.stringify(logEntry) + '\n';
-        appendFileSync(this.logFile, logLine, 'utf8');
         
-        // Также выводим в консоль в development
-        if (config.environment === 'development') {
+        // В production всегда выводим в console
+        if (process.env.NODE_ENV === 'production') {
             const consoleMessage = `[${level.toUpperCase()}] ${timestamp} - ${message}`;
             if (level === 'error') {
                 console.error(consoleMessage, data);
@@ -124,6 +132,15 @@ class Logger {
                 console.warn(consoleMessage, data);
             } else {
                 console.log(consoleMessage, data);
+            }
+        } else {
+            // В development пробуем писать в файл
+            try {
+                if (ensureDirectoryExists(LOGS_DIR)) {
+                    appendFileSync(this.getLogFile(), logLine, 'utf8');
+                }
+            } catch (error) {
+                console.log(`[${level.toUpperCase()}] ${timestamp} - ${message}`, data);
             }
         }
     }
@@ -361,25 +378,44 @@ if (config.telegramBotToken) {
 }
 
 // ==================== ФАЙЛОВАЯ СИСТЕМА ====================
-// Используем текущую рабочую директорию вместо APP_ROOT
-const UPLOADS_DIR = join(process.cwd(), 'uploads');
-const SHOP_FILES_DIR = join(UPLOADS_DIR, 'shop');
-const USER_WORKS_DIR = join(UPLOADS_DIR, 'works');
-const PREVIEWS_DIR = join(UPLOADS_DIR, 'previews');
-const TEMP_DIR = join(UPLOADS_DIR, 'temp');
-const LOGS_DIR = join(process.cwd(), 'logs');
-
-// Создаем директории с обработкой ошибок
-[UPLOADS_DIR, SHOP_FILES_DIR, USER_WORKS_DIR, PREVIEWS_DIR, TEMP_DIR, LOGS_DIR].forEach(dir => {
-    try {
-        if (!existsSync(dir)) {
-            mkdirSync(dir, { recursive: true });
-            console.log(`✅ Создана директория: ${dir}`);
-        }
-    } catch (error) {
-        console.warn(`⚠️ Не удалось создать директорию ${dir}:`, error.message);
-        // Продолжаем работу даже если не удалось создать директории
+// Используем временные директории для production или права пользователя
+const getUploadsBaseDir = () => {
+    if (process.env.NODE_ENV === 'production') {
+        // В production используем /tmp или текущую директорию
+        return process.env.UPLOADS_DIR || '/tmp/uploads';
     }
+    return join(APP_ROOT, 'uploads');
+};
+
+const UPLOADS_BASE_DIR = getUploadsBaseDir();
+const SHOP_FILES_DIR = join(UPLOADS_BASE_DIR, 'shop');
+const USER_WORKS_DIR = join(UPLOADS_BASE_DIR, 'works');
+const PREVIEWS_DIR = join(UPLOADS_BASE_DIR, 'previews');
+const TEMP_DIR = join(UPLOADS_BASE_DIR, 'temp');
+const LOGS_DIR = process.env.NODE_ENV === 'production' ? '/tmp/logs' : join(APP_ROOT, 'logs');
+
+// Безопасное создание директорий
+const ensureDirectoryExists = (dirPath) => {
+    try {
+        if (!existsSync(dirPath)) {
+            mkdirSync(dirPath, { recursive: true, mode: 0o755 });
+            console.log(`✅ Создана директория: ${dirPath}`);
+        }
+        return true;
+    } catch (error) {
+        if (error.code === 'EACCES') {
+            console.warn(`⚠️ Нет прав для создания директории: ${dirPath}`);
+            console.warn(`⚠️ Используется временное хранилище`);
+            return false;
+        }
+        console.error(`❌ Ошибка создания директории ${dirPath}:`, error.message);
+        return false;
+    }
+};
+
+// Пытаемся создать директории, но не падаем при ошибках прав
+const directories = [UPLOADS_BASE_DIR, SHOP_FILES_DIR, USER_WORKS_DIR, PREVIEWS_DIR, TEMP_DIR, LOGS_DIR];
+directories.forEach(dir => ensureDirectoryExists(dir));
 });
 // ==================== WebSocket СЕРВЕР ====================
 const wss = new WebSocketServer({ noServer: true });
@@ -1317,13 +1353,35 @@ app.use(express.urlencoded({
     parameterLimit: 100000
 }));
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, TEMP_DIR),
-    filename: (req, file, cb) => {
-        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}-${file.originalname}`;
-        cb(null, uniqueName);
+// ==================== БЕЗОПАСНАЯ КОНФИГУРАЦИЯ MULTER ====================
+
+// Функция для определения типа хранилища в зависимости от окружения
+const getMulterStorage = () => {
+    // В production используем memory storage чтобы избежать проблем с правами
+    if (process.env.NODE_ENV === 'production') {
+        console.log('⚡ PRODUCTION: Используется memory storage для загрузки файлов');
+        return multer.memoryStorage();
     }
-});
+    
+    // В development используем disk storage
+    console.log('🔧 DEVELOPMENT: Используется disk storage для загрузки файлов');
+    return multer.diskStorage({
+        destination: (req, file, cb) => {
+            // Пробуем создать временную директорию
+            if (ensureDirectoryExists(TEMP_DIR)) {
+                cb(null, TEMP_DIR);
+            } else {
+                // Если не удалось создать директорию, используем memory storage как fallback
+                console.warn('⚠️ Не удалось создать TEMP_DIR, используем memory storage');
+                cb(null, null);
+            }
+        },
+        filename: (req, file, cb) => {
+            const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}-${file.originalname}`;
+            cb(null, uniqueName);
+        }
+    });
+};
 
 const fileFilter = (req, file, cb) => {
     const allowedTypes = [
@@ -1343,10 +1401,14 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
+// Создаем экземпляр multer с безопасной конфигурацией
 const upload = multer({
-    storage,
+    storage: getMulterStorage(),
     fileFilter,
-    limits: { fileSize: config.upload.maxFileSize }
+    limits: { 
+        fileSize: config.upload.maxFileSize,
+        files: 1 // максимальное количество файлов
+    }
 });
 
 // Middleware логирования
@@ -2733,6 +2795,241 @@ app.get('/api/users/:userId/achievements', requireUser, (req, res) => {
         achievements: achievements.sort((a, b) => new Date(b.earned_at) - new Date(a.earned_at)),
         total: achievements.length
     });
+});
+
+// ==================== УНИВЕРСАЛЬНЫЙ ENDPOINT ДЛЯ ЗАГРУЗКИ ФАЙЛОВ ====================
+
+app.post('/api/upload', requireUser, upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Файл не загружен' });
+        }
+
+        const { type, purpose } = req.body;
+        const user = req.user;
+        
+        let fileBuffer;
+        let fileName;
+        let filePath = null;
+
+        // Обрабатываем разные типы storage
+        if (req.file.buffer) {
+            // Memory storage (используется в production)
+            fileBuffer = req.file.buffer;
+            fileName = `${type}-${user.user_id}-${Date.now()}.${req.file.originalname.split('.').pop()}`;
+            console.log(`📦 Memory storage: файл ${fileName} загружен в память`);
+        } else {
+            // Disk storage (используется в development)
+            fileBuffer = readFileSync(req.file.path);
+            fileName = req.file.filename;
+            filePath = req.file.path;
+            console.log(`💾 Disk storage: файл ${fileName} загружен на диск`);
+        }
+
+        // Пытаемся сохранить файл на диск (если есть права)
+        let fileUrl = null;
+        let previewUrl = null;
+        let finalFilePath = null;
+
+        if (ensureDirectoryExists(USER_WORKS_DIR)) {
+            // Есть права на запись - сохраняем на диск
+            finalFilePath = join(USER_WORKS_DIR, fileName);
+            writeFileSync(finalFilePath, fileBuffer);
+            fileUrl = `/api/files/${fileName}`;
+            console.log(`✅ Файл сохранен на диск: ${finalFilePath}`);
+
+            // Создаем превью для изображений
+            if (config.upload.allowedImageTypes.includes(req.file.mimetype) && ensureDirectoryExists(PREVIEWS_DIR)) {
+                const previewFileName = `preview-${fileName}`;
+                const previewPath = join(PREVIEWS_DIR, previewFileName);
+                
+                try {
+                    await sharp(fileBuffer)
+                        .resize(400, 300, { fit: 'inside' })
+                        .jpeg({ quality: 80 })
+                        .toFile(previewPath);
+                        
+                    previewUrl = `/api/files/previews/${previewFileName}`;
+                    console.log(`🖼️ Превью создано: ${previewPath}`);
+                } catch (previewError) {
+                    console.warn('⚠️ Не удалось создать превью:', previewError.message);
+                }
+            }
+        } else {
+            // Нет прав на запись - сохраняем в base64
+            fileUrl = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
+            console.warn('⚠️ Нет прав на файловую систему, файл сохранен в base64');
+        }
+
+        // Очищаем временный файл (если использовался disk storage)
+        if (filePath && existsSync(filePath)) {
+            try {
+                unlinkSync(filePath);
+                console.log(`🧹 Временный файл удален: ${filePath}`);
+            } catch (cleanupError) {
+                console.warn('⚠️ Не удалось удалить временный файл:', cleanupError.message);
+            }
+        }
+
+        // Сохраняем информацию о файле в базу данных
+        const fileRecord = {
+            id: generateId(),
+            user_id: user.user_id,
+            original_name: req.file.originalname,
+            file_name: fileName,
+            file_path: finalFilePath, // Может быть null в production
+            file_data: process.env.NODE_ENV === 'production' ? fileBuffer.toString('base64') : null, // В production храним данные в БД
+            file_url: fileUrl,
+            preview_url: previewUrl,
+            mime_type: req.file.mimetype,
+            size: req.file.size,
+            purpose: purpose || 'work',
+            type: type || 'general',
+            storage_type: req.file.buffer ? 'memory' : 'disk',
+            created_at: new Date().toISOString()
+        };
+
+        // Добавляем в базу данных (если у вас есть db.file_uploads)
+        if (!db.file_uploads) {
+            db.file_uploads = [];
+        }
+        db.file_uploads.push(fileRecord);
+
+        console.log('✅ Файл успешно загружен:', {
+            id: fileRecord.id,
+            name: fileName,
+            size: fileRecord.size,
+            storage: fileRecord.storage_type
+        });
+
+        res.json({
+            success: true,
+            file: {
+                id: fileRecord.id,
+                original_name: fileRecord.original_name,
+                file_url: fileRecord.file_url,
+                preview_url: fileRecord.preview_url,
+                mime_type: fileRecord.mime_type,
+                size: fileRecord.size,
+                storage_type: fileRecord.storage_type
+            },
+            message: 'Файл успешно загружен'
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка загрузки файла:', error);
+        
+        // Пытаемся очистить временные файлы при ошибке
+        if (req.file && req.file.path && existsSync(req.file.path)) {
+            try {
+                unlinkSync(req.file.path);
+            } catch (cleanupError) {
+                // Игнорируем ошибки очистки
+            }
+        }
+        
+        res.status(500).json({ 
+            error: 'Ошибка загрузки файла',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+// ==================== УНИВЕРСАЛЬНЫЙ ENDPOINT ДЛЯ СКАЧИВАНИЯ ФАЙЛОВ ====================
+
+app.get('/api/files/:filename', (req, res) => {
+    const { filename } = req.params;
+    
+    console.log(`📥 Запрос на скачивание файла: ${filename}`);
+    
+    // Сначала ищем файл в базе данных
+    if (db.file_uploads) {
+        const fileRecord = db.file_uploads.find(f => f.file_name === filename);
+        if (fileRecord) {
+            console.log(`✅ Файл найден в базе данных: ${filename}`);
+            
+            // Если файл хранится в базе данных как base64
+            if (fileRecord.file_data) {
+                console.log(`🔍 Файл из базы данных (base64)`);
+                try {
+                    const buffer = Buffer.from(fileRecord.file_data, 'base64');
+                    res.setHeader('Content-Type', fileRecord.mime_type);
+                    res.setHeader('Content-Length', buffer.length);
+                    res.setHeader('Content-Disposition', `inline; filename="${fileRecord.original_name}"`);
+                    res.setHeader('Cache-Control', 'public, max-age=3600');
+                    res.send(buffer);
+                    
+                    console.log('✅ Файл отдан из базы данных');
+                    return;
+                } catch (error) {
+                    console.error('❌ Ошибка декодирования base64:', error.message);
+                }
+            }
+            
+            // Если есть путь к файлу на диске
+            if (fileRecord.file_path && existsSync(fileRecord.file_path)) {
+                console.log(`🔍 Файл на диске: ${fileRecord.file_path}`);
+                try {
+                    res.setHeader('Content-Type', fileRecord.mime_type);
+                    res.setHeader('Content-Disposition', `inline; filename="${fileRecord.original_name}"`);
+                    res.setHeader('Cache-Control', 'public, max-age=3600');
+                    createReadStream(fileRecord.file_path).pipe(res);
+                    
+                    console.log('✅ Файл отдан с диска');
+                    return;
+                } catch (error) {
+                    console.error('❌ Ошибка чтения файла с диска:', error.message);
+                }
+            }
+        }
+    }
+    
+    // Fallback: пробуем найти файл в файловой системе
+    console.log(`🔍 Поиск файла в файловой системе...`);
+    
+    // Пробуем разные возможные директории
+    const possibleDirs = [USER_WORKS_DIR, SHOP_FILES_DIR, PREVIEWS_DIR, UPLOADS_BASE_DIR];
+    
+    for (const dir of possibleDirs) {
+        const filePath = join(dir, filename);
+        if (existsSync(filePath)) {
+            console.log(`✅ Файл найден на диске: ${filePath}`);
+            try {
+                res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+                res.setHeader('Cache-Control', 'public, max-age=3600');
+                createReadStream(filePath).pipe(res);
+                
+                console.log('✅ Файл отдан по fallback пути');
+                return;
+            } catch (error) {
+                console.error('❌ Ошибка чтения fallback файла:', error.message);
+            }
+        }
+    }
+    
+    // Файл не найден нигде
+    console.log(`❌ Файл не найден: ${filename}`);
+    res.status(404).json({ 
+        error: 'Файл не найден',
+        filename: filename
+    });
+});
+
+// Дополнительный endpoint для превью
+app.get('/api/files/previews/:filename', (req, res) => {
+    const { filename } = req.params;
+    
+    console.log(`🖼️ Запрос превью: ${filename}`);
+    
+    const filePath = join(PREVIEWS_DIR, filename);
+    if (existsSync(filePath)) {
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Cache-Control', 'public, max-age=86400'); // Кэшируем превью на сутки
+        createReadStream(filePath).pipe(res);
+        return;
+    }
+    
+    res.status(404).json({ error: 'Превью не найдено' });
 });
 
 // ==================== СИСТЕМА ЛИДЕРБОРДА ====================
