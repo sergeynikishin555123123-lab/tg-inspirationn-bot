@@ -1073,40 +1073,129 @@
             display: block;
         }
 
-        /* Улучшенные стили для embed-контента */
-        .embed-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 100%;
-            margin: 20px 0;
-        }
+/* Улучшенные стили для embed-контента */
+.embed-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin: 20px 0;
+}
 
-        .embed-responsive {
-            position: relative;
-            display: block;
-            width: 100%;
-            padding: 0;
-            overflow: hidden;
-        }
+.embed-responsive {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0;
+    overflow: hidden;
+    background: #000; /* ← ДОБАВИТЬ */
+    border-radius: 12px; /* ← ДОБАВИТЬ */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); /* ← ДОБАВИТЬ */
+    max-height: 80vh; /* ← ДОБАВИТЬ */
+}
 
-        .embed-responsive::before {
-            display: block;
-            content: "";
-            padding-top: 56.25%; /* 16:9 соотношение */
-        }
+.embed-responsive::before {
+    display: block;
+    content: "";
+    padding-top: 56.25%; /* 16:9 соотношение */
+}
 
-        .embed-responsive iframe {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: 0;
-        }
+.embed-responsive iframe {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 12px; /* ← ДОБАВИТЬ */
+}
 
-        /* Адаптивные настройки для разных устройств */
-        @media (max-width: 768px) {
+/* Адаптивность для embed-контента */ /* ← ДОБАВИТЬ ЭТОТ БЛОК */
+@media (max-width: 768px) {
+    .embed-responsive {
+        max-height: 60vh;
+        border-radius: 8px;
+    }
+    
+    .embed-responsive::before {
+        padding-top: 75%; /* Более вертикальное соотношение для мобильных */
+    }
+}
+
+/* Для планшетов */ /* ← ДОБАВИТЬ ЭТОТ БЛОК */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .embed-responsive {
+        max-height: 70vh;
+    }
+}
+
+/* Модальное окно для полноэкранного embed */ /* ← ДОБАВИТЬ ЭТОТ БЛОК */
+.media-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    padding: 10px;
+}
+
+.media-modal-content {
+    position: relative;
+    width: 98%;
+    height: 98%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.media-modal-btn {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.9);
+    color: #2d3748;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.media-modal-btn:hover {
+    background: white;
+    transform: scale(1.1);
+}
+
+.media-modal-close {
+    top: -50px;
+    right: 0;
+    background: #f56565;
+    color: white;
+}
+
+/* Для десктопов */ /* ← ДОБАВИТЬ ЭТОТ БЛОК */
+@media (min-width: 1025px) {
+    .media-modal {
+        padding: 20px;
+    }
+    
+    .media-modal-content {
+        width: 95%;
+        height: 95%;
+    }
+}
+
+/* Адаптивные настройки для разных устройств */ /* ← СУЩЕСТВУЮЩИЙ БЛОК ОСТАЕТСЯ */
+@media (max-width: 768px) {
             .container {
                 padding: 10px;
             }
@@ -4493,31 +4582,32 @@
             }
         }
 
-        // Функция для получения иконки типа товара
-        function getPurchaseTypeIcon(type) {
-            const icons = {
-                'video': '🎥',
-                'image': '🖼️',
-                'audio': '🎧',
-                'pdf': '📚',
-                'text': '📝'
-            };
-            return icons[type] || '📄';
-        }
+// Функция для получения иконки типа товара
+function getPurchaseTypeIcon(type) {
+    const icons = {
+        'video': '🎥',
+        'image': '🖼️',
+        'audio': '🎧',
+        'pdf': '📚',
+        'text': '📝',
+        'embed': '🎬'  // Добавляем иконку для embed
+    };
+    return icons[type] || '📄';
+}
 
-        // Функция для получения названия типа товара
-        function getPurchaseTypeName(type) {
-            const names = {
-                'video': 'Видео',
-                'image': 'Изображение',
-                'audio': 'Аудио',
-                'pdf': 'PDF',
-                'text': 'Текст',
-                'embed': 'Встроенное видео',
-                'link': 'Ссылка'
-            };
-            return names[type] || type;
-        }
+// Функция для получения названия типа товара
+function getPurchaseTypeName(type) {
+    const names = {
+        'video': 'Видео',
+        'image': 'Изображение',
+        'audio': 'Аудио',
+        'pdf': 'PDF',
+        'text': 'Текст',
+        'embed': 'Встроенное видео',
+        'link': 'Ссылка'
+    };
+    return names[type] || type;
+}
 
         // Функция для показа детальной информации о покупке
         function showPurchaseDetail(purchase) {
@@ -4576,18 +4666,29 @@
             showScreen('purchaseDetailScreen');
         }
 
-        // Функция для генерации превью контента (для списка покупок)
-        function generatePurchasePreview(purchase) {
-            const fileUrl = purchase.file_data || purchase.file_url;
+// Функция для генерации превью контента (для списка покупок)
+function generatePurchasePreview(purchase) {
+    const fileUrl = purchase.file_data || purchase.file_url;
+    
+    switch(purchase.type) {
+        case 'embed':
+            return `
+                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">🎬</div>
+                    <div style="color: #718096; font-size: 12px;">Встроенное видео</div>
+                    <div style="color: #667eea; font-size: 11px; margin-top: 4px;">
+                        📺 Доступен полноэкранный режим
+                    </div>
+                </div>
+            `;
             
-            switch(purchase.type) {
-                case 'video':
-                    return `
-                        <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 32px; margin-bottom: 8px;">🎥</div>
-                            <div style="color: #718096; font-size: 12px;">Видео контент</div>
-                        </div>
-                    `;
+        case 'video':
+            return `
+                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">🎥</div>
+                    <div style="color: #718096; font-size: 12px;">Видео контент</div>
+                </div>
+            `;
                     
                 case 'image':
                     return `
@@ -4631,27 +4732,51 @@
             }
         }
 
-        // Функция для генерации полного содержимого покупки
-        function generatePurchaseContent(purchase) {
-            const fileUrl = purchase.file_data || purchase.file_url;
-            
-            switch(purchase.type) {
-                case 'video':
-                    return `
-                        <div class="media-container">
-                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                                🎥 Видео содержание
-                            </h4>
-                            <div class="video-container">
-                                <video controls style="width: 100%; height: 100%;">
-                                    <source src="${fileUrl || 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4'}" type="video/mp4">
-                                    Ваш браузер не поддерживает видео.
-                                </video>
-                            </div>
+       // Функция для генерации полного содержимого покупки
+function generatePurchaseContent(purchase) {
+    const fileUrl = purchase.file_data || purchase.file_url;
+    
+    switch(purchase.type) {
+        case 'embed':
+            return `
+                <div class="media-container">
+                    <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                        🎬 Видео содержание
+                    </h4>
+                    <div class="embed-wrapper">
+                        <div class="embed-responsive" id="embed-${purchase.id}">
+                            ${purchase.embed_html || purchase.html_content || purchase.content_html || purchase.content || ''}
                         </div>
-                    `;
-                    
-                case 'image':
+                    </div>
+                    <div style="text-align: center; margin-top: 16px;">
+                        <button class="btn btn-info" onclick="openFullscreenEmbed('embed-${purchase.id}')" style="padding: 10px 20px;">
+                            📺 Открыть в полноэкранном режиме
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+        case 'video':
+            return `
+                <div class="media-container">
+                    <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                        🎥 Видео содержание
+                    </h4>
+                    <div class="video-container">
+                        <video controls style="width: 100%; height: 100%;" id="video-${purchase.id}">
+                            <source src="${fileUrl || 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4'}" type="video/mp4">
+                            Ваш браузер не поддерживает видео.
+                        </video>
+                    </div>
+                    <div style="text-align: center; margin-top: 16px;">
+                        <button class="btn btn-info" onclick="toggleFullscreen('video-${purchase.id}')" style="padding: 10px 20px;">
+                            📺 Полный экран
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+        case 'image':
                     return `
                         <div class="media-container">
                             <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
@@ -4979,10 +5104,81 @@
             });
         }
 
-        // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+// ========== ФУНКЦИИ ДЛЯ ПОЛНОЭКРАННОГО РЕЖИМА ==========
 
-        // Показать сообщение
-        function showMessage(message, type) {
+// Функция для полноэкранного режима обычного видео
+function toggleFullscreen(videoId) {
+    const video = document.getElementById(videoId);
+    
+    if (!document.fullscreenElement) {
+        if (video.requestFullscreen) {
+            video.requestFullscreen();
+        } else if (video.webkitRequestFullscreen) {
+            video.webkitRequestFullscreen();
+        } else if (video.msRequestFullscreen) {
+            video.msRequestFullscreen();
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    }
+}
+
+// Функция для полноэкранного режима embed-контента
+function openFullscreenEmbed(embedId) {
+    const embedElement = document.getElementById(embedId);
+    const embedHtml = embedElement.innerHTML;
+    
+    // Создаем модальное окно для полноэкранного просмотра
+    const modal = document.createElement('div');
+    modal.className = 'media-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        padding: 20px;
+    `;
+    
+    modal.innerHTML = `
+        <div class="media-modal-content" style="position: relative; width: 95%; height: 95%;">
+            <div class="embed-responsive" style="width: 100%; height: 100%;">
+                ${embedHtml}
+            </div>
+            <button class="media-modal-btn media-modal-close" onclick="this.closest('.media-modal').remove()" 
+                    style="position: absolute; top: -50px; right: 0; background: #f56565; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer;">
+                ✕
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Добавляем обработчик для закрытия по ESC
+    const closeOnEsc = (e) => {
+        if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', closeOnEsc);
+        }
+    };
+    document.addEventListener('keydown', closeOnEsc);
+}
+
+// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+
+// Показать сообщение
+function showMessage(message, type) {
             const messageArea = document.getElementById('messageArea');
             const messageDiv = document.createElement('div');
             messageDiv.className = type;
