@@ -4,9 +4,21 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readdirSync, existsSync } from 'fs';
+import { readdirSync, existsSync, createReadStream, statSync } from 'fs';
 import dotenv from 'dotenv';
 import ExcelJS from 'exceljs';
+import multer from 'multer';
+import sharp from 'sharp';
+import fs from 'fs/promises';
+import { v4 as uuidv4 } from 'uuid';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import compression from 'compression';
+import morgan from 'morgan';
+import { createCanvas, loadImage } from 'canvas';
+import QRCode from 'qrcode';
 
 dotenv.config();
 
@@ -16,907 +28,1312 @@ const __dirname = dirname(__filename);
 const app = express();
 const APP_ROOT = process.cwd();
 
-console.log('🎨 Мастерская Вдохновения - Запуск системы...');
-console.log('📁 Текущая рабочая директория:', APP_ROOT);
+// ==================== КОНФИГУРАЦИЯ БЕЗОПАСНОСТИ ====================
 
-// ==================== НАСТРОЙКИ CORS И БЕЗОПАСНОСТИ ====================
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      mediaSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "https:", "wss:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"]
+    }
+  },
+  crossOriginEmbedderPolicy: false
+}));
 
-// Расширенные настройки CORS для Telegram Web App
-const corsOptions = {
-    origin: function (origin, callback) {
-        // Разрешаем все домены для Telegram Web App
-        const allowedOrigins = [
-            'https://web.telegram.org',
-            'https://oauth.telegram.org',
-            process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-e112.twc1.net'
-        ];
-        
-        // Разрешаем все origin для разработки
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(null, true); // Все равно разрешаем для тестирования
-        }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'User-Agent', 'tgwebviewdata'],
-    credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-    maxAge: 86400
+app.use(compression());
+app.use(morgan('combined'));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // limit each IP to 1000 requests per windowMs
+  message: 'Слишком много запросов с этого IP, попробуйте позже'
+});
+app.use(limiter);
+
+// ==================== КОНФИГУРАЦИЯ MULTER ДЛЯ ЗАГРУЗКИ ФАЙЛОВ ====================
+
+// Создаем директории для загрузок
+const uploadDirs = ['uploads', 'uploads/images', 'uploads/videos', 'uploads/avatars', 'uploads/works', 'uploads/previews'];
+uploadDirs.forEach(dir => {
+  const dirPath = join(APP_ROOT, dir);
+  if (!existsSync(dirPath)) {
+    fs.mkdir(dirPath, { recursive: true });
+  }
+});
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    let uploadDir = join(APP_ROOT, 'uploads');
+    
+    if (file.fieldname === 'avatar') {
+      uploadDir = join(APP_ROOT, 'uploads/avatars');
+    } else if (file.fieldname === 'workImage') {
+      uploadDir = join(APP_ROOT, 'uploads/works');
+    } else if (file.fieldname === 'preview_image') {
+      uploadDir = join(APP_ROOT, 'uploads/previews');
+    } else if (file.mimetype.startsWith('video/')) {
+      uploadDir = join(APP_ROOT, 'uploads/videos');
+    } else if (file.mimetype.startsWith('image/')) {
+      uploadDir = join(APP_ROOT, 'uploads/images');
+    }
+    
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const fileExt = file.originalname.split('.').pop();
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const filename = `${file.fieldname}-${uniqueSuffix}.${fileExt}`;
+    cb(null, filename);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  const allowedVideoTypes = ['video/mp4', 'video/mpeg', 'video/ogg', 'video/webm', 'video/quicktime'];
+  const allowedDocumentTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  
+  if (allowedImageTypes.includes(file.mimetype) || 
+      allowedVideoTypes.includes(file.mimetype) ||
+      allowedDocumentTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`Неподдерживаемый тип файла: ${file.mimetype}. Разрешены: изображения, видео, PDF, Word`), false);
+  }
 };
 
-// Применяем CORS настройки
-app.use(cors(corsOptions));
-
-// Обработка preflight запросов для всех маршрутов
-app.options('*', cors(corsOptions));
-
-// ==================== СПЕЦИАЛЬНЫЕ НАСТРОЙКИ ДЛЯ TELEGRAM WEB APP ====================
-
-// Middleware для Telegram Web App
-app.use((req, res, next) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isTelegramWebApp = userAgent.includes('Telegram') || 
-                           req.headers['sec-fetch-site'] === 'cross-site' ||
-                           req.query.tgWebAppData;
-    
-    // Для Telegram Web App убираем ограничивающие заголовки
-    if (isTelegramWebApp) {
-        console.log('📱 Telegram Web App запрос');
-        
-        // Убираем X-Frame-Options для Telegram
-        res.removeHeader('X-Frame-Options');
-        
-        // Более либеральная политика безопасности для Telegram
-        res.setHeader('Content-Security-Policy', 
-            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
-            "script-src * 'unsafe-inline' 'unsafe-eval'; " +
-            "connect-src * 'unsafe-inline'; " +
-            "img-src * data: blob: 'unsafe-inline'; " +
-            "frame-src *; " +
-            "style-src * 'unsafe-inline';"
-        );
-    }
-    
-    next();
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB
+    files: 10 // максимум 10 файлов
+  },
+  fileFilter: fileFilter
 });
 
-// ==================== УСИЛЕННЫЕ НАСТРОЙКИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ====================
+// ==================== ОПТИМИЗАЦИЯ МЕДИА-КОНТЕНТА ====================
 
-// Улучшенные настройки для адаптивного отображения
-app.use((req, res, next) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    // Динамические настройки контента в зависимости от устройства
-    if (isMobile) {
-        res.locals.deviceType = 'mobile';
-        res.locals.maxFileSize = '50mb';
-        res.locals.videoWidth = '100%';
-        res.locals.videoHeight = 'auto';
-    } else {
-        res.locals.deviceType = 'desktop';
-        res.locals.maxFileSize = '3gb';
-        res.locals.videoWidth = '800px';
-        res.locals.videoHeight = '450px';
+class MediaOptimizer {
+  static async optimizeImage(inputPath, outputPath, options = {}) {
+    try {
+      const {
+        maxWidth = 1200,
+        maxHeight = 1200,
+        quality = 80,
+        format = 'jpeg'
+      } = options;
+
+      let sharpInstance = sharp(inputPath);
+      
+      // Получаем метаданные для определения ориентации
+      const metadata = await sharpInstance.metadata();
+      
+      // Автоповорот по EXIF
+      sharpInstance = sharpInstance.rotate();
+      
+      // Ресайз с сохранением пропорций
+      sharpInstance = sharpInstance.resize({
+        width: maxWidth,
+        height: maxHeight,
+        fit: 'inside',
+        withoutEnlargement: true
+      });
+      
+      // Конвертация в выбранный формат
+      switch (format) {
+        case 'webp':
+          sharpInstance = sharpInstance.webp({ quality });
+          break;
+        case 'png':
+          sharpInstance = sharpInstance.png({ compressionLevel: 9 - Math.floor(quality / 11.111) });
+          break;
+        default:
+          sharpInstance = sharpInstance.jpeg({ 
+            quality, 
+            mozjpeg: true,
+            chromaSubsampling: '4:4:4'
+          });
+      }
+      
+      await sharpInstance.toFile(outputPath);
+      
+      const stats = await fs.stat(outputPath);
+      const originalStats = await fs.stat(inputPath);
+      
+      return {
+        success: true,
+        size: stats.size,
+        originalSize: originalStats.size,
+        compressionRatio: ((originalStats.size - stats.size) / originalStats.size * 100).toFixed(1),
+        path: outputPath,
+        dimensions: metadata
+      };
+    } catch (error) {
+      console.error('Ошибка оптимизации изображения:', error);
+      return { success: false, error: error.message };
     }
-    
-    console.log(`📱 Запрос от: ${isMobile ? 'Мобильное устройство' : 'Десктоп'} - ${req.method} ${req.url}`);
-    
-    // Устанавливаем заголовки безопасности
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    
-    // Для мобильных устройств - более либеральная политика безопасности
-    if (isMobile) {
-        res.setHeader('Content-Security-Policy', 
-            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
-            "script-src * 'unsafe-inline' 'unsafe-eval'; " +
-            "connect-src * 'unsafe-inline'; " +
-            "img-src * data: blob: 'unsafe-inline'; " +
-            "frame-src *; " +
-            "style-src * 'unsafe-inline';"
-        );
+  }
+
+  static async createThumbnail(inputPath, outputPath, size = 300) {
+    try {
+      await sharp(inputPath)
+        .resize(size, size, {
+          fit: 'cover',
+          position: 'center'
+        })
+        .jpeg({ quality: 70 })
+        .toFile(outputPath);
+      
+      return { success: true, path: outputPath };
+    } catch (error) {
+      return { success: false, error: error.message };
     }
-    
-    // Увеличиваем таймауты для мобильных
-    if (isMobile) {
-        req.setTimeout(300000); // 5 минут для мобильных
-        res.setTimeout(300000);
+  }
+
+  static async getAspectRatio(imagePath) {
+    try {
+      const metadata = await sharp(imagePath).metadata();
+      const gcd = (a, b) => b === 0 ? a : this.gcd(b, a % b);
+      const divisor = this.gcd(metadata.width, metadata.height);
+      return {
+        ratio: `${metadata.width / divisor}:${metadata.height / divisor}`,
+        width: metadata.width,
+        height: metadata.height,
+        orientation: metadata.width >= metadata.height ? 'landscape' : 'portrait'
+      };
+    } catch (error) {
+      return { ratio: '16:9', width: 1920, height: 1080, orientation: 'landscape' };
     }
-    
-    next();
-});
+  }
 
-// Увеличены лимиты для больших файлов с учетом мобильных устройств
-app.use(express.json({ 
-    limit: '3gb',
-    verify: (req, res, buf) => {
-        try {
-            JSON.parse(buf);
-        } catch (e) {
-            console.error('❌ Ошибка парсинга JSON:', e.message);
-            res.status(400).json({ error: 'Неверный формат JSON' });
-        }
+  static gcd(a, b) {
+    return b === 0 ? a : this.gcd(b, a % b);
+  }
+
+  static async generateBlurHash(imagePath) {
+    try {
+      const image = await loadImage(imagePath);
+      const canvas = createCanvas(32, 32);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(image, 0, 0, 32, 32);
+      
+      const imageData = ctx.getImageData(0, 0, 32, 32);
+      return this.encodeBlurHash(imageData);
+    } catch (error) {
+      return null;
     }
-}));
+  }
 
-app.use(express.urlencoded({ 
-    limit: '3gb', 
-    extended: true,
-    parameterLimit: 100000
-}));
-
-// Дополнительные настройки body-parser
-app.use(bodyParser.json({ 
-    limit: '3gb',
-    verify: (req, res, buf) => {
-        req.rawBody = buf;
+  static encodeBlurHash(imageData) {
+    // Упрощенная реализация BlurHash
+    const pixels = imageData.data;
+    let hash = '';
+    for (let i = 0; i < pixels.length; i += 4) {
+      const r = pixels[i];
+      const g = pixels[i + 1];
+      const b = pixels[i + 2];
+      hash += this.base83.encode(Math.floor((r + g + b) / 3));
     }
-}));
+    return hash.substring(0, 20); // Ограничиваем длину хеша
+  }
+}
 
-app.use(bodyParser.urlencoded({ 
-    limit: '3gb', 
-    extended: true,
-    parameterLimit: 100000
-}));
+// ==================== СИСТЕМА АУТЕНТИФИКАЦИИ ====================
 
-// Динамические лимиты в зависимости от устройства
-app.use((req, res, next) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    if (isMobile) {
-        console.log('📱 Мобильное устройство - уменьшаем лимиты');
-        // Уменьшенные лимиты для мобильных
-        express.json({ limit: '50mb' })(req, res, (err) => {
-            if (err) {
-                console.error('Mobile JSON error:', err);
-                return res.status(413).json({ error: 'Файл слишком большой для мобильного устройства' });
-            }
-            next();
-        });
-    } else {
-        next();
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+const SALT_ROUNDS = 12;
+
+class AuthService {
+  static async hashPassword(password) {
+    return await bcrypt.hash(password, SALT_ROUNDS);
+  }
+
+  static async comparePassword(password, hash) {
+    return await bcrypt.compare(password, hash);
+  }
+
+  static generateToken(payload, expiresIn = '30d') {
+    return jwt.sign(payload, JWT_SECRET, { expiresIn });
+  }
+
+  static verifyToken(token) {
+    try {
+      return jwt.verify(token, JWT_SECRET);
+    } catch (error) {
+      throw new Error('Invalid token');
     }
-});
+  }
 
-// ==================== УЛУЧШЕННАЯ РАЗДАЧА СТАТИЧЕСКИХ ФАЙЛОВ ====================
-
-// Простые статические файлы для всех устройств
-// Статические файлы для основного приложения
-app.use(express.static(join(APP_ROOT, 'public'), {
-    maxAge: '1d',
-    setHeaders: (res, path, stat) => {
-        console.log(`📁 Статический файл: ${path}`);
-        
-        // Для Telegram Web App - особые настройки
-        if (path.endsWith('.html')) {
-            // Убираем X-Frame-Options для HTML файлов
-            res.removeHeader('X-Frame-Options');
-            
-            // Разрешаем embedding в iframe
-            res.setHeader('X-Frame-Options', 'ALLOWALL');
-        }
-        
-        // Остальные настройки кэширования...
-        if (path.endsWith('.js') || path.endsWith('.css')) {
-            res.setHeader('Cache-Control', 'public, max-age=3600');
-        } else if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
-            res.setHeader('Cache-Control', 'public, max-age=86400');
-        }
-    }
-}));
-
-// Статические файлы для админки
-app.use('/admin', express.static(join(APP_ROOT, 'admin'), {
-    maxAge: '1d',
-    setHeaders: (res, path, stat) => {
-        // Админка всегда без кэша
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-    }
-}));
-
-// ==================== ОСНОВНЫЕ МАРШРУТЫ ДЛЯ ВСЕХ УСТРОЙСТВ ====================
-
-// Основной маршрут - для всех устройств
-app.get('/', (req, res) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    console.log(`🏠 Запрос главной страницы от: ${isMobile ? 'мобильного' : 'десктопа'}`);
-    console.log('📁 Путь к файлу:', join(APP_ROOT, 'public', 'index.html'));
-    
-    // Проверяем существование файла
-    const filePath = join(APP_ROOT, 'public', 'index.html');
-    if (!existsSync(filePath)) {
-        console.error('❌ index.html не найден по пути:', filePath);
-        return res.status(404).json({ error: 'Главная страница не найдена' });
-    }
-    
-    res.sendFile(filePath);
-});
-
-// Маршруты админки - для всех устройств
-app.get('/admin', (req, res) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    
-    console.log(`🔧 Запрос админки от: ${isMobile ? 'мобильного' : 'десктопа'}`);
-    
-    const filePath = join(APP_ROOT, 'admin', 'index.html');
-    if (!existsSync(filePath)) {
-        console.error('❌ admin/index.html не найден по пути:', filePath);
-        return res.status(404).json({ error: 'Админка не найдена' });
-    }
-    
-    res.sendFile(filePath);
-});
-
-app.get('/admin/*', (req, res) => {
-    console.log('🔧 Запрос админки (вложенный путь):', req.path);
-    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
-});
-
-console.log('🎨 Система инициализирована успешно!');
-
-// ==================== НАСТРОЙКИ ДЛЯ БОЛЬШИХ ФАЙЛОВ ====================
-
-// Middleware для увеличения лимитов и таймаутов
-app.use((req, res, next) => {
-    // Увеличиваем таймауты для больших файлов (30 минут)
-    req.setTimeout(30 * 60 * 1000); // 30 минут
-    res.setTimeout(30 * 60 * 1000); // 30 минут
-    console.log(`⏰ Установлены таймауты для ${req.method} ${req.url}`);
-    next();
-});
-
-// Обработка ошибок больших файлов
-app.use((error, req, res, next) => {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-        console.error('❌ Файл слишком большой:', error.message);
-        return res.status(413).json({ 
-            success: false,
-            error: 'Файл слишком большой. Максимальный размер: 3GB' 
-        });
-    }
-    
-    if (error.type === 'entity.too.large') {
-        console.error('❌ Превышен лимит размера файла:', error.message);
-        return res.status(413).json({ 
-            success: false,
-            error: 'Превышен лимит размера файла. Максимальный размер: 3GB' 
-        });
-    }
-    
-    console.error('❌ Неизвестная ошибка:', error);
-    next(error);
-});
-
-// Глобальный обработчик ошибок для больших файлов
-process.on('uncaughtException', (error) => {
-    if (error.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
-        console.error('❌ Превышен максимальный размер тела запроса');
-    }
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ Необработанное отклонение промиса:', reason);
-});
+  static generateAdminInviteCode() {
+    return uuidv4().substring(0, 8).toUpperCase();
+  }
+}
 
 // ==================== IN-MEMORY БАЗА ДАННЫХ ====================
+
 let db = {
-    users: [
+  users: [
+    {
+      id: 1,
+      user_id: 12345,
+      tg_first_name: 'Тестовый Пользователь',
+      tg_username: 'test_user',
+      sparks: 45.5,
+      level: 'Искатель',
+      is_registered: true,
+      class: 'Художники',
+      character_id: 1,
+      character_name: 'Лука Цветной',
+      available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+      registration_date: new Date().toISOString(),
+      last_active: new Date().toISOString(),
+      avatar_url: null,
+      email: null,
+      phone: null,
+      settings: {
+        notifications: true,
+        email_notifications: false,
+        theme: 'light',
+        language: 'ru'
+      },
+      achievements: [],
+      badges: [],
+      streak: 0,
+      last_daily_reward: null
+    },
+    {
+      id: 2,
+      user_id: 898508164,
+      tg_first_name: 'Администратор',
+      tg_username: 'admin',
+      sparks: 250.0,
+      level: 'Мастер',
+      is_registered: true,
+      class: 'Художники',
+      character_id: 1,
+      character_name: 'Лука Цветной',
+      available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+      registration_date: new Date().toISOString(),
+      last_active: new Date().toISOString(),
+      avatar_url: null,
+      email: 'admin@example.com',
+      phone: null,
+      settings: {
+        notifications: true,
+        email_notifications: true,
+        theme: 'dark',
+        language: 'ru'
+      },
+      achievements: ['first_quiz', 'marathon_completion', 'work_upload'],
+      badges: ['early_adopter', 'quiz_master'],
+      streak: 7,
+      last_daily_reward: new Date().toISOString()
+    }
+  ],
+  roles: [
+    {
+      id: 1,
+      name: 'Художники',
+      description: 'Творцы изобразительного искусства',
+      icon: '🎨',
+      color: '#FF6B6B',
+      available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+      requirements: {
+        min_level: 0,
+        required_achievements: []
+      },
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 2,
+      name: 'Стилисты',
+      description: 'Мастера создания образов',
+      icon: '👗',
+      color: '#4ECDC4',
+      available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+      requirements: {
+        min_level: 0,
+        required_achievements: []
+      },
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 3,
+      name: 'Мастера',
+      description: 'Ремесленники прикладного искусства',
+      icon: '🧵',
+      color: '#45B7D1',
+      available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+      requirements: {
+        min_level: 0,
+        required_achievements: []
+      },
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 4,
+      name: 'Историки',
+      description: 'Знатоки истории искусств',
+      icon: '🏛️',
+      color: '#96CEB4',
+      available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+      requirements: {
+        min_level: 0,
+        required_achievements: []
+      },
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 5,
+      name: 'Фотографы',
+      description: 'Мастера светописи и композиции',
+      icon: '📷',
+      color: '#FFEAA7',
+      available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+      requirements: {
+        min_level: 0,
+        required_achievements: []
+      },
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ],
+  characters: [
+    { 
+      id: 1, 
+      role_id: 1, 
+      name: 'Лука Цветной', 
+      description: 'Рисует с детства, любит эксперименты с цветом', 
+      avatar_url: '/uploads/characters/luka.jpg',
+      bonus_type: 'percent_bonus', 
+      bonus_value: '10',
+      bonus_description: '+10% к наградам за квизы',
+      personality: 'Энергичный и креативный',
+      quotes: ['"Цвет - это эмоция!"', '"Не бойся экспериментировать!"'],
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    { 
+      id: 2, 
+      role_id: 1, 
+      name: 'Марина Кисть', 
+      description: 'Строгая преподавательница академической живописи', 
+      avatar_url: '/uploads/characters/marina.jpg',
+      bonus_type: 'forgiveness', 
+      bonus_value: '1',
+      bonus_description: '1 дополнительная попытка в квизах',
+      personality: 'Строгая но справедливая',
+      quotes: ['"Основа - это техника!"', '"Практика делает мастера!"'],
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    { 
+      id: 3, 
+      role_id: 2, 
+      name: 'Эстелла Моде', 
+      description: 'Бывший стилист, обучает восприятию образа', 
+      avatar_url: '/uploads/characters/estella.jpg',
+      bonus_type: 'percent_bonus', 
+      bonus_value: '5',
+      bonus_description: '+5% к наградам за все активности',
+      personality: 'Элегантная и проницательная',
+      quotes: ['"Стиль - это самовыражение!"', '"Детали создают образ!"'],
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    { 
+      id: 4, 
+      role_id: 3, 
+      name: 'Артем Резчик', 
+      description: 'Мастер по дереву и керамике', 
+      avatar_url: '/uploads/characters/artem.jpg',
+      bonus_type: 'random_gift', 
+      bonus_value: '1-3',
+      bonus_description: 'Случайный бонус 1-3 искры ежедневно',
+      personality: 'Терпеливый и внимательный к деталям',
+      quotes: ['"Ремесло требует терпения!"', '"Каждая деталь важна!"'],
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    { 
+      id: 5, 
+      role_id: 4, 
+      name: 'София Хроник', 
+      description: 'Искусствовед и историк культуры', 
+      avatar_url: '/uploads/characters/sofia.jpg',
+      bonus_type: 'secret_advice', 
+      bonus_value: '2weeks',
+      bonus_description: 'Секретные подсказки раз в 2 недели',
+      personality: 'Мудрая и эрудированная',
+      quotes: ['"История учит нас красоте!"', '"Каждая эпоха уникальна!"'],
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    { 
+      id: 6, 
+      role_id: 5, 
+      name: 'Виктор Объектив', 
+      description: 'Профессиональный фотограф с 20-летним опытом', 
+      avatar_url: '/uploads/characters/viktor.jpg',
+      bonus_type: 'quality_bonus', 
+      bonus_value: '15',
+      bonus_description: '+15% к наградам за фотографии',
+      personality: 'Техничный и творческий',
+      quotes: ['"Свет - это всё!"', '"Поймай момент!"'],
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ],
+  quizzes: [
+    {
+      id: 1,
+      title: "🎨 Основы живописи",
+      description: "Проверьте свои знания основ живописи и цветоведения",
+      category: "art_basics",
+      difficulty: "beginner",
+      estimated_time: 10,
+      questions: [
         {
-            id: 1,
-            user_id: 12345,
-            tg_first_name: 'Тестовый Пользователь',
-            tg_username: 'test_user',
-            sparks: 45.5,
-            level: 'Искатель',
-            is_registered: true,
-            class: 'Художники',
-            character_id: 1,
-            character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
+          id: 1,
+          question: "Кто написал картину 'Мона Лиза'?",
+          options: ["Винсент Ван Гог", "Леонардо да Винчи", "Пабло Пикассо", "Клод Моне"],
+          correctAnswer: 1,
+          explanation: "Мона Лиза (Джоконда) была написана Леонардо да Винчи в период 1503-1505 годов.",
+          image_url: "/uploads/quizzes/mona-lisa.jpg",
+          points: 2
         },
         {
-            id: 2,
-            user_id: 898508164,
-            tg_first_name: 'Администратор',
-            tg_username: 'admin',
-            sparks: 250.0,
-            level: 'Мастер',
-            is_registered: true,
-            class: 'Художники',
-            character_id: 1,
-            character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
+          id: 2,
+          question: "Какие цвета являются основными в цветовом круге?",
+          options: ["Красный, синий, зеленый", "Красный, желтый, синий", "Фиолетовый, оранжевый, зеленый", "Черный, белый, серый"],
+          correctAnswer: 1,
+          explanation: "Основные цвета - красный, желтый и синий. Из них можно получить все остальные цвета.",
+          points: 2
+        },
+        {
+          id: 3,
+          question: "Что такое акварель?",
+          options: ["Масляная краска", "Водорастворимая краска", "Акриловая краска", "Темпера"],
+          correctAnswer: 1,
+          explanation: "Акварель - это водорастворимые краски на основе гуммиарабика.",
+          points: 1
+        },
+        {
+          id: 4,
+          question: "Кто является автором 'Крика'?",
+          options: ["Винсент Ван Гог", "Эдвард Мунк", "Сальвадор Дали", "Фрида Кало"],
+          correctAnswer: 1,
+          explanation: "Эдвард Мунк написал 'Крик' в 1893 году как часть цикла 'Фриз жизни'.",
+          image_url: "/uploads/quizzes/scream.jpg",
+          points: 2
+        },
+        {
+          id: 5,
+          question: "Что такое сфумато?",
+          options: ["Техника резких контрастов", "Техника мягких переходов", "Техника точечного нанесения", "Техника ярких цветов"],
+          correctAnswer: 1,
+          explanation: "Сфумато - техника мягких, дымчатых переходов между цветами и тонами.",
+          points: 3
         }
-    ],
-    roles: [
+      ],
+      sparks_per_correct: 1,
+      sparks_perfect_bonus: 5,
+      cooldown_hours: 24,
+      allow_retake: true,
+      is_active: true,
+      featured: true,
+      tags: ["живопись", "основы", "история"],
+      created_by: 898508164,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 2,
+      title: "🏛️ История искусства",
+      description: "Тест по истории мирового искусства от античности до современности",
+      category: "art_history",
+      difficulty: "intermediate",
+      estimated_time: 15,
+      questions: [
         {
-            id: 1,
-            name: 'Художники',
-            description: 'Творцы изобразительного искусства',
-            icon: '🎨',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            is_active: true,
-            created_at: new Date().toISOString()
+          id: 1,
+          question: "В какой стране возникло искусство эпохи Возрождения?",
+          options: ["Франция", "Италия", "Испания", "Германия"],
+          correctAnswer: 1,
+          explanation: "Возрождение зародилось в Италии в XIV веке.",
+          points: 2
         },
         {
-            id: 2,
-            name: 'Стилисты',
-            description: 'Мастера создания образов',
-            icon: '👗',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            is_active: true,
-            created_at: new Date().toISOString()
+          id: 2,
+          question: "Кто является автором фрески 'Тайная вечеря'?",
+          options: ["Микеланджело", "Рафаэль", "Леонардо да Винчи", "Боттичелли"],
+          correctAnswer: 2,
+          explanation: "Леонардо да Винчи создал 'Тайную вечерю' в миланском монастыре Санта-Мария-делле-Грацие.",
+          image_url: "/uploads/quizzes/last-supper.jpg",
+          points: 3
         },
         {
-            id: 3,
-            name: 'Мастера',
-            description: 'Ремесленники прикладного искусства',
-            icon: '🧵',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            is_active: true,
-            created_at: new Date().toISOString()
+          id: 3,
+          question: "Какой стиль характеризуется асимметрией и изогнутыми линиями?",
+          options: ["Ренессанс", "Барокко", "Готика", "Классицизм"],
+          correctAnswer: 1,
+          explanation: "Барокко отличается динамичностью, асимметрией и сложными изогнутыми формами.",
+          points: 2
         },
         {
-            id: 4,
-            name: 'Историки',
-            description: 'Знатоки истории искусств',
-            icon: '🏛️',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            is_active: true,
-            created_at: new Date().toISOString()
+          id: 4,
+          question: "Кто основал движение импрессионистов?",
+          options: ["Поль Сезанн", "Клод Моне", "Винсент Ван Гог", "Поль Гоген"],
+          correctAnswer: 1,
+          explanation: "Клод Моне считается отцом импрессионизма, особенно после его картины 'Впечатление. Восходящее солнце'.",
+          points: 2
+        },
+        {
+          id: 5,
+          question: "В каком веке возник кубизм?",
+          options: ["XVIII век", "XIX век", "XX век", "XXI век"],
+          correctAnswer: 2,
+          explanation: "Кубизм возник в начале XX века, основателями считаются Пабло Пикассо и Жорж Брак.",
+          points: 1
         }
-    ],
-    characters: [
-        { 
-            id: 1, 
-            role_id: 1, 
-            name: 'Лука Цветной', 
-            description: 'Рисует с детства, любит эксперименты с цветом', 
-            bonus_type: 'percent_bonus', 
-            bonus_value: '10', 
-            is_active: true,
-            created_at: new Date().toISOString()
+      ],
+      sparks_per_correct: 2,
+      sparks_perfect_bonus: 10,
+      cooldown_hours: 48,
+      allow_retake: true,
+      is_active: true,
+      featured: false,
+      tags: ["история", "возрождение", "импрессионизм"],
+      created_by: 898508164,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 3,
+      title: "👗 История моды и стиля",
+      description: "Проверьте свои знания в области моды и стиля разных эпох",
+      category: "fashion",
+      difficulty: "intermediate",
+      estimated_time: 12,
+      questions: [
+        {
+          id: 1,
+          question: "В какой период были популярны кринолины?",
+          options: ["XVIII век", "XIX век", "1920-е", "1950-е"],
+          correctAnswer: 1,
+          explanation: "Кринолины стали особенно популярны в викторианскую эпоху, в середине XIX века.",
+          image_url: "/uploads/quizzes/crinoline.jpg",
+          points: 2
         },
-        { 
-            id: 2, 
-            role_id: 1, 
-            name: 'Марина Кисть', 
-            description: 'Строгая преподавательница академической живописи', 
-            bonus_type: 'forgiveness', 
-            bonus_value: '1', 
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        { 
-            id: 3, 
-            role_id: 2, 
-            name: 'Эстелла Моде', 
-            description: 'Бывший стилист, обучает восприятию образа', 
-            bonus_type: 'percent_bonus', 
-            bonus_value: '5', 
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        { 
-            id: 4, 
-            role_id: 3, 
-            name: 'Артем Резчик', 
-            description: 'Мастер по дереву и керамике', 
-            bonus_type: 'random_gift', 
-            bonus_value: '1-3', 
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        { 
-            id: 5, 
-            role_id: 4, 
-            name: 'София Хроник', 
-            description: 'Искусствовед и историк культуры', 
-            bonus_type: 'secret_advice', 
-            bonus_value: '2weeks', 
-            is_active: true,
-            created_at: new Date().toISOString()
+        {
+          id: 2,
+          question: "Кто создал маленькое черное платье?",
+          options: ["Коко Шанель", "Кристиан Диор", "Ив Сен-Лоран", "Живанши"],
+          correctAnswer: 0,
+          explanation: "Коко Шанель популяризировала маленькое черное платье в 1920-х годах.",
+          points: 3
         }
-    ],
-    quizzes: [
-        {
-            id: 1,
-            title: "🎨 Основы живописи",
-            description: "Проверьте свои знания основ живописи",
-            questions: [
-                {
-                    question: "Кто написал картину 'Мона Лиза'?",
-                    options: ["Винсент Ван Гог", "Леонардо да Винчи", "Пабло Пикассо", "Клод Моне"],
-                    correctAnswer: 1
-                },
-                {
-                    question: "Какие цвета являются основными?",
-                    options: ["Красный, синий, зеленый", "Красный, желтый, синий", "Фиолетовый, оранжевый, зеленый", "Черный, белый, серый"],
-                    correctAnswer: 1
-                },
-                {
-                    question: "Что такое акварель?",
-                    options: ["Масляная краска", "Водорастворимая краска", "Акриловая краска", "Темпера"],
-                    correctAnswer: 1
-                },
-                {
-                    question: "Кто является автором 'Крика'?",
-                    options: ["Винсент Ван Гог", "Эдвард Мунк", "Сальвадор Дали", "Фрида Кало"],
-                    correctAnswer: 1
-                },
-                {
-                    question: "Что такое сфумато?",
-                    options: ["Техника резких контрастов", "Техника мягких переходов", "Техника точечного нанесения", "Техника ярких цветов"],
-                    correctAnswer: 1
-                }
-            ],
-            sparks_per_correct: 1,
-            sparks_perfect_bonus: 5,
-            cooldown_hours: 24,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            title: "🏛️ История искусства",
-            description: "Тест по истории мирового искусства",
-            questions: [
-                {
-                    question: "В какой стране возникло искусство эпохи Возрождения?",
-                    options: ["Франция", "Италия", "Испания", "Германия"],
-                    correctAnswer: 1
-                },
-                {
-                    question: "Кто является автором фрески 'Тайная вечеря'?",
-                    options: ["Микеланджело", "Рафаэль", "Леонардо да Винчи", "Боттичелли"],
-                    correctAnswer: 2
-                },
-                {
-                    question: "Какой стиль характеризуется асимметрией и изогнутыми линиями?",
-                    options: ["Ренессанс", "Барокко", "Готика", "Классицизм"],
-                    correctAnswer: 1
-                }
-            ],
-            sparks_per_correct: 1,
-            sparks_perfect_bonus: 5,
-            cooldown_hours: 24,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        }
-    ],
-    marathons: [
-        {
-            id: 1,
-            title: "🏃‍♂️ Марафон акварели",
-            description: "7-дневный марафон по основам акварельной живописи",
-            duration_days: 7,
-            tasks: [
-                { 
-                    day: 1, 
-                    title: "Основные техники", 
-                    description: "Изучите основные техники работы с акварелью и напишите о своих впечатлениях",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 2, 
-                    title: "Смешивание цветов", 
-                    description: "Практикуйтесь в смешивании цветов и загрузите фото своей палитры",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 3, 
-                    title: "Работа с светом", 
-                    description: "Научитесь передавать свет и тень в акварели",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 4, 
-                    title: "Пейзаж акварелью", 
-                    description: "Нарисуйте свой первый пейзаж и загрузите фото работы",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 5, 
-                    title: "Портрет акварелью", 
-                    description: "Освойте технику портрета акварелью",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 6, 
-                    title: "Натюрморт", 
-                    description: "Создайте композицию с натуры и загрузите фото",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 7, 
-                    title: "Финальная работа", 
-                    description: "Завершите марафон итоговой работой и поделитесь впечатлениями",
-                    requires_submission: true,
-                    submission_type: "text"
-                }
-            ],
-            sparks_per_day: 7,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            title: "👗 Марафон стиля",
-            description: "5-дневный марафон по созданию гармоничного образа",
-            duration_days: 5,
-            tasks: [
-                { 
-                    day: 1, 
-                    title: "Анализ цветотипа", 
-                    description: "Определите свой цветотип и опишите результаты",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 2, 
-                    title: "Базовая капсула", 
-                    description: "Создайте базовый гардероб и загрузите фото своих вещей",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 3, 
-                    title: "Акценты и аксессуары", 
-                    description: "Научитесь дополнять образ аксессуарами",
-                    requires_submission: true,
-                    submission_type: "text"
-                },
-                { 
-                    day: 4, 
-                    title: "Стилизация", 
-                    description: "Создайте несколько образов и загрузите фото",
-                    requires_submission: true,
-                    submission_type: "image"
-                },
-                { 
-                    day: 5, 
-                    title: "Итоговый образ", 
-                    description: "Подберите идеальный образ для мероприятия и опишите его",
-                    requires_submission: true,
-                    submission_type: "text"
-                }
-            ],
-            sparks_per_day: 5,
-            is_active: true,
-            created_at: new Date().toISOString()
-        }
-    ],
-    shop_items: [
-        {
-            id: 1,
-            title: "🎨 Урок акварели для начинающих",
-            description: "Полный видеоурок по основам акварельной живописи",
-            type: "video",
-            file_url: "https://example.com/watercolor-course.mp4",
-            preview_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=300&h=200&fit=crop",
-            price: 15,
-            content_text: "В этом уроке вы научитесь основам работы с акварелью, смешиванию цветов и созданию первых работ. Материал подойдет для начинающих художников.\n\nСодержание:\n- Подготовка материалов\n- Основные техники\n- Смешивание цветов\n- Создание простых работ\n- Советы по улучшению",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            title: "📚 Основы композиции",
-            description: "PDF руководство по основам композиции в живописи",
-            type: "pdf",
-            file_url: "https://example.com/composition-guide.pdf",
-            preview_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=200&fit=crop",
-            price: 10,
-            content_text: "Подробное руководство по построению композиции в художественных работах. Золотое сечение, правило третей, баланс и ритм.\n\nТемы:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с цветом",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 3,
-            title: "👗 Гид по стилю",
-            description: "Полное руководство по созданию гармоничного образа",
-            type: "text",
-            file_url: "",
-            preview_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=300&h=200&fit=crop",
-            price: 12,
-            content_text: "Как определить свой цветотип, подобрать базовый гардероб, сочетать цвета и аксессуары. Практические советы от стилиста.\n\nРазделы:\n- Определение цветотипа\n- Базовый гардероб\n- Сочетание цветов\n- Выбор аксессуаров\n- Создание образов",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 4,
-            title: "🧵 Основы вышивки",
-            description: "Видеокурс по основам вышивки для начинающих",
-            type: "video",
-            file_url: "https://example.com/embroidery-course.mp4",
-            preview_url: "https://images.unsplash.com/photo-1576588676125-c6d68cf48b5c?w=300&h=200&fit=crop",
-            price: 18,
-            content_text: "Полный курс по основам вышивки. От простых стежков до сложных техник.\n\nСодержание:\n- Необходимые материалы\n- Основные стежки\n- Техники вышивки\n- Создание узоров\n- Завершение работы",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 5,
-            title: "🎬 Видео-урок по композиции",
-            description: "Эксклюзивный видео-урок по основам композиции от профессионального художника",
-            type: "embed",
-            embed_html: `<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1139315921?h=93d70dfee4&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="ТИХОНОВА"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>`,
-            preview_url: "https://images.unsplash.com/photo-1492684223066-81332ee5ff30?w=300&h=200&fit=crop",
-            price: 20,
-            content_text: "Профессиональный видео-урок по основам композиции в живописи. Вы научитесь правильно располагать элементы на холсте, создавать гармоничные композиции и направлять взгляд зрителя.\n\nТемы урока:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с акцентами",
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 6,
-            title: "📺 Тестовое видео",
-            description: "Простой тест embed-видео",
-            type: "embed",
-            embed_html: `<div style="width: 100%; height: 400px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
-                <div style="text-align: center;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
-                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Тестовое видео</div>
-                    <div style="color: #666;">Здесь будет встроенное видео</div>
-                </div>
-            </div>`,
-            preview_url: "",
-            price: 5,
-            content_text: "Это тестовый embed-контент для проверки отображения",
-            is_active: true,
-            created_at: new Date().toISOString()
-        }  
-    ],
-    activities: [],
-    admins: [
+      ],
+      sparks_per_correct: 2,
+      sparks_perfect_bonus: 8,
+      cooldown_hours: 24,
+      allow_retake: true,
+      is_active: true,
+      featured: true,
+      tags: ["мода", "стиль", "история"],
+      created_by: 898508164,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ],
+  marathons: [
+    {
+      id: 1,
+      title: "🏃‍♂️ Марафон акварели",
+      description: "7-дневный интенсив по основам акварельной живописи для начинающих",
+      category: "painting",
+      difficulty: "beginner",
+      duration_days: 7,
+      cover_image: "/uploads/marathons/watercolor-cover.jpg",
+      tasks: [
         { 
-            id: 1, 
-            user_id: 898508164, 
-            username: 'admin', 
-            role: 'admins', 
-            created_at: new Date().toISOString() 
+          day: 1, 
+          title: "🎨 Основные техники", 
+          description: "Изучите основные техники работы с акварелью: заливка, лессировка, алла прима",
+          detailed_description: "В этом уроке вы познакомитесь с тремя основными техниками акварели:\n\n• Заливка - создание ровного фона\n• Лессировка - нанесение прозрачных слоев\n• Алла прима - работа в один слой\n\nПрактическое задание: создайте три небольших работы, используя каждую из техник.",
+          requires_submission: true,
+          submission_type: "image",
+          resources: [
+            {
+              type: "video",
+              title: "Видеоурок по техникам",
+              url: "/uploads/marathons/watercolor-techniques.mp4",
+              duration: "15:30"
+            },
+            {
+              type: "pdf",
+              title: "Памятка по материалам",
+              url: "/uploads/marathons/materials-guide.pdf"
+            }
+          ],
+          sparks_reward: 7
         },
         { 
-            id: 2, 
-            user_id: 79156202620, 
-            username: 'admin2', 
-            role: 'admins', 
-            created_at: new Date().toISOString() 
+          day: 2, 
+          title: "🌈 Смешивание цветов", 
+          description: "Практикуйтесь в смешивании цветов и создайте свою цветовую палитру",
+          detailed_description: "Научитесь создавать нужные оттенки из ограниченного набора цветов. Изучите цветовой круг и принципы смешивания.\n\nЗадание: создайте палитру из 12 гармоничных цветов и загрузите фото.",
+          requires_submission: true,
+          submission_type: "image",
+          resources: [
+            {
+              type: "image",
+              title: "Пример цветового круга",
+              url: "/uploads/marathons/color-wheel.jpg"
+            }
+          ],
+          sparks_reward: 7
         },
         { 
-            id: 3, 
-            user_id: 781959267, 
-            username: 'admin3', 
-            role: 'admins', 
-            created_at: new Date().toISOString() 
+          day: 3, 
+          title: "💡 Работа со светом", 
+          description: "Научитесь передавать свет и тень в акварели",
+          detailed_description: "Освойте технику сохранения белых областей и создания световых эффектов.\n\nЗадание: нарисуйте простой предмет с ярко выраженным светотеневым контрастом.",
+          requires_submission: true,
+          submission_type: "image",
+          sparks_reward: 7
+        },
+        { 
+          day: 4, 
+          title: "🌄 Пейзаж акварелью", 
+          description: "Создайте свой первый пейзаж с небом и водой",
+          detailed_description: "Учимся писать небо, облака, воду и отражения. Техника мокрым по мокрому для фона.\n\nЗадание: нарисуйте пейзаж с небом и водной поверхностью.",
+          requires_submission: true,
+          submission_type: "image",
+          sparks_reward: 7
+        },
+        { 
+          day: 5, 
+          title: "👤 Портрет акварелью", 
+          description: "Освойте технику портрета акварелью",
+          detailed_description: "Основы построения лица, передача объема и характера.\n\nЗадание: нарисуйте портрет по фото или с натуры.",
+          requires_submission: true,
+          submission_type: "image",
+          sparks_reward: 7
+        },
+        { 
+          day: 6, 
+          title: "🍎 Натюрморт", 
+          description: "Создайте композицию с натуры",
+          detailed_description: "Компоновка предметов, передача фактур и объемов.\n\nЗадание: составьте и нарисуйте натюрморт из 3-5 предметов.",
+          requires_submission: true,
+          submission_type: "image",
+          sparks_reward: 7
+        },
+        { 
+          day: 7, 
+          title: "🎉 Финальная работа", 
+          description: "Завершите марафон итоговой работой и поделитесь впечатлениями",
+          detailed_description: "Создайте работу, используя все изученные техники. Напишите о своих успехах и открытиях за неделю.\n\nЗадание: итоговая работа + эссе о пройденном пути.",
+          requires_submission: true,
+          submission_type: "both",
+          sparks_reward: 15
         }
-    ],
-    purchases: [],
-    channel_posts: [
-        {
-            id: 1,
-            post_id: "post_art_basics",
-            title: "🎨 Основы композиции в живописи",
-            content: "Сегодня поговорим о фундаментальных принципах построения композиции. Золотое сечение, правило третей и многое другое! Композиция - это основа любого художественного произведения, которая помогает направлять взгляд зрителя и создавать гармоничное изображение.\n\n💡 Практический совет: Попробуйте использовать правило третей в своей следующей работе - разделите холст на 9 равных частей и размещайте ключевые элементы на пересечениях линий.",
-            image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
-            video_url: null,
-            media_type: 'image',
-            admin_id: 898508164,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            telegram_message_id: null,
-            action_type: null,
-            action_target: null
+      ],
+      sparks_per_day: 7,
+      completion_bonus: 50,
+      is_active: true,
+      featured: true,
+      participants_count: 0,
+      success_rate: 0,
+      created_by: 898508164,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 2,
+      title: "👗 Марафон стиля",
+      description: "5-дневный интенсив по созданию гармоничного образа и определению своего стиля",
+      category: "style",
+      difficulty: "beginner",
+      duration_days: 5,
+      cover_image: "/uploads/marathons/style-cover.jpg",
+      tasks: [
+        { 
+          day: 1, 
+          title: "🎨 Анализ цветотипа", 
+          description: "Определите свой цветотип и подходящую цветовую палитру",
+          detailed_description: "Узнайте, какие цвета подчеркивают вашу природную красоту. Теория времен года.\n\nЗадание: определите свой цветотип и опишите результаты.",
+          requires_submission: true,
+          submission_type: "text",
+          sparks_reward: 5
         },
-        {
-            id: 2,
-            post_id: "post_style_tips",
-            title: "👗 5 советов по созданию стильного образа",
-            content: "1. Определите свой цветотип\n2. Создайте базовую капсулу\n3. Не бойтесь аксессуаров\n4. Учитывайте мероприятие\n5. Будьте уверены в себе!\n\n✨ Помните: Стиль - это не следование трендам, а умение выражать свою индивидуальность через одежду.",
-            image_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop",
-            video_url: null,
-            media_type: 'image',
-            admin_id: 898508164,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            telegram_message_id: null,
-            action_type: null,
-            action_target: null
+        { 
+          day: 2, 
+          title: "👚 Базовая капсула", 
+          description: "Создайте базовый гардероб на все случаи жизни",
+          detailed_description: "Составьте список must-have вещей для вашего стиля.\n\nЗадание: создайте план базового гардероба и загрузите фото своих базовых вещей.",
+          requires_submission: true,
+          submission_type: "image",
+          sparks_reward: 5
         },
-        {
-            id: 3,
-            post_id: "post_history_art",
-            title: "🏛️ Интересные факты о Ренессансе",
-            content: "Эпоха Возрождения подарила миру множество шедевров. Знаете ли вы, что:\n\n• Леонардо да Винчи был вегетарианцем\n• Микеланджело считал себя в первую очередь скульптором\n• Рафаэль умер в день своего рождения\n• Боттичелли сжег многие свои работы\n\n🎯 Интересный факт: Картины того времени часто содержали скрытые символы и послания.",
-            image_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
-            video_url: null,
-            media_type: 'image',
-            admin_id: 898508164,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            telegram_message_id: null,
-            action_type: null,
-            action_target: null
+        { 
+          day: 3, 
+          title: "💎 Акценты и аксессуары", 
+          description: "Научитесь дополнять образ аксессуарами",
+          detailed_description: "Как выбрать украшения, сумки, обувь и другие детали.\n\nЗадание: создайте 3 образа с разными аксессуарами.",
+          requires_submission: true,
+          submission_type: "image",
+          sparks_reward: 5
+        },
+        { 
+          day: 4, 
+          title: "🌟 Стилизация", 
+          description: "Создайте несколько образов для разных мероприятий",
+          detailed_description: "Подбор одежды для работы, свидания, встречи с друзьями.\n\nЗадание: создайте 3 образа для разных ситуаций.",
+          requires_submission: true,
+          submission_type: "image",
+          sparks_reward: 5
+        },
+        { 
+          day: 5, 
+          title: "🏆 Итоговый образ", 
+          description: "Подберите идеальный образ для важного мероприятия",
+          detailed_description: "Создайте продуманный образ от начала до конца.\n\nЗадание: полный образ с описанием выбора каждого элемента.",
+          requires_submission: true,
+          submission_type: "both",
+          sparks_reward: 10
         }
-    ],
-    post_reviews: [],
-    user_works: [],
-    work_reviews: [],
-    marathon_completions: [],
-    quiz_completions: [],
-    daily_reviews: [],
-    interactives: [
-        {
-            id: 1,
-            title: "🎨 Угадай эпоху картины",
-            description: "Определите эпоху по фрагменту картины",
-            type: "guess_era",
-            category: "history",
-            image_url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=300&fit=crop",
-            question: "Какой эпохе принадлежит этот фрагмент?",
-            options: ["Ренессанс", "Барокко", "Импрессионизм", "Кубизм"],
-            correct_answer: 0,
-            sparks_reward: 3,
-            allow_retake: false,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            title: "👗 Подбери образ для мероприятия",
-            description: "Создай гармоничный образ для конкретного события",
-            type: "style_match",
-            category: "style",
-            image_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop",
-            question: "Какое сочетание цветов подойдет для деловой встречи?",
-            options: ["Черный + белый + красный акцент", "Ярко-красный + зеленый", "Фиолетовый + оранжевый", "Розовый + голубой"],
-            correct_answer: 0,
-            sparks_reward: 2,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 3,
-            title: "✏️ Продолжи рисунок",
-            description: "Дорисуйте предложенный контур и создайте свою работу",
-            type: "drawing_challenge",
-            category: "art",
-            image_url: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop",
-            question: "Дорисуйте этот контур и создайте свою уникальную работу",
-            options: [],
-            correct_answer: null,
-            sparks_reward: 5,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 4,
-            title: "🔍 Найди отличия",
-            description: "Найдите все отличия между двумя изображениями",
-            type: "find_difference",
-            category: "art",
-            image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
-            question: "Сколько отличий вы нашли между изображениями?",
-            options: ["2 отличия", "3 отличия", "4 отличия", "5 отличий"],
-            correct_answer: 2,
-            sparks_reward: 3,
-            allow_retake: false,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 5,
-            title: "🧩 Исторический пазл",
-            description: "Соберите пазл из фрагментов известной картины",
-            type: "puzzle",
-            category: "history",
-            image_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
-            question: "Из скольких фрагментов состоит этот пазл?",
-            options: ["6 фрагментов", "9 фрагментов", "12 фрагментов", "16 фрагментов"],
-            correct_answer: 1,
-            sparks_reward: 2,
-            allow_retake: true,
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 6,
-            title: "🎭 Определи стиль художника",
-            description: "По фрагменту картины определите авторский стиль",
-            type: "guess_era",
-            category: "history",
-            image_url: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=400&h=300&fit=crop",
-            question: "Какому художнику принадлежит этот стиль?",
-            options: ["Ван Гог", "Моне", "Пикассо", "Дали"],
-            correct_answer: 0,
-            sparks_reward: 4,
-            allow_retake: false,
-            is_active: true,
-            created_at: new Date().toISOString()
-        }
-    ],
-    interactive_completions: [],
-    interactive_submissions: [],
-    marathon_submissions: []
+      ],
+      sparks_per_day: 5,
+      completion_bonus: 30,
+      is_active: true,
+      featured: true,
+      participants_count: 0,
+      success_rate: 0,
+      created_by: 898508164,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ],
+  shop_items: [
+    {
+      id: 1,
+      title: "🎨 Урок акварели для начинающих",
+      description: "Полный видеоурок по основам акварельной живописи от профессионального художника",
+      type: "video",
+      category: "painting",
+      file_url: "/uploads/shop/watercolor-course.mp4",
+      preview_url: "/uploads/shop/watercolor-preview.jpg",
+      thumbnail_url: "/uploads/shop/watercolor-thumb.jpg",
+      price: 15,
+      content_text: "В этом подробном уроке вы научитесь:\n\n• Основным техникам работы с акварелью\n• Смешиванию цветов и созданию палитры\n• Передаче света и тени\n• Созданию композиции\n• Работе с разными сюжетами\n\nПродолжительность: 2 часа 15 минут\nУровень: начинающий\nФормат: HD видео + материалы\n\nПосле покупки видео будет доступно в вашем личном кабинете.",
+      aspect_ratio: "16:9",
+      duration: "2:15:00",
+      file_size: "1.2 GB",
+      instructor: "Анна Художник",
+      instructor_bio: "Профессиональный художник с 10-летним опытом, преподаватель живописи",
+      rating: 4.8,
+      reviews_count: 47,
+      students_count: 215,
+      is_active: true,
+      featured: true,
+      tags: ["акварель", "живопись", "для начинающих"],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 2,
+      title: "📚 Основы композиции",
+      description: "PDF руководство по основам композиции в живописи и фотографии",
+      type: "pdf",
+      category: "theory",
+      file_url: "/uploads/shop/composition-guide.pdf",
+      preview_url: "/uploads/shop/composition-preview.jpg",
+      thumbnail_url: "/uploads/shop/composition-thumb.jpg",
+      price: 10,
+      content_text: "Подробное руководство по построению гармоничной композиции в художественных работах.\n\nТемы:\n• Золотое сечение и правило третей\n• Баланс и симметрия\n• Создание глубины и перспективы\n• Работа с цветом и контрастом\n• Композиционные схемы\n• Практические упражнения\n\nОбъем: 85 страниц\nФормат: PDF (можно распечатать)\nЯзык: русский",
+      aspect_ratio: "A4",
+      file_size: "15 MB",
+      pages: 85,
+      instructor: "Максим Композитор",
+      instructor_bio: "Искусствовед, преподаватель композиции",
+      rating: 4.6,
+      reviews_count: 23,
+      students_count: 89,
+      is_active: true,
+      featured: false,
+      tags: ["композиция", "теория", "руководство"],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 3,
+      title: "👗 Гид по стилю",
+      description: "Полное руководство по созданию гармоничного образа и определению своего стиля",
+      type: "text",
+      category: "style",
+      file_url: "",
+      preview_url: "/uploads/shop/style-guide-preview.jpg",
+      thumbnail_url: "/uploads/shop/style-guide-thumb.jpg",
+      price: 12,
+      content_text: "Как определить свой цветотип, подобрать базовый гардероб, сочетать цвета и аксессуары. Практические советы от профессионального стилиста.\n\nРазделы:\n• Определение цветотипа (теория времен года)\n• Создание базового гардероба\n• Сочетание цветов и принтов\n• Выбор аксессуаров и обуви\n• Создание образов для разных мероприятий\n• Уход за одеждой\n\nДополнительно: чек-листы и рабочие тетради",
+      aspect_ratio: "16:9",
+      instructor: "Елена Стилист",
+      instructor_bio: "Профессиональный стилист с 8-летним опытом",
+      rating: 4.7,
+      reviews_count: 34,
+      students_count: 127,
+      is_active: true,
+      featured: true,
+      tags: ["стиль", "мода", "гардероб"],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 4,
+      title: "🎬 Видео-урок по композиции",
+      description: "Эксклюзивный видео-урок по основам композиции от профессионального художника",
+      type: "embed",
+      category: "painting",
+      file_url: "",
+      preview_url: "/uploads/shop/composition-video-preview.jpg",
+      thumbnail_url: "/uploads/shop/composition-video-thumb.jpg",
+      price: 20,
+      content_text: "Профессиональный видео-урок по основам композиции в живописи. Вы научитесь правильно располагать элементы на холсте, создавать гармоничные композиции и направлять взгляд зрителя.\n\nТемы урока:\n• Золотое сечение в практике\n• Правило третей и его применение\n• Баланс и симметрия\n• Создание глубины пространства\n• Работа с акцентами и доминантами\n• Композиционные ошибки и как их избежать\n\nПродолжительность: 1 час 45 минут\nУровень: начинающий и продолжающий",
+      embed_html: `<div class="video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+        <iframe src="https://player.vimeo.com/video/1139315921?h=93d70dfee4&title=0&byline=0&portrait=0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+      </div>
+      <script src="https://player.vimeo.com/api/player.js"></script>`,
+      aspect_ratio: "16:9",
+      duration: "1:45:00",
+      instructor: "Алексей Мастер",
+      instructor_bio: "Художник-педагог с 15-летним опытом, член Союза художников",
+      rating: 4.9,
+      reviews_count: 56,
+      students_count: 189,
+      is_active: true,
+      featured: true,
+      tags: ["композиция", "видео", "профессиональный"],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 5,
+      title: "🧵 Основы вышивки для начинающих",
+      description: "Полный курс по основам вышивки от простых стежков до сложных техник",
+      type: "video",
+      category: "crafts",
+      file_url: "/uploads/shop/embroidery-course.mp4",
+      preview_url: "/uploads/shop/embroidery-preview.jpg",
+      thumbnail_url: "/uploads/shop/embroidery-thumb.jpg",
+      price: 18,
+      content_text: "Курс по основам вышивки, который подойдет даже тем, кто никогда не держал иголку в руках.\n\nСодержание:\n• Необходимые материалы и инструменты\n• Основные стежки (10+ видов)\n• Техники вышивки гладью и крестиком\n• Создание узоров и орнаментов\n• Работа с цветом и композицией\n• Завершение и оформление работы\n\nПродолжительность: 3 часа\nБонус: схемы для вышивки",
+      aspect_ratio: "16:9",
+      duration: "3:00:00",
+      file_size: "2.1 GB",
+      instructor: "Ольга Иголочка",
+      instructor_bio: "Мастер вышивки с 12-летним опытом, автор курсов",
+      rating: 4.8,
+      reviews_count: 41,
+      students_count: 156,
+      is_active: true,
+      featured: false,
+      tags: ["вышивка", "рукоделие", "для начинающих"],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 6,
+      title: "📸 Основы фотографии",
+      description: "Курс по основам фотографии для начинающих фотографов",
+      type: "video",
+      category: "photography",
+      file_url: "/uploads/shop/photography-course.mp4",
+      preview_url: "/uploads/shop/photography-preview.jpg",
+      thumbnail_url: "/uploads/shop/photography-thumb.jpg",
+      price: 25,
+      content_text: "Комплексный курс по основам фотографии, который научит вас делать профессиональные снимки даже на смартфон.\n\nТемы курса:\n• Основы экспозиции (выдержка, диафрагма, ISO)\n• Композиция в фотографии\n• Работа со светом и тенью\n• Портретная и пейзажная съемка\n• Обработка фотографий\n• Создание портфолио\n\nПродолжительность: 4 часа 30 минут\nУровень: начинающий",
+      aspect_ratio: "16:9",
+      duration: "4:30:00",
+      file_size: "3.2 GB",
+      instructor: "Дмитрий Фотограф",
+      instructor_bio: "Профессиональный фотограф с 10-летним опытом, преподаватель",
+      rating: 4.9,
+      reviews_count: 78,
+      students_count: 342,
+      is_active: true,
+      featured: true,
+      tags: ["фотография", "съемка", "обработка"],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ],
+  activities: [],
+  admins: [
+    { 
+      id: 1, 
+      user_id: 898508164, 
+      username: 'admin', 
+      email: 'admin@inspiration-studio.ru',
+      role: 'super_admin', 
+      permissions: ['all'],
+      is_active: true,
+      last_login: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    { 
+      id: 2, 
+      user_id: 79156202620, 
+      username: 'moderator1', 
+      email: 'moderator1@inspiration-studio.ru',
+      role: 'content_moderator', 
+      permissions: ['content', 'users', 'reports'],
+      is_active: true,
+      last_login: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    { 
+      id: 3, 
+      user_id: 781959267, 
+      username: 'moderator2', 
+      email: 'moderator2@inspiration-studio.ru',
+      role: 'support_moderator', 
+      permissions: ['users', 'support', 'reports'],
+      is_active: true,
+      last_login: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ],
+  purchases: [],
+  channel_posts: [
+    {
+      id: 1,
+      post_id: "post_art_basics",
+      title: "🎨 Основы композиции в живописи",
+      content: "Сегодня поговорим о фундаментальных принципах построения композиции — основе любого художественного произведения!\n\n**Что такое композиция?**\nЭто организация элементов в пространстве картины, которая создает гармонию и направляет взгляд зрителя.\n\n**Ключевые принципы:**\n• **Золотое сечение** - природная пропорция 1:1.618\n• **Правило третей** - деление на 9 равных частей\n• **Баланс** - равновесие визуальных масс\n• **Ритм** - повторение элементов\n• **Контраст** - игра противоположностей\n\n💡 **Практический совет:** Попробуйте использовать правило третей в своей следующей работе — размещайте ключевые элементы на пересечениях линий или вдоль них.\n\n🎯 **Упражнение:** Возьмите любую свою старую работу и проанализируйте ее композицию. Что можно улучшить?",
+      image_url: "/uploads/posts/composition-basics.jpg",
+      video_url: null,
+      media_type: 'image',
+      aspect_ratio: "16:9",
+      admin_id: 898508164,
+      is_active: true,
+      featured: true,
+      tags: ["композиция", "основы", "живопись"],
+      views_count: 0,
+      likes_count: 0,
+      comments_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      published_at: new Date().toISOString(),
+      scheduled_for: null
+    },
+    {
+      id: 2,
+      post_id: "post_style_tips",
+      title: "👗 5 советов по созданию стильного образа",
+      content: "Стиль — это не следование трендам, а умение выражать свою индивидуальность через одежду!\n\n**5 ключевых советов:**\n\n1. **Определите свой цветотип**\n   Подберите цвета, которые гармонируют с вашей внешностью\n\n2. **Создайте базовую капсулу**\n   Качественные вещи нейтральных цветов — основа гардероба\n\n3. **Не бойтесь аксессуаров**\n   Украшения, сумки, шарфы — это детали, которые создают образ\n\n4. **Учитывайте мероприятие**\n   Дресс-код и уместность — важные составляющие стиля\n\n5. **Будьте уверены в себе!**\n   Самое главное украшение — ваша уверенность\n\n✨ **Помните:** Настоящий стиль — это когда одежда становится продолжением вашей личности, а не маской.\n\n🎯 **Задание:** Проанализируйте свой гардероб. Какие вещи действительно отражают ваш характер?",
+      image_url: "/uploads/posts/style-tips.jpg",
+      video_url: null,
+      media_type: 'image',
+      aspect_ratio: "4:3",
+      admin_id: 898508164,
+      is_active: true,
+      featured: false,
+      tags: ["стиль", "мода", "гардероб"],
+      views_count: 0,
+      likes_count: 0,
+      comments_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      published_at: new Date().toISOString(),
+      scheduled_for: null
+    }
+  ],
+  post_reviews: [],
+  user_works: [],
+  work_reviews: [],
+  marathon_completions: [],
+  quiz_completions: [],
+  daily_reviews: [],
+  interactives: [
+    {
+      id: 1,
+      title: "🎨 Угадай эпоху картины",
+      description: "Определите эпоху по фрагменту картины",
+      type: "guess_era",
+      category: "history",
+      difficulty: "medium",
+      image_url: "/uploads/interactives/guess-era.jpg",
+      thumbnail_url: "/uploads/interactives/guess-era-thumb.jpg",
+      question: "Какой эпохе принадлежит этот фрагмент?",
+      options: ["Ренессанс", "Барокко", "Импрессионизм", "Кубизм"],
+      correct_answer: 0,
+      explanation: "Это фрагмент работы эпохи Возрождения — обратите внимание на гармоничные пропорции и ясность композиции.",
+      sparks_reward: 3,
+      time_limit: 30,
+      allow_retake: false,
+      is_active: true,
+      featured: true,
+      attempts_count: 0,
+      success_rate: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 2,
+      title: "👗 Подбери образ для мероприятия",
+      description: "Создай гармоничный образ для конкретного события",
+      type: "style_match",
+      category: "style",
+      difficulty: "easy",
+      image_url: "/uploads/interactives/style-match.jpg",
+      thumbnail_url: "/uploads/interactives/style-match-thumb.jpg",
+      question: "Какое сочетание цветов подойдет для деловой встречи?",
+      options: ["Черный + белый + красный акцент", "Ярко-красный + зеленый", "Фиолетовый + оранжевый", "Розовый + голубой"],
+      correct_answer: 0,
+      explanation: "Для деловой встречи лучше выбрать сдержанные цвета с одним акцентным — это создает образ уверенного профессионала.",
+      sparks_reward: 2,
+      time_limit: 20,
+      allow_retake: true,
+      is_active: true,
+      featured: false,
+      attempts_count: 0,
+      success_rate: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ],
+  interactive_completions: [],
+  interactive_submissions: [],
+  marathon_submissions: [],
+  sparks_transactions: [],
+  achievements: [
+    {
+      id: 1,
+      name: "Первый шаг",
+      description: "Завершите регистрацию в системе",
+      icon: "🎯",
+      type: "registration",
+      requirement: 1,
+      sparks_reward: 10,
+      is_active: true,
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 2,
+      name: "Любознательный",
+      description: "Пройдите свой первый квиз",
+      icon: "🧠",
+      type: "quiz",
+      requirement: 1,
+      sparks_reward: 15,
+      is_active: true,
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 3,
+      name: "Творец",
+      description: "Загрузите первую работу",
+      icon: "🎨",
+      type: "work",
+      requirement: 1,
+      sparks_reward: 20,
+      is_active: true,
+      created_at: new Date().toISOString()
+    }
+  ],
+  user_achievements: [],
+  notifications: [],
+  settings: {
+    sparks_system: {
+      QUIZ_PER_CORRECT_ANSWER: 1,
+      QUIZ_PERFECT_BONUS: 5,
+      MARATHON_DAY_COMPLETION: 7,
+      INVITE_FRIEND: 10,
+      WRITE_REVIEW: 3,
+      DAILY_COMMENT: 1,
+      UPLOAD_WORK: 5,
+      WORK_APPROVED: 15,
+      REGISTRATION_BONUS: 10,
+      PARTICIPATE_POLL: 2,
+      INTERACTIVE_COMPLETION: 3,
+      INTERACTIVE_SUBMISSION: 2,
+      COMPLIMENT_CHALLENGE: 0.5,
+      MARATHON_SUBMISSION: 5,
+      ROLE_CHANGE: 0,
+      DAILY_LOGIN: 1,
+      WEEKLY_STREAK: 10,
+      MONTHLY_CHALLENGE: 25
+    },
+    levels: {
+      Ученик: 0,
+      Искатель: 50,
+      Знаток: 150,
+      Мастер: 300,
+      Наставник: 400
+    },
+    app_settings: {
+      max_file_size: 100,
+      allowed_formats: ["jpg", "jpeg", "png", "webp", "mp4", "pdf", "doc", "docx"],
+      daily_reward_limit: 1,
+      weekly_marathon_limit: 2,
+      max_works_per_day: 5
+    }
+  }
 };
 
 // ==================== УСИЛЕННАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР ====================
 
-const SPARKS_SYSTEM = {
-    QUIZ_PER_CORRECT_ANSWER: 1,
-    QUIZ_PERFECT_BONUS: 5,
-    MARATHON_DAY_COMPLETION: 7,
-    INVITE_FRIEND: 10,
-    WRITE_REVIEW: 3,
-    DAILY_COMMENT: 1,
-    UPLOAD_WORK: 5,
-    WORK_APPROVED: 15,
-    REGISTRATION_BONUS: 10,
-    PARTICIPATE_POLL: 2,
-    INTERACTIVE_COMPLETION: 3,
-    INTERACTIVE_SUBMISSION: 2,
-    COMPLIMENT_CHALLENGE: 0.5,
-    MARATHON_SUBMISSION: 5,
-    ROLE_CHANGE: 0
-};
+class SparksSystem {
+  static getSettings() {
+    return db.settings.sparks_system;
+  }
 
-// Вспомогательные функции
-function calculateLevel(sparks) {
-    if (sparks >= 400) return 'Наставник';
-    if (sparks >= 300) return 'Мастер';
-    if (sparks >= 150) return 'Знаток';
-    if (sparks >= 50) return 'Искатель';
+  static calculateLevel(sparks) {
+    const levels = db.settings.levels;
+    if (sparks >= levels.Наставник) return 'Наставник';
+    if (sparks >= levels.Мастер) return 'Мастер';
+    if (sparks >= levels.Знаток) return 'Знаток';
+    if (sparks >= levels.Искатель) return 'Искатель';
     return 'Ученик';
-}
+  }
 
-function addSparks(userId, sparks, activityType, description, adminId = null) {
+  static async addSparks(userId, sparks, activityType, description, adminId = null, metadata = {}) {
     const user = db.users.find(u => u.user_id == userId);
-    if (user) {
-        // Обновляем баланс искр
-        user.sparks = Math.max(0, user.sparks + sparks);
-        user.level = calculateLevel(user.sparks);
-        user.last_active = new Date().toISOString();
-        
-        // Логируем активность
-        const activity = {
-            id: Date.now(),
-            user_id: userId,
-            activity_type: activityType,
-            sparks_earned: sparks,
-            description: description,
-            admin_id: adminId, // Добавляем ID администратора если начисление ручное
-            created_at: new Date().toISOString()
-        };
-        
-        db.activities.push(activity);
-        return activity;
-    }
-    return null;
-}
+    if (!user) return null;
 
-function getUserStats(userId) {
+    const oldBalance = user.sparks;
+    user.sparks = Math.max(0, user.sparks + sparks);
+    user.level = this.calculateLevel(user.sparks);
+    user.last_active = new Date().toISOString();
+
+    // Обновляем streak
+    await this.updateUserStreak(user);
+
+    // Логируем активность
+    const activity = {
+      id: Date.now(),
+      user_id: userId,
+      activity_type: activityType,
+      sparks_earned: sparks,
+      description: description,
+      admin_id: adminId,
+      created_at: new Date().toISOString(),
+      metadata: metadata
+    };
+    
+    db.activities.push(activity);
+
+    // Логируем транзакцию
+    const transaction = {
+      id: Date.now(),
+      user_id: userId,
+      admin_id: adminId,
+      amount: sparks,
+      type: activityType,
+      description: description,
+      old_balance: oldBalance,
+      new_balance: user.sparks,
+      created_at: new Date().toISOString(),
+      metadata: metadata
+    };
+    
+    db.sparks_transactions.push(transaction);
+
+    // Проверяем достижения
+    await this.checkAchievements(userId, activityType);
+
+    return { activity, transaction };
+  }
+
+  static async updateUserStreak(user) {
+    const today = new Date().toDateString();
+    const lastActive = new Date(user.last_active).toDateString();
+    
+    if (lastActive !== today) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      if (lastActive === yesterday.toDateString()) {
+        user.streak += 1;
+        
+        // Награда за серию
+        if (user.streak % 7 === 0) {
+          const weeklyBonus = db.settings.sparks_system.WEEKLY_STREAK;
+          await this.addSparks(user.user_id, weeklyBonus, 'weekly_streak', `Еженедельная награда за ${user.streak} дней`);
+        }
+      } else {
+        user.streak = 1;
+      }
+    }
+  }
+
+  static async checkAchievements(userId, activityType) {
+    const user = db.users.find(u => u.user_id == userId);
+    const userAchievements = db.user_achievements.filter(ua => ua.user_id == userId);
+    const achievements = db.achievements.filter(a => a.is_active && a.type === activityType);
+
+    for (const achievement of achievements) {
+      const hasAchievement = userAchievements.find(ua => ua.achievement_id === achievement.id);
+      if (hasAchievement) continue;
+
+      let conditionMet = false;
+      const userActivities = db.activities.filter(a => a.user_id == userId && a.activity_type === activityType);
+
+      switch (activityType) {
+        case 'registration':
+          conditionMet = user.is_registered;
+          break;
+        case 'quiz':
+          conditionMet = userActivities.length >= achievement.requirement;
+          break;
+        case 'work':
+          const userWorks = db.user_works.filter(w => w.user_id == userId);
+          conditionMet = userWorks.length >= achievement.requirement;
+          break;
+        // Добавьте другие типы достижений
+      }
+
+      if (conditionMet) {
+        db.user_achievements.push({
+          id: Date.now(),
+          user_id: userId,
+          achievement_id: achievement.id,
+          earned_at: new Date().toISOString(),
+          sparks_awarded: achievement.sparks_reward
+        });
+
+        user.achievements.push(achievement.name);
+        await this.addSparks(userId, achievement.sparks_reward, 'achievement', `Достижение: ${achievement.name}`);
+      }
+    }
+  }
+
+  static getUserStats(userId) {
     const user = db.users.find(u => u.user_id == userId);
     if (!user) return null;
     
@@ -926,236 +1343,193 @@ function getUserStats(userId) {
     const quizCompletions = db.quiz_completions.filter(q => q.user_id == userId);
     const marathonCompletions = db.marathon_completions.filter(m => m.user_id == userId);
     const interactiveCompletions = db.interactive_completions.filter(i => i.user_id == userId);
+    const userAchievements = db.user_achievements.filter(ua => ua.user_id == userId);
     
     return {
-        totalActivities: activities.length,
-        totalPurchases: purchases.length,
-        totalWorks: works.length,
-        approvedWorks: works.filter(w => w.status === 'approved').length,
-        totalQuizzesCompleted: quizCompletions.length,
-        totalMarathonsCompleted: marathonCompletions.filter(m => m.completed).length,
-        totalInteractivesCompleted: interactiveCompletions.length,
-        totalSparksEarned: activities.reduce((sum, a) => sum + a.sparks_earned, 0)
+      totalActivities: activities.length,
+      totalPurchases: purchases.length,
+      totalWorks: works.length,
+      approvedWorks: works.filter(w => w.status === 'approved').length,
+      totalQuizzesCompleted: quizCompletions.length,
+      totalMarathonsCompleted: marathonCompletions.filter(m => m.completed).length,
+      totalInteractivesCompleted: interactiveCompletions.length,
+      totalAchievements: userAchievements.length,
+      totalSparksEarned: activities.reduce((sum, a) => sum + a.sparks_earned, 0),
+      totalSparksSpent: purchases.reduce((sum, p) => sum + p.price_paid, 0),
+      currentStreak: user.streak,
+      joinDate: user.registration_date,
+      levelProgress: this.calculateLevelProgress(user.sparks)
     };
+  }
+
+  static calculateLevelProgress(sparks) {
+    const levels = db.settings.levels;
+    const currentLevel = this.calculateLevel(sparks);
+    const nextLevel = this.getNextLevel(currentLevel);
+    
+    if (!nextLevel) return 100; // Максимальный уровень
+    
+    const currentLevelMin = levels[currentLevel];
+    const nextLevelMin = levels[nextLevel];
+    const progress = ((sparks - currentLevelMin) / (nextLevelMin - currentLevelMin)) * 100;
+    
+    return Math.min(Math.max(progress, 0), 100);
+  }
+
+  static getNextLevel(currentLevel) {
+    const levelOrder = ['Ученик', 'Искатель', 'Знаток', 'Мастер', 'Наставник'];
+    const currentIndex = levelOrder.indexOf(currentLevel);
+    return levelOrder[currentIndex + 1] || null;
+  }
 }
 
-// Middleware - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// ==================== MIDDLEWARE ====================
+
 const requireAdmin = (req, res, next) => {
-    const userId = req.query.userId || req.body.userId;
-    
-    console.log('🔐 Проверка админских прав для пользователя:', userId);
-    
-    if (!userId) {
-        return res.status(401).json({ error: 'User ID required' });
-    }
-    
-    // ПРОСТАЯ ПРОВЕРКА - ВСЕ, У КОГО ЕСТЬ ID, МОГУТ ВОЙТИ В АДМИНКУ
-    const admin = db.admins.find(a => a.user_id == userId);
-    if (!admin) {
-        console.log('⚠️ Пользователь не найден в списке админов, но разрешаем доступ');
-        // Разрешаем доступ всем для тестирования
-        req.admin = { user_id: userId, role: 'admin' };
-        return next();
-    }
-    
-    req.admin = admin;
-    next();
+  const userId = req.query.userId || req.body.userId;
+  
+  if (!userId) {
+    return res.status(401).json({ error: 'User ID required' });
+  }
+  
+  const admin = db.admins.find(a => a.user_id == userId && a.is_active);
+  if (!admin) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  
+  req.admin = admin;
+  next();
 };
 
-// ==================== ДИАГНОСТИЧЕСКИЕ МАРШРУТЫ ДЛЯ МОБИЛЬНЫХ ====================
+const requireAuth = (req, res, next) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  try {
+    const decoded = AuthService.verifyToken(token);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+};
 
-// Диагностика мобильного устройства
-app.get('/api/debug/device', (req, res) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+// ==================== CORS НАСТРОЙКИ ====================
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'https://web.telegram.org',
+      'https://oauth.telegram.org',
+      process.env.APP_URL || 'https://your-domain.timeweb.cloud'
+    ];
     
-    res.json({
-        userAgent: userAgent,
-        isMobile: isMobile,
-        timestamp: new Date().toISOString(),
-        headers: {
-            'accept': req.headers['accept'],
-            'content-type': req.headers['content-type'],
-            'origin': req.headers['origin']
-        }
-    });
-});
-
-// Диагностика магазина
-app.get('/api/debug/shop-debug', (req, res) => {
-    const shopItems = db.shop_items.filter(item => item.is_active);
-    
-    res.json({
-        total_items: shopItems.length,
-        items: shopItems.map(item => ({
-            id: item.id,
-            title: item.title,
-            type: item.type,
-            price: item.price,
-            has_embed: !!item.embed_html,
-            embed_length: item.embed_html ? item.embed_html.length : 0,
-            preview_url: item.preview_url ? 'exists' : 'missing',
-            is_active: item.is_active
-        })),
-        api_endpoints: {
-            shop_items: '/api/webapp/shop/items',
-            shop_purchase: '/api/webapp/shop/purchase',
-            user_purchases: '/api/webapp/users/:userId/purchases'
-        }
-    });
-});
-
-// Проверка доступности API endpoints
-app.get('/api/debug/endpoints', (req, res) => {
-    const endpoints = {
-        shop: {
-            items: '/api/webapp/shop/items',
-            purchases: '/api/webapp/users/:userId/purchases'
-        },
-        interactives: {
-            list: '/api/webapp/interactives',
-            submit: '/api/webapp/interactives/:interactiveId/submit'
-        },
-        users: {
-            profile: '/api/users/:userId',
-            register: '/api/users/register'
-        }
-    };
-    
-    res.json({
-        endpoints: endpoints,
-        status: 'available'
-    });
-});
-
-// Проверка конкретно магазина и интерактивов
-app.get('/api/debug/shop-status', (req, res) => {
-    const shopItems = db.shop_items.filter(item => item.is_active);
-    const interactives = db.interactives.filter(item => item.is_active);
-    
-    res.json({
-        shop: {
-            total: shopItems.length,
-            items: shopItems.map(item => ({
-                id: item.id,
-                title: item.title,
-                type: item.type,
-                price: item.price,
-                has_embed: !!item.embed_html
-            }))
-        },
-        interactives: {
-            total: interactives.length,
-            items: interactives.map(item => ({
-                id: item.id,
-                title: item.title,
-                type: item.type,
-                category: item.category
-            }))
-        }
-    });
-});
-
-// ==================== ОСНОВНЫЕ API МАРШРУТЫ ====================
-
-// Basic routes
-app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'OK', 
-        timestamp: new Date().toISOString(),
-        version: '7.0.0',
-        database: 'In-Memory',
-        users: db.users.length,
-        quizzes: db.quizzes.length,
-        marathons: db.marathons.length,
-        shop_items: db.shop_items.length,
-        interactives: db.interactives.length
-    });
-});
-
-// WebApp API
-app.get('/api/users/:userId', (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const user = db.users.find(u => u.user_id === userId);
-    
-    if (user) {
-        const stats = getUserStats(userId);
-        res.json({ 
-            exists: true, 
-            user: {
-                ...user,
-                stats: stats
-            }
-        });
+    if (!origin || allowedOrigins.some(allowed => origin.includes(allowed))) {
+      callback(null, true);
     } else {
-        const newUser = {
-            id: Date.now(),
-            user_id: userId,
-            tg_first_name: 'Новый пользователь',
-            sparks: 0,
-            level: 'Ученик',
-            is_registered: false,
-            class: null,
-            character_id: null,
-            character_name: null,
-            available_buttons: [],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
-        };
-        db.users.push(newUser);
-        res.json({ 
-            exists: false, 
-            user: newUser 
-        });
+      callback(new Error('CORS не разрешен для этого origin'), false);
     }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'User-Agent', 'tgwebviewdata'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+  maxAge: 86400
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
+
+app.use('/uploads', express.static(join(APP_ROOT, 'uploads'), {
+  maxAge: '30d',
+  setHeaders: (res, path) => {
+    if (path.match(/\.(jpg|jpeg|png|webp|gif)$/)) {
+      res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30 дней
+    } else if (path.match(/\.(mp4|pdf)$/)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800'); // 7 дней
+    }
+  }
+}));
+
+app.use(express.static(join(APP_ROOT, 'public'), {
+  maxAge: '1d',
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else if (path.match(/\.(js|css)$/)) {
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 час
+    }
+  }
+}));
+
+app.use('/admin', express.static(join(APP_ROOT, 'admin'), {
+  maxAge: '1h',
+  setHeaders: (res, path) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  }
+}));
+
+// ==================== ОСНОВНЫЕ МАРШРУТЫ ====================
+
+app.get('/', (req, res) => {
+  res.sendFile(join(APP_ROOT, 'public', 'index.html'));
 });
 
-// НОВЫЙ МЕТОД ДЛЯ СМЕНЫ РОЛИ
-app.post('/api/users/change-role', (req, res) => {
-    const { userId, roleId, characterId } = req.body;
-    
-    if (!userId || !roleId) {
-        return res.status(400).json({ error: 'User ID and role are required' });
+app.get('/admin', (req, res) => {
+  res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
+});
+
+app.get('/health', (req, res) => {
+  const health = {
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    database: {
+      users: db.users.length,
+      quizzes: db.quizzes.length,
+      marathons: db.marathons.length,
+      shop_items: db.shop_items.length,
+      interactives: db.interactives.length
     }
-    
-    const user = db.users.find(u => u.user_id == userId);
-    const role = db.roles.find(r => r.id == roleId);
-    const character = db.characters.find(c => c.id == characterId);
-    
-    if (!user || !role) {
-        return res.status(404).json({ error: 'User or role not found' });
-    }
-    
-    if (!user.is_registered) {
-        return res.status(400).json({ error: 'User not registered' });
-    }
-    
-    // Сохраняем старую роль для лога
-    const oldRole = user.class;
-    
-    user.class = role.name;
-    user.character_id = characterId;
-    user.character_name = character ? character.name : null;
-    user.available_buttons = role.available_buttons;
-    user.last_active = new Date().toISOString();
-    
-    // Логируем смену роли (0 искр)
-    addSparks(userId, SPARKS_SYSTEM.ROLE_CHANGE, 'role_change', `Смена роли: ${oldRole} → ${role.name}`);
-    
+  };
+  res.json(health);
+});
+
+// ==================== API МАРШРУТЫ ====================
+
+// Пользователи
+app.get('/api/users/:userId', (req, res) => {
+  const userId = parseInt(req.params.userId);
+  const user = db.users.find(u => u.user_id === userId);
+  
+  if (user) {
+    const stats = SparksSystem.getUserStats(userId);
     res.json({ 
-        success: true, 
-        message: 'Роль успешно изменена!',
-        user: user
+      success: true,
+      user: {
+        ...user,
+        stats: stats
+      }
     });
+  } else {
+    res.status(404).json({ success: false, error: 'User not found' });
+  }
 });
 
-app.post('/api/users/register', (req, res) => {
+app.post('/api/users/register', async (req, res) => {
+  try {
     const { userId, firstName, roleId, characterId } = req.body;
     
-    console.log('📝 Регистрация пользователя:', { userId, firstName, roleId, characterId });
-    
     if (!userId || !firstName || !roleId) {
-        return res.status(400).json({ error: 'User ID, first name and role are required' });
+      return res.status(400).json({ error: 'User ID, first name and role are required' });
     }
     
     let user = db.users.find(u => u.user_id == userId);
@@ -1163,369 +1537,405 @@ app.post('/api/users/register', (req, res) => {
     const character = db.characters.find(c => c.id == characterId);
     
     if (!role) {
-        return res.status(404).json({ error: 'Role not found' });
+      return res.status(404).json({ error: 'Role not found' });
     }
     
     const isNewUser = !user;
     
     if (!user) {
-        // Создаем нового пользователя
-        user = {
-            id: Date.now(),
-            user_id: parseInt(userId),
-            tg_first_name: firstName,
-            tg_username: 'user_' + userId,
-            sparks: 0,
-            level: 'Ученик',
-            is_registered: false,
-            class: null,
-            character_id: null,
-            character_name: null,
-            available_buttons: [],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
-        };
-        db.users.push(user);
+      user = {
+        id: Date.now(),
+        user_id: parseInt(userId),
+        tg_first_name: firstName,
+        tg_username: 'user_' + userId,
+        sparks: 0,
+        level: 'Ученик',
+        is_registered: false,
+        class: null,
+        character_id: null,
+        character_name: null,
+        available_buttons: [],
+        registration_date: new Date().toISOString(),
+        last_active: new Date().toISOString(),
+        avatar_url: null,
+        email: null,
+        phone: null,
+        settings: {
+          notifications: true,
+          email_notifications: false,
+          theme: 'light',
+          language: 'ru'
+        },
+        achievements: [],
+        badges: [],
+        streak: 0,
+        last_daily_reward: null
+      };
+      db.users.push(user);
     }
     
-    // Обновляем данные пользователя
     user.tg_first_name = firstName;
     user.class = role.name;
     user.character_id = characterId;
     user.character_name = character ? character.name : null;
     user.is_registered = true;
-    user.available_buttons = role.available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'];
+    user.available_buttons = role.available_buttons;
     user.last_active = new Date().toISOString();
     
     let message = 'Регистрация успешна!';
     let sparksAdded = 0;
     
     if (isNewUser) {
-        sparksAdded = SPARKS_SYSTEM.REGISTRATION_BONUS;
-        addSparks(userId, sparksAdded, 'registration', 'Регистрация');
-        message = `Регистрация успешна! +${sparksAdded}✨`;
-        
-        // Автоматически добавляем пользователя как модератора для тестирования
-        const adminExists = db.admins.find(a => a.user_id == userId);
-        if (!adminExists) {
-            db.admins.push({
-                id: Date.now(),
-                user_id: parseInt(userId),
-                username: 'user_' + userId,
-                role: 'moderator',
-                created_at: new Date().toISOString()
-            });
-            console.log('✅ Пользователь добавлен как модератор');
-        }
+      sparksAdded = db.settings.sparks_system.REGISTRATION_BONUS;
+      await SparksSystem.addSparks(userId, sparksAdded, 'registration', 'Регистрация');
+      message = `Регистрация успешна! +${sparksAdded}✨`;
     }
-    
-    console.log('✅ Успешная регистрация:', user);
     
     res.json({ 
-        success: true, 
-        message, 
-        sparksAdded,
-        user: user
+      success: true, 
+      message, 
+      sparksAdded,
+      user: user
     });
+    
+  } catch (error) {
+    console.error('Ошибка регистрации:', error);
+    res.status(500).json({ error: 'Ошибка регистрации' });
+  }
 });
 
-app.get('/api/webapp/roles', (req, res) => {
-    try {
-        console.log('📋 Запрос на получение ролей');
-        const roles = db.roles.filter(role => role.is_active);
-        console.log('✅ Найдено ролей:', roles.length);
-        console.log('📝 Роли:', roles.map(r => r.name));
-        res.json(roles);
-    } catch (error) {
-        console.error('❌ Ошибка получения ролей:', error);
-        res.status(500).json({ error: 'Ошибка загрузки ролей' });
+// Загрузка аватара
+app.post('/api/users/:userId/avatar', upload.single('avatar'), async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'Файл не загружен' });
     }
+    
+    const user = db.users.find(u => u.user_id === userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+    
+    // Оптимизируем изображение
+    const optimizedPath = req.file.path + '-optimized.jpg';
+    const optimizationResult = await MediaOptimizer.optimizeImage(req.file.path, optimizedPath, {
+      maxWidth: 300,
+      maxHeight: 300,
+      quality: 80,
+      format: 'jpeg'
+    });
+    
+    if (optimizationResult.success) {
+      user.avatar_url = '/uploads/avatars/' + require('path').basename(optimizedPath);
+      await fs.unlink(req.file.path);
+    } else {
+      user.avatar_url = '/uploads/avatars/' + req.file.filename;
+    }
+    
+    // Создаем миниатюру
+    const thumbnailPath = optimizedPath + '-thumb.jpg';
+    await MediaOptimizer.createThumbnail(optimizedPath, thumbnailPath, 100);
+    
+    res.json({
+      success: true,
+      message: 'Аватар успешно обновлен',
+      avatar_url: user.avatar_url
+    });
+    
+  } catch (error) {
+    console.error('Ошибка загрузки аватара:', error);
+    res.status(500).json({ error: 'Ошибка загрузки аватара' });
+  }
+});
+
+// Настройки пользователя
+app.put('/api/users/:userId/settings', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const { settings } = req.body;
+    
+    const user = db.users.find(u => u.user_id === userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+    
+    if (settings) {
+      user.settings = { ...user.settings, ...settings };
+      user.last_active = new Date().toISOString();
+    }
+    
+    res.json({
+      success: true,
+      message: 'Настройки обновлены',
+      settings: user.settings
+    });
+    
+  } catch (error) {
+    console.error('Ошибка обновления настроек:', error);
+    res.status(500).json({ error: 'Ошибка обновления настроек' });
+  }
+});
+
+// Ежедневная награда
+app.post('/api/users/:userId/daily-reward', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const user = db.users.find(u => u.user_id === userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+    
+    const today = new Date().toDateString();
+    const lastReward = user.last_daily_reward ? new Date(user.last_daily_reward).toDateString() : null;
+    
+    if (lastReward === today) {
+      return res.status(400).json({ error: 'Ежедневная награда уже получена сегодня' });
+    }
+    
+    const dailyReward = db.settings.sparks_system.DAILY_LOGIN;
+    const result = await SparksSystem.addSparks(userId, dailyReward, 'daily_reward', 'Ежедневная награда');
+    
+    user.last_daily_reward = new Date().toISOString();
+    
+    res.json({
+      success: true,
+      message: `Ежедневная награда получена! +${dailyReward}✨`,
+      sparksEarned: dailyReward,
+      streak: user.streak
+    });
+    
+  } catch (error) {
+    console.error('Ошибка получения награды:', error);
+    res.status(500).json({ error: 'Ошибка получения награды' });
+  }
+});
+
+// Роли и персонажи
+app.get('/api/webapp/roles', (req, res) => {
+  const roles = db.roles.filter(role => role.is_active);
+  res.json(roles);
 });
 
 app.get('/api/webapp/characters/:roleId', (req, res) => {
-    try {
-        const roleId = parseInt(req.params.roleId);
-        console.log('👥 Запрос персонажей для роли:', roleId);
-        
-        const characters = db.characters.filter(char => 
-            char.role_id === roleId && char.is_active
-        );
-        
-        console.log('✅ Найдено персонажей:', characters.length);
-        res.json(characters);
-    } catch (error) {
-        console.error('❌ Ошибка получения персонажей:', error);
-        res.status(500).json({ error: 'Ошибка загрузки персонажей' });
-    }
+  const roleId = parseInt(req.params.roleId);
+  const characters = db.characters.filter(char => 
+    char.role_id === roleId && char.is_active
+  );
+  res.json(characters);
 });
 
-app.get('/api/webapp/quizzes', (req, res) => {
-    const userId = parseInt(req.query.userId);
-    const quizzes = db.quizzes.filter(q => q.is_active);
+// Смена роли
+app.post('/api/users/change-role', async (req, res) => {
+  try {
+    const { userId, roleId, characterId } = req.body;
     
-    const quizzesWithStatus = quizzes.map(quiz => {
-        const completion = db.quiz_completions.find(
-            qc => qc.user_id === userId && qc.quiz_id === quiz.id
-        );
-        
-        let canRetake = quiz.allow_retake;
-        if (completion && quiz.cooldown_hours > 0) {
-            const lastCompletion = new Date(completion.completed_at);
-            const now = new Date();
-            const hoursSinceCompletion = (now - lastCompletion) / (1000 * 60 * 60);
-            canRetake = hoursSinceCompletion >= quiz.cooldown_hours;
-        }
-        
-        return {
-            ...quiz,
-            completed: !!completion,
-            user_score: completion ? completion.score : 0,
-            total_questions: quiz.questions.length,
-            can_retake: canRetake && quiz.allow_retake,
-            last_completion: completion ? completion.completed_at : null
-        };
+    if (!userId || !roleId) {
+      return res.status(400).json({ error: 'User ID and role are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    const role = db.roles.find(r => r.id == roleId);
+    const character = db.characters.find(c => c.id == characterId);
+    
+    if (!user || !role) {
+      return res.status(404).json({ error: 'User or role not found' });
+    }
+    
+    if (!user.is_registered) {
+      return res.status(400).json({ error: 'User not registered' });
+    }
+    
+    const oldRole = user.class;
+    user.class = role.name;
+    user.character_id = characterId;
+    user.character_name = character ? character.name : null;
+    user.available_buttons = role.available_buttons;
+    user.last_active = new Date().toISOString();
+    
+    await SparksSystem.addSparks(userId, 0, 'role_change', `Смена роли: ${oldRole} → ${role.name}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'Роль успешно изменена!',
+      user: user
     });
     
-    res.json(quizzesWithStatus);
+  } catch (error) {
+    console.error('Ошибка смены роли:', error);
+    res.status(500).json({ error: 'Ошибка смены роли' });
+  }
 });
 
-// ИСПРАВЛЕННОЕ ОТПРАВЛЕНИЕ РЕЗУЛЬТАТОВ КВИЗА
-app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
+// Квизы
+app.get('/api/webapp/quizzes', (req, res) => {
+  const userId = parseInt(req.query.userId);
+  const quizzes = db.quizzes.filter(q => q.is_active);
+  
+  const quizzesWithStatus = quizzes.map(quiz => {
+    const completion = db.quiz_completions.find(
+      qc => qc.user_id === userId && qc.quiz_id === quiz.id
+    );
+    
+    let canRetake = quiz.allow_retake;
+    if (completion && quiz.cooldown_hours > 0) {
+      const lastCompletion = new Date(completion.completed_at);
+      const now = new Date();
+      const hoursSinceCompletion = (now - lastCompletion) / (1000 * 60 * 60);
+      canRetake = hoursSinceCompletion >= quiz.cooldown_hours;
+    }
+    
+    return {
+      ...quiz,
+      completed: !!completion,
+      user_score: completion ? completion.score : 0,
+      total_questions: quiz.questions.length,
+      can_retake: canRetake && quiz.allow_retake,
+      last_completion: completion ? completion.completed_at : null
+    };
+  });
+  
+  res.json(quizzesWithStatus);
+});
+
+app.post('/api/webapp/quizzes/:quizId/submit', async (req, res) => {
+  try {
     const quizId = parseInt(req.params.quizId);
     const { userId, answers } = req.body;
     
     if (!userId) {
-        return res.status(400).json({ error: 'User ID is required' });
+      return res.status(400).json({ error: 'User ID is required' });
     }
     
     const quiz = db.quizzes.find(q => q.id === quizId);
     if (!quiz) {
-        return res.status(404).json({ error: 'Quiz not found' });
+      return res.status(404).json({ error: 'Quiz not found' });
     }
     
     const existingCompletion = db.quiz_completions.find(
-        qc => qc.user_id === userId && qc.quiz_id === quizId
+      qc => qc.user_id === userId && qc.quiz_id === quizId
     );
     
     if (existingCompletion && !quiz.allow_retake) {
-        return res.status(400).json({ error: 'Этот квиз нельзя пройти повторно' });
+      return res.status(400).json({ error: 'Этот квиз нельзя пройти повторно' });
     }
     
     if (existingCompletion && quiz.cooldown_hours > 0) {
-        const lastCompletion = new Date(existingCompletion.completed_at);
-        const now = new Date();
-        const hoursSinceCompletion = (now - lastCompletion) / (1000 * 60 * 60);
-        
-        if (hoursSinceCompletion < quiz.cooldown_hours) {
-            const hoursLeft = Math.ceil(quiz.cooldown_hours - hoursSinceCompletion);
-            return res.status(400).json({ 
-                error: `Квиз можно пройти повторно через ${hoursLeft} часов` 
-            });
-        }
+      const lastCompletion = new Date(existingCompletion.completed_at);
+      const now = new Date();
+      const hoursSinceCompletion = (now - lastCompletion) / (1000 * 60 * 60);
+      
+      if (hoursSinceCompletion < quiz.cooldown_hours) {
+        const hoursLeft = Math.ceil(quiz.cooldown_hours - hoursSinceCompletion);
+        return res.status(400).json({ 
+          error: `Квиз можно пройти повторно через ${hoursLeft} часов` 
+        });
+      }
     }
     
     let correctAnswers = 0;
+    let totalPoints = 0;
+    
     quiz.questions.forEach((question, index) => {
-        if (answers[index] === question.correctAnswer) {
-            correctAnswers++;
-        }
+      if (answers[index] === question.correctAnswer) {
+        correctAnswers++;
+        totalPoints += question.points || 1;
+      }
     });
     
-    // ИСПРАВЛЕННОЕ НАЧИСЛЕНИЕ ИСКР
-    let sparksEarned = 0;
+    const sparksEarned = correctAnswers * quiz.sparks_per_correct;
     const perfectScore = correctAnswers === quiz.questions.length;
     
-    // Начисляем искры за правильные ответы
-    sparksEarned = correctAnswers * quiz.sparks_per_correct;
-    
-    // Добавляем бонус за идеальный результат
     if (perfectScore) {
-        sparksEarned += quiz.sparks_perfect_bonus;
+      sparksEarned += quiz.sparks_perfect_bonus;
     }
     
     if (existingCompletion) {
-        existingCompletion.score = correctAnswers;
-        existingCompletion.sparks_earned = sparksEarned;
-        existingCompletion.perfect_score = perfectScore;
-        existingCompletion.completed_at = new Date().toISOString();
+      existingCompletion.score = correctAnswers;
+      existingCompletion.total_points = totalPoints;
+      existingCompletion.sparks_earned = sparksEarned;
+      existingCompletion.perfect_score = perfectScore;
+      existingCompletion.completed_at = new Date().toISOString();
     } else {
-        db.quiz_completions.push({
-            id: Date.now(),
-            user_id: userId,
-            quiz_id: quizId,
-            completed_at: new Date().toISOString(),
-            score: correctAnswers,
-            sparks_earned: sparksEarned,
-            perfect_score: perfectScore
-        });
+      db.quiz_completions.push({
+        id: Date.now(),
+        user_id: userId,
+        quiz_id: quizId,
+        completed_at: new Date().toISOString(),
+        score: correctAnswers,
+        total_points: totalPoints,
+        sparks_earned: sparksEarned,
+        perfect_score: perfectScore,
+        answers: answers
+      });
     }
     
     if (sparksEarned > 0) {
-        addSparks(userId, sparksEarned, 'quiz', `Квиз: ${quiz.title}`);
+      await SparksSystem.addSparks(userId, sparksEarned, 'quiz', `Квиз: ${quiz.title}`);
     }
     
     res.json({
-        success: true,
-        correctAnswers,
-        totalQuestions: quiz.questions.length,
-        sparksEarned,
-        perfectScore,
-        scorePercentage: Math.round((correctAnswers / quiz.questions.length) * 100),
-        message: perfectScore ? 
-            `Идеально! 🎉 +${sparksEarned}✨ (${correctAnswers}×${quiz.sparks_per_correct} + ${quiz.sparks_perfect_bonus} бонус)` : 
-            `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨ (${correctAnswers}×${quiz.sparks_per_correct})`
-    });
-});
-
-app.get('/api/webapp/marathons', (req, res) => {
-    const userId = parseInt(req.query.userId);
-    const marathons = db.marathons.filter(m => m.is_active);
-    
-    const marathonsWithStatus = marathons.map(marathon => {
-        const completion = db.marathon_completions.find(
-            mc => mc.user_id === userId && mc.marathon_id === marathon.id
-        );
-        
-        const currentTask = completion ? marathon.tasks[completion.current_day - 1] : marathon.tasks[0];
-        
-        return {
-            ...marathon,
-            completed: completion ? completion.completed : false,
-            current_day: completion ? completion.current_day : 1,
-            progress: completion ? completion.progress : 0,
-            started_at: completion ? completion.started_at : null,
-            current_task: currentTask
-        };
+      success: true,
+      correctAnswers,
+      totalQuestions: quiz.questions.length,
+      totalPoints,
+      maxPoints: quiz.questions.reduce((sum, q) => sum + (q.points || 1), 0),
+      sparksEarned,
+      perfectScore,
+      scorePercentage: Math.round((correctAnswers / quiz.questions.length) * 100),
+      message: perfectScore ? 
+        `Идеально! 🎉 +${sparksEarned}✨` : 
+        `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨`
     });
     
-    res.json(marathonsWithStatus);
+  } catch (error) {
+    console.error('Ошибка отправки квиза:', error);
+    res.status(500).json({ error: 'Ошибка отправки квиза' });
+  }
 });
 
-// НОВЫЙ МЕТОД ДЛЯ ОТПРАВКИ РАБОТЫ В МАРАФОНЕ
-app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
-    console.log('📤 Отправка работы марафона, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
-    
-    const marathonId = parseInt(req.params.marathonId);
-    const { userId, day, submission_text, submission_image } = req.body;
-    
-    if (!userId || !day) {
-        return res.status(400).json({ error: 'User ID and day are required' });
-    }
-    
-    const marathon = db.marathons.find(m => m.id === marathonId);
-    if (!marathon) {
-        return res.status(404).json({ error: 'Marathon not found' });
-    }
-    
-    const task = marathon.tasks.find(t => t.day === day);
-    if (!task) {
-        return res.status(404).json({ error: 'Task not found' });
-    }
-    
-    // Проверяем требования к заданию
-    if (task.requires_submission && !submission_text && !submission_image) {
-        return res.status(400).json({ error: 'Это задание требует отправки работы' });
-    }
-    
-    let completion = db.marathon_completions.find(
-        mc => mc.user_id === userId && mc.marathon_id === marathonId
-    );
-    
-    if (!completion) {
-        completion = {
-            id: Date.now(),
-            user_id: userId,
-            marathon_id: marathonId,
-            current_day: 1,
-            progress: 0,
-            completed: false,
-            started_at: new Date().toISOString()
-        };
-        db.marathon_completions.push(completion);
-    }
-    
-    if (completion.current_day !== day) {
-        return res.status(400).json({ error: 'Неверный день марафона' });
-    }
-    
-    // Сохраняем работу пользователя
-    if (submission_text || submission_image) {
-        db.marathon_submissions.push({
-            id: Date.now(),
-            user_id: userId,
-            marathon_id: marathonId,
-            day: day,
-            submission_text: submission_text,
-            submission_image: submission_image,
-            submitted_at: new Date().toISOString(),
-            status: 'pending'
-        });
-    }
-    
-    // Начисляем искры только после отправки работы
-    const sparksEarned = marathon.sparks_per_day;
-    addSparks(userId, sparksEarned, 'marathon_day', `Марафон: ${marathon.title} - день ${day}`);
-    
-    completion.current_day = day + 1;
-    completion.progress = Math.round((day / marathon.duration_days) * 100);
-    
-    if (day >= marathon.duration_days) {
-        completion.completed = true;
-        completion.progress = 100;
-        
-        // Дополнительная награда за завершение марафона
-        const marathonBonus = marathon.sparks_per_day * 2;
-        addSparks(userId, marathonBonus, 'marathon_completion', `Завершение марафона: ${marathon.title}`);
-    }
-    
-    res.json({
-        success: true,
-        sparksEarned,
-        currentDay: completion.current_day,
-        progress: completion.progress,
-        completed: completion.completed,
-        message: completion.completed ? 
-            `🎉 Марафон завершен! +${sparksEarned}✨ (день) + ${marathon.sparks_per_day * 2}✨ (бонус)` : 
-            `День ${day} завершен! +${sparksEarned}✨`
-    });
-});
-
+// Магазин
 app.get('/api/webapp/shop/items', (req, res) => {
-    try {
-        console.log('🛒 Запрос товаров магазина');
-        const items = db.shop_items
-            .filter(item => item.is_active)
-            .map(item => ({
-                id: item.id,
-                title: item.title,
-                description: item.description,
-                type: item.type,
-                file_url: item.file_url,
-                preview_url: item.preview_url,
-                price: item.price,
-                content_text: item.content_text,
-                embed_html: item.embed_html || '',
-                is_active: item.is_active,
-                created_at: item.created_at
-            }));
-        
-        console.log(`✅ Отправлено товаров: ${items.length}`);
-        res.json(items);
-    } catch (error) {
-        console.error('❌ Ошибка загрузки товаров:', error);
-        res.status(500).json({ 
-            error: 'Ошибка загрузки товаров магазина',
-            details: error.message 
-        });
-    }
+  const { category, difficulty, featured } = req.query;
+  
+  let items = db.shop_items.filter(item => item.is_active);
+  
+  if (category) {
+    items = items.filter(item => item.category === category);
+  }
+  
+  if (difficulty) {
+    items = items.filter(item => item.difficulty === difficulty);
+  }
+  
+  if (featured === 'true') {
+    items = items.filter(item => item.featured);
+  }
+  
+  // Добавляем информацию о покупке для пользователя
+  const userId = parseInt(req.query.userId);
+  if (userId) {
+    items = items.map(item => {
+      const purchased = db.purchases.find(p => p.user_id === userId && p.item_id === item.id);
+      return {
+        ...item,
+        purchased: !!purchased,
+        purchased_at: purchased ? purchased.purchased_at : null
+      };
+    });
+  }
+  
+  res.json(items);
 });
 
-// ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА
-app.post('/api/webapp/shop/purchase', (req, res) => {
+app.post('/api/webapp/shop/purchase', async (req, res) => {
+  try {
     const { userId, itemId } = req.body;
     
     if (!userId || !itemId) {
-        return res.status(400).json({ error: 'User ID and item ID are required' });
+      return res.status(400).json({ error: 'User ID and item ID are required' });
     }
     
     const user = db.users.find(u => u.user_id == userId);
@@ -1534,878 +1944,729 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (!item) return res.status(404).json({ error: 'Item not found' });
     
-    // Проверяем, не куплен ли уже товар
     const existingPurchase = db.purchases.find(
-        p => p.user_id === userId && p.item_id === itemId
+      p => p.user_id === userId && p.item_id === itemId
     );
     
     if (existingPurchase) {
-        return res.status(400).json({ error: 'Вы уже купили этот товар' });
+      return res.status(400).json({ error: 'Вы уже купили этот товар' });
     }
     
     if (user.sparks < item.price) {
-        return res.status(400).json({ error: 'Недостаточно искр' });
+      return res.status(400).json({ error: 'Недостаточно искр' });
     }
     
-    // Списание искр (ТОЛЬКО ЗДЕСЬ!)
     user.sparks -= item.price;
-    user.level = calculateLevel(user.sparks); // Обновляем уровень
+    user.level = SparksSystem.calculateLevel(user.sparks);
     
     const purchase = {
-        id: Date.now(),
-        user_id: userId,
-        item_id: itemId,
-        price_paid: item.price,
-        purchased_at: new Date().toISOString()
+      id: Date.now(),
+      user_id: userId,
+      item_id: itemId,
+      price_paid: item.price,
+      purchased_at: new Date().toISOString()
     };
     
     db.purchases.push(purchase);
     
-    // Вместо этого просто логируем активность без списания искр
-    const activity = {
-        id: Date.now(),
-        user_id: userId,
-        activity_type: 'purchase',
-        sparks_earned: -item.price, // Только для записи в историю
-        description: `Покупка: ${item.title}`,
-        created_at: new Date().toISOString()
-    };
-    db.activities.push(activity);
+    await SparksSystem.addSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
     
     res.json({
-        success: true,
-        message: `Покупка успешна! Куплено: ${item.title}`,
-        remainingSparks: user.sparks,
-        purchase: purchase
+      success: true,
+      message: `Покупка успешна! Куплено: ${item.title}`,
+      remainingSparks: user.sparks,
+      purchase: purchase
     });
+    
+  } catch (error) {
+    console.error('Ошибка покупки:', error);
+    res.status(500).json({ error: 'Ошибка покупки' });
+  }
 });
 
 app.get('/api/webapp/users/:userId/purchases', (req, res) => {
-    try {
-        const userId = parseInt(req.params.userId);
-        console.log(`📦 Запрос покупок пользователя: ${userId}`);
-        
-        const userPurchases = db.purchases
-            .filter(p => p.user_id === userId)
-            .map(purchase => {
-                const item = db.shop_items.find(i => i.id === purchase.item_id);
-                if (!item) {
-                    console.warn(`⚠️ Товар не найден для покупки: ${purchase.item_id}`);
-                    return null;
-                }
-                
-                return {
-                    id: purchase.id,
-                    user_id: purchase.user_id,
-                    item_id: purchase.item_id,
-                    price_paid: purchase.price_paid,
-                    purchased_at: purchase.purchased_at,
-                    // Информация о товаре
-                    title: item.title,
-                    description: item.description,
-                    type: item.type,
-                    file_url: item.file_url,
-                    preview_url: item.preview_url,
-                    content_text: item.content_text,
-                    // Embed контент
-                    embed_html: item.embed_html || '',
-                    html_content: item.embed_html || '',
-                    content_html: item.embed_html || '',
-                    content: item.embed_html || '',
-                    // Base64 данные если есть
-                    file_data: item.file_url?.startsWith('data:') ? item.file_url : null,
-                    preview_data: item.preview_url?.startsWith('data:') ? item.preview_url : null
-                };
-            })
-            .filter(purchase => purchase !== null)
-            .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
-        
-        console.log(`✅ Найдено покупок: ${userPurchases.length}`);
-        res.json({ purchases: userPurchases });
-    } catch (error) {
-        console.error('❌ Ошибка загрузки покупок:', error);
-        res.status(500).json({ 
-            error: 'Ошибка загрузки покупок',
-            details: error.message 
-        });
-    }
-});
-
-app.get('/api/webapp/users/:userId/activities', (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const userActivities = db.activities
-        .filter(a => a.user_id === userId)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        .slice(0, 50);
-    res.json({ activities: userActivities });
+  const userId = parseInt(req.params.userId);
+  
+  const userPurchases = db.purchases
+    .filter(p => p.user_id === userId)
+    .map(purchase => {
+      const item = db.shop_items.find(i => i.id === purchase.item_id);
+      return {
+        ...purchase,
+        title: item?.title,
+        description: item?.description,
+        type: item?.type,
+        file_url: item?.file_url,
+        preview_url: item?.preview_url,
+        content_text: item?.content_text,
+        embed_html: item?.embed_html,
+        aspect_ratio: item?.aspect_ratio,
+        duration: item?.duration,
+        instructor: item?.instructor
+      };
+    })
+    .filter(purchase => purchase.title)
+    .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
+  
+  res.json({ purchases: userPurchases });
 });
 
 // Работы пользователя
-app.post('/api/webapp/upload-work', (req, res) => {
-    console.log('📤 Загрузка работы, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
+app.post('/api/webapp/upload-work', upload.single('workImage'), async (req, res) => {
+  try {
+    const { userId, title, description, type } = req.body;
     
-    const { userId, title, description, imageUrl, type } = req.body;
-    
-    if (!userId || !title || !imageUrl) {
-        return res.status(400).json({ error: 'User ID, title and image URL are required' });
+    if (!userId || !title || !req.file) {
+      return res.status(400).json({ error: 'User ID, title and image are required' });
     }
     
     const user = db.users.find(u => u.user_id == userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
     
+    // Оптимизируем изображение работы
+    const optimizedPath = req.file.path + '-optimized.jpg';
+    const optimizationResult = await MediaOptimizer.optimizeImage(req.file.path, optimizedPath, {
+      maxWidth: 1200,
+      maxHeight: 1200,
+      quality: 85,
+      format: 'jpeg'
+    });
+    
+    let imageUrl;
+    if (optimizationResult.success) {
+      imageUrl = '/uploads/works/' + require('path').basename(optimizedPath);
+      await fs.unlink(req.file.path);
+    } else {
+      imageUrl = '/uploads/works/' + req.file.filename;
+    }
+    
+    // Создаем миниатюру
+    const thumbnailPath = optimizedPath + '-thumb.jpg';
+    await MediaOptimizer.createThumbnail(optimizedPath, thumbnailPath, 400);
+    
+    // Получаем пропорции
+    const aspectRatio = await MediaOptimizer.getAspectRatio(optimizedPath);
+    
     const newWork = {
-        id: Date.now(),
-        user_id: userId,
-        title,
-        description: description || '',
-        image_url: imageUrl,
-        type: type || 'image',
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        moderated_at: null,
-        moderator_id: null,
-        admin_comment: null
+      id: Date.now(),
+      user_id: userId,
+      title,
+      description: description || '',
+      image_url: imageUrl,
+      thumbnail_url: '/uploads/works/' + require('path').basename(thumbnailPath),
+      type: type || 'image',
+      status: 'pending',
+      aspect_ratio: aspectRatio.ratio,
+      created_at: new Date().toISOString(),
+      moderated_at: null,
+      moderator_id: null,
+      admin_comment: null
     };
     
     db.user_works.push(newWork);
     
-    addSparks(userId, SPARKS_SYSTEM.UPLOAD_WORK, 'upload_work', `Загрузка работы: ${title}`);
+    await SparksSystem.addSparks(userId, db.settings.sparks_system.UPLOAD_WORK, 'upload_work', `Загрузка работы: ${title}`);
     
     res.json({
-        success: true,
-        message: `Работа успешно загружена! Получено +${SPARKS_SYSTEM.UPLOAD_WORK}✨. После одобрения вы получите +${SPARKS_SYSTEM.WORK_APPROVED}✨`,
-        workId: newWork.id,
-        work: newWork
+      success: true,
+      message: `Работа успешно загружена! +${db.settings.sparks_system.UPLOAD_WORK}✨`,
+      workId: newWork.id,
+      work: newWork
     });
+    
+  } catch (error) {
+    console.error('Ошибка загрузки работы:', error);
+    res.status(500).json({ error: 'Ошибка загрузки работы' });
+  }
 });
 
 app.get('/api/webapp/users/:userId/works', (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const userWorks = db.user_works
-        .filter(w => w.user_id === userId)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    res.json({ works: userWorks });
+  const userId = parseInt(req.params.userId);
+  const { status } = req.query;
+  
+  let userWorks = db.user_works.filter(w => w.user_id === userId);
+  
+  if (status) {
+    userWorks = userWorks.filter(w => w.status === status);
+  }
+  
+  userWorks.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  res.json({ works: userWorks });
 });
 
-// Посты канала
-app.get('/api/webapp/channel-posts', (req, res) => {
-    const posts = db.channel_posts
-        .filter(p => p.is_active)
-        .map(post => {
-            const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
-            return {
-                ...post,
-                reviews_count: reviews.length,
-                average_rating: reviews.length > 0 ? 
-                    reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0
-            };
-        })
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        
-    res.json({ posts: posts });
-});
-
-app.post('/api/webapp/posts/:postId/review', (req, res) => {
-    const postId = req.params.postId;
-    const { userId, reviewText, rating } = req.body;
-    
-    if (!userId || !reviewText) {
-        return res.status(400).json({ error: 'User ID and review text are required' });
-    }
-    
-    const post = db.channel_posts.find(p => p.post_id === postId);
-    if (!post) {
-        return res.status(404).json({ error: 'Post not found' });
-    }
-    
-    const existingReview = db.post_reviews.find(
-        r => r.user_id === userId && r.post_id === postId
-    );
-    
-    if (existingReview) {
-        return res.status(400).json({ error: 'Вы уже оставляли отзыв на этот пост' });
-    }
-    
-    const today = new Date().toDateString();
-    const todayReviews = db.daily_reviews.filter(
-        dr => dr.user_id === userId && new Date(dr.date).toDateString() === today
-    );
-    
-    let sparksEarned = SPARKS_SYSTEM.WRITE_REVIEW;
-    
-    if (todayReviews.length === 0) {
-        sparksEarned += SPARKS_SYSTEM.DAILY_COMMENT;
-        
-        db.daily_reviews.push({
-            id: Date.now(),
-            user_id: userId,
-            date: new Date().toISOString(),
-            type: 'daily_comment'
-        });
-    }
-    
-    const newReview = {
-        id: Date.now(),
-        user_id: userId,
-        post_id: postId,
-        review_text: reviewText,
-        rating: rating || 5,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        moderated_at: null,
-        moderator_id: null,
-        admin_comment: null
-    };
-    
-    db.post_reviews.push(newReview);
-    
-    addSparks(userId, sparksEarned, 'post_review', `Отзыв к посту: ${post.title}`);
-    
-    const message = todayReviews.length === 0 
-        ? `Отзыв отправлен! +${sparksEarned}✨ (3 за отзыв + 1 за первый комментарий сегодня)`
-        : `Отзыв отправлен! +${sparksEarned}✨`;
-    
-    res.json({
-        success: true,
-        message: message,
-        reviewId: newReview.id,
-        sparksEarned: sparksEarned
-    });
-});
-
-// API ДЛЯ ИНТЕРАКТИВОВ
+// Интерактивы
 app.get('/api/webapp/interactives', (req, res) => {
-    const userId = parseInt(req.query.userId);
-    const interactives = db.interactives.filter(i => i.is_active);
+  const userId = parseInt(req.query.userId);
+  const interactives = db.interactives.filter(i => i.is_active);
+  
+  const interactivesWithStatus = interactives.map(interactive => {
+    const completion = db.interactive_completions.find(
+      ic => ic.user_id === userId && ic.interactive_id === interactive.id
+    );
     
-    const interactivesWithStatus = interactives.map(interactive => {
-        const completion = db.interactive_completions.find(
-            ic => ic.user_id === userId && ic.interactive_id === interactive.id
-        );
-        
-        return {
-            ...interactive,
-            completed: !!completion,
-            user_score: completion ? completion.score : 0,
-            can_retake: interactive.allow_retake && !completion
-        };
-    });
-    
-    res.json(interactivesWithStatus);
+    return {
+      ...interactive,
+      completed: !!completion,
+      user_score: completion ? completion.score : 0,
+      can_retake: interactive.allow_retake && !completion
+    };
+  });
+  
+  res.json(interactivesWithStatus);
 });
 
-app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
+app.post('/api/webapp/interactives/:interactiveId/submit', async (req, res) => {
+  try {
     const interactiveId = parseInt(req.params.interactiveId);
     const { userId, answer } = req.body;
     
     if (!userId) {
-        return res.status(400).json({ error: 'User ID is required' });
+      return res.status(400).json({ error: 'User ID is required' });
     }
     
     const interactive = db.interactives.find(i => i.id === interactiveId);
     if (!interactive) {
-        return res.status(404).json({ error: 'Interactive not found' });
+      return res.status(404).json({ error: 'Interactive not found' });
     }
     
     const existingCompletion = db.interactive_completions.find(
-        ic => ic.user_id === userId && ic.interactive_id === interactiveId
+      ic => ic.user_id === userId && ic.interactive_id === interactiveId
     );
     
     if (existingCompletion && !interactive.allow_retake) {
-        return res.status(400).json({ error: 'Вы уже прошли этот интерактив' });
+      return res.status(400).json({ error: 'Вы уже прошли этот интерактив' });
     }
     
     const isCorrect = answer === interactive.correct_answer;
     const sparksEarned = isCorrect ? interactive.sparks_reward : 0;
     
     if (existingCompletion) {
-        existingCompletion.score = isCorrect ? 1 : 0;
-        existingCompletion.sparks_earned = sparksEarned;
-        existingCompletion.completed_at = new Date().toISOString();
-        existingCompletion.answer = answer;
+      existingCompletion.score = isCorrect ? 1 : 0;
+      existingCompletion.sparks_earned = sparksEarned;
+      existingCompletion.completed_at = new Date().toISOString();
+      existingCompletion.answer = answer;
     } else {
-        db.interactive_completions.push({
-            id: Date.now(),
-            user_id: userId,
-            interactive_id: interactiveId,
-            completed_at: new Date().toISOString(),
-            score: isCorrect ? 1 : 0,
-            sparks_earned: sparksEarned,
-            answer: answer
-        });
+      db.interactive_completions.push({
+        id: Date.now(),
+        user_id: userId,
+        interactive_id: interactiveId,
+        completed_at: new Date().toISOString(),
+        score: isCorrect ? 1 : 0,
+        sparks_earned: sparksEarned,
+        answer: answer
+      });
+    }
+    
+    // Обновляем статистику интерактива
+    interactive.attempts_count += 1;
+    if (isCorrect) {
+      interactive.success_rate = ((interactive.success_rate * (interactive.attempts_count - 1)) + 1) / interactive.attempts_count;
     }
     
     if (sparksEarned > 0) {
-        addSparks(userId, sparksEarned, 'interactive', `Интерактив: ${interactive.title}`);
+      await SparksSystem.addSparks(userId, sparksEarned, 'interactive', `Интерактив: ${interactive.title}`);
     }
     
     res.json({
-        success: true,
-        correct: isCorrect,
-        score: isCorrect ? 1 : 0,
-        sparksEarned: sparksEarned,
-        message: isCorrect ? 
-            `Правильно! +${sparksEarned}✨` : 
-            'Попробуйте еще раз!'
+      success: true,
+      correct: isCorrect,
+      score: isCorrect ? 1 : 0,
+      sparksEarned: sparksEarned,
+      explanation: interactive.explanation,
+      message: isCorrect ? 
+        `Правильно! +${sparksEarned}✨` : 
+        'Попробуйте еще раз!'
     });
+    
+  } catch (error) {
+    console.error('Ошибка отправки интерактива:', error);
+    res.status(500).json({ error: 'Ошибка отправки интерактива' });
+  }
 });
 
 // ==================== АДМИН API ====================
 
-// Admin API
+// Статистика
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
-    const stats = {
-        totalUsers: db.users.length,
-        registeredUsers: db.users.filter(u => u.is_registered).length,
-        activeQuizzes: db.quizzes.filter(q => q.is_active).length,
-        activeMarathons: db.marathons.filter(m => m.is_active).length,
-        shopItems: db.shop_items.filter(i => i.is_active).length,
-        totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
-        totalAdmins: db.admins.length,
-        pendingReviews: db.post_reviews.filter(r => r.status === 'pending').length,
-        pendingWorks: db.user_works.filter(w => w.status === 'pending').length,
-        totalPosts: db.channel_posts.filter(p => p.is_active).length,
-        totalPurchases: db.purchases.length,
-        totalActivities: db.activities.length,
-        interactives: db.interactives.filter(i => i.is_active).length
+  const stats = {
+    users: {
+      total: db.users.length,
+      registered: db.users.filter(u => u.is_registered).length,
+      active_today: db.users.filter(u => {
+        const today = new Date();
+        const lastActive = new Date(u.last_active);
+        return lastActive.toDateString() === today.toDateString();
+      }).length,
+      new_today: db.users.filter(u => {
+        const today = new Date();
+        const regDate = new Date(u.registration_date);
+        return regDate.toDateString() === today.toDateString();
+      }).length
+    },
+    content: {
+      quizzes: db.quizzes.length,
+      active_quizzes: db.quizzes.filter(q => q.is_active).length,
+      marathons: db.marathons.length,
+      shop_items: db.shop_items.length,
+      posts: db.channel_posts.length,
+      interactives: db.interactives.length
+    },
+    activities: {
+      total_sparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
+      total_purchases: db.purchases.length,
+      total_works: db.user_works.length,
+      pending_moderation: {
+        works: db.user_works.filter(w => w.status === 'pending').length,
+        reviews: db.post_reviews.filter(r => r.status === 'pending').length
+      }
+    },
+    completions: {
+      quizzes: db.quiz_completions.length,
+      marathons: db.marathon_completions.filter(m => m.completed).length,
+      interactives: db.interactive_completions.length
+    },
+    revenue: {
+      total_sparks_spent: db.purchases.reduce((sum, p) => sum + p.price_paid, 0),
+      popular_items: db.shop_items
+        .map(item => {
+          const purchases = db.purchases.filter(p => p.item_id === item.id);
+          return {
+            title: item.title,
+            purchases: purchases.length,
+            revenue: purchases.reduce((sum, p) => sum + p.price_paid, 0)
+          };
+        })
+        .sort((a, b) => b.purchases - a.purchases)
+        .slice(0, 5)
+    }
+  };
+  
+  res.json(stats);
+});
+
+// Управление пользователями
+app.get('/api/admin/users-list', requireAdmin, (req, res) => {
+  const { page = 1, limit = 50, search = '', role = '', sortBy = 'last_active', sortOrder = 'desc' } = req.query;
+  
+  let users = db.users.filter(u => u.is_registered);
+  
+  // Фильтрация
+  if (search) {
+    const searchLower = search.toLowerCase();
+    users = users.filter(u => 
+      u.tg_first_name?.toLowerCase().includes(searchLower) ||
+      u.tg_username?.toLowerCase().includes(searchLower) ||
+      u.class?.toLowerCase().includes(searchLower)
+    );
+  }
+  
+  if (role) {
+    users = users.filter(u => u.class === role);
+  }
+  
+  // Сортировка
+  users.sort((a, b) => {
+    let aValue, bValue;
+    
+    switch (sortBy) {
+      case 'sparks':
+        aValue = a.sparks;
+        bValue = b.sparks;
+        break;
+      case 'registration_date':
+        aValue = new Date(a.registration_date);
+        bValue = new Date(b.registration_date);
+        break;
+      case 'last_active':
+      default:
+        aValue = new Date(a.last_active);
+        bValue = new Date(b.last_active);
+    }
+    
+    if (sortOrder === 'asc') {
+      return aValue - bValue;
+    } else {
+      return bValue - aValue;
+    }
+  });
+  
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + parseInt(limit);
+  const paginatedUsers = users.slice(startIndex, endIndex);
+  
+  const usersWithStats = paginatedUsers.map(user => {
+    const stats = SparksSystem.getUserStats(user.user_id);
+    return {
+      id: user.user_id,
+      name: user.tg_first_name,
+      username: user.tg_username,
+      role: user.class,
+      character: user.character_name,
+      sparks: user.sparks,
+      level: user.level,
+      total_quizzes: stats.totalQuizzesCompleted,
+      total_works: stats.totalWorks,
+      total_marathons: stats.totalMarathonsCompleted,
+      total_achievements: stats.totalAchievements,
+      registration_date: user.registration_date,
+      last_active: user.last_active,
+      avatar_url: user.avatar_url,
+      streak: user.streak
     };
-    res.json(stats);
+  });
+  
+  res.json({
+    users: usersWithStats,
+    pagination: {
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(users.length / limit),
+      totalUsers: users.length,
+      hasNext: endIndex < users.length,
+      hasPrev: startIndex > 0
+    }
+  });
 });
 
-// Управление интерактивами
-app.get('/api/admin/interactives', requireAdmin, (req, res) => {
-    const interactives = db.interactives.map(interactive => {
-        const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
-        
-        return {
-            ...interactive,
-            completions_count: completions.length,
-            average_score: completions.length > 0 ? 
-                completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length : 0
-        };
-    });
-    res.json(interactives);
-});
-
-app.post('/api/admin/interactives', requireAdmin, (req, res) => {
-    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake } = req.body;
+// Ручное начисление искр
+app.post('/api/admin/users/:userId/add-sparks', requireAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const { sparks, reason } = req.body;
     
-    if (!title || !type || !category) {
-        return res.status(400).json({ error: 'Title, type and category are required' });
+    if (!sparks || !reason) {
+      return res.status(400).json({ error: 'Количество искр и причина обязательны' });
     }
     
-    const newInteractive = {
-        id: Date.now(),
-        title,
-        description: description || '',
-        type,
-        category,
-        image_url: image_url || '',
-        question: question || '',
-        options: options || [],
-        correct_answer: correct_answer || 0,
-        sparks_reward: sparks_reward || SPARKS_SYSTEM.INTERACTIVE_COMPLETION,
-        allow_retake: allow_retake || false,
-        is_active: true,
-        created_at: new Date().toISOString()
+    const user = db.users.find(u => u.user_id === userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+    
+    const sparksAmount = parseFloat(sparks);
+    
+    if (sparksAmount <= 0) {
+      return res.status(400).json({ error: 'Количество искр должно быть положительным' });
+    }
+    
+    const result = await SparksSystem.addSparks(
+      userId, 
+      sparksAmount, 
+      'admin_bonus', 
+      `Бонус от администратора: ${reason}`, 
+      req.admin.user_id,
+      { reason, manual: true }
+    );
+    
+    res.json({
+      success: true,
+      message: `Пользователю ${user.tg_first_name} начислено ${sparksAmount}✨`,
+      newBalance: user.sparks,
+      activity: result.activity,
+      transaction: result.transaction
+    });
+    
+  } catch (error) {
+    console.error('Ошибка начисления искр:', error);
+    res.status(500).json({ error: 'Ошибка начисления искр' });
+  }
+});
+
+// История транзакций искр
+app.get('/api/admin/sparks-transactions', requireAdmin, (req, res) => {
+  const { userId, page = 1, limit = 50, type = '' } = req.query;
+  
+  let transactions = db.sparks_transactions;
+  
+  if (userId) {
+    transactions = transactions.filter(t => t.user_id == userId);
+  }
+  
+  if (type) {
+    transactions = transactions.filter(t => t.type === type);
+  }
+  
+  transactions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  const startIndex = (page - 1) * limit;
+  const paginatedTransactions = transactions.slice(startIndex, startIndex + parseInt(limit));
+  
+  const transactionsWithUsers = paginatedTransactions.map(transaction => {
+    const user = db.users.find(u => u.user_id === transaction.user_id);
+    const admin = db.admins.find(a => a.user_id === transaction.admin_id);
+    
+    return {
+      ...transaction,
+      user_name: user?.tg_first_name,
+      user_username: user?.tg_username,
+      admin_name: admin?.username,
+      user_avatar: user?.avatar_url
     };
-    
-    db.interactives.push(newInteractive);
-    
-    res.json({ 
-        success: true, 
-        message: 'Интерактив успешно создан', 
-        interactiveId: newInteractive.id,
-        interactive: newInteractive
-    });
-});
-
-app.put('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
-    const interactiveId = parseInt(req.params.interactiveId);
-    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
-    
-    const interactive = db.interactives.find(i => i.id === interactiveId);
-    if (!interactive) {
-        return res.status(404).json({ error: 'Interactive not found' });
+  });
+  
+  res.json({
+    transactions: transactionsWithUsers,
+    pagination: {
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(transactions.length / limit),
+      totalTransactions: transactions.length
     }
-    
-    if (title) interactive.title = title;
-    if (description) interactive.description = description;
-    if (type) interactive.type = type;
-    if (category) interactive.category = category;
-    if (image_url) interactive.image_url = image_url;
-    if (question) interactive.question = question;
-    if (options) interactive.options = options;
-    if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
-    if (sparks_reward !== undefined) interactive.sparks_reward = sparks_reward;
-    if (allow_retake !== undefined) interactive.allow_retake = allow_retake;
-    if (is_active !== undefined) interactive.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Интерактив успешно обновлен',
-        interactive: interactive
-    });
+  });
 });
 
-app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
-    const interactiveId = parseInt(req.params.interactiveId);
-    const interactiveIndex = db.interactives.findIndex(i => i.id === interactiveId);
-    
-    if (interactiveIndex === -1) {
-        return res.status(404).json({ error: 'Interactive not found' });
-    }
-    
-    db.interactives.splice(interactiveIndex, 1);
-    res.json({ success: true, message: 'Интерактив удален' });
-});
-
-// Управление ролями
-app.get('/api/admin/roles', requireAdmin, (req, res) => {
-    res.json(db.roles);
-});
-
-app.post('/api/admin/roles', requireAdmin, (req, res) => {
-    const { name, description, icon, available_buttons } = req.body;
-    
-    if (!name || !description) {
-        return res.status(400).json({ error: 'Name and description are required' });
-    }
-    
-    const newRole = {
-        id: Date.now(),
-        name,
-        description,
-        icon: icon || '🎨',
-        available_buttons: available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.roles.push(newRole);
-    
-    res.json({ 
-        success: true, 
-        message: 'Роль успешно создана', 
-        role: newRole
-    });
-});
-
-app.put('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
-    const roleId = parseInt(req.params.roleId);
-    const { name, description, icon, available_buttons, is_active } = req.body;
-    
-    const role = db.roles.find(r => r.id === roleId);
-    if (!role) {
-        return res.status(404).json({ error: 'Role not found' });
-    }
-    
-    if (name) role.name = name;
-    if (description) role.description = description;
-    if (icon) role.icon = icon;
-    if (available_buttons) role.available_buttons = available_buttons;
-    if (is_active !== undefined) role.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Роль успешно обновлена',
-        role: role
-    });
-});
-
-app.delete('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
-    const roleId = parseInt(req.params.roleId);
-    const roleIndex = db.roles.findIndex(r => r.id === roleId);
-    
-    if (roleIndex === -1) {
-        return res.status(404).json({ error: 'Role not found' });
-    }
-    
-    const usersWithRole = db.users.filter(u => u.class === db.roles[roleIndex].name);
-    if (usersWithRole.length > 0) {
-        return res.status(400).json({ error: 'Нельзя удалить роль, у которой есть пользователи' });
-    }
-    
-    db.roles.splice(roleIndex, 1);
-    res.json({ success: true, message: 'Роль удалена' });
-});
-
-// Управление персонажами
-app.get('/api/admin/characters', requireAdmin, (req, res) => {
-    const characters = db.characters.map(character => {
-        const role = db.roles.find(r => r.id === character.role_id);
-        return {
-            ...character,
-            role_name: role?.name
-        };
-    });
-    res.json(characters);
-});
-
-app.post('/api/admin/characters', requireAdmin, (req, res) => {
-    const { role_id, name, description, bonus_type, bonus_value } = req.body;
-    
-    if (!role_id || !name || !bonus_type || !bonus_value) {
-        return res.status(400).json({ error: 'Role ID, name, bonus type and value are required' });
-    }
-    
-    const newCharacter = {
-        id: Date.now(),
-        role_id: parseInt(role_id),
-        name,
-        description: description || '',
-        bonus_type,
-        bonus_value,
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.characters.push(newCharacter);
-    
-    res.json({ 
-        success: true, 
-        message: 'Персонаж успешно создан', 
-        character: newCharacter
-    });
-});
-
-app.put('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
-    const characterId = parseInt(req.params.characterId);
-    const { name, description, bonus_type, bonus_value, is_active } = req.body;
-    
-    const character = db.characters.find(c => c.id === characterId);
-    if (!character) {
-        return res.status(404).json({ error: 'Character not found' });
-    }
-    
-    if (name) character.name = name;
-    if (description) character.description = description;
-    if (bonus_type) character.bonus_type = bonus_type;
-    if (bonus_value) character.bonus_value = bonus_value;
-    if (is_active !== undefined) character.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Персонаж успешно обновлен',
-        character: character
-    });
-});
-
-app.delete('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
-    const characterId = parseInt(req.params.characterId);
-    const characterIndex = db.characters.findIndex(c => c.id === characterId);
-    
-    if (characterIndex === -1) {
-        return res.status(404).json({ error: 'Character not found' });
-    }
-    
-    const usersWithCharacter = db.users.filter(u => u.character_id === characterId);
-    if (usersWithCharacter.length > 0) {
-        return res.status(400).json({ error: 'Нельзя удалить персонажа, у которого есть пользователи' });
-    }
-    
-    db.characters.splice(characterIndex, 1);
-    res.json({ success: true, message: 'Персонаж удален' });
-});
-
-// Управление магазином
+// Управление контентом магазина
 app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
-    res.json(db.shop_items);
+  res.json(db.shop_items);
 });
 
-app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
-    console.log('🛒 Создание товара, данные:', {
-        title: req.body.title,
-        type: req.body.type,
-        hasEmbed: !!req.body.embed_html,
-        embedLength: req.body.embed_html?.length
-    });
-    
-    const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data, embed_html } = req.body;
+app.post('/api/admin/shop/items', requireAdmin, upload.fields([
+  { name: 'preview_image', maxCount: 1 },
+  { name: 'content_file', maxCount: 1 },
+  { name: 'thumbnail_image', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    const { 
+      title, 
+      description, 
+      type, 
+      price, 
+      content_text, 
+      embed_html, 
+      aspect_ratio,
+      category,
+      difficulty,
+      instructor,
+      instructor_bio,
+      duration,
+      file_size,
+      pages,
+      tags
+    } = req.body;
     
     if (!title || !price) {
-        return res.status(400).json({ error: 'Title and price are required' });
+      return res.status(400).json({ error: 'Title and price are required' });
     }
     
-    // Для embed-товаров проверяем наличие HTML
-    if (type === 'embed' && !embed_html) {
-        return res.status(400).json({ error: 'Для типа "embed" необходимо указать HTML-код' });
+    let preview_url = '';
+    let thumbnail_url = '';
+    let file_url = '';
+    
+    // Обрабатываем превью изображение
+    if (req.files.preview_image) {
+      const previewFile = req.files.preview_image[0];
+      const optimizedPath = previewFile.path + '-optimized.jpg';
+      await MediaOptimizer.optimizeImage(previewFile.path, optimizedPath, {
+        maxWidth: 800,
+        maxHeight: 600,
+        quality: 85
+      });
+      preview_url = '/uploads/previews/' + require('path').basename(optimizedPath);
+      await fs.unlink(previewFile.path);
+    }
+    
+    // Обрабатываем миниатюру
+    if (req.files.thumbnail_image) {
+      const thumbnailFile = req.files.thumbnail_image[0];
+      const optimizedPath = thumbnailFile.path + '-optimized.jpg';
+      await MediaOptimizer.optimizeImage(thumbnailFile.path, optimizedPath, {
+        maxWidth: 400,
+        maxHeight: 300,
+        quality: 80
+      });
+      thumbnail_url = '/uploads/previews/' + require('path').basename(optimizedPath);
+      await fs.unlink(thumbnailFile.path);
+    }
+    
+    // Обрабатываем основной файл
+    if (req.files.content_file) {
+      const contentFile = req.files.content_file[0];
+      file_url = '/uploads/shop/' + contentFile.filename;
     }
     
     const newItem = {
-        id: Date.now(),
-        title,
-        description: description || '',
-        type: type || 'video',
-        file_url: file_url || file_data || '',
-        preview_url: preview_url || preview_data || '',
-        price: parseFloat(price),
-        content_text: content_text || '',
-        embed_html: embed_html || '',
-        is_active: true,
-        created_at: new Date().toISOString()
+      id: Date.now(),
+      title,
+      description: description || '',
+      type: type || 'video',
+      file_url: file_url,
+      preview_url: preview_url,
+      thumbnail_url: thumbnail_url,
+      price: parseFloat(price),
+      content_text: content_text || '',
+      embed_html: embed_html || '',
+      aspect_ratio: aspect_ratio || '16:9',
+      category: category || 'general',
+      difficulty: difficulty || 'beginner',
+      instructor: instructor || '',
+      instructor_bio: instructor_bio || '',
+      duration: duration || '',
+      file_size: file_size || '',
+      pages: pages ? parseInt(pages) : null,
+      rating: 0,
+      reviews_count: 0,
+      students_count: 0,
+      is_active: true,
+      featured: false,
+      tags: tags ? tags.split(',') : [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
-    
-    console.log('✅ Создан товар:', {
-        id: newItem.id,
-        type: newItem.type,
-        hasEmbed: !!newItem.embed_html,
-        embedLength: newItem.embed_html?.length
-    });
     
     db.shop_items.push(newItem);
     
     res.json({ 
-        success: true, 
-        message: 'Товар успешно создан', 
-        itemId: newItem.id,
-        item: newItem
+      success: true, 
+      message: 'Товар успешно создан', 
+      item: newItem
     });
+    
+  } catch (error) {
+    console.error('Ошибка создания товара:', error);
+    res.status(500).json({ error: 'Ошибка создания товара' });
+  }
 });
 
-app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
-    console.log('🛒 Обновление товара, данные:', {
-        itemId: req.params.itemId,
-        type: req.body.type,
-        hasEmbed: !!req.body.embed_html,
-        embedLength: req.body.embed_html?.length
-    });
-    
+app.put('/api/admin/shop/items/:itemId', requireAdmin, upload.fields([
+  { name: 'preview_image', maxCount: 1 },
+  { name: 'content_file', maxCount: 1 },
+  { name: 'thumbnail_image', maxCount: 1 }
+]), async (req, res) => {
+  try {
     const itemId = parseInt(req.params.itemId);
-    const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data, embed_html } = req.body;
-    
     const item = db.shop_items.find(i => i.id === itemId);
+    
     if (!item) {
-        return res.status(404).json({ error: 'Item not found' });
+      return res.status(404).json({ error: 'Item not found' });
     }
     
-    // Для embed-товаров проверяем наличие HTML
-    if (type === 'embed' && !embed_html) {
-        return res.status(400).json({ error: 'Для типа "embed" необходимо указать HTML-код' });
-    }
+    const {
+      title, description, type, price, content_text, embed_html, aspect_ratio,
+      category, difficulty, instructor, instructor_bio, duration, file_size,
+      pages, is_active, featured, tags
+    } = req.body;
     
     if (title) item.title = title;
     if (description) item.description = description;
     if (type) item.type = type;
-    if (file_url !== undefined) item.file_url = file_url;
-    if (file_data !== undefined) item.file_url = file_data;
-    if (preview_url !== undefined) item.preview_url = preview_url;
-    if (preview_data !== undefined) item.preview_url = preview_data;
     if (price) item.price = parseFloat(price);
     if (content_text) item.content_text = content_text;
     if (embed_html !== undefined) item.embed_html = embed_html;
+    if (aspect_ratio) item.aspect_ratio = aspect_ratio;
+    if (category) item.category = category;
+    if (difficulty) item.difficulty = difficulty;
+    if (instructor) item.instructor = instructor;
+    if (instructor_bio) item.instructor_bio = instructor_bio;
+    if (duration) item.duration = duration;
+    if (file_size) item.file_size = file_size;
+    if (pages) item.pages = parseInt(pages);
     if (is_active !== undefined) item.is_active = is_active;
+    if (featured !== undefined) item.featured = featured;
+    if (tags) item.tags = tags.split(',');
     
-    console.log('✅ Обновлен товар:', {
-        id: item.id,
-        type: item.type,
-        hasEmbed: !!item.embed_html,
-        embedLength: item.embed_html?.length
-    });
+    item.updated_at = new Date().toISOString();
+    
+    // Обновляем файлы если они загружены
+    if (req.files.preview_image) {
+      const previewFile = req.files.preview_image[0];
+      const optimizedPath = previewFile.path + '-optimized.jpg';
+      await MediaOptimizer.optimizeImage(previewFile.path, optimizedPath);
+      item.preview_url = '/uploads/previews/' + require('path').basename(optimizedPath);
+      await fs.unlink(previewFile.path);
+    }
+    
+    if (req.files.thumbnail_image) {
+      const thumbnailFile = req.files.thumbnail_image[0];
+      const optimizedPath = thumbnailFile.path + '-optimized.jpg';
+      await MediaOptimizer.optimizeImage(thumbnailFile.path, optimizedPath, {
+        maxWidth: 400,
+        maxHeight: 300
+      });
+      item.thumbnail_url = '/uploads/previews/' + require('path').basename(optimizedPath);
+      await fs.unlink(thumbnailFile.path);
+    }
+    
+    if (req.files.content_file) {
+      const contentFile = req.files.content_file[0];
+      item.file_url = '/uploads/shop/' + contentFile.filename;
+    }
     
     res.json({ 
-        success: true, 
-        message: 'Товар успешно обновлен',
-        item: item
+      success: true, 
+      message: 'Товар успешно обновлен',
+      item: item
     });
+    
+  } catch (error) {
+    console.error('Ошибка обновления товара:', error);
+    res.status(500).json({ error: 'Ошибка обновления товара' });
+  }
 });
 
 app.delete('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
-    const itemId = parseInt(req.params.itemId);
-    const itemIndex = db.shop_items.findIndex(i => i.id === itemId);
-    
-    if (itemIndex === -1) {
-        return res.status(404).json({ error: 'Item not found' });
-    }
-    
-    db.shop_items.splice(itemIndex, 1);
-    res.json({ success: true, message: 'Товар удален' });
-});
-
-// Управление квизами
-app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
-    const quizzes = db.quizzes.map(quiz => {
-        const completions = db.quiz_completions.filter(qc => qc.quiz_id === quiz.id);
-        return {
-            ...quiz,
-            completions_count: completions.length,
-            average_score: completions.length > 0 ? 
-                completions.reduce((sum, qc) => sum + qc.score, 0) / completions.length : 0
-        };
+  const itemId = parseInt(req.params.itemId);
+  const itemIndex = db.shop_items.findIndex(i => i.id === itemId);
+  
+  if (itemIndex === -1) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
+  
+  const item = db.shop_items[itemIndex];
+  const purchases = db.purchases.filter(p => p.item_id === itemId);
+  
+  if (purchases.length > 0) {
+    return res.status(400).json({ 
+      error: 'Нельзя удалить товар, у которого есть покупки. Вместо этого деактивируйте его.' 
     });
-    res.json(quizzes);
+  }
+  
+  db.shop_items.splice(itemIndex, 1);
+  res.json({ success: true, message: 'Товар удален' });
 });
 
-app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
-    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake } = req.body;
-    
-    if (!title || !questions || !Array.isArray(questions)) {
-        return res.status(400).json({ error: 'Title and questions array are required' });
-    }
-    
-    const newQuiz = {
-        id: Date.now(),
-        title,
-        description: description || '',
-        questions: questions,
-        sparks_per_correct: sparks_per_correct || SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER,
-        sparks_perfect_bonus: sparks_perfect_bonus || SPARKS_SYSTEM.QUIZ_PERFECT_BONUS,
-        cooldown_hours: cooldown_hours || 24,
-        allow_retake: allow_retake || true,
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.quizzes.push(newQuiz);
-    
-    res.json({ 
-        success: true, 
-        message: 'Квиз успешно создан', 
-        quizId: newQuiz.id,
-        quiz: newQuiz
-    });
-});
-
-app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
-    const quizId = parseInt(req.params.quizId);
-    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake, is_active } = req.body;
-    
-    const quiz = db.quizzes.find(q => q.id === quizId);
-    if (!quiz) {
-        return res.status(404).json({ error: 'Quiz not found' });
-    }
-    
-    if (title) quiz.title = title;
-    if (description) quiz.description = description;
-    if (questions) quiz.questions = questions;
-    if (sparks_per_correct !== undefined) quiz.sparks_per_correct = sparks_per_correct;
-    if (sparks_perfect_bonus !== undefined) quiz.sparks_perfect_bonus = sparks_perfect_bonus;
-    if (cooldown_hours !== undefined) quiz.cooldown_hours = cooldown_hours;
-    if (allow_retake !== undefined) quiz.allow_retake = allow_retake;
-    if (is_active !== undefined) quiz.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Квиз успешно обновлен',
-        quiz: quiz
-    });
-});
-
-app.delete('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
-    const quizId = parseInt(req.params.quizId);
-    const quizIndex = db.quizzes.findIndex(q => q.id === quizId);
-    
-    if (quizIndex === -1) {
-        return res.status(404).json({ error: 'Quiz not found' });
-    }
-    
-    db.quizzes.splice(quizIndex, 1);
-    res.json({ success: true, message: 'Квиз удален' });
-});
-
-// Управление марафонами
-app.get('/api/admin/marathons', requireAdmin, (req, res) => {
-    const marathons = db.marathons.map(marathon => {
-        const completions = db.marathon_completions.filter(mc => mc.marathon_id === marathon.id);
-        return {
-            ...marathon,
-            completions_count: completions.length,
-            active_users: completions.filter(mc => !mc.completed).length
-        };
-    });
-    res.json(marathons);
-});
-
-app.post('/api/admin/marathons', requireAdmin, (req, res) => {
-    const { title, description, duration_days, tasks, sparks_per_day } = req.body;
-    
-    if (!title || !duration_days || !tasks || !Array.isArray(tasks)) {
-        return res.status(400).json({ error: 'Title, duration and tasks array are required' });
-    }
-    
-    const newMarathon = {
-        id: Date.now(),
-        title,
-        description: description || '',
-        duration_days: parseInt(duration_days),
-        tasks: tasks,
-        sparks_per_day: sparks_per_day || SPARKS_SYSTEM.MARATHON_DAY_COMPLETION,
-        is_active: true,
-        created_at: new Date().toISOString()
-    };
-    
-    db.marathons.push(newMarathon);
-    
-    res.json({ 
-        success: true, 
-        message: 'Марафон успешно создан', 
-        marathonId: newMarathon.id,
-        marathon: newMarathon
-    });
-});
-
-app.put('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
-    const marathonId = parseInt(req.params.marathonId);
-    const { title, description, duration_days, tasks, sparks_per_day, is_active } = req.body;
-    
-    const marathon = db.marathons.find(m => m.id === marathonId);
-    if (!marathon) {
-        return res.status(404).json({ error: 'Marathon not found' });
-    }
-    
-    if (title) marathon.title = title;
-    if (description) marathon.description = description;
-    if (duration_days) marathon.duration_days = parseInt(duration_days);
-    if (tasks) marathon.tasks = tasks;
-    if (sparks_per_day !== undefined) marathon.sparks_per_day = sparks_per_day;
-    if (is_active !== undefined) marathon.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Марафон успешно обновлен',
-        marathon: marathon
-    });
-});
-
-app.delete('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
-    const marathonId = parseInt(req.params.marathonId);
-    const marathonIndex = db.marathons.findIndex(m => m.id === marathonId);
-    
-    if (marathonIndex === -1) {
-        return res.status(404).json({ error: 'Marathon not found' });
-    }
-    
-    db.marathons.splice(marathonIndex, 1);
-    res.json({ success: true, message: 'Марафон удален' });
-});
-
-// Управление работами пользователей
+// Модерация работ
 app.get('/api/admin/user-works', requireAdmin, (req, res) => {
-    const { status = 'pending' } = req.query;
+  const { status = 'pending', page = 1, limit = 20 } = req.query;
+  
+  let works = db.user_works.filter(w => w.status === status);
+  
+  works.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  
+  const startIndex = (page - 1) * limit;
+  const paginatedWorks = works.slice(startIndex, startIndex + parseInt(limit));
+  
+  const worksWithUsers = paginatedWorks.map(work => {
+    const user = db.users.find(u => u.user_id === work.user_id);
+    const moderator = db.admins.find(a => a.user_id === work.moderator_id);
     
-    const works = db.user_works
-        .filter(w => w.status === status)
-        .map(work => {
-            const user = db.users.find(u => u.user_id === work.user_id);
-            return {
-                ...work,
-                user_name: user?.tg_first_name || 'Неизвестно',
-                user_username: user?.tg_username
-            };
-        })
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    
-    res.json({ works });
+    return {
+      ...work,
+      user_name: user?.tg_first_name,
+      user_username: user?.tg_username,
+      user_avatar: user?.avatar_url,
+      user_level: user?.level,
+      moderator_name: moderator?.username
+    };
+  });
+  
+  res.json({
+    works: worksWithUsers,
+    pagination: {
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(works.length / limit),
+      totalWorks: works.length
+    }
+  });
 });
 
-app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
+app.post('/api/admin/user-works/:workId/moderate', requireAdmin, async (req, res) => {
+  try {
     const workId = parseInt(req.params.workId);
     const { status, admin_comment } = req.body;
     const adminId = req.admin.user_id;
     
     const work = db.user_works.find(w => w.id === workId);
     if (!work) {
-        return res.status(404).json({ error: 'Work not found' });
+      return res.status(404).json({ error: 'Work not found' });
     }
     
     work.status = status;
@@ -2414,942 +2675,519 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
     work.admin_comment = admin_comment || null;
     
     if (status === 'approved') {
-        addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
+      await SparksSystem.addSparks(
+        work.user_id, 
+        db.settings.sparks_system.WORK_APPROVED, 
+        'work_approved', 
+        `Работа одобрена: ${work.title}`
+      );
     }
     
     res.json({ 
-        success: true, 
-        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
-        work: work
+      success: true, 
+      message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
+      work: work
     });
+    
+  } catch (error) {
+    console.error('Ошибка модерации работы:', error);
+    res.status(500).json({ error: 'Ошибка модерации работы' });
+  }
 });
 
-// Управление постами
-app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
-    const posts = db.channel_posts.map(post => {
-        const admin = db.admins.find(a => a.user_id === post.admin_id);
-        const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
-        return {
-            ...post,
-            admin_username: admin?.username,
-            reviews_count: reviews.length
-        };
-    }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    
-    res.json({ posts });
-});
-
-app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
-    const { post_id, title, content, image_url, video_url, media_type, action_type, action_target } = req.body;
-    
-    if (!post_id || !title) {
-        return res.status(400).json({ error: 'Post ID and title are required' });
-    }
-    
-    const existingPost = db.channel_posts.find(p => p.post_id === post_id);
-    if (existingPost) {
-        return res.status(400).json({ error: 'Post with this ID already exists' });
-    }
-    
-    const newPost = {
-        id: Date.now(),
-        post_id,
-        title,
-        content: content || '',
-        image_url: image_url || '',
-        video_url: video_url || '',
-        media_type: media_type || 'text',
-        admin_id: req.admin.user_id,
-        created_at: new Date().toISOString(),
-        is_active: true,
-        telegram_message_id: null,
-        action_type: action_type || null,
-        action_target: action_target || null
-    };
-    
-    db.channel_posts.push(newPost);
-    
-    res.json({ 
-        success: true, 
-        message: 'Пост успешно создан', 
-        postId: newPost.id,
-        post: newPost
-    });
-});
-
-app.put('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
-    const postId = parseInt(req.params.postId);
-    const { title, content, image_url, video_url, media_type, is_active, action_type, action_target } = req.body;
-    
-    const post = db.channel_posts.find(p => p.id === postId);
-    if (!post) {
-        return res.status(404).json({ error: 'Post not found' });
-    }
-    
-    if (title) post.title = title;
-    if (content) post.content = content;
-    if (image_url) post.image_url = image_url;
-    if (video_url) post.video_url = video_url;
-    if (media_type) post.media_type = media_type;
-    if (is_active !== undefined) post.is_active = is_active;
-    if (action_type !== undefined) post.action_type = action_type;
-    if (action_target !== undefined) post.action_target = action_target;
-    
-    res.json({ 
-        success: true, 
-        message: 'Пост успешно обновлен',
-        post: post
-    });
-});
-
-app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
-    const postId = parseInt(req.params.postId);
-    const postIndex = db.channel_posts.findIndex(p => p.id === postId);
-    
-    if (postIndex === -1) {
-        return res.status(404).json({ error: 'Post not found' });
-    }
-    
-    db.channel_posts.splice(postIndex, 1);
-    res.json({ success: true, message: 'Пост удален' });
-});
-
-// Управление отзывами
-app.get('/api/admin/reviews', requireAdmin, (req, res) => {
-    const { status = 'pending' } = req.query;
-    
-    const reviews = db.post_reviews
-        .filter(r => r.status === status)
-        .map(review => {
-            const user = db.users.find(u => u.user_id === review.user_id);
-            const post = db.channel_posts.find(p => p.post_id === review.post_id);
-            const moderator = db.admins.find(a => a.user_id === review.moderator_id);
-            return {
-                ...review,
-                tg_first_name: user?.tg_first_name,
-                tg_username: user?.tg_username,
-                post_title: post?.title,
-                moderator_username: moderator?.username
-            };
-        })
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    
-    res.json({ reviews });
-});
-
-app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
-    const reviewId = parseInt(req.params.reviewId);
-    const { status, admin_comment } = req.body;
-    
-    const review = db.post_reviews.find(r => r.id === reviewId);
-    if (!review) {
-        return res.status(404).json({ error: 'Review not found' });
-    }
-    
-    review.status = status;
-    review.moderated_at = new Date().toISOString();
-    review.moderator_id = req.admin.user_id;
-    review.admin_comment = admin_comment || null;
-    
-    res.json({ 
-        success: true, 
-        message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`,
-        review: review
-    });
-});
-
-// Управление админами
-app.get('/api/admin/admins', requireAdmin, (req, res) => {
-    res.json(db.admins);
-});
-
-app.post('/api/admin/admins', requireAdmin, (req, res) => {
-    const { user_id, username, role } = req.body;
-    
-    if (!user_id) {
-        return res.status(400).json({ error: 'User ID is required' });
-    }
-    
-    const existingAdmin = db.admins.find(a => a.user_id == user_id);
-    if (existingAdmin) {
-        return res.status(400).json({ error: 'Admin already exists' });
-    }
-    
-    const newAdmin = {
-        id: Date.now(),
-        user_id: parseInt(user_id),
-        username: username || '',
-        role: role || 'moderator',
-        created_at: new Date().toISOString()
-    };
-    
-    db.admins.push(newAdmin);
-    
-    res.json({ 
-        success: true, 
-        message: 'Админ успешно добавлен',
-        admin: newAdmin
-    });
-});
-
-app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    
-    if (userId === req.admin.user_id) {
-        return res.status(400).json({ error: 'Cannot remove yourself' });
-    }
-    
-    const adminIndex = db.admins.findIndex(a => a.user_id === userId);
-    if (adminIndex === -1) {
-        return res.status(404).json({ error: 'Admin not found' });
-    }
-    
-    db.admins.splice(adminIndex, 1);
-    res.json({ success: true, message: 'Админ удален' });
-});
-
-// ==================== РУЧНОЕ УПРАВЛЕНИЕ ИСКРАМИ АДМИНИСТРАТОРОМ ====================
-
-// Получить список пользователей для админки
-app.get('/api/admin/users-list', requireAdmin, (req, res) => {
-    try {
-        const { page = 1, limit = 50, search = '' } = req.query;
-        const users = db.users.filter(u => u.is_registered);
-        
-        // Фильтрация по поиску
-        let filteredUsers = users;
-        if (search) {
-            const searchLower = search.toLowerCase();
-            filteredUsers = users.filter(u => 
-                u.tg_first_name?.toLowerCase().includes(searchLower) ||
-                u.tg_username?.toLowerCase().includes(searchLower) ||
-                u.class?.toLowerCase().includes(searchLower)
-            );
-        }
-        
-        // Пагинация
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + parseInt(limit);
-        const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-        
-        // Форматируем ответ
-        const usersWithStats = paginatedUsers.map(user => {
-            const stats = getUserStats(user.user_id);
-            return {
-                id: user.user_id,
-                name: user.tg_first_name,
-                username: user.tg_username,
-                role: user.class,
-                character: user.character_name,
-                sparks: user.sparks,
-                level: user.level,
-                total_quizzes: stats.totalQuizzesCompleted,
-                total_works: stats.totalWorks,
-                total_marathons: stats.totalMarathonsCompleted,
-                total_interactives: stats.totalInteractivesCompleted,
-                total_activities: stats.totalActivities,
-                registration_date: user.registration_date,
-                last_active: user.last_active
-            };
-        });
-        
-        res.json({
-            users: usersWithStats,
-            pagination: {
-                currentPage: parseInt(page),
-                totalPages: Math.ceil(filteredUsers.length / limit),
-                totalUsers: filteredUsers.length,
-                hasNext: endIndex < filteredUsers.length,
-                hasPrev: startIndex > 0
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки пользователей:', error);
-        res.status(500).json({ error: 'Ошибка загрузки списка пользователей' });
-    }
-});
-
-// Ручное начисление искр администратором
-app.post('/api/admin/users/:userId/add-sparks', requireAdmin, (req, res) => {
-    try {
-        const userId = parseInt(req.params.userId);
-        const { sparks, reason } = req.body;
-        
-        console.log('🎁 Начисление искр администратором:', {
-            adminId: req.admin.user_id,
-            targetUserId: userId,
-            sparks: sparks,
-            reason: reason
-        });
-        
-        if (!sparks || !reason) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Количество искр и причина обязательны' 
-            });
-        }
-        
-        const user = db.users.find(u => u.user_id === userId);
-        if (!user) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Пользователь не найден' 
-            });
-        }
-        
-        const sparksAmount = parseFloat(sparks);
-        
-        if (sparksAmount <= 0) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Количество искр должно быть положительным' 
-            });
-        }
-        
-        // Начисляем искры
-        const activity = addSparks(
-            userId, 
-            sparksAmount, 
-            'admin_bonus', 
-            `Бонус от администратора: ${reason}`, 
-            req.admin.user_id
-        );
-        
-        console.log('✅ Искры успешно начислены:', {
-            userName: user.tg_first_name,
-            oldBalance: user.sparks - sparksAmount,
-            newBalance: user.sparks,
-            sparksAdded: sparksAmount
-        });
-        
-        res.json({
-            success: true,
-            message: `Пользователю ${user.tg_first_name} начислено ${sparksAmount}✨`,
-            newBalance: user.sparks,
-            activity: activity,
-            user: {
-                id: user.user_id,
-                name: user.tg_first_name,
-                sparks: user.sparks,
-                level: user.level
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка начисления искр:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Внутренняя ошибка сервера при начислении искр' 
-        });
-    }
-});
-
-// Полная статистика пользователя для админки
-app.get('/api/admin/users/:userId/full-stats', requireAdmin, (req, res) => {
-    try {
-        const userId = parseInt(req.params.userId);
-        const user = db.users.find(u => u.user_id === userId);
-        
-        if (!user) {
-            return res.status(404).json({ error: 'Пользователь не найден' });
-        }
-        
-        const stats = getUserStats(userId);
-        const activities = db.activities
-            .filter(a => a.user_id === userId)
-            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-            .slice(0, 20);
-        
-        const purchases = db.purchases.filter(p => p.user_id === userId);
-        const works = db.user_works.filter(w => w.user_id === userId);
-        const quizCompletions = db.quiz_completions.filter(q => q.user_id === userId);
-        const marathonCompletions = db.marathon_completions.filter(m => m.user_id === userId);
-        const interactiveCompletions = db.interactive_completions.filter(i => i.user_id === userId);
-        
-        res.json({
-            user: {
-                id: user.user_id,
-                name: user.tg_first_name,
-                username: user.tg_username,
-                role: user.class,
-                character: user.character_name,
-                sparks: user.sparks,
-                level: user.level,
-                is_registered: user.is_registered,
-                registration_date: user.registration_date,
-                last_active: user.last_active
-            },
-            stats: {
-                ...stats,
-                totalPurchases: purchases.length,
-                totalSpent: purchases.reduce((sum, p) => sum + p.price_paid, 0),
-                worksByStatus: {
-                    pending: works.filter(w => w.status === 'pending').length,
-                    approved: works.filter(w => w.status === 'approved').length,
-                    rejected: works.filter(w => w.status === 'rejected').length
-                }
-            },
-            recentActivities: activities
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки статистики:', error);
-        res.status(500).json({ error: 'Ошибка загрузки статистики пользователя' });
-    }
-});
-
-// ==================== РУЧНОЕ НАЧИСЛЕНИЕ ИСКР ====================
-
-// РУЧНОЕ НАЧИСЛЕНИЕ ИСКР АДМИНИСТРАТОРОМ
-app.post('/api/admin/users/:userId/add-sparks', requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const { sparks, reason } = req.body;
-    
-    if (!sparks || !reason) {
-        return res.status(400).json({ error: 'Количество искр и причина обязательны' });
-    }
-    
-    const user = db.users.find(u => u.user_id === userId);
-    if (!user) {
-        return res.status(404).json({ error: 'Пользователь не найден' });
-    }
-    
-    const sparksAmount = parseFloat(sparks);
-    
-    if (sparksAmount <= 0) {
-        return res.status(400).json({ error: 'Количество искр должно быть положительным' });
-    }
-    
-    // Начисляем искры через существующую функцию
-    const activity = addSparks(userId, sparksAmount, 'admin_bonus', `Бонус от администратора: ${reason}`, req.admin.user_id);
-    
-    res.json({
-        success: true,
-        message: `Пользователю ${user.tg_first_name} начислено ${sparksAmount}✨`,
-        newBalance: user.sparks,
-        activity: activity
-    });
-});
-
-// Получить информацию о пользователе для модального окна
-app.get('/api/admin/users/:userId/info', requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const user = db.users.find(u => u.user_id === userId);
-    
-    if (!user) {
-        return res.status(404).json({ error: 'Пользователь не найден' });
-    }
-    
-    res.json({
-        success: true,
-        user: {
-            id: user.user_id,
-            name: user.tg_first_name,
-            username: user.tg_username,
-            currentSparks: user.sparks
-        }
-    });
-});
-
-// Отчет по пользователям
-app.get('/api/admin/users-report', requireAdmin, (req, res) => {
-    const users = db.users
-        .filter(u => u.is_registered)
-        .map(user => {
-            const stats = getUserStats(user.user_id);
-            const works = db.user_works.filter(w => w.user_id === user.user_id);
-            const quizCompletions = db.quiz_completions.filter(q => q.user_id === user.user_id);
-            const marathonCompletions = db.marathon_completions.filter(m => m.user_id === user.user_id);
-            const interactiveCompletions = db.interactive_completions.filter(i => i.user_id === user.user_id);
-            
-            const totalActivities = 
-                quizCompletions.length + 
-                marathonCompletions.filter(m => m.completed).length + 
-                interactiveCompletions.length + 
-                works.length;
-            
-            return {
-                id: user.user_id,
-                name: user.tg_first_name,
-                username: user.tg_username,
-                role: user.class,
-                character: user.character_name,
-                sparks: user.sparks,
-                level: user.level,
-                total_quizzes: quizCompletions.length,
-                total_marathons: marathonCompletions.filter(m => m.completed).length,
-                total_interactives: interactiveCompletions.length,
-                total_works: works.length,
-                approved_works: works.filter(w => w.status === 'approved').length,
-                total_activities: totalActivities,
-                registration_date: user.registration_date,
-                last_active: user.last_active
-            };
-        })
-        .sort((a, b) => b.total_activities - a.total_activities);
-    
-    res.json({ users });
-});
-
-// Полная статистика
-app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
-    const stats = {
-        users: {
-            total: db.users.length,
-            registered: db.users.filter(u => u.is_registered).length,
-            by_role: db.roles.map(role => ({
-                role: role.name,
-                count: db.users.filter(u => u.class === role.name).length
-            })),
-            active_today: db.users.filter(u => {
-                const today = new Date();
-                const lastActive = new Date(u.last_active);
-                return lastActive.toDateString() === today.toDateString();
-            }).length
-        },
-        content: {
-            quizzes: db.quizzes.length,
-            marathons: db.marathons.length,
-            shop_items: db.shop_items.length,
-            posts: db.channel_posts.length,
-            interactives: db.interactives.length
-        },
-        activities: {
-            total_sparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
-            total_purchases: db.purchases.length,
-            total_works: db.user_works.length,
-            pending_moderation: {
-                works: db.user_works.filter(w => w.status === 'pending').length,
-                reviews: db.post_reviews.filter(r => r.status === 'pending').length
-            }
-        },
-        completions: {
-            quizzes: db.quiz_completions.length,
-            marathons: db.marathon_completions.filter(m => m.completed).length,
-            interactives: db.interactive_completions.length
-        }
-    };
-    
-    res.json(stats);
-});
-
-// ==================== ЭКСПОРТ ОТЧЕТОВ ====================
-
-// Экспорт пользователей в CSV
-app.get('/api/admin/export/users', requireAdmin, (req, res) => {
-    try {
-        console.log('📊 Экспорт пользователей в CSV');
-        
-        const users = db.users.filter(u => u.is_registered);
-        
-        // Заголовки CSV
-        let csv = 'ID;Имя;Username;Роль;Персонаж;Уровень;Искры;Зарегистрирован;Последняя активность\n';
-        
-        // Данные пользователей
-        users.forEach(user => {
-            const row = [
-                user.user_id,
-                user.tg_first_name || '',
-                user.tg_username || '',
-                user.class || '',
-                user.character_name || '',
-                user.level || '',
-                user.sparks.toFixed(1),
-                new Date(user.registration_date).toLocaleDateString('ru-RU'),
-                new Date(user.last_active).toLocaleDateString('ru-RU')
-            ].map(field => `"${field}"`).join(';');
-            
-            csv += row + '\n';
-        });
-        
-        // Устанавливаем заголовки для скачивания
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename="users_export.csv"');
-        res.send(csv);
-        
-        console.log('✅ CSV экспортирован, пользователей:', users.length);
-        
-    } catch (error) {
-        console.error('❌ Ошибка экспорта:', error);
-        res.status(500).json({ error: 'Ошибка экспорта данных' });
-    }
-});
-
-// ЭКСПОРТ ПОЛЬЗОВАТЕЛЕЙ В EXCEL
+// Экспорт данных
 app.get('/api/admin/export/users-excel', requireAdmin, async (req, res) => {
-    try {
-        console.log('📊 Экспорт пользователей в Excel');
-        
-        const users = db.users.filter(u => u.is_registered);
-        
-        // Создаем новую книгу Excel
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Пользователи');
-        
-        // Заголовки столбцов
-        worksheet.columns = [
-            { header: 'ID', key: 'id', width: 10 },
-            { header: 'Имя', key: 'name', width: 20 },
-            { header: 'Username', key: 'username', width: 15 },
-            { header: 'Роль', key: 'role', width: 15 },
-            { header: 'Персонаж', key: 'character', width: 20 },
-            { header: 'Уровень', key: 'level', width: 12 },
-            { header: 'Искры', key: 'sparks', width: 12 },
-            { header: 'Квизов пройдено', key: 'quizzes', width: 15 },
-            { header: 'Работ загружено', key: 'works', width: 15 },
-            { header: 'Марафонов завершено', key: 'marathons', width: 18 },
-            { header: 'Интерактивов пройдено', key: 'interactives', width: 20 },
-            { header: 'Дата регистрации', key: 'registration_date', width: 15 },
-            { header: 'Последняя активность', key: 'last_active', width: 15 }
-        ];
-        
-        // Данные пользователей
-        users.forEach(user => {
-            const stats = getUserStats(user.user_id);
-            worksheet.addRow({
-                id: user.user_id,
-                name: user.tg_first_name || '',
-                username: user.tg_username || '',
-                role: user.class || '',
-                character: user.character_name || '',
-                level: user.level || '',
-                sparks: user.sparks.toFixed(1),
-                quizzes: stats.totalQuizzesCompleted || 0,
-                works: stats.totalWorks || 0,
-                marathons: stats.totalMarathonsCompleted || 0,
-                interactives: stats.totalInteractivesCompleted || 0,
-                registration_date: new Date(user.registration_date).toLocaleDateString('ru-RU'),
-                last_active: new Date(user.last_active).toLocaleDateString('ru-RU')
-            });
-        });
-        
-        // Стили для заголовков
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFE6E6FA' }
-        };
-        
-        // Устанавливаем заголовки для скачивания
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', 'attachment; filename="users_export.xlsx"');
-        
-        // Записываем книгу в ответ
-        await workbook.xlsx.write(res);
-        res.end();
-        
-        console.log('✅ Excel экспортирован, пользователей:', users.length);
-        
-    } catch (error) {
-        console.error('❌ Ошибка экспорта Excel:', error);
-        res.status(500).json({ error: 'Ошибка экспорта данных в Excel' });
-    }
-});
-
-// Экспорт статистики в CSV
-app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
-    try {
-        console.log('📈 Экспорт полной статистики в CSV');
-        
-        const users = db.users.filter(u => u.is_registered);
-        const purchases = db.purchases;
-        const activities = db.activities;
-        const works = db.user_works;
-        const quizCompletions = db.quiz_completions;
-        const marathonCompletions = db.marathon_completions.filter(m => m.completed);
-        
-        // Статистика по ролям
-        const roleStats = {};
-        db.roles.forEach(role => {
-            roleStats[role.name] = users.filter(u => u.class === role.name).length;
-        });
-        
-        let csv = 'Раздел;Показатель;Значение\n';
-        
-        // Основная статистика
-        csv += `Пользователи;Всего пользователей;${users.length}\n`;
-        csv += `Пользователи;Зарегистрировано;${users.filter(u => u.is_registered).length}\n`;
-        csv += `Пользователи;Активных сегодня;${users.filter(u => {
-            const today = new Date();
-            const lastActive = new Date(u.last_active);
-            return lastActive.toDateString() === today.toDateString();
-        }).length}\n`;
-        
-        // Статистика по ролям
-        Object.keys(roleStats).forEach(role => {
-            csv += `Роли;${role};${roleStats[role]}\n`;
-        });
-        
-        // Активности
-        csv += `Активности;Всего активностей;${activities.length}\n`;
-        csv += `Активности;Всего искр в системе;${users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)}\n`;
-        csv += `Активности;Всего покупок;${purchases.length}\n`;
-        csv += `Активности;Всего работ;${works.length}\n`;
-        csv += `Активности;Одобренных работ;${works.filter(w => w.status === 'approved').length}\n`;
-        
-        // Завершения
-        csv += `Завершения;Пройдено квизов;${quizCompletions.length}\n`;
-        csv += `Завершения;Завершено марафонов;${marathonCompletions.length}\n`;
-        
-        // Контент
-        csv += `Контент;Активных квизов;${db.quizzes.filter(q => q.is_active).length}\n`;
-        csv += `Контент;Активных марафонов;${db.marathons.filter(m => m.is_active).length}\n`;
-        csv += `Контент;Товаров в магазине;${db.shop_items.filter(i => i.is_active).length}\n`;
-        csv += `Контент;Постов в канале;${db.channel_posts.filter(p => p.is_active).length}\n`;
-        csv += `Контент;Интерактивов;${db.interactives.filter(i => i.is_active).length}\n`;
-        
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename="full_stats_export.csv"');
-        res.send(csv);
-        
-        console.log('✅ Статистика экспортирована');
-        
-    } catch (error) {
-        console.error('❌ Ошибка экспорта статистики:', error);
-        res.status(500).json({ error: 'Ошибка экспорта статистики' });
-    }
-});
-
-// РУЧНОЕ НАЧИСЛЕНИЕ ИСКР АДМИНИСТРАТОРОМ
-app.post('/api/admin/users/:userId/add-sparks', requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const { sparks, reason } = req.body;
+  try {
+    const users = db.users.filter(u => u.is_registered);
     
-    if (!sparks || !reason) {
-        return res.status(400).json({ error: 'Количество искр и причина обязательны' });
-    }
+    const workbook = new ExcelJS.Workbook();
     
-    const user = db.users.find(u => u.user_id === userId);
-    if (!user) {
-        return res.status(404).json({ error: 'Пользователь не найден' });
-    }
+    // Лист с пользователями
+    const usersWorksheet = workbook.addWorksheet('Пользователи');
+    usersWorksheet.columns = [
+      { header: 'ID', key: 'id', width: 10 },
+      { header: 'Имя', key: 'name', width: 20 },
+      { header: 'Username', key: 'username', width: 15 },
+      { header: 'Роль', key: 'role', width: 15 },
+      { header: 'Уровень', key: 'level', width: 12 },
+      { header: 'Искры', key: 'sparks', width: 12 },
+      { header: 'Квизов пройдено', key: 'quizzes', width: 15 },
+      { header: 'Работ загружено', key: 'works', width: 15 },
+      { header: 'Марафонов завершено', key: 'marathons', width: 18 },
+      { header: 'Достижений', key: 'achievements', width: 12 },
+      { header: 'Серия входов', key: 'streak', width: 12 },
+      { header: 'Дата регистрации', key: 'registration_date', width: 15 },
+      { header: 'Последняя активность', key: 'last_active', width: 15 }
+    ];
     
-    const sparksAmount = parseFloat(sparks);
-    
-    // Начисляем искры
-    const activity = addSparks(userId, sparksAmount, 'admin_bonus', `Бонус от администратора: ${reason}`, req.admin.user_id);
-    
-    res.json({
-        success: true,
-        message: `Пользователю ${user.tg_first_name} начислено ${sparksAmount}✨`,
-        newBalance: user.sparks,
-        activity: activity
+    users.forEach(user => {
+      const stats = SparksSystem.getUserStats(user.user_id);
+      usersWorksheet.addRow({
+        id: user.user_id,
+        name: user.tg_first_name || '',
+        username: user.tg_username || '',
+        role: user.class || '',
+        level: user.level || '',
+        sparks: user.sparks.toFixed(1),
+        quizzes: stats.totalQuizzesCompleted || 0,
+        works: stats.totalWorks || 0,
+        marathons: stats.totalMarathonsCompleted || 0,
+        achievements: stats.totalAchievements || 0,
+        streak: user.streak || 0,
+        registration_date: new Date(user.registration_date).toLocaleDateString('ru-RU'),
+        last_active: new Date(user.last_active).toLocaleDateString('ru-RU')
+      });
     });
+    
+    // Лист с транзакциями
+    const transactionsWorksheet = workbook.addWorksheet('Транзакции искр');
+    transactionsWorksheet.columns = [
+      { header: 'ID', key: 'id', width: 10 },
+      { header: 'Пользователь', key: 'user', width: 20 },
+      { header: 'Тип', key: 'type', width: 15 },
+      { header: 'Сумма', key: 'amount', width: 12 },
+      { header: 'Описание', key: 'description', width: 30 },
+      { header: 'Дата', key: 'date', width: 15 }
+    ];
+    
+    db.sparks_transactions
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .forEach(transaction => {
+        const user = db.users.find(u => u.user_id === transaction.user_id);
+        transactionsWorksheet.addRow({
+          id: transaction.id,
+          user: user?.tg_first_name || 'Неизвестно',
+          type: transaction.type,
+          amount: transaction.amount,
+          description: transaction.description,
+          date: new Date(transaction.created_at).toLocaleDateString('ru-RU')
+        });
+      });
+    
+    // Стили для заголовков
+    [usersWorksheet, transactionsWorksheet].forEach(worksheet => {
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE6E6FA' }
+      };
+    });
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="users_export.xlsx"');
+    
+    await workbook.xlsx.write(res);
+    res.end();
+    
+  } catch (error) {
+    console.error('Ошибка экспорта Excel:', error);
+    res.status(500).json({ error: 'Ошибка экспорта данных' });
+  }
 });
 
 // ==================== TELEGRAM BOT ====================
 
-// Telegram Bot
 let bot;
 if (process.env.BOT_TOKEN) {
-    try {
-        bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+  try {
+    bot = new TelegramBot(process.env.BOT_TOKEN, { 
+      polling: true,
+      request: {
+        agentOptions: {
+          keepAlive: true,
+          family: 4
+        }
+      }
+    });
+    
+    console.log('✅ Telegram Bot инициализирован');
+    
+    // Команда /start
+    bot.onText(/\/start/, async (msg) => {
+      const chatId = msg.chat.id;
+      const name = msg.from.first_name || 'Друг';
+      const userId = msg.from.id;
+      
+      try {
+        let user = db.users.find(u => u.user_id === userId);
+        const isNewUser = !user;
         
-        console.log('✅ Telegram Bot инициализирован');
-        console.log('=== НАСТРОЙКИ БОТА ===');
-        console.log('CHANNEL_ID:', process.env.CHANNEL_ID);
-        console.log('GROUP_ID:', process.env.GROUP_ID);
-        console.log('====================');
+        if (!user) {
+          user = {
+            id: Date.now(),
+            user_id: userId,
+            tg_first_name: msg.from.first_name,
+            tg_username: msg.from.username,
+            sparks: 0,
+            level: 'Ученик',
+            is_registered: false,
+            class: null,
+            character_id: null,
+            character_name: null,
+            available_buttons: [],
+            registration_date: new Date().toISOString(),
+            last_active: new Date().toISOString(),
+            avatar_url: null,
+            email: null,
+            phone: null,
+            settings: {
+              notifications: true,
+              email_notifications: false,
+              theme: 'light',
+              language: 'ru'
+            },
+            achievements: [],
+            badges: [],
+            streak: 0,
+            last_daily_reward: null
+          };
+          db.users.push(user);
+        } else {
+          user.last_active = new Date().toISOString();
+        }
         
-        bot.onText(/\/start/, (msg) => {
-            const chatId = msg.chat.id;
-            const name = msg.from.first_name || 'Друг';
-            const userId = msg.from.id;
-            
-            let user = db.users.find(u => u.user_id === userId);
-            if (!user) {
-                user = {
-                    id: Date.now(),
-                    user_id: userId,
-                    tg_first_name: msg.from.first_name,
-                    tg_username: msg.from.username,
-                    sparks: 0,
-                    level: 'Ученик',
-                    is_registered: false,
-                    class: null,
-                    character_id: null,
-                    character_name: null,
-                    available_buttons: [],
-                    registration_date: new Date().toISOString(),
-                    last_active: new Date().toISOString()
-                };
-                db.users.push(user);
-            } else {
-                user.last_active = new Date().toISOString();
+        const welcomeText = `🎨 Привет, ${name}!
+
+Добро пожаловать в **Мастерская Вдохновения** — платформу для творческих людей!
+
+✨ В личном кабинете вас ждет:
+• 🎯 Увлекательные квизы и искры за знания
+• 🏃‍♂️ Тематические марафоны с практическими заданиями  
+• 🖼️ Галерея для ваших работ с модерацией
+• 🎮 Интерактивные задания и головоломки
+• 🔄 Смена ролей и персонажей с уникальными бонусами
+• 📊 Детальная статистика прогресса
+• 🛒 Магазин обучающих материалов
+• 🏆 Достижения и награды
+• 💫 Ежедневные награды и серии входов
+
+${isNewUser ? '🎁 *Новым пользователям +10 искр!*' : ''}
+
+Нажмите кнопку ниже чтобы открыть личный кабинет и начать творческий путь!`;
+        
+        const keyboard = {
+          inline_keyboard: [[
+            {
+              text: "📱 Открыть Личный Кабинет",
+              web_app: { url: process.env.APP_URL || `https://your-domain.timeweb.cloud` }
             }
-            
-            const welcomeText = `🎨 Привет, ${name}!
+          ]]
+        };
 
-Добро пожаловать в **Мастерская Вдохновения**!
-
-✨ Откройте личный кабинет чтобы:
-• 🎯 Проходить квизы и получать искры
-• 🏃‍♂️ Участвовать в марафонах  
-• 🖼️ Загружать свои работы
-• 🎮 Выполнять интерактивные задания
-• 🔄 Менять роль и персонажа
-• 📊 Отслеживать прогресс
-• 🛒 Покупать обучающие материалы
-
-Нажмите кнопку ниже чтобы начать!`;
-            
-            const keyboard = {
-                inline_keyboard: [[
-                    {
-                        text: "📱 Открыть Личный Кабинет",
-                        web_app: { url: process.env.APP_URL || `https://your-domain.timeweb.cloud` }
-                    }
-                ]]
-            };
-
-            bot.sendMessage(chatId, welcomeText, {
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            });
+        await bot.sendMessage(chatId, welcomeText, {
+          parse_mode: 'Markdown',
+          reply_markup: keyboard
         });
+        
+        // Отправляем приветственное сообщение о возможностях
+        setTimeout(async () => {
+          const featuresText = `🌟 *Что вы можете делать в Мастерской Вдохновения?*
 
-        bot.onText(/\/admin/, (msg) => {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
-            
-            const admin = db.admins.find(a => a.user_id == userId);
-            if (!admin) {
-                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
-                return;
+🎨 *Художники* - изучайте живопись, рисуйте и зарабатывайте искры
+👗 *Стилисты* - создавайте образы и изучайте моду  
+🧵 *Мастера* - осваивайте ремесла и рукоделие
+🏛️ *Историки* - погружайтесь в историю искусств
+📷 *Фотографы* - совершенствуйтесь в фотографии
+
+Каждая роль открывает уникальные возможности и бонусы!`;
+          
+          await bot.sendMessage(chatId, featuresText, {
+            parse_mode: 'Markdown'
+          });
+        }, 1000);
+        
+      } catch (error) {
+        console.error('Ошибка обработки /start:', error);
+        await bot.sendMessage(chatId, 'Произошла ошибка. Пожалуйста, попробуйте позже.');
+      }
+    });
+
+    // Команда /admin
+    bot.onText(/\/admin/, async (msg) => {
+      const chatId = msg.chat.id;
+      const userId = msg.from.id;
+      
+      try {
+        const admin = db.admins.find(a => a.user_id == userId && a.is_active);
+        if (!admin) {
+          await bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+          return;
+        }
+        
+        const adminUrl = `${process.env.APP_URL}/admin?userId=${userId}`;
+        
+        const keyboard = {
+          inline_keyboard: [[
+            {
+              text: "🔧 Открыть Админ Панель",
+              url: adminUrl
             }
-            
-            // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
-            const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
-            const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
-            
-            const keyboard = {
-                inline_keyboard: [[
-                    {
-                        text: "🔧 Открыть Админ Панель",
-                        url: adminUrl
-                    }
-                ]]
-            };
-            
-            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            });
+          ]]
+        };
+        
+        await bot.sendMessage(chatId, 
+          `🔧 *Панель администратора*\n\n` +
+          `Добро пожаловать, ${admin.username}!\n\n` +
+          `Ваша роль: *${admin.role}*\n` +
+          `Разрешения: ${admin.permissions.join(', ')}\n\n` +
+          `Нажмите кнопку ниже чтобы открыть админ панель:`, 
+        {
+          parse_mode: 'Markdown',
+          reply_markup: keyboard
         });
+        
+      } catch (error) {
+        console.error('Ошибка обработки /admin:', error);
+        await bot.sendMessage(chatId, 'Произошла ошибка. Пожалуйста, попробуйте позже.');
+      }
+    });
 
-        bot.onText(/\/stats/, (msg) => {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
-            
-            const admin = db.admins.find(a => a.user_id == userId);
-            if (!admin) {
-                bot.sendMessage(chatId, '❌ У вас нет прав доступа.');
-                return;
-            }
-            
-            const stats = {
-                totalUsers: db.users.length,
-                registeredUsers: db.users.filter(u => u.is_registered).length,
-                activeQuizzes: db.quizzes.filter(q => q.is_active).length,
-                activeMarathons: db.marathons.filter(m => m.is_active).length,
-                shopItems: db.shop_items.filter(i => i.is_active).length,
-                totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0)
-            };
-            
-            const statsText = `📊 Статистика бота:
-            
+    // Команда /stats
+    bot.onText(/\/stats/, async (msg) => {
+      const chatId = msg.chat.id;
+      const userId = msg.from.id;
+      
+      try {
+        const admin = db.admins.find(a => a.user_id == userId);
+        if (!admin) {
+          await bot.sendMessage(chatId, '❌ У вас нет прав доступа.');
+          return;
+        }
+        
+        const stats = {
+          totalUsers: db.users.length,
+          registeredUsers: db.users.filter(u => u.is_registered).length,
+          activeQuizzes: db.quizzes.filter(q => q.is_active).length,
+          activeMarathons: db.marathons.filter(m => m.is_active).length,
+          shopItems: db.shop_items.filter(i => i.is_active).length,
+          totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
+          totalPurchases: db.purchases.length
+        };
+        
+        const statsText = `📊 *Статистика бота:*
+        
 👥 Пользователи: ${stats.totalUsers}
 ✅ Зарегистрировано: ${stats.registeredUsers}
 🎯 Активных квизов: ${stats.activeQuizzes}
 🏃‍♂️ Активных марафонов: ${stats.activeMarathons}
 🛒 Товаров в магазине: ${stats.shopItems}
-✨ Всего искр: ${stats.totalSparks.toFixed(1)}`;
-            
-            bot.sendMessage(chatId, statsText);
+✨ Всего искр в системе: ${stats.totalSparks.toFixed(1)}
+💰 Всего покупок: ${stats.totalPurchases}
+        
+🕐 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
+        
+        await bot.sendMessage(chatId, statsText, { parse_mode: 'Markdown' });
+        
+      } catch (error) {
+        console.error('Ошибка обработки /stats:', error);
+        await bot.sendMessage(chatId, 'Произошла ошибка. Пожалуйста, попробуйте позже.');
+      }
+    });
+
+    // Команда /profile
+    bot.onText(/\/profile/, async (msg) => {
+      const chatId = msg.chat.id;
+      const userId = msg.from.id;
+      
+      try {
+        const user = db.users.find(u => u.user_id === userId);
+        if (!user) {
+          await bot.sendMessage(chatId, 'Пожалуйста, сначала используйте /start для регистрации.');
+          return;
+        }
+        
+        const stats = SparksSystem.getUserStats(userId);
+        const levelProgress = SparksSystem.calculateLevelProgress(user.sparks);
+        
+        const profileText = `👤 *Ваш профиль:*
+        
+🎨 Имя: ${user.tg_first_name}
+📊 Уровень: ${user.level}
+✨ Искры: ${user.sparks.toFixed(1)}
+🎯 Роль: ${user.class || 'Не выбрана'}
+🎭 Персонаж: ${user.character_name || 'Не выбран'}
+        
+📈 *Статистика:*
+✅ Квизов пройдено: ${stats.totalQuizzesCompleted}
+🖼️ Работ загружено: ${stats.totalWorks}
+🏃‍♂️ Марафонов завершено: ${stats.totalMarathonsCompleted}
+🎮 Интерактивов пройдено: ${stats.totalInteractivesCompleted}
+🏆 Достижений: ${stats.totalAchievements}
+🔥 Серия входов: ${user.streak} дней
+        
+📊 Прогресс до след. уровня: ${levelProgress.toFixed(1)}%`;
+        
+        const keyboard = {
+          inline_keyboard: [[
+            {
+              text: "📱 Открыть Личный Кабинет",
+              web_app: { url: process.env.APP_URL || `https://your-domain.timeweb.cloud` }
+            }
+          ]]
+        };
+        
+        await bot.sendMessage(chatId, profileText, {
+          parse_mode: 'Markdown',
+          reply_markup: keyboard
         });
+        
+      } catch (error) {
+        console.error('Ошибка обработки /profile:', error);
+        await bot.sendMessage(chatId, 'Произошла ошибка. Пожалуйста, попробуйте позже.');
+      }
+    });
 
-    } catch (error) {
-        console.error('❌ Ошибка инициализации бота:', error);
-    }
-}
-
-// ==================== ГЛОБАЛЬНЫЙ ОБРАБОТЧИК ОШИБОК ====================
-
-// Обработка 404 ошибок
-app.use('*', (req, res) => {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(req.headers['user-agent'] || '');
-    
-    console.log(`❌ 404 ошибка: ${req.originalUrl} для ${isMobile ? 'мобильного' : 'десктопа'}`);
-    
-    if (isMobile) {
-        res.status(404).json({
-            success: false,
-            error: 'Страница не найдена',
-            suggestion: 'Проверьте URL или обновите приложение'
+    // Обработка callback queries
+    bot.on('callback_query', async (callbackQuery) => {
+      const msg = callbackQuery.message;
+      const data = callbackQuery.data;
+      
+      try {
+        if (data === 'get_daily_reward') {
+          const userId = callbackQuery.from.id;
+          const user = db.users.find(u => u.user_id === userId);
+          
+          if (!user) {
+            await bot.answerCallbackQuery(callbackQuery.id, {
+              text: 'Пожалуйста, сначала используйте /start'
+            });
+            return;
+          }
+          
+          const today = new Date().toDateString();
+          const lastReward = user.last_daily_reward ? new Date(user.last_daily_reward).toDateString() : null;
+          
+          if (lastReward === today) {
+            await bot.answerCallbackQuery(callbackQuery.id, {
+              text: 'Вы уже получали награду сегодня'
+            });
+            return;
+          }
+          
+          const dailyReward = db.settings.sparks_system.DAILY_LOGIN;
+          await SparksSystem.addSparks(userId, dailyReward, 'daily_reward', 'Ежедневная награда');
+          user.last_daily_reward = new Date().toISOString();
+          
+          await bot.answerCallbackQuery(callbackQuery.id, {
+            text: `🎁 Получено ${dailyReward} искр!`
+          });
+          
+          await bot.editMessageText(
+            `🎁 *Ежедневная награда получена!*\n\n+${dailyReward}✨ добавлены на ваш баланс.\n\nТекущая серия: ${user.streak} дней`,
+            {
+              chat_id: msg.chat.id,
+              message_id: msg.message_id,
+              parse_mode: 'Markdown'
+            }
+          );
+        }
+      } catch (error) {
+        console.error('Ошибка обработки callback:', error);
+        await bot.answerCallbackQuery(callbackQuery.id, {
+          text: 'Произошла ошибка'
         });
-    } else {
-        res.status(404).json({
-            success: false,
-            error: 'Page not found: ' + req.originalUrl
-        });
-    }
-});
+      }
+    });
 
-// Централизованный обработчик ошибок
-app.use((error, req, res, next) => {
-    console.error('❌ Глобальная ошибка:', error);
-    
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(req.headers['user-agent'] || '');
-    
-    // Логируем детали ошибки
-    console.log('Детали ошибки:', {
-        url: req.url,
-        method: req.method,
-        userAgent: req.headers['user-agent'],
-        isMobile: isMobile,
-        errorMessage: error.message,
-        errorStack: error.stack
+    // Обработка ошибок бота
+    bot.on('error', (error) => {
+      console.error('❌ Ошибка Telegram Bot:', error);
     });
     
-    if (isMobile) {
-        // Упрощенные сообщения для мобильных пользователей
-        res.status(error.status || 500).json({
-            success: false,
-            error: 'Произошла ошибка. Пожалуйста, попробуйте позже.',
-            code: 'MOBILE_ERROR'
-        });
-    } else {
-        // Подробные сообщения для десктопа
-        res.status(error.status || 500).json({
-            success: false,
-            error: error.message || 'Internal Server Error',
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        });
-    }
+    bot.on('polling_error', (error) => {
+      console.error('❌ Ошибка polling Telegram Bot:', error);
+    });
+
+  } catch (error) {
+    console.error('❌ Ошибка инициализации бота:', error);
+  }
+} else {
+  console.log('⚠️ Telegram Bot отключен (BOT_TOKEN не установлен)');
+}
+
+// ==================== ОБРАБОТЧИКИ ОШИБОК ====================
+
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Страница не найдена',
+    path: req.originalUrl
+  });
 });
 
-// Обработка необработанных исключений
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ Необработанное отклонение промиса:', reason);
-    console.error('Промис:', promise);
+app.use((error, req, res, next) => {
+  console.error('❌ Глобальная ошибка:', error);
+  
+  // Логируем детали ошибки
+  console.log('Детали запроса:', {
+    url: req.url,
+    method: req.method,
+    userAgent: req.headers['user-agent'],
+    ip: req.ip,
+    body: req.body
+  });
+  
+  if (error.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      error: 'Файл слишком большой. Максимальный размер: 100MB'
+    });
+  }
+  
+  if (error instanceof multer.MulterError) {
+    return res.status(400).json({
+      success: false,
+      error: `Ошибка загрузки файла: ${error.message}`
+    });
+  }
+  
+  res.status(error.status || 500).json({
+    success: false,
+    error: process.env.NODE_ENV === 'development' ? error.message : 'Внутренняя ошибка сервера'
+  });
 });
 
-process.on('uncaughtException', (error) => {
-    console.error('❌ Неперехваченное исключение:', error);
-    process.exit(1);
-});
+// ==================== ЗАПУСК СЕРВЕРА ====================
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Сервер запущен на порту ${PORT}`);
-    console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
-    console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
-    console.log(`🎯 Квизов: ${db.quizzes.length}`);
-    console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
-    console.log(`🎮 Интерактивов: ${db.interactives.length}`);
-    console.log(`🛒 Товаров: ${db.shop_items.length}`);
-    console.log(`👥 Пользователей: ${db.users.length}`);
-    console.log('✅ Все системы работают!');
+
+// Функция для создания тестовых данных
+async function initializeTestData() {
+  console.log('📦 Инициализация тестовых данных...');
+  
+  // Создаем тестовые загрузочные директории
+  const testDirs = [
+    'uploads/characters',
+    'uploads/quizzes', 
+    'uploads/marathons',
+    'uploads/shop',
+    'uploads/posts',
+    'uploads/interactives'
+  ];
+  
+  for (const dir of testDirs) {
+    const dirPath = join(APP_ROOT, dir);
+    if (!existsSync(dirPath)) {
+      await fs.mkdir(dirPath, { recursive: true });
+    }
+  }
+  
+  console.log('✅ Тестовые данные инициализированы');
+}
+
+app.listen(PORT, '0.0.0.0', async () => {
+  await initializeTestData();
+  
+  console.log(`🚀 Сервер запущен на порту ${PORT}`);
+  console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
+  console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
+  console.log(`🎯 Квизов: ${db.quizzes.length}`);
+  console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
+  console.log(`🎮 Интерактивов: ${db.interactives.length}`);
+  console.log(`🛒 Товаров: ${db.shop_items.length}`);
+  console.log(`👥 Пользователей: ${db.users.length}`);
+  console.log(`👑 Админов: ${db.admins.length}`);
+  console.log('✅ Все системы работают!');
+  console.log('=== СИСТЕМА ГОТОВА К РАБОТЕ ===');
 });
