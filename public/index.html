@@ -1087,9 +1087,9 @@
     width: 100%;
     padding: 0;
     overflow: hidden;
-    background: #000; /* ← ДОБАВИТЬ */
+    background: transparent; /* ← ДОБАВИТЬ */
     border-radius: 12px; /* ← ДОБАВИТЬ */
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); /* ← ДОБАВИТЬ */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); /* ← ДОБАВИТЬ */
     max-height: 80vh; /* ← ДОБАВИТЬ */
 }
 
@@ -1110,6 +1110,90 @@
     border-radius: 12px; /* ← ДОБАВИТЬ */
 }
 
+/* Адаптивность для embed-контента */
+@media (max-width: 768px) {
+    .embed-responsive {
+        max-height: 60vh;
+        border-radius: 8px;
+    }
+    
+    .embed-responsive::before {
+        padding-top: 75%; /* Более вертикальное соотношение для мобильных */
+    }
+}
+
+/* Для планшетов */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .embed-responsive {
+        max-height: 70vh;
+    }
+}
+
+/* Модальное окно для полноэкранного embed */
+.media-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    padding: 10px;
+}
+
+.media-modal-content {
+    position: relative;
+    width: 98%;
+    height: 98%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.media-modal-btn {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.9);
+    color: #2d3748;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.media-modal-btn:hover {
+    background: white;
+    transform: scale(1.1);
+}
+
+.media-modal-close {
+    top: -50px;
+    right: 0;
+    background: #f56565;
+    color: white;
+}
+
+/* Для десктопов */
+@media (min-width: 1025px) {
+    .media-modal {
+        padding: 20px;
+    }
+    
+    .media-modal-content {
+        width: 95%;
+        height: 95%;
+    }
+}
+        
 /* Адаптивность для embed-контента */ /* ← ДОБАВИТЬ ЭТОТ БЛОК */
 @media (max-width: 768px) {
     .embed-responsive {
@@ -5175,6 +5259,77 @@ function openFullscreenEmbed(embedId) {
     document.addEventListener('keydown', closeOnEsc);
 }
 
+// ========== ФУНКЦИИ ДЛЯ ПОЛНОЭКРАННОГО РЕЖИМА ==========
+
+// Функция для полноэкранного режима embed-контента
+function openFullscreenEmbed(embedId) {
+    const embedElement = document.getElementById(embedId);
+    const embedHtml = embedElement.innerHTML;
+    
+    // Создаем модальное окно для полноэкранного просмотра
+    const modal = document.createElement('div');
+    modal.className = 'media-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        padding: 20px;
+    `;
+    
+    modal.innerHTML = `
+        <div class="media-modal-content" style="position: relative; width: 95%; height: 95%;">
+            <div class="embed-responsive" style="width: 100%; height: 100%;">
+                ${embedHtml}
+            </div>
+            <button class="media-modal-btn media-modal-close" onclick="this.closest('.media-modal').remove()" 
+                    style="position: absolute; top: -50px; right: 0; background: #f56565; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer;">
+                ✕
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Добавляем обработчик для закрытия по ESC
+    const closeOnEsc = (e) => {
+        if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', closeOnEsc);
+        }
+    };
+    document.addEventListener('keydown', closeOnEsc);
+}
+
+// Функция для полноэкранного режима обычного видео
+function toggleFullscreen(videoId) {
+    const video = document.getElementById(videoId);
+    
+    if (!document.fullscreenElement) {
+        if (video.requestFullscreen) {
+            video.requestFullscreen();
+        } else if (video.webkitRequestFullscreen) {
+            video.webkitRequestFullscreen();
+        } else if (video.msRequestFullscreen) {
+            video.msRequestFullscreen();
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    }
+}
+        
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 
 // Показать сообщение
