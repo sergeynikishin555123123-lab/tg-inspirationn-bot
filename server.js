@@ -1124,6 +1124,7 @@ class Cache {
 const cache = new Cache();
 
 // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+
 function calculateLevel(sparks) {
     const levels = [
         { threshold: 0, name: 'Ученик', color: '#6B7280', icon: '🎓' },
@@ -1164,44 +1165,50 @@ function getNextLevelInfo(currentSparks) {
     return null;
 }
 
-function applyCharacterBonus(userId, baseSparks, activityType) {
-    const user = db.users.find(u => u.user_id == userId);
+async function applyCharacterBonus(userId, baseSparks, activityType) {
+    const user = await getUser(userId);
     if (!user || !user.character_id) return baseSparks;
 
-    const character = db.characters.find(c => c.id == user.character_id);
-    if (!character) return baseSparks;
+    // Для in-memory базы используем старую логику
+    if (!dbClient) {
+        const character = db.characters.find(c => c.id == user.character_id);
+        if (!character) return baseSparks;
 
-    let bonus = baseSparks;
+        let bonus = baseSparks;
 
-    switch (character.bonus_type) {
-        case 'percent_bonus':
-            bonus = baseSparks * (1 + parseInt(character.bonus_value) / 100);
-            break;
-        case 'forgiveness':
-            if (activityType === 'quiz' && baseSparks === 0) {
-                bonus = config.sparks.FORGIVENESS_BONUS;
-            }
-            break;
-        case 'random_gift':
-            if (Math.random() < 0.3) {
-                const min = config.sparks.RANDOM_GIFT_MIN;
-                const max = config.sparks.RANDOM_GIFT_MAX;
-                bonus += Math.floor(Math.random() * (max - min + 1)) + min;
-            }
-            break;
-        case 'secret_advice':
-            const now = new Date();
-            if (now.getHours() >= 9 && now.getHours() <= 12) {
-                bonus = baseSparks * 1.2;
-            }
-            break;
+        switch (character.bonus_type) {
+            case 'percent_bonus':
+                bonus = baseSparks * (1 + parseInt(character.bonus_value) / 100);
+                break;
+            case 'forgiveness':
+                if (activityType === 'quiz' && baseSparks === 0) {
+                    bonus = config.sparks.FORGIVENESS_BONUS;
+                }
+                break;
+            case 'random_gift':
+                if (Math.random() < 0.3) {
+                    const min = config.sparks.RANDOM_GIFT_MIN;
+                    const max = config.sparks.RANDOM_GIFT_MAX;
+                    bonus += Math.floor(Math.random() * (max - min + 1)) + min;
+                }
+                break;
+            case 'secret_advice':
+                const now = new Date();
+                if (now.getHours() >= 9 && now.getHours() <= 12) {
+                    bonus = baseSparks * 1.2;
+                }
+                break;
+        }
+
+        return Math.round(bonus * 10) / 10;
     }
 
-    return Math.round(bonus * 10) / 10;
+    // Для PostgreSQL будем использовать базовый бонус пока что
+    return baseSparks;
 }
-
-function addSparks(userId, sparks, activityType, description, metadata = {}) {
-    const user = db.users.find(u => u.user_id == userId);
+// ==================== ОБНОВЛЕННАЯ ФУНКЦИЯ addSparks ====================
+async function addSparks(userId, sparks, activityType, description, metadata = {}) {
+    const user = await getUser(userId);
     if (!user) {
         Logger.error('Пользователь не найден при начислении искр', { userId, activityType });
         return null;
@@ -1215,6 +1222,9 @@ function addSparks(userId, sparks, activityType, description, metadata = {}) {
     user.level = levelInfo.name;
     user.last_active = new Date().toISOString();
     
+    // Сохраняем пользователя
+    await saveUser(user);
+    
     const activity = {
         id: generateId(),
         user_id: userId,
@@ -1225,7 +1235,7 @@ function addSparks(userId, sparks, activityType, description, metadata = {}) {
         created_at: new Date().toISOString()
     };
     
-    db.activities.push(activity);
+    await saveActivity(activity);
 
     // Проверяем изменение уровня
     if (previousLevel !== user.level) {
@@ -1240,7 +1250,7 @@ function addSparks(userId, sparks, activityType, description, metadata = {}) {
         
         // Награда за повышение уровня
         const levelReward = Math.round(user.sparks * 0.1);
-        addSparks(userId, levelReward, 'level_up_bonus', `Бонус за повышение уровня до ${user.level}`);
+        await addSparks(userId, levelReward, 'level_up_bonus', `Бонус за повышение уровня до ${user.level}`);
     }
 
     sendNotification(userId, 'balance_update', {
@@ -1354,14 +1364,6 @@ async function saveActivity(activity) {
         db.activities.push(activity);
     }
 }
-
-// Обновите функцию addSparks чтобы использовать PostgreSQL
-async function addSparks(userId, sparks, activityType, description, metadata = {}) {
-    const user = await getUser(userId);
-    if (!user) {
-        Logger.error('Пользователь не найден при начислении искр', { userId, activityType });
-        return null;
-    }
 
     const bonusSparks = applyCharacterBonus(userId, sparks, activityType);
     user.sparks = Math.max(0, user.sparks + bonusSparks);
