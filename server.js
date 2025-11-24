@@ -416,7 +416,7 @@ const ensureDirectoryExists = (dirPath) => {
 // Пытаемся создать директории, но не падаем при ошибках прав
 const directories = [UPLOADS_BASE_DIR, SHOP_FILES_DIR, USER_WORKS_DIR, PREVIEWS_DIR, TEMP_DIR, LOGS_DIR];
 directories.forEach(dir => ensureDirectoryExists(dir));
-});
+
 // ==================== WebSocket СЕРВЕР ====================
 const wss = new WebSocketServer({ noServer: true });
 const connectedClients = new Map();
