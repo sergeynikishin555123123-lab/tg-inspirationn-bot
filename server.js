@@ -18,6 +18,10 @@ import sharp from 'sharp';
 import { createHash, randomBytes } from 'crypto';
 import { promisify } from 'util';
 
+// ==================== ДОБАВЬТЕ ЭТОТ ИМПОРТ ====================
+import pg from 'pg';
+const { Client } = pg;
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -89,6 +93,105 @@ const config = {
         sessionTimeout: 24 * 60 * 60 * 1000
     }
 };
+
+// ==================== POSTGRESQL КОНФИГУРАЦИЯ ====================
+const dbConfig = {
+    user: process.env.DB_USER || 'gen_user',
+    host: process.env.DB_HOST || '192.168.0.8',
+    database: process.env.DB_NAME || 'default_db',
+    password: process.env.DB_PASSWORD || 'GrMp*mZ^FF&1u<',
+    port: parseInt(process.env.DB_PORT) || 5432
+};
+
+let dbClient;
+
+async function initializeDatabase() {
+    try {
+        dbClient = new Client(dbConfig);
+        await dbClient.connect();
+        Logger.info('PostgreSQL подключен успешно');
+        
+        // Создаем таблицы если их нет
+        await createTables();
+    } catch (error) {
+        Logger.error('Ошибка подключения к PostgreSQL', error);
+        // Fallback to in-memory database
+        Logger.info('Используется in-memory база данных');
+    }
+}
+
+async function createTables() {
+    const tables = [
+        `CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            user_id BIGINT UNIQUE NOT NULL,
+            tg_first_name VARCHAR(255),
+            tg_username VARCHAR(255),
+            sparks DECIMAL DEFAULT 0,
+            level VARCHAR(100) DEFAULT 'Ученик',
+            class VARCHAR(100),
+            character_id INTEGER,
+            character_name VARCHAR(255),
+            is_registered BOOLEAN DEFAULT false,
+            registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            invited_by BIGINT,
+            compliments_given INTEGER DEFAULT 0,
+            compliments_received INTEGER DEFAULT 0,
+            daily_stats JSONB DEFAULT '{}',
+            settings JSONB DEFAULT '{}',
+            achievements JSONB DEFAULT '[]'
+        )`,
+        
+        `CREATE TABLE IF NOT EXISTS activities (
+            id SERIAL PRIMARY KEY,
+            user_id BIGINT NOT NULL,
+            activity_type VARCHAR(100) NOT NULL,
+            sparks_earned DECIMAL NOT NULL,
+            description TEXT,
+            metadata JSONB DEFAULT '{}',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`,
+        
+        `CREATE TABLE IF NOT EXISTS quizzes (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            description TEXT,
+            difficulty VARCHAR(50),
+            category VARCHAR(100),
+            duration_minutes INTEGER,
+            questions_count INTEGER,
+            passing_score INTEGER,
+            rewards JSONB DEFAULT '{}',
+            is_active BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_by BIGINT
+        )`,
+        
+        `CREATE TABLE IF NOT EXISTS marathons (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            description TEXT,
+            duration_days INTEGER,
+            difficulty VARCHAR(50),
+            category VARCHAR(100),
+            rewards JSONB DEFAULT '{}',
+            is_active BOOLEAN DEFAULT true,
+            start_date TIMESTAMP,
+            end_date TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_by BIGINT
+        )`
+    ];
+
+    for (const tableQuery of tables) {
+        try {
+            await dbClient.query(tableQuery);
+        } catch (error) {
+            Logger.error('Ошибка создания таблицы', error);
+        }
+    }
+}
 
 // ==================== СИСТЕМА ЛОГИРОВАНИЯ ====================
 class Logger {
@@ -1160,6 +1263,129 @@ function addSparks(userId, sparks, activityType, description, metadata = {}) {
     return activity;
 }
 
+// ==================== POSTGRESQL ФУНКЦИИ ====================
+
+async function getUser(userId) {
+    if (dbClient) {
+        try {
+            const result = await dbClient.query(
+                'SELECT * FROM users WHERE user_id = $1',
+                [userId]
+            );
+            return result.rows[0];
+        } catch (error) {
+            Logger.error('Ошибка получения пользователя', error);
+            return db.users.find(u => u.user_id == userId);
+        }
+    }
+    return db.users.find(u => u.user_id == userId);
+}
+
+async function saveUser(user) {
+    if (dbClient) {
+        try {
+            const query = `
+                INSERT INTO users (
+                    user_id, tg_first_name, tg_username, sparks, level, 
+                    class, character_id, character_name, is_registered,
+                    invited_by, daily_stats, settings, achievements
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                ON CONFLICT (user_id) DO UPDATE SET
+                    tg_first_name = EXCLUDED.tg_first_name,
+                    tg_username = EXCLUDED.tg_username,
+                    sparks = EXCLUDED.sparks,
+                    level = EXCLUDED.level,
+                    last_active = CURRENT_TIMESTAMP
+                RETURNING *
+            `;
+            
+            const values = [
+                user.user_id, user.tg_first_name, user.tg_username,
+                user.sparks, user.level, user.class, user.character_id,
+                user.character_name, user.is_registered, user.invited_by,
+                JSON.stringify(user.daily_stats || {}),
+                JSON.stringify(user.settings || {}),
+                JSON.stringify(user.achievements || [])
+            ];
+            
+            const result = await dbClient.query(query, values);
+            return result.rows[0];
+        } catch (error) {
+            Logger.error('Ошибка сохранения пользователя', error);
+            // Fallback to in-memory
+            const existingIndex = db.users.findIndex(u => u.user_id == user.user_id);
+            if (existingIndex >= 0) {
+                db.users[existingIndex] = user;
+            } else {
+                db.users.push(user);
+            }
+            return user;
+        }
+    } else {
+        // In-memory fallback
+        const existingIndex = db.users.findIndex(u => u.user_id == user.user_id);
+        if (existingIndex >= 0) {
+            db.users[existingIndex] = user;
+        } else {
+            db.users.push(user);
+        }
+        return user;
+    }
+}
+
+async function saveActivity(activity) {
+    if (dbClient) {
+        try {
+            const query = `
+                INSERT INTO activities (user_id, activity_type, sparks_earned, description, metadata)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *
+            `;
+            const values = [
+                activity.user_id, activity.activity_type, activity.sparks_earned,
+                activity.description, JSON.stringify(activity.metadata || {})
+            ];
+            await dbClient.query(query, values);
+        } catch (error) {
+            Logger.error('Ошибка сохранения активности', error);
+            db.activities.push(activity);
+        }
+    } else {
+        db.activities.push(activity);
+    }
+}
+
+// Обновите функцию addSparks чтобы использовать PostgreSQL
+async function addSparks(userId, sparks, activityType, description, metadata = {}) {
+    const user = await getUser(userId);
+    if (!user) {
+        Logger.error('Пользователь не найден при начислении искр', { userId, activityType });
+        return null;
+    }
+
+    const bonusSparks = applyCharacterBonus(userId, sparks, activityType);
+    user.sparks = Math.max(0, user.sparks + bonusSparks);
+    
+    const levelInfo = calculateLevel(user.sparks);
+    const previousLevel = user.level;
+    user.level = levelInfo.name;
+    user.last_active = new Date().toISOString();
+    
+    // Сохраняем пользователя
+    await saveUser(user);
+    
+    const activity = {
+        id: generateId(),
+        user_id: userId,
+        activity_type: activityType,
+        sparks_earned: bonusSparks,
+        description: description,
+        metadata: metadata,
+        created_at: new Date().toISOString()
+    };
+    
+    await saveActivity(activity);
+
 function createNotification(userId, type, title, message, data = {}) {
     const notification = {
         id: generateId(),
@@ -1478,14 +1704,14 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
-const requireUser = (req, res, next) => {
+const requireUser = async (req, res, next) => {
     const userId = req.query.userId || req.body.userId || req.headers['x-user-id'];
     
     if (!userId) {
         return res.status(401).json({ error: 'User ID required' });
     }
     
-    const user = db.users.find(u => u.user_id == userId);
+    const user = await getUser(userId);
     if (!user) {
         return res.status(404).json({ error: 'User not found' });
     }
@@ -2763,6 +2989,28 @@ app.get('/api/admin/logs', requireAdmin, paginate, (req, res) => {
     });
 });
 
+// ==================== МАРШРУТЫ ДЛЯ СТАТИЧЕСКИХ ФАЙЛОВ ====================
+
+// Главная страница приложения
+app.get('/', (req, res) => {
+    const indexPath = join(APP_ROOT, 'public', 'index.html');
+    if (existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).json({ error: 'Main application not found' });
+    }
+});
+
+// Маршрут для админ-панели
+app.get('/admin', (req, res) => {
+    const adminPath = join(APP_ROOT, 'public', 'admin.html');
+    if (existsSync(adminPath)) {
+        res.sendFile(adminPath);
+    } else {
+        res.status(404).json({ error: 'Admin panel not found' });
+    }
+});
+
 // ==================== ЦЕНТРАЛИЗОВАННАЯ ОБРАБОТКА ОШИБОК ====================
 
 // Обработчик 404
@@ -3359,43 +3607,39 @@ app.use((error, req, res, next) => {
 // Статические файлы
 app.use(express.static(join(APP_ROOT, 'public')));
 
-// Главная страница приложения
-app.get('/', (req, res) => {
-    const indexPath = join(APP_ROOT, 'public', 'index.html');
-    if (existsSync(indexPath)) {
-        res.sendFile(indexPath);
-    } else {
-        res.status(404).json({ error: 'Main application not found' });
-    }
-});
-
-// Маршрут для админ-панели
-app.get('/admin', (req, res) => {
-    const adminPath = join(APP_ROOT, 'public', 'admin.html');
-    if (existsSync(adminPath)) {
-        res.sendFile(adminPath);
-    } else {
-        res.status(404).json({ error: 'Admin panel not found' });
-    }
-});
-
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
     Logger.info('Получен SIGTERM, начинаем graceful shutdown');
+    if (dbClient) {
+        await dbClient.end();
+    }
     app.server.close(() => {
         Logger.info('Сервер остановлен');
         process.exit(0);
     });
 });
 
-app.server = app.listen(config.port, '0.0.0.0', () => {
+process.on('SIGINT', async () => {
+    Logger.info('Получен SIGINT, начинаем graceful shutdown');
+    if (dbClient) {
+        await dbClient.end();
+    }
+    app.server.close(() => {
+        Logger.info('Сервер остановлен');
+        process.exit(0);
+    });
+});
+
+app.server = app.listen(config.port, '0.0.0.0', async () => {
+    await initializeDatabase(); // Инициализируем базу данных
     initializeDemoData();
     
-    console.log(`\n🚀 СЕРВЕР ЗАПУЩЕН НА ПОРТУ ${config.port}`);
+    console.log(`\n🚀 СЕРВЕР ЗАПУЩЕН В TIMEWEB`);
     console.log(`📱 WebApp: ${config.appUrl}`);
     console.log(`🔧 Admin: ${config.appUrl}/admin`);
+    console.log(`💾 Database: ${dbClient ? 'PostgreSQL' : 'In-Memory'}`);
+    console.log(`🤖 Telegram Bot: активен`);
     console.log(`🔗 WebSocket: ws://localhost:${config.port}`);
-    console.log(`✅ Админ-панель доступна по: ${config.appUrl}/admin?userId=898508164`);
     if (telegramBot) {
         console.log(`🤖 Telegram Bot: активен`);
     }
