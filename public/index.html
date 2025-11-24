@@ -1073,110 +1073,41 @@
             display: block;
         }
 
-/* ========== СТИЛИ ДЛЯ ВСТРОЕННЫХ ВИДЕО И МЕДИА ========== */
-
-/* Основной контейнер для embed-контента */
-.embed-container {
+/* Улучшенные стили для embed-контента */
+.embed-wrapper {
     position: relative;
     width: 100%;
-    height: 0;
-    padding-bottom: 56.25%; /* 16:9 соотношение */
+    max-width: 100%;
     margin: 20px 0;
-    border-radius: 12px;
+}
+
+.embed-responsive {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0;
     overflow: hidden;
-    background: #000; /* Черный фон для видео */
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
+    background: #000; /* ← ДОБАВИТЬ */
+    border-radius: 12px; /* ← ДОБАВИТЬ */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); /* ← ДОБАВИТЬ */
+    max-height: 80vh; /* ← ДОБАВИТЬ */
 }
 
-.embed-container:hover {
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
-    transform: translateY(-2px);
+.embed-responsive::before {
+    display: block;
+    content: "";
+    padding-top: 56.25%; /* 16:9 соотношение */
 }
 
-.embed-container iframe,
-.embed-container video {
+.embed-responsive iframe {
     position: absolute;
     top: 0;
+    bottom: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    border: none;
-    border-radius: 12px;
-}
-
-/* Контейнер для embed-контента с HTML (для прямого HTML) */
-.embed-html-container {
-    width: 100%;
-    margin: 20px 0;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #000;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-    min-height: 400px; /* Минимальная высота для HTML контента */
-}
-
-/* Стили для полноэкранного режима */
-.embed-fullscreen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 10000;
-    background: #000;
-    border-radius: 0;
-    padding-bottom: 0;
-}
-
-.embed-fullscreen iframe {
-    border-radius: 0;
-}
-
-/* Кнопки управления для embed */
-.embed-controls {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 100;
-    display: flex;
-    gap: 8px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.embed-container:hover .embed-controls {
-    opacity: 1;
-}
-
-.embed-btn {
-    background: rgba(255, 255, 255, 0.9);
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.embed-btn:hover {
-    background: white;
-    transform: scale(1.1);
-}
-
-.embed-btn.fullscreen {
-    background: #667eea;
-    color: white;
-}
-
-.embed-btn.close {
-    background: #f56565;
-    color: white;
+    border: 0;
+    border-radius: 12px; /* ← ДОБАВИТЬ */
 }
 
 /* Адаптивность для embed-контента */ /* ← ДОБАВИТЬ ЭТОТ БЛОК */
@@ -4678,73 +4609,63 @@ function getPurchaseTypeName(type) {
     return names[type] || type;
 }
 
-function showPurchaseDetail(purchase) {
-    console.log('🔍 Показываем детали покупки:', purchase);
-    
-    const detailContent = document.getElementById('purchaseDetailContent');
-    
-    // Генерируем полное содержимое покупки
-    const fullContent = generatePurchaseContent(purchase);
-    
-    detailContent.innerHTML = `
-        <div style="text-align: center; margin-bottom: 24px;">
-            <h2 style="margin-bottom: 8px; color: #2d3748;">${purchase.title}</h2>
-            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;">
-                <span class="badge badge-info">
-                    ${getPurchaseTypeIcon(purchase.type)} ${getPurchaseTypeName(purchase.type)}
-                </span>
-                <span class="badge badge-success">
-                    💰 Куплено за ${purchase.price_paid || purchase.price}✨
-                </span>
-                <span class="badge" style="background: #e9d8fd; color: #6b46c1;">
-                    📅 ${new Date(purchase.purchased_at || purchase.created_at).toLocaleDateString('ru-RU')}
-                </span>
-            </div>
-        </div>
-        
-        ${purchase.description ? `
-            <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
-                <h4 style="margin-bottom: 12px; color: #4a5568;">📝 Описание</h4>
-                <p style="color: #718096; line-height: 1.6; margin: 0;">${purchase.description}</p>
-            </div>
-        ` : ''}
-        
-        <!-- Основное содержимое покупки -->
-        <div style="margin-bottom: 24px;">
-            <h4 style="margin-bottom: 16px; color: #4a5568; text-align: center;">🎁 Содержимое товара</h4>
-            ${fullContent}
-        </div>
-        
-        <!-- Дополнительная информация -->
-        <div style="background: #fffaf0; padding: 16px; border-radius: 12px; border: 1px solid #fbd38d;">
-            <h4 style="margin-bottom: 12px; color: #dd6b20;">ℹ️ Информация о покупке</h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="color: #dd6b20;">🆔</span>
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">ID покупки</div>
-                        <div style="color: #718096; font-size: 12px;">${purchase.id}</div>
+        // Функция для показа детальной информации о покупке
+        function showPurchaseDetail(purchase) {
+            console.log('🔍 Показываем детали покупки:', purchase);
+            
+            const detailContent = document.getElementById('purchaseDetailContent');
+            
+            // Генерируем полное содержимое покупки
+            const fullContent = generatePurchaseContent(purchase);
+            
+            detailContent.innerHTML = `
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <h2 style="margin-bottom: 8px; color: #2d3748;">${purchase.title}</h2>
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;">
+                        <span class="badge badge-info">
+                            ${getPurchaseTypeIcon(purchase.type)} ${getPurchaseTypeName(purchase.type)}
+                        </span>
+                        <span class="badge badge-success">
+                            💰 Куплено за ${purchase.price_paid || purchase.price}✨
+                        </span>
+                        <span class="badge" style="background: #e9d8fd; color: #6b46c1;">
+                            📅 ${new Date(purchase.purchased_at || purchase.created_at).toLocaleDateString('ru-RU')}
+                        </span>
                     </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="color: #dd6b20;">🎬</span>
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">Тип контента</div>
-                        <div style="color: #718096; font-size: 12px;">${getPurchaseTypeName(purchase.type)}</div>
+                
+                ${purchase.description ? `
+                    <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                        <h4 style="margin-bottom: 12px; color: #4a5568;">📝 Описание</h4>
+                        <p style="color: #718096; line-height: 1.6; margin: 0;">${purchase.description}</p>
+                    </div>
+                ` : ''}
+                
+                <!-- Основное содержимое покупки -->
+                <div style="margin-bottom: 24px;">
+                    <h4 style="margin-bottom: 16px; color: #4a5568; text-align: center;">🎁 Содержимое товара</h4>
+                    ${fullContent}
+                </div>
+                
+                <!-- Дополнительная информация -->
+                <div style="background: #fffaf0; padding: 16px; border-radius: 12px; border: 1px solid #fbd38d;">
+                    <h4 style="margin-bottom: 12px; color: #dd6b20;">ℹ️ Информация о покупке</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #dd6b20;">🆔</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px;">ID покупки</div>
+                                <div style="color: #718096; font-size: 12px;">${purchase.id}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    `;
-    
-    // Инициализируем embed-фреймы после отображения контента
-    setTimeout(() => {
-        initEmbedFrames();
-    }, 100);
-    
-    // Показываем экран деталей
-    showScreen('purchaseDetailScreen');
-}
+            `;
+            
+            // Показываем экран деталей
+            showScreen('purchaseDetailScreen');
+        }
+
 // Функция для генерации превью контента (для списка покупок)
 function generatePurchasePreview(purchase) {
     const fileUrl = purchase.file_data || purchase.file_url;
@@ -4811,55 +4732,26 @@ function generatePurchasePreview(purchase) {
             }
         }
 
-// Функция для генерации полного содержимого покупки
+       // Функция для генерации полного содержимого покупки
 function generatePurchaseContent(purchase) {
     const fileUrl = purchase.file_data || purchase.file_url;
     
     switch(purchase.type) {
         case 'embed':
-            // Получаем HTML контент из различных возможных полей
-            const embedHtml = purchase.embed_html || purchase.html_content || purchase.content_html || purchase.content || '';
-            
             return `
                 <div class="media-container">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h4 style="margin: 0; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                            🎬 Видео содержание
-                        </h4>
-                        <span class="badge badge-info">
-                            📺 Встроенное видео
-                        </span>
-                    </div>
-                    
-                    <!-- Основной контейнер для embed-видео -->
-                    <div class="embed-container" id="embed-container-${purchase.id}">
-                        ${embedHtml}
-                        <div class="embed-controls">
-                            <button class="embed-btn fullscreen" onclick="toggleEmbedFullscreen('embed-container-${purchase.id}')" title="Полный экран">
-                                📺
-                            </button>
+                    <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                        🎬 Видео содержание
+                    </h4>
+                    <div class="embed-wrapper">
+                        <div class="embed-responsive" id="embed-${purchase.id}">
+                            ${purchase.embed_html || purchase.html_content || purchase.content_html || purchase.content || ''}
                         </div>
                     </div>
-                    
                     <div style="text-align: center; margin-top: 16px;">
-                        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                            <button class="btn btn-info" onclick="toggleEmbedFullscreen('embed-container-${purchase.id}')">
-                                📺 Полноэкранный режим
-                            </button>
-                            <button class="btn btn-secondary" onclick="reloadEmbed('embed-container-${purchase.id}')">
-                                🔄 Перезагрузить видео
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Информация о видео -->
-                    <div style="background: #f7fafc; padding: 16px; border-radius: 12px; margin-top: 16px;">
-                        <h5 style="margin-bottom: 8px; color: #4a5568;">💡 Советы по просмотру:</h5>
-                        <ul style="color: #718096; margin: 0; padding-left: 20px; font-size: 14px;">
-                            <li>Нажмите кнопку 📺 для полноэкранного режима</li>
-                            <li>Используйте 🔄 если видео не загрузилось</li>
-                            <li>Для выхода из полноэкранного режима нажмите ESC</li>
-                        </ul>
+                        <button class="btn btn-info" onclick="openFullscreenEmbed('embed-${purchase.id}')" style="padding: 10px 20px;">
+                            📺 Открыть в полноэкранном режиме
+                        </button>
                     </div>
                 </div>
             `;
@@ -5367,113 +5259,6 @@ function showMessage(message, type) {
 
         // Вызов анимации при загрузке
         setTimeout(animateElements, 500);
-
-        // ========== ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ EMBED-ВИДЕО ==========
-
-        // Переключение полноэкранного режима для embed-контента
-        function toggleEmbedFullscreen(containerId) {
-            const container = document.getElementById(containerId);
-            
-            if (!container) {
-                console.error('Контейнер не найден:', containerId);
-                return;
-            }
-            
-            if (!document.fullscreenElement) {
-                // Вход в полноэкранный режим
-                if (container.requestFullscreen) {
-                    container.requestFullscreen();
-                } else if (container.webkitRequestFullscreen) {
-                    container.webkitRequestFullscreen();
-                } else if (container.msRequestFullscreen) {
-                    container.msRequestFullscreen();
-                }
-                
-                // Добавляем класс для полноэкранного режима
-                container.classList.add('embed-fullscreen');
-                
-            } else {
-                // Выход из полноэкранного режима
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
-                
-                // Убираем класс полноэкранного режима
-                container.classList.remove('embed-fullscreen');
-            }
-        }
-
-        // Перезагрузка embed-контента
-        function reloadEmbed(containerId) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            
-            // Сохраняем исходный HTML
-            const originalHtml = container.innerHTML;
-            
-            // Очищаем и снова вставляем контент
-            container.innerHTML = '';
-            setTimeout(() => {
-                container.innerHTML = originalHtml;
-                showMessage('✅ Видео перезагружено', 'success');
-            }, 100);
-        }
-
-        // Обработчик выхода из полноэкранного режима
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('msfullscreenchange', handleFullscreenChange);
-
-        function handleFullscreenChange() {
-            const containers = document.querySelectorAll('.embed-container');
-            containers.forEach(container => {
-                if (!document.fullscreenElement && 
-                    !document.webkitFullscreenElement && 
-                    !document.msFullscreenElement) {
-                    container.classList.remove('embed-fullscreen');
-                }
-            });
-        }
-
-        // Автоматическая обработка iframe в embed-контейнерах
-        function initEmbedFrames() {
-            const embedContainers = document.querySelectorAll('.embed-container');
-            
-            embedContainers.forEach(container => {
-                const iframe = container.querySelector('iframe');
-                if (iframe) {
-                    // Улучшаем отображение iframe
-                    iframe.style.width = '100%';
-                    iframe.style.height = '100%';
-                    iframe.style.border = 'none';
-                    iframe.style.borderRadius = '12px';
-                    
-                    // Добавляем обработчик ошибок
-                    iframe.onload = function() {
-                        console.log('✅ Iframe загружен успешно');
-                    };
-                    
-                    iframe.onerror = function() {
-                        console.error('❌ Ошибка загрузки iframe');
-                        showMessage('❌ Ошибка загрузки видео. Попробуйте перезагрузить.', 'error');
-                    };
-                }
-            });
-        }
-
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            initEmbedFrames();
-        });
-
-        // Обновление функции openFullscreenEmbed для новой системы
-        function openFullscreenEmbed(containerId) {
-            toggleEmbedFullscreen(containerId);
-        }
-    </script> <!-- ЗДЕСЬ ЗАКАНЧИВАЕТСЯ СКРИПТ -->
+    </script>
 </body>
 </html>
