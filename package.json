@@ -1,14 +1,15 @@
 {
   "name": "tg-inspiration-bot",
   "version": "8.0.0",
-  "description": "Telegram bot with Mini App for inspiration workshop",
+  "description": "Telegram bot with Mini App for inspiration workshop - полностью переработанная версия с максимальным функционалом",
   "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "echo \"No tests specified\" && exit 0",
-    "install-deps": "npm install express node-telegram-bot-api cors body-parser dotenv exceljs multer sharp uuid bcryptjs jsonwebtoken express-rate-limit helmet compression morgan qrcode"
+    "deploy": "node server.js",
+    "build": "echo \"No build process required\" && exit 0"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -17,27 +18,46 @@
     "body-parser": "^1.20.2",
     "dotenv": "^16.3.1",
     "exceljs": "^4.4.0",
-    "multer": "^1.4.5",
-    "sharp": "^0.32.6",
-    "uuid": "^9.0.1",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "express-rate-limit": "^7.1.5",
-    "helmet": "^7.1.0",
+    "googleapis": "^126.0.1",
     "compression": "^1.7.4",
-    "morgan": "^1.10.0",
-    "qrcode": "^1.5.3"
+    "node-cache": "^5.1.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   },
   "keywords": [
     "telegram",
     "bot",
     "mini-app",
     "inspiration",
-    "creative"
+    "creative",
+    "education",
+    "art",
+    "painting",
+    "fashion",
+    "design",
+    "photography",
+    "interactive",
+    "gamification"
   ],
   "author": "Мастерская Вдохновения",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/tg-inspiration-bot"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/tg-inspiration-bot/issues"
+  },
+  "homepage": "https://github.com/your-username/tg-inspiration-bot#readme",
+  "files": [
+    "server.js",
+    "package.json",
+    "public/",
+    "admin/",
+    ".env.example"
+  ]
 }
