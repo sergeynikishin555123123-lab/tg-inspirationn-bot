@@ -1214,7 +1214,7 @@ async function addSparks(userId, sparks, activityType, description, metadata = {
         return null;
     }
 
-    const bonusSparks = applyCharacterBonus(userId, sparks, activityType);
+    const bonusSparks = await applyCharacterBonus(userId, sparks, activityType);
     user.sparks = Math.max(0, user.sparks + bonusSparks);
     
     const levelInfo = calculateLevel(user.sparks);
@@ -1363,76 +1363,6 @@ async function saveActivity(activity) {
     } else {
         db.activities.push(activity);
     }
-}
-
-    const bonusSparks = applyCharacterBonus(userId, sparks, activityType);
-    user.sparks = Math.max(0, user.sparks + bonusSparks);
-    
-    const levelInfo = calculateLevel(user.sparks);
-    const previousLevel = user.level;
-    user.level = levelInfo.name;
-    user.last_active = new Date().toISOString();
-    
-    // Сохраняем пользователя
-    await saveUser(user);
-    
-    const activity = {
-        id: generateId(),
-        user_id: userId,
-        activity_type: activityType,
-        sparks_earned: bonusSparks,
-        description: description,
-        metadata: metadata,
-        created_at: new Date().toISOString()
-    };
-    
-    await saveActivity(activity);
-
-function createNotification(userId, type, title, message, data = {}) {
-    const notification = {
-        id: generateId(),
-        user_id: userId,
-        type,
-        title,
-        message,
-        data,
-        is_read: false,
-        created_at: new Date().toISOString()
-    };
-
-    db.notifications.push(notification);
-    
-    // Пытаемся отправить через WebSocket
-    if (!sendNotification(userId, 'new_notification', notification)) {
-        Logger.info('Уведомление сохранено (WebSocket не подключен)', { userId, type });
-    }
-    
-    // Важные уведомления дублируем в Telegram
-    if (telegramBot && ['level_up', 'work_approved', 'marathon_completion', 'purchase'].includes(type)) {
-        let telegramMessage = '';
-        switch (type) {
-            case 'level_up':
-                telegramMessage = `🎉 ${title}\n${message}`;
-                break;
-            case 'work_approved':
-                telegramMessage = `✅ Работа одобрена!\n"${data.workTitle}" была проверена и опубликована`;
-                break;
-            case 'marathon_completion':
-                telegramMessage = `🏆 Марафон завершен!\nВы успешно завершили марафон "${data.marathonTitle}"`;
-                break;
-            case 'purchase':
-                telegramMessage = `🛒 Покупка совершена!\nВы приобрели "${data.itemTitle}" за ${data.price} искр`;
-                break;
-        }
-        
-        if (telegramMessage) {
-            telegramBot.sendMessage(userId, telegramMessage).catch(error => {
-                Logger.error('Ошибка отправки Telegram уведомления', error);
-            });
-        }
-    }
-    
-    return notification;
 }
 
 function generateId() {
