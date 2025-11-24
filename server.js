@@ -361,17 +361,26 @@ if (config.telegramBotToken) {
 }
 
 // ==================== ФАЙЛОВАЯ СИСТЕМА ====================
-const UPLOADS_DIR = join(APP_ROOT, 'uploads');
+// Используем текущую рабочую директорию вместо APP_ROOT
+const UPLOADS_DIR = join(process.cwd(), 'uploads');
 const SHOP_FILES_DIR = join(UPLOADS_DIR, 'shop');
 const USER_WORKS_DIR = join(UPLOADS_DIR, 'works');
 const PREVIEWS_DIR = join(UPLOADS_DIR, 'previews');
 const TEMP_DIR = join(UPLOADS_DIR, 'temp');
-const LOGS_DIR = join(APP_ROOT, 'logs');
+const LOGS_DIR = join(process.cwd(), 'logs');
 
+// Создаем директории с обработкой ошибок
 [UPLOADS_DIR, SHOP_FILES_DIR, USER_WORKS_DIR, PREVIEWS_DIR, TEMP_DIR, LOGS_DIR].forEach(dir => {
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    try {
+        if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+            console.log(`✅ Создана директория: ${dir}`);
+        }
+    } catch (error) {
+        console.warn(`⚠️ Не удалось создать директорию ${dir}:`, error.message);
+        // Продолжаем работу даже если не удалось создать директории
+    }
 });
-
 // ==================== WebSocket СЕРВЕР ====================
 const wss = new WebSocketServer({ noServer: true });
 const connectedClients = new Map();
