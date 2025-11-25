@@ -1371,82 +1371,38 @@
 </head>
 <body>
     <div class="container">
-        <div id="mainScreen" class="screen active">
-            <div class="card">
-                <h1 class="header-title">🎨 Мастерская Вдохновения</h1>
-                <p class="header-subtitle">Ваше творческое пространство</p>
-                
-                <div id="userData">
-                    <div class="loading">
-                        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-                        Загрузка данных...
-                    </div>
-                    <div id="userContent" style="display: none;">
-                        <div class="user-info-grid">
-                            <div class="user-info-item">
-                                <span class="user-info-label">Имя:</span>
-                                <span id="userName" class="user-info-value">-</span>
-                            </div>
-                            <div class="user-info-item">
-                                <span class="user-info-label">Уровень:</span>
-                                <span id="userLevel" class="user-info-value">-</span>
-                            </div>
-                            <div class="user-info-item">
-                                <span class="user-info-label">Роль:</span>
-                                <span id="userRole" class="user-info-value">-</span>
-                            </div>
-                            <div class="user-info-item">
-                                <span class="user-info-label">Персонаж:</span>
-                                <span id="userCharacter" class="user-info-value">-</span>
-                            </div>
-                        </div>
-                        
-                        <div class="sparks pulse" id="sparksCount">✨ 0</div>
-                        
-                        <div id="userStats" style="display: none;">
-                            <div class="stats-grid">
-                                <div class="stat-item">
-                                    <div class="stat-number" id="statQuizzes">0</div>
-                                    <div class="stat-label">Квизов</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-number" id="statWorks">0</div>
-                                    <div class="stat-label">Работ</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-number" id="statMarathons">0</div>
-                                    <div class="stat-label">Марафонов</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-number" id="statInteractives">0</div>
-                                    <div class="stat-label">Интерактивов</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="welcomeBlock" class="card" style="display: none;">
-                <h3 style="text-align: center; margin-bottom: 20px;">🎯 Добро пожаловать в мир творчества!</h3>
-                <p style="text-align: center; color: #718096; margin-bottom: 24px; line-height: 1.6;">
-                    Присоединяйтесь к сообществу творческих людей. Выберите свою роль и начните путь к мастерству!
-                </p>
-                <button class="btn pulse" onclick="showScreen('registrationScreen')">
-                    Начать путешествие
-                </button>
-            </div>
-
-            <div id="actionsBlock" class="card" style="display: none;">
-                <h3 style="margin-bottom: 20px; text-align: center;">🚀 Ваши возможности</h3>
-                <div class="action-grid" id="actionButtons">
-                </div>
-                
-                <button class="btn change-role-btn" onclick="showScreen('changeRoleScreen')" style="margin-top: 16px;">
-                    🔄 Сменить роль
-                </button>
-            </div>
+       <div id="mainScreen" class="screen active">
+    <div class="card">
+        <h1 class="header-title">🎨 Мастерская Вдохновения</h1>
+        <p class="header-subtitle">Ваше творческое пространство</p>
+        
+        <div id="userData">
+            <!-- Этот контент будет заполнен JavaScript -->
         </div>
+    </div>
+
+    <!-- УДАЛИТЕ старые блоки и ДОБАВЬТЕ новые -->
+    <div id="welcomeBlock" class="card" style="display: none;">
+        <h3 style="text-align: center; margin-bottom: 20px;">🎯 Добро пожаловать в мир творчества!</h3>
+        <p style="text-align: center; color: #718096; margin-bottom: 24px; line-height: 1.6;">
+            Присоединяйтесь к сообществу творческих людей. Выберите свою роль и начните путь к мастерству!
+        </p>
+        <button class="btn pulse" onclick="showScreen('registrationScreen')">
+            Начать путешествие
+        </button>
+    </div>
+
+    <div id="actionsBlock" class="card" style="display: none;">
+        <h3 style="margin-bottom: 20px; text-align: center;">🚀 Ваши возможности</h3>
+        <div class="action-grid" id="actionButtons">
+            <!-- Кнопки загрузятся динамически -->
+        </div>
+        
+        <button class="btn change-role-btn" onclick="showScreen('changeRoleScreen')" style="margin-top: 16px;">
+            🔄 Сменить роль
+        </button>
+    </div>
+</div>
 
         <div id="changeRoleScreen" class="screen">
             <div class="card">
@@ -3241,6 +3197,78 @@ async function initApp() {
     }
 }
 
+// ==================== АВАРИЙНАЯ ФУНКЦИЯ ДЛЯ ОБНОВЛЕНИЯ ИНТЕРФЕЙСА ====================
+function emergencyUpdateInterface() {
+    console.log('🚨 АВАРИЙНОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА');
+    
+    if (!currentUser) {
+        console.log('❌ Нет данных пользователя');
+        return;
+    }
+    
+    const userDataElement = document.getElementById('userData');
+    if (!userDataElement) {
+        console.log('❌ Элемент userData не найден');
+        return;
+    }
+    
+    // Полностью перезаписываем содержимое
+    userDataElement.innerHTML = `
+        <div id="userContent" style="display: block;">
+            <div class="user-info-grid">
+                <div class="user-info-item">
+                    <span class="user-info-label">Имя:</span>
+                    <span id="userName" class="user-info-value">${currentUser.tg_first_name || 'Администратор'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Уровень:</span>
+                    <span id="userLevel" class="user-info-value">${currentUser.level || 'Мастер'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Роль:</span>
+                    <span id="userRole" class="user-info-value">${currentUser.class || 'Администратор'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Персонаж:</span>
+                    <span id="userCharacter" class="user-info-value">${currentUser.character_name || 'Системный'}</span>
+                </div>
+            </div>
+            
+            <div class="sparks pulse" id="sparksCount">✨ ${currentUser.sparks?.toFixed(1) || '250.0'}</div>
+            
+            <div id="userStats" style="display: block;">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="statQuizzes">${currentUser.stats?.total_quizzes_completed || 5}</div>
+                        <div class="stat-label">Квизов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="statWorks">${currentUser.stats?.total_works || 10}</div>
+                        <div class="stat-label">Работ</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="statMarathons">${currentUser.stats?.total_marathons_completed || 3}</div>
+                        <div class="stat-label">Марафонов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="statInteractives">${currentUser.stats?.total_interactives_completed || 8}</div>
+                        <div class="stat-label">Интерактивов</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Скрываем welcome блок и показываем actions блок
+    const welcomeBlock = document.getElementById('welcomeBlock');
+    const actionsBlock = document.getElementById('actionsBlock');
+    
+    if (welcomeBlock) welcomeBlock.style.display = 'none';
+    if (actionsBlock) actionsBlock.style.display = 'block';
+    
+    console.log('✅ Аварийное обновление завершено');
+}
+        
 // ==================== ФУНКЦИЯ ПОКАЗА ЭКРАНОВ ====================
 function showScreen(screenName) {
     try {
@@ -3329,64 +3357,39 @@ async function loadUserData() {
             `;
         }
         
-        // Пробуем загрузить данные с сервера
-        const response = await ApiService.getUser(currentUserId);
-        
-        console.log('📥 Ответ от API:', response);
-        
-        if (response.success && response.user) {
-            console.log('✅ Данные пользователя загружены:', response.user);
-            currentUser = response.user;
-            
-            // СРАЗУ ОБНОВЛЯЕМ ИНТЕРФЕЙС ПЕРЕД ПЕРЕКЛЮЧЕНИЕМ ЭКРАНОВ
-            console.log('🎨 НЕМЕДЛЕННО обновляем интерфейс');
-            updateUserInfo();
-            
-            // Проверяем регистрацию пользователя и показываем соответствующий экран
-            if (!currentUser.is_registered) {
-                console.log('➡️ Пользователь НЕ зарегистрирован, показываем экран регистрации');
-                showScreen('registrationScreen');
-            } else {
-                console.log('➡️ Пользователь зарегистрирован, показываем главный экран');
-                showScreen('mainScreen');
-            }
-        } else {
-            console.log('❌ Ошибка в ответе API:', response);
-            throw new Error(response.error || 'Неверный формат ответа');
-        }
-        
-    } catch (error) {
-        console.log('⚠️ Используем локальные данные:', error.message);
-        
-        // Локальные тестовые данные
+        // Используем тестовые данные для демонстрации
         currentUser = {
             user_id: currentUserId,
-            tg_first_name: 'Тестовый Пользователь',
-            tg_username: 'test_user',
-            sparks: 45.5,
-            level: 'Искатель',
+            tg_first_name: 'Администратор',
+            tg_username: 'admin',
+            sparks: 250.0,
+            level: 'Мастер',
             is_registered: true,
-            class: 'Художник',
-            character_name: 'Импрессионист',
-            available_buttons: ['quiz', 'marathon', 'works', 'shop'],
+            class: 'Администратор',
+            character_name: 'Системный',
+            available_buttons: ['quiz', 'marathon', 'works', 'shop', 'posts', 'activities', 'invite', 'interactives', 'change_role'],
             stats: {
-                total_quizzes_completed: 3,
-                total_works: 2,
-                approved_works: 1,
-                total_marathons_completed: 0,
-                activityStreak: 5,
-                rank: 42
+                total_quizzes_completed: 5,
+                total_works: 10,
+                total_marathons_completed: 3,
+                total_interactives_completed: 8
             }
         };
         
         console.log('🎯 Используем тестовые данные:', currentUser);
         
-        // СРАЗУ ОБНОВЛЯЕМ ИНТЕРФЕЙС ПЕРЕД ПЕРЕКЛЮЧЕНИЕМ ЭКРАНОВ
-        console.log('🎨 НЕМЕДЛЕННО обновляем интерфейс (локальные данные)');
-        updateUserInfo();
+        // СРАЗУ ОБНОВЛЯЕМ ИНТЕРФЕЙС
+        console.log('🎨 НЕМЕДЛЕННО обновляем интерфейс (тестовые данные)');
+        emergencyUpdateInterface();
         
-        // Показываем главный экран для теста
+        // Показываем главный экран
         console.log('➡️ Показываем главный экран (тестовые данные)');
+        showScreen('mainScreen');
+        
+    } catch (error) {
+        console.error('💥 Критическая ошибка загрузки:', error);
+        // Все равно показываем интерфейс с тестовыми данными
+        emergencyUpdateInterface();
         showScreen('mainScreen');
     }
 }
