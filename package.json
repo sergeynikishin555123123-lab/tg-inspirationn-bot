@@ -1,7 +1,7 @@
 {
   "name": "tg-inspiration-bot",
   "version": "12.0.0",
-  "description": "Telegram bot with Mini App for inspiration workshop - полностью переработанная версия с максимальным функционалом",
+  "description": "Telegram bot with Mini App for inspiration workshop - PostgreSQL версия",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -9,9 +9,7 @@
     "dev": "node --watch server.js",
     "test": "echo \"No tests specified\" && exit 0",
     "deploy": "node server.js",
-    "build": "echo \"No build process required\" && exit 0",
-    "db:init": "node -e \"import('./server.js').then(() => console.log('Database initialized'))\"",
-    "db:reset": "rm -f inspiration_workshop.db && npm run db:init"
+    "db:init": "node -e \"import('./server.js').then(() => console.log('Database initialized'))\""
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -20,73 +18,26 @@
     "body-parser": "^1.20.2",
     "dotenv": "^16.3.1",
     "uuid": "^9.0.1",
-    "express-rate-limit": "^7.1.5",
-    "ws": "^8.14.2",
     "multer": "^1.4.5-lts.1",
     "sharp": "^0.32.6",
-    "sqlite3": "^5.1.6",
+    "pg": "^8.11.3",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "helmet": "^7.1.0",
-    "compression": "^1.7.4",
-    "express-validator": "^7.0.1",
-    "morgan": "^1.10.0",
-    "node-cron": "^3.0.3",
-    "axios": "^1.6.2",
-    "lodash": "^4.17.21",
-    "moment": "^2.29.4",
-    "canvas": "^2.11.2"
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1",
-    "sqlite3": "^5.1.6"
+    "nodemon": "^3.0.1"
   },
   "keywords": [
     "telegram",
     "bot",
     "mini-app",
+    "postgresql",
     "inspiration",
-    "creative",
-    "education",
-    "art",
-    "painting",
-    "fashion",
-    "design",
-    "photography",
-    "interactive",
-    "gamification",
-    "sqlite",
-    "jwt",
-    "authentication",
-    "sparks-system",
-    "achievements",
-    "marathons",
-    "quizzes",
-    "shop",
-    "notifications"
+    "creative"
   ],
   "author": "Мастерская Вдохновения",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/your-username/tg-inspiration-bot"
-  },
-  "bugs": {
-    "url": "https://github.com/your-username/tg-inspiration-bot/issues"
-  },
-  "homepage": "https://github.com/your-username/tg-inspiration-bot#readme",
-  "files": [
-    "server.js",
-    "package.json",
-    "public/",
-    "admin/",
-    ".env.example",
-    "README.md"
-  ],
-  "volta": {
-    "node": "18.17.0"
   }
 }
