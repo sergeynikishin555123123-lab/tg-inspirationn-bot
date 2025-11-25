@@ -3032,118 +3032,149 @@ let currentNotificationFilter = 'all';
                 }
             }
 
-            // Дополнительные методы для интерактивов
-            case '/webapp/interactives/color-wheel/submit':
-                return {
-                    success: true,
-                    sparks_earned: 12,
-                    message: "Отличная цветовая палитра! +12✨"
-                };
-            
-            case '/webapp/interactives/analysis/submit':
-                return {
-                    success: true,
-                    sparks_earned: 10,
-                    message: "Глубокий анализ! +10✨"
-                };
-            
-            // Методы для системы достижений
-            case '/webapp/achievements':
-                return {
-                    achievements: [
-                        {
-                            id: 1,
-                            title: "Первый шаг",
-                            description: "Завершите регистрацию",
-                            icon: "🚀",
-                            completed: true,
-                            sparks_reward: 10
-                        },
-                        {
-                            id: 2,
-                            title: "Любознательный",
-                            description: "Пройдите 3 квиза",
-                            icon: "🎯",
-                            completed: currentUser?.stats?.totalQuizzesCompleted >= 3,
-                            sparks_reward: 25
-                        },
-                        {
-                            id: 3,
-                            title: "Трудолюбивый",
-                            description: "Загрузите 5 работ",
-                            icon: "🖼️",
-                            completed: currentUser?.stats?.totalWorks >= 5,
-                            sparks_reward: 30
-                        },
-                        {
-                            id: 4,
-                            title: "Марафонец",
-                            description: "Завершите марафон",
-                            icon: "🏃‍♂️",
-                            completed: currentUser?.stats?.totalMarathonsCompleted >= 1,
-                            sparks_reward: 40
-                        },
-                        {
-                            id: 5,
-                            title: "Коллекционер",
-                            description: "Купите 3 товара в магазине",
-                            icon: "🛒",
-                            completed: userPurchases.length >= 3,
-                            sparks_reward: 35
-                        }
-                    ]
-                };
-            
-            // Методы для системы уведомлений
-            case '/webapp/notifications':
-                return {
-                    notifications: [
-                        {
-                            id: 1,
-                            title: "Добро пожаловать!",
-                            message: "Начните свое творческое путешествие",
-                            type: "info",
-                            read: true,
-                            created_at: new Date(Date.now() - 86400000).toISOString()
-                        },
-                        {
-                            id: 2,
-                            title: "Новый марафон доступен",
-                            message: "Присоединяйтесь к '7 дней рисования'",
-                            type: "success",
-                            read: false,
-                            created_at: new Date().toISOString()
-                        },
-                        {
-                            id: 3,
-                            title: "Ваша работа одобрена",
-                            message: "Работа 'Утренний пейзаж' прошла модерацию",
-                            type: "success",
-                            read: false,
-                            created_at: new Date().toISOString()
-                        }
-                    ]
-                };
-            
-            // Методы для статистики
-            case '/webapp/users/stats':
-                return {
-                    weekly_progress: [
-                        { day: "Пн", sparks: 15, activities: 2 },
-                        { day: "Вт", sparks: 25, activities: 3 },
-                        { day: "Ср", sparks: 10, activities: 1 },
-                        { day: "Чт", sparks: 35, activities: 4 },
-                        { day: "Пт", sparks: 20, activities: 2 },
-                        { day: "Сб", sparks: 40, activities: 5 },
-                        { day: "Вс", sparks: 30, activities: 3 }
-                    ],
-                    activity_distribution: [
-                        { type: "Квизы", count: 5 },
-                        { type: "Работы", count: 8 },
-                        { type: "Марафоны", count: 2 },
-                        { type: "Интерактивы", count: 6 }
-                    ]
-                };
+        // Дополнительные методы для интерактивов
+        case '/webapp/interactives/color-wheel/submit':
+            return {
+                success: true,
+                sparks_earned: 12,
+                message: "Отличная цветовая палитра! +12✨"
+            };
+        
+        case '/webapp/interactives/analysis/submit':
+            return {
+                success: true,
+                sparks_earned: 10,
+                message: "Глубокий анализ! +10✨"
+            };
+        
+        // Методы для системы достижений
+        case '/webapp/achievements':
+            return {
+                achievements: [
+                    {
+                        id: 1,
+                        title: "Первый шаг",
+                        description: "Завершите регистрацию",
+                        icon: "🚀",
+                        completed: true,
+                        sparks_reward: 10
+                    },
+                    {
+                        id: 2,
+                        title: "Любознательный",
+                        description: "Пройдите 3 квиза",
+                        icon: "🎯",
+                        completed: currentUser?.stats?.totalQuizzesCompleted >= 3,
+                        sparks_reward: 25
+                    },
+                    {
+                        id: 3,
+                        title: "Трудолюбивый",
+                        description: "Загрузите 5 работ",
+                        icon: "🖼️",
+                        completed: currentUser?.stats?.totalWorks >= 5,
+                        sparks_reward: 30
+                    },
+                    {
+                        id: 4,
+                        title: "Марафонец",
+                        description: "Завершите марафон",
+                        icon: "🏃‍♂️",
+                        completed: currentUser?.stats?.totalMarathonsCompleted >= 1,
+                        sparks_reward: 40
+                    },
+                    {
+                        id: 5,
+                        title: "Коллекционер",
+                        description: "Купите 3 товара в магазине",
+                        icon: "🛒",
+                        completed: userPurchases.length >= 3,
+                        sparks_reward: 35
+                    }
+                ]
+            };
+        
+        // Методы для системы уведомлений
+        case '/webapp/notifications':
+            return {
+                notifications: [
+                    {
+                        id: 1,
+                        title: "Добро пожаловать!",
+                        message: "Начните свое творческое путешествие",
+                        type: "info",
+                        read: true,
+                        created_at: new Date(Date.now() - 86400000).toISOString()
+                    },
+                    {
+                        id: 2,
+                        title: "Новый марафон доступен",
+                        message: "Присоединяйтесь к '7 дней рисования'",
+                        type: "success",
+                        read: false,
+                        created_at: new Date().toISOString()
+                    },
+                    {
+                        id: 3,
+                        title: "Ваша работа одобрена",
+                        message: "Работа 'Утренний пейзаж' прошла модерацию",
+                        type: "success",
+                        read: false,
+                        created_at: new Date().toISOString()
+                    }
+                ]
+            };
+        
+        // Методы для статистики
+        case '/webapp/users/stats':
+            return {
+                weekly_progress: [
+                    { day: "Пн", sparks: 15, activities: 2 },
+                    { day: "Вт", sparks: 25, activities: 3 },
+                    { day: "Ср", sparks: 10, activities: 1 },
+                    { day: "Чт", sparks: 35, activities: 4 },
+                    { day: "Пт", sparks: 20, activities: 2 },
+                    { day: "Сб", sparks: 40, activities: 5 },
+                    { day: "Вс", sparks: 30, activities: 3 }
+                ],
+                activity_distribution: [
+                    { type: "Квизы", count: 5 },
+                    { type: "Работы", count: 8 },
+                    { type: "Марафоны", count: 2 },
+                    { type: "Интерактивы", count: 6 }
+                ]
+            };
+        
+        // Методы для таблицы лидеров
+        case '/webapp/leaderboard':
+            return {
+                weekly: [
+                    { rank: 1, name: "Анна Художница", sparks: 245, avatar: "👩‍🎨" },
+                    { rank: 2, name: "Максим Творец", sparks: 198, avatar: "👨‍🎨" },
+                    { rank: 3, name: "София Искусница", sparks: 176, avatar: "👩‍🎤" },
+                    { rank: 4, name: "Алексей Мастер", sparks: 154, avatar: "👨‍🔧" },
+                    { rank: 5, name: "Вы", sparks: currentUser?.sparks || 120, avatar: "😊" }
+                ],
+                monthly: [
+                    { rank: 1, name: "Анна Художница", sparks: 892, avatar: "👩‍🎨" },
+                    { rank: 2, name: "Максим Творец", sparks: 765, avatar: "👨‍🎨" },
+                    { rank: 3, name: "Вы", sparks: currentUser?.sparks || 654, avatar: "😊" },
+                    { rank: 4, name: "София Искусница", sparks: 543, avatar: "👩‍🎤" }
+                ],
+                alltime: [
+                    { rank: 1, name: "Максим Творец", sparks: 2456, avatar: "👨‍🎨" },
+                    { rank: 2, name: "Анна Художница", sparks: 1987, avatar: "👩‍🎨" },
+                    { rank: 3, name: "София Искусница", sparks: 1654, avatar: "👩‍🎤" },
+                    { rank: 4, name: "Вы", sparks: currentUser?.sparks || 1432, avatar: "😊" }
+                ]
+            };
+        
+        // Метод для обратной связи
+        case '/webapp/feedback':
+            return {
+                success: true,
+                message: "Спасибо за вашу обратную связь! Мы рассмотрим ваше сообщение в ближайшее время."
+            };
             
             static async getUser(userId) {
                 return await this.request(`/users/${userId}`);
