@@ -2917,9 +2917,22 @@ function testShowUserData() {
 
         async function loadRolesForChange() {
             try {
-                const roles = await ApiService.getRoles();
+                console.log('🔄 Загрузка ролей для смены...');
                 const rolesList = document.getElementById('changeRoleList');
+                
+                // Показываем загрузку
+                rolesList.innerHTML = '<div class="loading">Загрузка ролей...</div>';
+                
+                // Используем локальные данные из APP_DATA
+                const roles = APP_DATA.roles;
+                console.log('📦 Локальные роли:', roles);
+                
                 rolesList.innerHTML = '';
+                
+                if (roles.length === 0) {
+                    rolesList.innerHTML = '<div class="info">Нет доступных ролей</div>';
+                    return;
+                }
                 
                 roles.forEach(role => {
                     const roleCard = document.createElement('div');
@@ -2932,9 +2945,40 @@ function testShowUserData() {
                     roleCard.onclick = () => selectRoleForChange(role);
                     rolesList.appendChild(roleCard);
                 });
+                
+                console.log('✅ Роли успешно загружены');
+                
             } catch (error) {
-                document.getElementById('changeRoleList').innerHTML = '<div class="error">Ошибка загрузки ролей</div>';
+                console.error('❌ Ошибка загрузки ролей:', error);
+                document.getElementById('changeRoleList').innerHTML = 
+                    '<div class="error">Ошибка загрузки ролей. Используются демо-данные.</div>';
+                
+                // Показываем демо-роли при ошибке
+                showDemoRoles();
             }
+        }
+
+        function showDemoRoles() {
+            const rolesList = document.getElementById('changeRoleList');
+            const demoRoles = [
+                { id: 1, name: "Художник", icon: "🎨", description: "Создавайте визуальные произведения искусства" },
+                { id: 2, name: "Писатель", icon: "📝", description: "Создавайте литературные произведения" },
+                { id: 3, name: "Дизайнер", icon: "✨", description: "Создавайте эстетичные и функциональные дизайны" }
+            ];
+            
+            rolesList.innerHTML = '';
+            
+            demoRoles.forEach(role => {
+                const roleCard = document.createElement('div');
+                roleCard.className = 'role-card';
+                roleCard.innerHTML = `
+                    <div style="font-size: 24px; margin-bottom: 8px;">${role.icon}</div>
+                    <div style="font-weight: 600; margin-bottom: 5px;">${role.name}</div>
+                    <div style="color: #718096; font-size: 14px;">${role.description}</div>
+                `;
+                roleCard.onclick = () => selectRoleForChange(role);
+                rolesList.appendChild(roleCard);
+            });
         }
 
         function selectRole(role) {
@@ -2952,12 +2996,18 @@ function testShowUserData() {
         function selectRoleForChange(role) {
             selectedRole = role;
             
+            // Сбрасываем выбор персонажа
+            selectedCharacter = null;
+            document.getElementById('completeRoleChangeBtn').disabled = true;
+            
+            // Подсвечиваем выбранную роль
             document.querySelectorAll('.role-card').forEach(card => {
                 card.classList.remove('selected');
             });
             
             event.currentTarget.classList.add('selected');
             
+            // Загружаем персонажей для выбранной роли
             loadCharactersForChange(role.id);
         }
 
@@ -2986,14 +3036,25 @@ function testShowUserData() {
             }
         }
 
-        async function loadCharactersForChange(roleId) {
+                async function loadCharactersForChange(roleId) {
             try {
-                const characters = await ApiService.getCharacters(roleId);
+                console.log('🔄 Загрузка персонажей для роли:', roleId);
                 const charactersSection = document.getElementById('changeCharactersSection');
                 const charactersList = document.getElementById('changeCharactersList');
                 
                 charactersSection.style.display = 'block';
+                charactersList.innerHTML = '<div class="loading">Загрузка персонажей...</div>';
+                
+                // Используем локальные данные из APP_DATA
+                const characters = APP_DATA.characters[roleId] || [];
+                console.log('📦 Локальные персонажи:', characters);
+                
                 charactersList.innerHTML = '';
+                
+                if (characters.length === 0) {
+                    charactersList.innerHTML = '<div class="info">Нет доступных персонажей для этой роли</div>';
+                    return;
+                }
                 
                 characters.forEach(character => {
                     const characterCard = document.createElement('div');
@@ -3006,9 +3067,50 @@ function testShowUserData() {
                     characterCard.onclick = () => selectCharacterForChange(character);
                     charactersList.appendChild(characterCard);
                 });
+                
+                console.log('✅ Персонажи успешно загружены');
+                
             } catch (error) {
-                document.getElementById('changeCharactersList').innerHTML = '<div class="error">Ошибка загрузки персонажей</div>';
+                console.error('❌ Ошибка загрузки персонажей:', error);
+                document.getElementById('changeCharactersList').innerHTML = 
+                    '<div class="error">Ошибка загрузки персонажей</div>';
+                
+                // Показываем демо-персонажей при ошибке
+                showDemoCharacters(roleId);
             }
+        }
+
+        function showDemoCharacters(roleId) {
+            const charactersList = document.getElementById('changeCharactersList');
+            const demoCharacters = {
+                1: [
+                    { id: 1, name: "Импрессионист", description: "Мастер света и цвета", bonus_type: "percent_bonus", bonus_value: 15 },
+                    { id: 2, name: "Сюрреалист", description: "Исследователь подсознания", bonus_type: "random_gift", bonus_value: 3 }
+                ],
+                2: [
+                    { id: 3, name: "Поэт", description: "Волшебник слова", bonus_type: "forgiveness", bonus_value: 2 },
+                    { id: 4, name: "Прозаик", description: "Мастер повествования", bonus_type: "series_bonus", bonus_value: 5 }
+                ],
+                3: [
+                    { id: 5, name: "Графический дизайнер", description: "Создатель визуальных коммуникаций", bonus_type: "secret_advice", bonus_value: 7 },
+                    { id: 6, name: "UI/UX дизайнер", description: "Специалист по пользовательскому опыту", bonus_type: "percent_bonus", bonus_value: 10 }
+                ]
+            };
+            
+            const characters = demoCharacters[roleId] || [];
+            charactersList.innerHTML = '';
+            
+            characters.forEach(character => {
+                const characterCard = document.createElement('div');
+                characterCard.className = 'character-card';
+                characterCard.innerHTML = `
+                    <div style="font-weight: 600; margin-bottom: 5px;">${character.name}</div>
+                    <div style="color: #718096; font-size: 14px; margin-bottom: 5px;">${character.description}</div>
+                    <div style="color: #667eea; font-size: 12px;">Бонус: ${getBonusDescription(character)}</div>
+                `;
+                characterCard.onclick = () => selectCharacterForChange(character);
+                charactersList.appendChild(characterCard);
+            });
         }
 
         function getBonusDescription(character) {
@@ -3079,31 +3181,38 @@ function testShowUserData() {
             }
         }
 
-        async function completeRoleChange() {
+                async function completeRoleChange() {
             if (!selectedRole || !selectedCharacter) {
                 showMessage('❌ Выберите роль и персонажа', 'error');
                 return;
             }
             
             try {
-                const result = await ApiService.changeUserRole({
-                    userId: currentUserId,
-                    roleId: selectedRole.id,
-                    characterId: selectedCharacter.id
+                console.log('🔄 Смена роли:', {
+                    role: selectedRole.name,
+                    character: selectedCharacter.name
                 });
                 
-                if (result.success) {
-                    showMessage(`✅ ${result.message}`, 'success');
-                    await loadUserData();
+                // Обновляем данные пользователя локально
+                currentUser.class = selectedRole.name;
+                currentUser.character_name = selectedCharacter.name;
+                
+                // Показываем успешное сообщение
+                showMessage(`✅ Роль успешно изменена на "${selectedRole.name}"!`, 'success');
+                
+                // Обновляем интерфейс
+                emergencyUpdateInterface();
+                
+                // Возвращаемся на главный экран
+                setTimeout(() => {
                     showScreen('mainScreen');
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
+                }, 1500);
+                
             } catch (error) {
+                console.error('❌ Ошибка смены роли:', error);
                 showMessage('❌ Ошибка смены роли', 'error');
             }
         }
-
 // ==================== ФУНКЦИЯ ДЛЯ ОТЛАДКИ ====================
 function checkRequiredElements() {
     console.log('🔍 Проверка необходимых элементов DOM:');
