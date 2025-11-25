@@ -2876,6 +2876,27 @@ function showWelcomeScreen() {
         console.error('❌ Ошибка показа welcome screen:', error);
     }
 }
+
+// ==================== ОТЛАДОЧНАЯ ИНФОРМАЦИЯ ====================
+function debugUserInterface() {
+    console.log('🐛 ОТЛАДКА ИНТЕРФЕЙСА:');
+    console.log('📊 currentUser:', currentUser);
+    console.log('🏠 Текущий экран:', document.querySelector('.screen.active')?.id);
+    
+    // Проверяем основные элементы
+    const elementsToCheck = [
+        'userData', 'userContent', 'welcomeBlock', 'actionsBlock',
+        'sparksCount', 'userName', 'userLevel', 'userRole', 'userCharacter'
+    ];
+    
+    elementsToCheck.forEach(id => {
+        const element = document.getElementById(id);
+        console.log(`${element ? '✅' : '❌'} ${id}:`, element ? 'найден' : 'НЕ НАЙДЕН');
+        if (element) {
+            console.log(`   📝 Содержимое:`, element.innerHTML.substring(0, 100) + '...');
+        }
+    });
+}
         
         // ==================== РЕГИСТРАЦИЯ И РОЛИ ====================
         async function loadRoles() {
@@ -3194,8 +3215,9 @@ async function initApp() {
     try {
         console.log('🚀 Инициализация приложения...');
         
+        // Проверка элементов DOM
         checkRequiredElements();
-       
+        
         // Инициализация Telegram WebApp
         if (typeof Telegram === 'undefined') {
             console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
@@ -3234,6 +3256,14 @@ async function initApp() {
         await loadUserData();
         initDrawingCanvas();
         setupEventListeners();
+        
+        // ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇ ДОБАВЬТЕ ЭТО ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇
+        // Финальная отладка
+        setTimeout(() => {
+            console.log('🎯 ФИНАЛЬНАЯ ПРОВЕРКА:');
+            debugUserInterface();
+        }, 500);
+        // ⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆ ДО ЭТОГО МЕСТА ⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆
         
     } catch (error) {
         console.error('💥 Критическая ошибка инициализации:', error);
@@ -3307,6 +3337,7 @@ function showScreen(screenName) {
 }
 
 // ==================== ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ====================
+// ==================== ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ====================
 async function loadUserData() {
     try {
         console.log('👤 Загрузка данных пользователя...', currentUserId);
@@ -3317,12 +3348,16 @@ async function loadUserData() {
         if (response.success && response.user) {
             console.log('✅ Данные пользователя загружены:', response.user);
             currentUser = response.user;
+            
+            // ОБНОВЛЯЕМ ИНТЕРФЕЙС СРАЗУ
             updateUserInfo();
             
-            // Проверяем регистрацию пользователя
+            // Проверяем регистрацию пользователя и показываем соответствующий экран
             if (!currentUser.is_registered) {
+                console.log('➡️ Показываем экран регистрации');
                 showScreen('registrationScreen');
             } else {
+                console.log('➡️ Показываем главный экран');
                 showScreen('mainScreen');
             }
         } else {
@@ -3353,12 +3388,15 @@ async function loadUserData() {
             }
         };
         
+        // ОБНОВЛЯЕМ ИНТЕРФЕЙС СРАЗУ
         updateUserInfo();
         
         // Показываем соответствующий экран
         if (currentUser.is_registered) {
+            console.log('➡️ Показываем главный экран (локальные данные)');
             showScreen('mainScreen');
         } else {
+            console.log('➡️ Показываем экран регистрации (локальные данные)');
             showScreen('registrationScreen');
         }
     }
@@ -3367,60 +3405,82 @@ async function loadUserData() {
 // ==================== ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ПОЛЬЗОВАТЕЛЯ ====================
 function updateUserInfo() {
     if (!currentUser) {
-        console.error('❌ currentUser не определен');
+        console.error('❌ currentUser не определен в updateUserInfo');
         return;
     }
     
     console.log('🔄 Обновление интерфейса пользователя:', currentUser);
     
     try {
-        // Способ 1: Если используется showUserData (рендерит весь блок)
+        // ОТЛАДКА: показываем что происходит
+        console.log('🔧 Вызываем showUserData()');
         showUserData();
         
-        // Способ 2: Дополнительное обновление отдельных элементов (на всякий случай)
-        const sparksElement = document.querySelector('#sparksCount');
+        // Дополнительное обновление на случай если showUserData не сработал
+        const sparksElement = document.getElementById('sparksCount');
         if (sparksElement) {
             sparksElement.textContent = `✨ ${currentUser.sparks?.toFixed(1) || '0'}`;
+            console.log('✅ Обновлены искры:', sparksElement.textContent);
+        } else {
+            console.log('❌ Элемент sparksCount не найден');
         }
         
-        // Обновляем отдельные элементы если они существуют
-        const userName = document.querySelector('#userName');
-        const userLevel = document.querySelector('#userLevel');
-        const userRole = document.querySelector('#userRole');
-        const userCharacter = document.querySelector('#userCharacter');
+        // Обновляем отдельные элементы
+        const elementsToUpdate = {
+            'userName': currentUser.tg_first_name || 'Пользователь',
+            'userLevel': currentUser.level || 'Ученик',
+            'userRole': currentUser.class || 'Не выбрана',
+            'userCharacter': currentUser.character_name || 'Не выбран'
+        };
         
-        if (userName) userName.textContent = currentUser.tg_first_name || 'Пользователь';
-        if (userLevel) userLevel.textContent = currentUser.level || 'Ученик';
-        if (userRole) userRole.textContent = currentUser.class || 'Не выбрана';
-        if (userCharacter) userCharacter.textContent = currentUser.character_name || 'Не выбран';
+        Object.entries(elementsToUpdate).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+                console.log(`✅ Обновлен ${id}:`, value);
+            } else {
+                console.log(`❌ Элемент ${id} не найден`);
+            }
+        });
         
         // Обновляем статистику
         updateStatsDisplay();
         
-        // Показываем/скрываем блоки в зависимости от регистрации
+        // Управляем видимостью блоков
         const welcomeBlock = document.getElementById('welcomeBlock');
         const actionsBlock = document.getElementById('actionsBlock');
         const userContent = document.getElementById('userContent');
         
+        console.log('👀 Статус регистрации:', currentUser.is_registered);
+        
         if (welcomeBlock) {
             welcomeBlock.style.display = currentUser.is_registered ? 'none' : 'block';
-        }
-        if (actionsBlock) {
-            actionsBlock.style.display = currentUser.is_registered ? 'block' : 'none';
-        }
-        if (userContent) {
-            userContent.style.display = currentUser.is_registered ? 'block' : 'none';
+            console.log('📦 welcomeBlock:', welcomeBlock.style.display);
         }
         
-        // Загружаем доступные кнопки действий
+        if (actionsBlock) {
+            actionsBlock.style.display = currentUser.is_registered ? 'block' : 'none';
+            console.log('📦 actionsBlock:', actionsBlock.style.display);
+        }
+        
+        if (userContent) {
+            userContent.style.display = currentUser.is_registered ? 'block' : 'none';
+            console.log('📦 userContent:', userContent.style.display);
+        }
+        
+        // Загружаем кнопки действий если пользователь зарегистрирован
         if (currentUser.is_registered) {
+            console.log('🔘 Загружаем кнопки действий');
             loadAvailableButtons();
         }
         
-        console.log('✅ Интерфейс пользователя обновлен');
+        // Вызываем отладку
+        setTimeout(debugUserInterface, 100);
+        
+        console.log('✅ Интерфейс пользователя обновлен завершен');
         
     } catch (error) {
-        console.error('❌ Ошибка обновления интерфейса:', error);
+        console.error('❌ Критическая ошибка в updateUserInfo:', error);
     }
 }
 
