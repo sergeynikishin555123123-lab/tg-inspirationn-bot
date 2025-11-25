@@ -12,9 +12,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
-import pkg from 'pg';
 import os from 'os'; // ← ДОБАВИТЬ ЭТУ СТРОЧКУ
-const { Client } = pkg;
 
 dotenv.config();
 
@@ -68,36 +66,53 @@ const SPARKS_SYSTEM = {
 };
 
 // ==================== БАЗА ДАННЫХ POSTGRESQL ====================
-class PostgreSQLDatabaseService {
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+import { join } from 'path';
+
+class SQLiteDatabaseService {
     constructor() {
-        this.client = new Client({
-            user: process.env.DB_USER || 'gen_user',
-            host: process.env.DB_HOST || '789badf9748826d5c6ffd045.twc1.net',
-            database: process.env.DB_NAME || 'default_db',
-            password: process.env.DB_PASSWORD || 'GrMp*mZ^FF&1u<',
-            port: parseInt(process.env.DB_PORT) || 5432,
-            ssl: process.env.NODE_ENV === 'production' ? { 
-                rejectUnauthorized: true,
-                // ca: fs.readFileSync(path.join(os.homedir(), '.cloud-certs', 'root.crt'), 'utf-8')
-            } : false
-        });
-        
+        this.db = null;
         this.connected = false;
         this.init();
     }
 
     async init() {
         try {
-            await this.client.connect();
+            // Создаем директорию для базы данных если нужно
+            const dbPath = join(process.cwd(), 'data', 'inspiration.db');
+            
+            this.db = await open({
+                filename: dbPath,
+                driver: sqlite3.Database
+            });
+
             this.connected = true;
-            console.log('✅ PostgreSQL подключена успешно');
+            console.log('✅ SQLite база данных подключена успешно');
+            
+            await this.createTables();
+            await this.initializeDefaultData();
+            
+        } catch (error) {
+            console.error('❌ Ошибка подключения к SQLite:', error);
+            // Пробуем создать в памяти как fallback
+            await this.initializeInMemoryDatabase();
+        }
+    }
+
+    async initializeInMemoryDatabase() {
+        try {
+            this.db = await open({
+                filename: ':memory:',
+                driver: sqlite3.Database
+            });
+            this.connected = true;
+            console.log('✅ In-memory SQLite база данных создана');
             
             await this.createTables();
             await this.initializeDefaultData();
         } catch (error) {
-            console.error('❌ Ошибка подключения к PostgreSQL:', error);
-            // Fallback to SQLite for development
-            await this.initializeFallbackDatabase();
+            console.error('❌ Ошибка создания in-memory базы:', error);
         }
     }
 
@@ -106,7 +121,7 @@ class PostgreSQLDatabaseService {
             // Таблица пользователей
             `
             CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id BIGINT UNIQUE NOT NULL,
                 tg_first_name TEXT NOT NULL,
                 tg_username TEXT,
@@ -118,9 +133,9 @@ class PostgreSQLDatabaseService {
                 class TEXT,
                 character_id INTEGER,
                 character_name TEXT,
-                available_buttons JSONB DEFAULT '[]',
-                registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                available_buttons TEXT DEFAULT '[]',
+                registration_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_active DATETIME DEFAULT CURRENT_TIMESTAMP,
                 status TEXT DEFAULT 'active',
                 invited_by BIGINT,
                 invite_count INTEGER DEFAULT 0,
@@ -132,13 +147,13 @@ class PostgreSQLDatabaseService {
             // Таблица ролей
             `
             CREATE TABLE IF NOT EXISTS roles (
-                id SERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL,
                 description TEXT,
                 icon TEXT,
-                available_buttons JSONB DEFAULT '[]',
+                available_buttons TEXT DEFAULT '[]',
                 is_active BOOLEAN DEFAULT TRUE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 color TEXT,
                 display_order INTEGER DEFAULT 0
             )
@@ -147,27 +162,28 @@ class PostgreSQLDatabaseService {
             // Таблица персонажей
             `
             CREATE TABLE IF NOT EXISTS characters (
-                id SERIAL PRIMARY KEY,
-                role_id INTEGER NOT NULL REFERENCES roles(id),
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                role_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
                 description TEXT,
                 bonus_type TEXT NOT NULL,
                 bonus_value TEXT NOT NULL,
                 is_active BOOLEAN DEFAULT TRUE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 image_url TEXT,
                 personality TEXT,
-                special_ability TEXT
+                special_ability TEXT,
+                FOREIGN KEY (role_id) REFERENCES roles(id)
             )
             `,
             
             // Таблица квизов
             `
             CREATE TABLE IF NOT EXISTS quizzes (
-                id SERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 description TEXT,
-                questions JSONB NOT NULL,
+                questions TEXT NOT NULL,
                 sparks_per_correct REAL DEFAULT 1,
                 sparks_perfect_bonus INTEGER DEFAULT 5,
                 cooldown_hours INTEGER DEFAULT 24,
@@ -176,93 +192,77 @@ class PostgreSQLDatabaseService {
                 difficulty TEXT DEFAULT 'beginner',
                 estimated_time INTEGER,
                 category TEXT,
-                tags JSONB DEFAULT '[]',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                tags TEXT DEFAULT '[]',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
             `,
             
             // Таблица завершений квизов
             `
             CREATE TABLE IF NOT EXISTS quiz_completions (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
-                quiz_id INTEGER NOT NULL REFERENCES quizzes(id),
-                completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id BIGINT NOT NULL,
+                quiz_id INTEGER NOT NULL,
+                completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 score INTEGER NOT NULL,
                 total_questions INTEGER NOT NULL,
                 sparks_earned REAL NOT NULL,
                 perfect_score BOOLEAN DEFAULT FALSE,
                 time_spent INTEGER,
-                answers JSONB,
-                speed_bonus REAL DEFAULT 0
+                answers TEXT,
+                speed_bonus REAL DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users(user_id),
+                FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
             )
             `,
             
             // Таблица марафонов
             `
             CREATE TABLE IF NOT EXISTS marathons (
-                id SERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 description TEXT,
                 duration INTEGER NOT NULL,
-                days JSONB NOT NULL,
+                days TEXT NOT NULL,
                 completion_reward INTEGER DEFAULT 0,
-                start_date TIMESTAMP,
+                start_date DATETIME,
                 is_active BOOLEAN DEFAULT TRUE,
                 difficulty TEXT DEFAULT 'beginner',
                 category TEXT,
-                tags JSONB DEFAULT '[]',
+                tags TEXT DEFAULT '[]',
                 participants_count INTEGER DEFAULT 0,
                 average_rating REAL DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 cover_image TEXT,
-                requirements JSONB DEFAULT '[]'
+                requirements TEXT DEFAULT '[]'
             )
             `,
             
             // Таблица завершений марафонов
             `
             CREATE TABLE IF NOT EXISTS marathon_completions (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
-                marathon_id INTEGER NOT NULL REFERENCES marathons(id),
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id BIGINT NOT NULL,
+                marathon_id INTEGER NOT NULL,
                 current_day INTEGER DEFAULT 1,
                 progress INTEGER DEFAULT 0,
                 completed BOOLEAN DEFAULT FALSE,
-                started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
                 total_sparks_earned REAL DEFAULT 0,
-                days_completed JSONB DEFAULT '[]',
-                UNIQUE(user_id, marathon_id)
-            )
-            `,
-            
-            // Таблица отправок марафонов
-            `
-            CREATE TABLE IF NOT EXISTS marathon_submissions (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
-                marathon_id INTEGER NOT NULL REFERENCES marathons(id),
-                day INTEGER NOT NULL,
-                submission_text TEXT,
-                submission_image TEXT,
-                submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                status TEXT DEFAULT 'pending',
-                moderator_id BIGINT,
-                moderated_at TIMESTAMP,
-                admin_comment TEXT,
-                sparks_awarded REAL DEFAULT 0,
-                is_late BOOLEAN DEFAULT FALSE,
-                time_spent INTEGER
+                days_completed TEXT DEFAULT '[]',
+                UNIQUE(user_id, marathon_id),
+                FOREIGN KEY (user_id) REFERENCES users(user_id),
+                FOREIGN KEY (marathon_id) REFERENCES marathons(id)
             )
             `,
             
             // Таблица товаров магазина
             `
             CREATE TABLE IF NOT EXISTS shop_items (
-                id SERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 description TEXT,
                 type TEXT NOT NULL,
@@ -278,31 +278,33 @@ class PostgreSQLDatabaseService {
                 instructor TEXT,
                 rating REAL DEFAULT 0,
                 students_count INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                tags JSONB DEFAULT '[]'
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                tags TEXT DEFAULT '[]'
             )
             `,
             
             // Таблица покупок
             `
             CREATE TABLE IF NOT EXISTS purchases (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
-                item_id INTEGER NOT NULL REFERENCES shop_items(id),
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id BIGINT NOT NULL,
+                item_id INTEGER NOT NULL,
                 price_paid REAL NOT NULL,
-                purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 status TEXT DEFAULT 'completed',
                 download_count INTEGER DEFAULT 0,
-                last_download TIMESTAMP
+                last_download DATETIME,
+                FOREIGN KEY (user_id) REFERENCES users(user_id),
+                FOREIGN KEY (item_id) REFERENCES shop_items(id)
             )
             `,
             
             // Таблица активностей
             `
             CREATE TABLE IF NOT EXISTS activities (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id BIGINT NOT NULL,
                 activity_type TEXT NOT NULL,
                 sparks_earned REAL NOT NULL,
                 description TEXT NOT NULL,
@@ -310,218 +312,95 @@ class PostgreSQLDatabaseService {
                 new_sparks REAL,
                 old_level TEXT,
                 new_level TEXT,
-                metadata JSONB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                metadata TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
             )
             `,
             
             // Таблица постов
             `
             CREATE TABLE IF NOT EXISTS posts (
-                id SERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 content TEXT NOT NULL,
-                media_urls JSONB DEFAULT '[]',
-                allowed_actions JSONB DEFAULT '[]',
+                media_urls TEXT DEFAULT '[]',
+                allowed_actions TEXT DEFAULT '[]',
                 reward REAL DEFAULT 0,
                 is_published BOOLEAN DEFAULT TRUE,
                 views_count INTEGER DEFAULT 0,
                 likes_count INTEGER DEFAULT 0,
                 comments_count INTEGER DEFAULT 0,
                 shares_count INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                tags JSONB DEFAULT '[]',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                tags TEXT DEFAULT '[]',
                 category TEXT,
                 author_id BIGINT
-            )
-            `,
-            
-            // Таблица отзывов к постам
-            `
-            CREATE TABLE IF NOT EXISTS post_reviews (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
-                post_id INTEGER NOT NULL REFERENCES posts(id),
-                review_text TEXT NOT NULL,
-                rating INTEGER DEFAULT 5,
-                status TEXT DEFAULT 'pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                moderated_at TIMESTAMP,
-                moderator_id BIGINT,
-                admin_comment TEXT
             )
             `,
             
             // Таблица работ пользователей
             `
             CREATE TABLE IF NOT EXISTS user_works (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id BIGINT NOT NULL,
                 title TEXT NOT NULL,
                 description TEXT,
                 image_url TEXT NOT NULL,
                 type TEXT DEFAULT 'image',
                 status TEXT DEFAULT 'pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                moderated_at TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                moderated_at DATETIME,
                 moderator_id BIGINT,
                 admin_comment TEXT,
                 likes_count INTEGER DEFAULT 0,
                 comments_count INTEGER DEFAULT 0,
                 category TEXT,
-                tags JSONB DEFAULT '[]'
-            )
-            `,
-            
-            // Таблица отзывов к работам
-            `
-            CREATE TABLE IF NOT EXISTS work_reviews (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
-                work_id INTEGER NOT NULL REFERENCES user_works(id),
-                review_text TEXT NOT NULL,
-                rating INTEGER DEFAULT 5,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                tags TEXT DEFAULT '[]',
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
             )
             `,
             
             // Таблица интерактивов
             `
             CREATE TABLE IF NOT EXISTS interactives (
-                id SERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 description TEXT,
                 type TEXT NOT NULL,
                 category TEXT NOT NULL,
                 image_url TEXT,
                 question TEXT,
-                options JSONB DEFAULT '[]',
+                options TEXT DEFAULT '[]',
                 correct_answer INTEGER,
                 sparks_reward INTEGER DEFAULT 3,
                 allow_retake BOOLEAN DEFAULT FALSE,
                 is_active BOOLEAN DEFAULT TRUE,
                 difficulty TEXT DEFAULT 'beginner',
                 estimated_time INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 attempts_count INTEGER DEFAULT 0,
                 success_rate REAL DEFAULT 0
-            )
-            `,
-            
-            // Таблица завершений интерактивов
-            `
-            CREATE TABLE IF NOT EXISTS interactive_completions (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
-                interactive_id INTEGER NOT NULL REFERENCES interactives(id),
-                completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                score INTEGER NOT NULL,
-                sparks_earned REAL NOT NULL,
-                answer TEXT,
-                time_spent INTEGER,
-                speed_bonus REAL DEFAULT 0
-            )
-            `,
-            
-            // Таблица отправок интерактивов
-            `
-            CREATE TABLE IF NOT EXISTS interactive_submissions (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
-                interactive_id INTEGER NOT NULL REFERENCES interactives(id),
-                submission_data TEXT NOT NULL,
-                description TEXT,
-                submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                status TEXT DEFAULT 'pending',
-                moderator_id BIGINT,
-                moderated_at TIMESTAMP,
-                admin_comment TEXT
-            )
-            `,
-            
-            // Таблица администраторов
-            `
-            CREATE TABLE IF NOT EXISTS admins (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT UNIQUE NOT NULL REFERENCES users(user_id),
-                username TEXT NOT NULL,
-                role TEXT DEFAULT 'moderator',
-                permissions JSONB DEFAULT '[]',
-                is_active BOOLEAN DEFAULT TRUE,
-                last_login TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                notes TEXT
-            )
-            `,
-            
-            // Таблица логов администраторов
-            `
-            CREATE TABLE IF NOT EXISTS admin_logs (
-                id SERIAL PRIMARY KEY,
-                admin_id INTEGER NOT NULL REFERENCES admins(id),
-                admin_name TEXT NOT NULL,
-                action TEXT NOT NULL,
-                details TEXT,
-                target_id INTEGER,
-                target_type TEXT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                ip_address TEXT
-            )
-            `,
-            
-            // Таблица ежедневных отзывов
-            `
-            CREATE TABLE IF NOT EXISTS daily_reviews (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
-                date DATE NOT NULL,
-                type TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, date, type)
-            )
-            `,
-            
-            // Таблица сессий
-            `
-            CREATE TABLE IF NOT EXISTS sessions (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
-                session_token TEXT UNIQUE NOT NULL,
-                expires_at TIMESTAMP NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            `,
-            
-            // Таблица уведомлений
-            `
-            CREATE TABLE IF NOT EXISTS notifications (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(user_id),
-                title TEXT NOT NULL,
-                message TEXT NOT NULL,
-                type TEXT DEFAULT 'info',
-                is_read BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             `,
             
             // Таблица системных настроек
             `
             CREATE TABLE IF NOT EXISTS system_settings (
-                id SERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 key TEXT UNIQUE NOT NULL,
                 value TEXT NOT NULL,
                 description TEXT,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
             `
         ];
 
         for (const tableSQL of tables) {
             try {
-                await this.client.query(tableSQL);
+                await this.db.exec(tableSQL);
             } catch (error) {
                 console.error('Ошибка создания таблицы:', error.message);
             }
@@ -531,103 +410,91 @@ class PostgreSQLDatabaseService {
     }
 
     async initializeDefaultData() {
-        // Проверяем, есть ли уже данные
-        const rolesCount = await this.get("SELECT COUNT(*) as count FROM roles");
-        
-        if (rolesCount.count === 0) {
-            console.log('🔄 Инициализация базы данных с тестовыми данными...');
+        try {
+            // Проверяем, есть ли уже данные
+            const rolesCount = await this.get("SELECT COUNT(*) as count FROM roles");
+            
+            if (rolesCount.count === 0) {
+                console.log('🔄 Инициализация базы данных с тестовыми данными...');
 
-            // Системные настройки
-            const systemSettings = [
-                ['systemName', 'Мастерская Вдохновения', 'Название системы'],
-                ['registrationReward', '10', 'Награда за регистрацию'],
-                ['dailyBonus', '5', 'Ежедневный бонус'],
-                ['inviteLimit', '5', 'Лимит приглашений'],
-                ['maxFileSize', '3145728000', 'Максимальный размер файла'],
-                ['sparkExchangeRate', '1', 'Курс обмена искр'],
-                ['telegramBotEnabled', 'true', 'Включен ли Telegram бот'],
-                ['version', '2.0.0', 'Версия системы']
-            ];
+                // Роли
+                const roles = [
+                    ['Художники', 'Творцы изобразительного искусства', '🎨', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#FF6B6B', 1],
+                    ['Стилисты', 'Мастера создания гармоничных образов', '👗', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#4ECDC4', 2],
+                    ['Мастера', 'Ремесленники прикладного искусства', '🧵', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#45B7D1', 3],
+                    ['Историки', 'Знатоки истории искусств и культуры', '🏛️', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#96CEB4', 4]
+                ];
 
-            for (const [key, value, description] of systemSettings) {
-                await this.run(
-                    "INSERT INTO system_settings (key, value, description) VALUES ($1, $2, $3)",
-                    [key, value, description]
-                );
+                for (const role of roles) {
+                    await this.run(
+                        "INSERT INTO roles (name, description, icon, available_buttons, color, display_order) VALUES (?, ?, ?, ?, ?, ?)",
+                        role
+                    );
+                }
+
+                // Персонажи
+                const characters = [
+                    [1, 'Лука Цветной', 'Рисует с детства, обожает эксперименты с цветом', 'percent_bonus', '10', '/images/characters/luka.jpg', 'Энергичный, экспериментатор', 'Цветовое чутье'],
+                    [1, 'Марина Кисть', 'Строгая преподавательница академической живописи', 'forgiveness', '1', '/images/characters/marina.jpg', 'Строгая, мудрая', 'Право на ошибку'],
+                    [2, 'Эстелла Моде', 'Бывший стилист парижских модных домов', 'percent_bonus', '5', '/images/characters/estella.jpg', 'Элегантная, внимательная', 'Стильный взгляд'],
+                    [3, 'Артем Резчик', 'Мастер по дереву и керамике', 'random_gift', '1-3', '/images/characters/artem.jpg', 'Терпеливый, основательный', 'Щедрая душа'],
+                    [4, 'София Хроник', 'Искусствовед и историк культуры', 'secret_advice', '2weeks', '/images/characters/sofia.jpg', 'Эрудированная, рассказчик', 'Мудрые советы']
+                ];
+
+                for (const character of characters) {
+                    await this.run(
+                        "INSERT INTO characters (role_id, name, description, bonus_type, bonus_value, image_url, personality, special_ability) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        character
+                    );
+                }
+
+                // Тестовые квизы
+                const quizzes = [
+                    ['Основы композиции', 'Проверьте свои знания основ композиции в искусстве', JSON.stringify([
+                        {
+                            question: "Что такое правило третей?",
+                            options: [
+                                "Разделение изображения на 9 равных частей",
+                                "Использование только трех цветов", 
+                                "Создание трехмерного эффекта",
+                                "Ограничение тремя объектами на изображении"
+                            ],
+                            correctAnswer: 0,
+                            explanation: "Правило третей помогает создавать гармоничные композиции"
+                        }
+                    ]), 2, 5, 24, true, 'beginner', 10, 'art']
+                ];
+
+                for (const quiz of quizzes) {
+                    await this.run(
+                        "INSERT INTO quizzes (title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake, difficulty, estimated_time, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        quiz
+                    );
+                }
+
+                // Тестовые товары магазина
+                const shopItems = [
+                    ['Основы живописи', 'Полный курс по основам живописи для начинающих', 'video', 'https://example.com/video1', 'https://via.placeholder.com/300x200/667eea/ffffff?text=Курс+живописи', 50, 'В этом курсе вы узнаете все основы живописи...'],
+                    ['Галерея текстур', 'Коллекция высококачественных текстур для ваших работ', 'image', 'https://example.com/textures.zip', 'https://via.placeholder.com/300x200/764ba2/ffffff?text=Текстуры', 30, 'Более 100 уникальных текстур в высоком разрешении.']
+                ];
+
+                for (const item of shopItems) {
+                    await this.run(
+                        "INSERT INTO shop_items (title, description, type, file_url, preview_url, price, content_text) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        item
+                    );
+                }
+
+                console.log('✅ База данных инициализирована с тестовыми данными');
             }
-
-            // Роли
-            const roles = [
-                ['Художники', 'Творцы изобразительного искусства', '🎨', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#FF6B6B', 1],
-                ['Стилисты', 'Мастера создания гармоничных образов', '👗', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#4ECDC4', 2],
-                ['Мастера', 'Ремесленники прикладного искусства', '🧵', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#45B7D1', 3],
-                ['Историки', 'Знатоки истории искусств и культуры', '🏛️', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#96CEB4', 4]
-            ];
-
-            for (const role of roles) {
-                await this.run(
-                    "INSERT INTO roles (name, description, icon, available_buttons, color, display_order) VALUES ($1, $2, $3, $4, $5, $6)",
-                    role
-                );
-            }
-
-            // Персонажи
-            const characters = [
-                [1, 'Лука Цветной', 'Рисует с детства, обожает эксперименты с цветом', 'percent_bonus', '10', '/images/characters/luka.jpg', 'Энергичный, экспериментатор', 'Цветовое чутье'],
-                [1, 'Марина Кисть', 'Строгая преподавательница академической живописи', 'forgiveness', '1', '/images/characters/marina.jpg', 'Строгая, мудрая', 'Право на ошибку'],
-                [2, 'Эстелла Моде', 'Бывший стилист парижских модных домов', 'percent_bonus', '5', '/images/characters/estella.jpg', 'Элегантная, внимательная', 'Стильный взгляд'],
-                [3, 'Артем Резчик', 'Мастер по дереву и керамике', 'random_gift', '1-3', '/images/characters/artem.jpg', 'Терпеливый, основательный', 'Щедрая душа'],
-                [4, 'София Хроник', 'Искусствовед и историк культуры', 'secret_advice', '2weeks', '/images/characters/sofia.jpg', 'Эрудированная, рассказчик', 'Мудрые советы']
-            ];
-
-            for (const character of characters) {
-                await this.run(
-                    "INSERT INTO characters (role_id, name, description, bonus_type, bonus_value, image_url, personality, special_ability) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-                    character
-                );
-            }
-
-            // Тестовые пользователи
-            const testUsers = [
-                [12345, 'Тестовый Пользователь', 'test_user', 45.5, 'Искатель', 'Художники', 1, 'Лука Цветной'],
-                [898508164, 'Администратор', 'admin', 250.0, 'Мастер', 'Художники', 1, 'Лука Цветной'],
-                [79156202620, 'Тест Пользователь 2', 'test_user2', 30.0, 'Знаток', 'Стилисты', 3, 'Эстелла Моде']
-            ];
-
-            for (const user of testUsers) {
-                await this.run(
-                    `INSERT INTO users (user_id, tg_first_name, tg_username, sparks, level, class, character_id, character_name, is_registered, available_buttons) 
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9)`,
-                    [...user, '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]']
-                );
-            }
-
-            // Администраторы
-            const admins = [
-                [898508164, 'admin', 'superadmin', '["users","content","moderation","settings","finance","analytics"]'],
-                [79156202620, 'moderator1', 'moderator', '["users","moderation"]'],
-                [781959267, 'content_manager', 'content_manager', '["content"]']
-            ];
-
-            for (const admin of admins) {
-                await this.run(
-                    "INSERT INTO admins (user_id, username, role, permissions) VALUES ($1, $2, $3, $4)",
-                    admin
-                );
-            }
-
-            console.log('✅ База данных инициализирована с тестовыми данными');
+        } catch (error) {
+            console.error('Ошибка инициализации данных:', error);
         }
-    }
-
-    async initializeFallbackDatabase() {
-        console.log('🔄 Используется fallback база данных (SQLite не поддерживается в этой версии)');
-        // В этой версии мы используем только PostgreSQL
     }
 
     async run(sql, params = []) {
         try {
-            const result = await this.client.query(sql, params);
+            const result = await this.db.run(sql, params);
             return result;
         } catch (error) {
             console.error('❌ Ошибка выполнения запроса:', error);
@@ -637,8 +504,8 @@ class PostgreSQLDatabaseService {
 
     async get(sql, params = []) {
         try {
-            const result = await this.client.query(sql, params);
-            return result.rows[0] || null;
+            const result = await this.db.get(sql, params);
+            return result || null;
         } catch (error) {
             console.error('❌ Ошибка выполнения запроса:', error);
             throw error;
@@ -647,8 +514,8 @@ class PostgreSQLDatabaseService {
 
     async all(sql, params = []) {
         try {
-            const result = await this.client.query(sql, params);
-            return result.rows;
+            const result = await this.db.all(sql, params);
+            return result;
         } catch (error) {
             console.error('❌ Ошибка выполнения запроса:', error);
             throw error;
@@ -669,7 +536,7 @@ class PostgreSQLDatabaseService {
     }
 }
 
-const dbService = new PostgreSQLDatabaseService();
+const dbService = new SQLiteDatabaseService();
 
 // ==================== СИСТЕМА АУТЕНТИФИКАЦИИ И СЕССИЙ ====================
 class AuthService {
