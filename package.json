@@ -9,7 +9,9 @@
     "dev": "node --watch server.js",
     "test": "echo \"No tests specified\" && exit 0",
     "deploy": "node server.js",
-    "build": "echo \"No build process required\" && exit 0"
+    "build": "echo \"No build process required\" && exit 0",
+    "db:init": "node -e \"import('./server.js').then(() => console.log('Database initialized'))\"",
+    "db:reset": "rm -f inspiration_workshop.db && npm run db:init"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -22,10 +24,22 @@
     "ws": "^8.14.2",
     "multer": "^1.4.5-lts.1",
     "sharp": "^0.32.6",
-    "pg": "^8.11.3"
+    "sqlite3": "^5.1.6",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "express-validator": "^7.0.1",
+    "morgan": "^1.10.0",
+    "node-cron": "^3.0.3",
+    "axios": "^1.6.2",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "canvas": "^2.11.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "sqlite3": "^5.1.6"
   },
   "keywords": [
     "telegram",
@@ -40,7 +54,16 @@
     "design",
     "photography",
     "interactive",
-    "gamification"
+    "gamification",
+    "sqlite",
+    "jwt",
+    "authentication",
+    "sparks-system",
+    "achievements",
+    "marathons",
+    "quizzes",
+    "shop",
+    "notifications"
   ],
   "author": "Мастерская Вдохновения",
   "license": "MIT",
@@ -60,6 +83,10 @@
     "package.json",
     "public/",
     "admin/",
-    ".env.example"
-  ]
+    ".env.example",
+    "README.md"
+  ],
+  "volta": {
+    "node": "18.17.0"
+  }
 }
