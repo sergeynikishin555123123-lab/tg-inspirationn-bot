@@ -2336,386 +2336,337 @@
             };
         }
 
-       class ApiService {
-    static async request(endpoint, options = {}) {
-        const url = `/api${endpoint}`; // ИСПРАВЛЕННЫЙ ПУТЬ
-                const cacheKey = getCacheKey(endpoint, options.body);
-                
-                // Проверяем кэш для GET запросов
-                if (!options.method || options.method === 'GET') {
-                    const cached = getCache(cacheKey);
-                    if (cached) {
-                        console.log('📦 Используем кэшированные данные:', endpoint);
-                        return cached;
-                    }
-                }
-                
-                try {
-                    const response = await fetch(url, {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'User-Id': currentUserId,
-                            ...options.headers
-                        },
-                        ...options
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    // Кэшируем успешные GET запросы
-                    if (!options.method || options.method === 'GET') {
-                        setCache(cacheKey, data);
-                    }
-                    
-                    return data;
-                } catch (error) {
-                    console.error('❌ API Error:', error);
-                    // Для демонстрации используем локальные данные
-                    return this.getLocalData(endpoint, options);
-                }
-            }
-
-            static getLocalData(endpoint, options) {
-                console.log('📋 Используем локальные данные для:', endpoint);
-                
-                // Эмуляция API ответов на основе локальных данных
-                switch(endpoint) {
-                    case '/users/register':
-                        return {
-                            success: true,
-                            message: "Регистрация успешно завершена!",
-                            user: {
-                                id: currentUserId,
-                                tg_first_name: options.body ? JSON.parse(options.body).firstName : 'Пользователь',
-                                sparks: 10,
-                                level: 1,
-                                is_registered: true,
-                                class: APP_DATA.roles.find(r => r.id === (options.body ? JSON.parse(options.body).roleId : 1))?.name,
-                                character_name: APP_DATA.characters[options.body ? JSON.parse(options.body).roleId : 1]?.[0]?.name,
-                                stats: {
-                                    totalQuizzesCompleted: 0,
-                                    totalWorks: 0,
-                                    totalMarathonsCompleted: 0,
-                                    totalInteractivesCompleted: 0
-                                }
-                            }
-                        };
-                    
-                    case '/users/change-role':
-                        return {
-                            success: true,
-                            message: "Роль успешно изменена!"
-                        };
-                    
-                    case '/webapp/roles':
-                        return APP_DATA.roles;
-                    
-                    case '/webapp/characters/1':
-                    case '/webapp/characters/2':
-                    case '/webapp/characters/3':
-                        const roleId = parseInt(endpoint.split('/').pop());
-                        return APP_DATA.characters[roleId] || [];
-                    
-                    case '/webapp/quizzes':
-                        return APP_DATA.quizzes.map(quiz => ({
-                            ...quiz,
-                            completed: Math.random() > 0.7,
-                            can_retake: true,
-                            user_score: Math.random() > 0.7 ? Math.floor(Math.random() * quiz.total_questions) + 1 : null
-                        }));
-                    
-                    case '/webapp/quizzes/1/submit':
-                    case '/webapp/quizzes/2/submit':
-                        const quizId = parseInt(endpoint.split('/')[3]);
-                        const quiz = APP_DATA.quizzes.find(q => q.id === quizId);
-                        const submission = options.body ? JSON.parse(options.body) : { answers: [] };
-                        
-                        const correctAnswers = submission.answers.filter((answer, index) => 
-                            answer === quiz.questions[index].correct_answer
-                        ).length;
-                        
-                        const sparksEarned = correctAnswers * quiz.sparks_per_correct;
-                        const perfectScore = correctAnswers === quiz.questions.length;
-                        
-                        return {
-                            success: true,
-                            correctAnswers,
-                            totalQuestions: quiz.questions.length,
-                            sparksEarned: perfectScore ? sparksEarned + quiz.sparks_perfect_bonus : sparksEarned,
-                            perfectScore,
-                            message: perfectScore ? 
-                                "Идеальный результат! Вы настоящий эксперт!" :
-                                `Хороший результат! Правильных ответов: ${correctAnswers}/${quiz.questions.length}`
-                        };
-                    
-                    case '/webapp/shop/items':
-                        return APP_DATA.shopItems;
-                    
-                    case '/webapp/shop/purchase':
-                        const purchaseData = options.body ? JSON.parse(options.body) : {};
-                        const item = APP_DATA.shopItems.find(i => i.id === purchaseData.itemId);
-                        
-                        if (!item) {
-                            return {
-                                success: false,
-                                error: "Товар не найден"
-                            };
-                        }
-                        
-                        if (currentUser.sparks < item.price) {
-                            return {
-                                success: false,
-                                error: "Недостаточно искр"
-                            };
-                        }
-                        
-                        // Добавляем покупку
-                        userPurchases.push({
-                            ...item,
-                            purchased_at: new Date().toISOString(),
-                            price_paid: item.price
-                        });
-                        
-                        // Обновляем баланс
-                        currentUser.sparks -= item.price;
-                        
-                        return {
-                            success: true,
-                            message: "Покупка успешно завершена!",
-                            sparks_remaining: currentUser.sparks
-                        };
-                    
-                    case '/webapp/users/purchases':
-                        return {
-                            purchases: userPurchases
-                        };
-                    
-                    case '/webapp/users/works':
-                        return {
-                            works: userWorks
-                        };
-                    
-                    case '/webapp/upload-work':
-                        const workData = options.body ? JSON.parse(options.body) : {};
-                        const newWork = {
-                            id: generateId(),
-                            title: workData.title,
-                            description: workData.description,
-                            image_url: workData.imageUrl,
-                            status: 'pending',
-                            created_at: new Date().toISOString(),
-                            admin_comment: null
-                        };
-                        
-                        userWorks.push(newWork);
-                        
-                        return {
-                            success: true,
-                            message: "Работа успешно загружена и отправлена на модерацию!",
-                            work_id: newWork.id
-                        };
-                    
-                    case '/webapp/users/activities':
-                        return {
-                            activities: userActivities
-                        };
-                    
-                    case '/webapp/marathons':
-                        return APP_DATA.marathons.map(marathon => ({
-                            ...marathon,
-                            user_progress: Math.random() > 0.5 ? Math.floor(Math.random() * marathon.total_days) : 0,
-                            completed: Math.random() > 0.8
-                        }));
-                    
-                    case '/webapp/interactives':
-                        return APP_DATA.interactives.map(interactive => ({
-                            ...interactive,
-                            completed: Math.random() > 0.7
-                        }));
-                    
-                    case '/webapp/posts':
-                        return APP_DATA.posts;
-                    
-                    default:
-                        if (endpoint.startsWith('/users/')) {
-                            return {
-                                exists: true,
-                                user: currentUser || {
-                                    id: currentUserId,
-                                    tg_first_name: 'Тестовый Пользователь',
-                                    sparks: 50,
-                                    level: 2,
-                                    is_registered: true,
-                                    class: 'Художник',
-                                    character_name: 'Импрессионист',
-                                    stats: {
-                                        totalQuizzesCompleted: 3,
-                                        totalWorks: 5,
-                                        totalMarathonsCompleted: 1,
-                                        totalInteractivesCompleted: 2
-                                    }
-                                }
-                            };
-                        }
-                        
-                        return { success: false, error: "Endpoint not found" };
-                }
-            }
-
-            // Пользователи
-            static async getUser(userId) {
-                return await this.request(`/users/${userId}`);
-            }
-
-            static async registerUser(userData) {
-                return await this.request('/users/register', {
-                    method: 'POST',
-                    body: JSON.stringify(userData)
-                });
-            }
-
-            static async changeUserRole(changeData) {
-                return await this.request('/users/change-role', {
-                    method: 'POST',
-                    body: JSON.stringify(changeData)
-                });
-            }
-
-            // Роли и персонажи
-            static async getRoles() {
-                return await this.request('/webapp/roles');
-            }
-
-            static async getCharacters(roleId) {
-                return await this.request(`/webapp/characters/${roleId}`);
-            }
-
-            // Квизы
-            static async getQuizzes(userId) {
-                return await this.request(`/webapp/quizzes?userId=${userId}`);
-            }
-
-            static async submitQuiz(quizId, submission) {
-                return await this.request(`/webapp/quizzes/${quizId}/submit`, {
-                    method: 'POST',
-                    body: JSON.stringify(submission)
-                });
-            }
-
-            // Магазин
-            static async getShopItems() {
-                return await this.request('/webapp/shop/items');
-            }
-
-            static async purchaseItem(purchaseData) {
-                return await this.request('/webapp/shop/purchase', {
-                    method: 'POST',
-                    body: JSON.stringify(purchaseData)
-                });
-            }
-
-            static async getUserPurchases(userId) {
-                return await this.request(`/webapp/users/purchases`);
-            }
-
-            // Работы
-            static async getUserWorks(userId) {
-                return await this.request(`/webapp/users/works`);
-            }
-
-            static async uploadWork(workData) {
-                return await this.request('/webapp/upload-work', {
-                    method: 'POST',
-                    body: JSON.stringify(workData)
-                });
-            }
-
-            // Активности
-            static async getUserActivities(userId) {
-                return await this.request(`/webapp/users/activities`);
-            }
-
-            // Марафоны
-            static async getMarathons(userId) {
-                return await this.request(`/webapp/marathons?userId=${userId}`);
-            }
-
-            static async submitMarathonDay(marathonId, day, submission) {
-                return await this.request(`/webapp/marathons/${marathonId}/days/${day}/submit`, {
-                    method: 'POST',
-                    body: JSON.stringify(submission)
-                });
-            }
-
-            // Интерактивы
-            static async getInteractives(userId) {
-                return await this.request(`/webapp/interactives?userId=${userId}`);
-            }
-
-            static async submitInteractive(interactiveId, submission) {
-                return await this.request(`/webapp/interactives/${interactiveId}/submit`, {
-                    method: 'POST',
-                    body: JSON.stringify(submission)
-                });
-            }
-
-            // Посты
-            static async getPosts() {
-                return await this.request('/webapp/posts');
-            }
-        }
-
 // ==================== API SERVICE ====================
 class ApiService {
     static async request(endpoint, options = {}) {
-        // Используем относительный путь к нашему серверу
         const url = `/api${endpoint}`;
+        const cacheKey = getCacheKey(endpoint, options.body);
         
-        console.log('📡 API Request:', endpoint, options.method || 'GET');
+        // Проверяем кэш для GET запросов
+        if (!options.method || options.method === 'GET') {
+            const cached = getCache(cacheKey);
+            if (cached) {
+                console.log('📦 Используем кэшированные данные:', endpoint);
+                return cached;
+            }
+        }
         
         try {
             const response = await fetch(url, {
                 headers: {
                     'Content-Type': 'application/json',
+                    'User-Id': currentUserId,
                     ...options.headers
                 },
                 ...options
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            return await response.json();
+            const data = await response.json();
             
+            // Кэшируем успешные GET запросы
+            if (!options.method || options.method === 'GET') {
+                setCache(cacheKey, data);
+            }
+            
+            return data;
         } catch (error) {
             console.error('❌ API Error:', error);
-            throw error;
+            // Для демонстрации используем локальные данные
+            return this.getLocalData(endpoint, options);
         }
     }
-    
-    // Методы для работы с пользователями
-    static async getUser(userId) {
-        return this.request(`/users/${userId}`);
+
+    static getLocalData(endpoint, options) {
+        console.log('📋 Используем локальные данные для:', endpoint);
+        
+        // Эмуляция API ответов на основе локальных данных
+        switch(endpoint) {
+            case '/users/register':
+                return {
+                    success: true,
+                    message: "Регистрация успешно завершена!",
+                    user: {
+                        id: currentUserId,
+                        tg_first_name: options.body ? JSON.parse(options.body).firstName : 'Пользователь',
+                        sparks: 10,
+                        level: 1,
+                        is_registered: true,
+                        class: APP_DATA.roles.find(r => r.id === (options.body ? JSON.parse(options.body).roleId : 1))?.name,
+                        character_name: APP_DATA.characters[options.body ? JSON.parse(options.body).roleId : 1]?.[0]?.name,
+                        stats: {
+                            totalQuizzesCompleted: 0,
+                            totalWorks: 0,
+                            totalMarathonsCompleted: 0,
+                            totalInteractivesCompleted: 0
+                        }
+                    }
+                };
+            
+            case '/users/change-role':
+                return {
+                    success: true,
+                    message: "Роль успешно изменена!"
+                };
+            
+            case '/webapp/roles':
+                return APP_DATA.roles;
+            
+            case '/webapp/characters/1':
+            case '/webapp/characters/2':
+            case '/webapp/characters/3':
+                const roleId = parseInt(endpoint.split('/').pop());
+                return APP_DATA.characters[roleId] || [];
+            
+            case '/webapp/quizzes':
+                return APP_DATA.quizzes.map(quiz => ({
+                    ...quiz,
+                    completed: Math.random() > 0.7,
+                    can_retake: true,
+                    user_score: Math.random() > 0.7 ? Math.floor(Math.random() * quiz.total_questions) + 1 : null
+                }));
+            
+            case '/webapp/quizzes/1/submit':
+            case '/webapp/quizzes/2/submit':
+                const quizId = parseInt(endpoint.split('/')[3]);
+                const quiz = APP_DATA.quizzes.find(q => q.id === quizId);
+                const submission = options.body ? JSON.parse(options.body) : { answers: [] };
+                
+                const correctAnswers = submission.answers.filter((answer, index) => 
+                    answer === quiz.questions[index].correct_answer
+                ).length;
+                
+                const sparksEarned = correctAnswers * quiz.sparks_per_correct;
+                const perfectScore = correctAnswers === quiz.questions.length;
+                
+                return {
+                    success: true,
+                    correctAnswers,
+                    totalQuestions: quiz.questions.length,
+                    sparksEarned: perfectScore ? sparksEarned + quiz.sparks_perfect_bonus : sparksEarned,
+                    perfectScore,
+                    message: perfectScore ? 
+                        "Идеальный результат! Вы настоящий эксперт!" :
+                        `Хороший результат! Правильных ответов: ${correctAnswers}/${quiz.questions.length}`
+                };
+            
+            case '/webapp/shop/items':
+                return APP_DATA.shopItems;
+            
+            case '/webapp/shop/purchase':
+                const purchaseData = options.body ? JSON.parse(options.body) : {};
+                const item = APP_DATA.shopItems.find(i => i.id === purchaseData.itemId);
+                
+                if (!item) {
+                    return {
+                        success: false,
+                        error: "Товар не найден"
+                    };
+                }
+                
+                if (currentUser.sparks < item.price) {
+                    return {
+                        success: false,
+                        error: "Недостаточно искр"
+                    };
+                }
+                
+                // Добавляем покупку
+                userPurchases.push({
+                    ...item,
+                    purchased_at: new Date().toISOString(),
+                    price_paid: item.price
+                });
+                
+                // Обновляем баланс
+                currentUser.sparks -= item.price;
+                
+                return {
+                    success: true,
+                    message: "Покупка успешно завершена!",
+                    sparks_remaining: currentUser.sparks
+                };
+            
+            case '/webapp/users/purchases':
+                return {
+                    purchases: userPurchases
+                };
+            
+            case '/webapp/users/works':
+                return {
+                    works: userWorks
+                };
+            
+            case '/webapp/upload-work':
+                const workData = options.body ? JSON.parse(options.body) : {};
+                const newWork = {
+                    id: generateId(),
+                    title: workData.title,
+                    description: workData.description,
+                    image_url: workData.imageUrl,
+                    status: 'pending',
+                    created_at: new Date().toISOString(),
+                    admin_comment: null
+                };
+                
+                userWorks.push(newWork);
+                
+                return {
+                    success: true,
+                    message: "Работа успешно загружена и отправлена на модерацию!",
+                    work_id: newWork.id
+                };
+            
+            case '/webapp/users/activities':
+                return {
+                    activities: userActivities
+                };
+            
+            case '/webapp/marathons':
+                return APP_DATA.marathons.map(marathon => ({
+                    ...marathon,
+                    user_progress: Math.random() > 0.5 ? Math.floor(Math.random() * marathon.total_days) : 0,
+                    completed: Math.random() > 0.8
+                }));
+            
+            case '/webapp/interactives':
+                return APP_DATA.interactives.map(interactive => ({
+                    ...interactive,
+                    completed: Math.random() > 0.7
+                }));
+            
+            case '/webapp/posts':
+                return APP_DATA.posts;
+            
+            default:
+                if (endpoint.startsWith('/users/')) {
+                    return {
+                        exists: true,
+                        user: currentUser || {
+                            id: currentUserId,
+                            tg_first_name: 'Тестовый Пользователь',
+                            sparks: 50,
+                            level: 2,
+                            is_registered: true,
+                            class: 'Художник',
+                            character_name: 'Импрессионист',
+                            stats: {
+                                totalQuizzesCompleted: 3,
+                                totalWorks: 5,
+                                totalMarathonsCompleted: 1,
+                                totalInteractivesCompleted: 2
+                            }
+                        }
+                    };
+                }
+                
+                return { success: false, error: "Endpoint not found" };
+        }
     }
-    
+
+    // Пользователи
+    static async getUser(userId) {
+        return await this.request(`/users/${userId}`);
+    }
+
     static async registerUser(userData) {
-        return this.request('/users/register', {
+        return await this.request('/users/register', {
             method: 'POST',
             body: JSON.stringify(userData)
         });
     }
-    
-    static async getRoles() {
-        return this.request('/webapp/roles');
+
+    static async changeUserRole(changeData) {
+        return await this.request('/users/change-role', {
+            method: 'POST',
+            body: JSON.stringify(changeData)
+        });
     }
-    
+
+    // Роли и персонажи
+    static async getRoles() {
+        return await this.request('/webapp/roles');
+    }
+
     static async getCharacters(roleId) {
-        return this.request(`/webapp/characters/${roleId}`);
+        return await this.request(`/webapp/characters/${roleId}`);
+    }
+
+    // Квизы
+    static async getQuizzes(userId) {
+        return await this.request(`/webapp/quizzes?userId=${userId}`);
+    }
+
+    static async submitQuiz(quizId, submission) {
+        return await this.request(`/webapp/quizzes/${quizId}/submit`, {
+            method: 'POST',
+            body: JSON.stringify(submission)
+        });
+    }
+
+    // Магазин
+    static async getShopItems() {
+        return await this.request('/webapp/shop/items');
+    }
+
+    static async purchaseItem(purchaseData) {
+        return await this.request('/webapp/shop/purchase', {
+            method: 'POST',
+            body: JSON.stringify(purchaseData)
+        });
+    }
+
+    static async getUserPurchases(userId) {
+        return await this.request(`/webapp/users/purchases`);
+    }
+
+    // Работы
+    static async getUserWorks(userId) {
+        return await this.request(`/webapp/users/works`);
+    }
+
+    static async uploadWork(workData) {
+        return await this.request('/webapp/upload-work', {
+            method: 'POST',
+            body: JSON.stringify(workData)
+        });
+    }
+
+    // Активности
+    static async getUserActivities(userId) {
+        return await this.request(`/webapp/users/activities`);
+    }
+
+    // Марафоны
+    static async getMarathons(userId) {
+        return await this.request(`/webapp/marathons?userId=${userId}`);
+    }
+
+    static async submitMarathonDay(marathonId, day, submission) {
+        return await this.request(`/webapp/marathons/${marathonId}/days/${day}/submit`, {
+            method: 'POST',
+            body: JSON.stringify(submission)
+        });
+    }
+
+    // Интерактивы
+    static async getInteractives(userId) {
+        return await this.request(`/webapp/interactives?userId=${userId}`);
+    }
+
+    static async submitInteractive(interactiveId, submission) {
+        return await this.request(`/webapp/interactives/${interactiveId}/submit`, {
+            method: 'POST',
+            body: JSON.stringify(submission)
+        });
+    }
+
+    // Посты
+    static async getPosts() {
+        return await this.request('/webapp/posts');
     }
 }
 
