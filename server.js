@@ -1124,14 +1124,19 @@ const requirePermission = (permission) => {
 // ==================== НАСТРОЙКИ CORS И БЕЗОПАСНОСТИ ====================
 const corsOptions = {
     origin: function (origin, callback) {
-        const allowedOrigins = [
-            'https://web.telegram.org',
-            'https://oauth.telegram.org',
-            'http://localhost:3000',
-            'http://localhost:5173',
-            'https://localhost:3000',
-            process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-e112.twc1.net'
-        ];
+const allowedOrigins = [
+    'https://web.telegram.org',
+    'https://oauth.telegram.org',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://localhost:3000',
+    'https://sergeynikishin555123123-lab-tg-inspirationn-bot-e112.twc1.net' // ← БЕЗ .com!
+];
+        
+        // Разрешаем все origins в development
+        if (process.env.NODE_ENV === 'development') {
+            return callback(null, true);
+        }
         
         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
