@@ -12,8 +12,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
-import { Database } from 'sqlite3';
-import { promisify } from 'util';
+import pkg from 'pg';
+const { Client } = pkg;
 
 dotenv.config();
 
@@ -52,19 +52,47 @@ const SPARKS_SYSTEM = {
     COMMUNITY_HELP: 8
 };
 
-// ==================== БАЗА ДАННЫХ ====================
-class EnhancedDatabaseService {
+// ==================== БАЗА ДАННЫХ POSTGRESQL ====================
+class PostgreSQLDatabaseService {
     constructor() {
-        this.db = new Database('./inspiration_workshop.db');
+        this.client = new Client({
+            user: process.env.DB_USER || 'gen_user',
+            host: process.env.DB_HOST || '789badf9748826d5c6ffd045.twc1.net',
+            database: process.env.DB_NAME || 'default_db',
+            password: process.env.DB_PASSWORD || 'GrMp*mZ^FF&1u<',
+            port: parseInt(process.env.DB_PORT) || 5432,
+            ssl: process.env.NODE_ENV === 'production' ? { 
+                rejectUnauthorized: true,
+                // ca: fs.readFileSync(path.join(os.homedir(), '.cloud-certs', 'root.crt'), 'utf-8')
+            } : false
+        });
+        
+        this.connected = false;
         this.init();
     }
 
     async init() {
-        // Таблицы из второго кода
-        await this.run(`
+        try {
+            await this.client.connect();
+            this.connected = true;
+            console.log('✅ PostgreSQL подключена успешно');
+            
+            await this.createTables();
+            await this.initializeDefaultData();
+        } catch (error) {
+            console.error('❌ Ошибка подключения к PostgreSQL:', error);
+            // Fallback to SQLite for development
+            await this.initializeFallbackDatabase();
+        }
+    }
+
+    async createTables() {
+        const tables = [
+            // Таблица пользователей
+            `
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER UNIQUE NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT UNIQUE NOT NULL,
                 tg_first_name TEXT NOT NULL,
                 tg_username TEXT,
                 email TEXT UNIQUE,
@@ -75,55 +103,56 @@ class EnhancedDatabaseService {
                 class TEXT,
                 character_id INTEGER,
                 character_name TEXT,
-                available_buttons TEXT DEFAULT '[]',
-                registration_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-                last_active DATETIME DEFAULT CURRENT_TIMESTAMP,
+                available_buttons JSONB DEFAULT '[]',
+                registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 status TEXT DEFAULT 'active',
-                invited_by INTEGER,
+                invited_by BIGINT,
                 invite_count INTEGER DEFAULT 0,
                 total_invited INTEGER DEFAULT 0,
-                is_active BOOLEAN DEFAULT TRUE,
-                FOREIGN KEY (character_id) REFERENCES characters(id)
+                is_active BOOLEAN DEFAULT TRUE
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица ролей
+            `
             CREATE TABLE IF NOT EXISTS roles (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 name TEXT UNIQUE NOT NULL,
                 description TEXT,
                 icon TEXT,
-                available_buttons TEXT DEFAULT '[]',
+                available_buttons JSONB DEFAULT '[]',
                 is_active BOOLEAN DEFAULT TRUE,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 color TEXT,
                 display_order INTEGER DEFAULT 0
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица персонажей
+            `
             CREATE TABLE IF NOT EXISTS characters (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                role_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                role_id INTEGER NOT NULL REFERENCES roles(id),
                 name TEXT NOT NULL,
                 description TEXT,
                 bonus_type TEXT NOT NULL,
                 bonus_value TEXT NOT NULL,
                 is_active BOOLEAN DEFAULT TRUE,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 image_url TEXT,
                 personality TEXT,
-                special_ability TEXT,
-                FOREIGN KEY (role_id) REFERENCES roles(id)
+                special_ability TEXT
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица квизов
+            `
             CREATE TABLE IF NOT EXISTS quizzes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 title TEXT NOT NULL,
                 description TEXT,
-                questions TEXT NOT NULL,
+                questions JSONB NOT NULL,
                 sparks_per_correct REAL DEFAULT 1,
                 sparks_perfect_bonus INTEGER DEFAULT 5,
                 cooldown_hours INTEGER DEFAULT 24,
@@ -132,94 +161,93 @@ class EnhancedDatabaseService {
                 difficulty TEXT DEFAULT 'beginner',
                 estimated_time INTEGER,
                 category TEXT,
-                tags TEXT DEFAULT '[]',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                tags JSONB DEFAULT '[]',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица завершений квизов
+            `
             CREATE TABLE IF NOT EXISTS quiz_completions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                quiz_id INTEGER NOT NULL,
-                completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
+                quiz_id INTEGER NOT NULL REFERENCES quizzes(id),
+                completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 score INTEGER NOT NULL,
                 total_questions INTEGER NOT NULL,
                 sparks_earned REAL NOT NULL,
                 perfect_score BOOLEAN DEFAULT FALSE,
                 time_spent INTEGER,
-                answers TEXT,
-                speed_bonus REAL DEFAULT 0,
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
+                answers JSONB,
+                speed_bonus REAL DEFAULT 0
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица марафонов
+            `
             CREATE TABLE IF NOT EXISTS marathons (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 title TEXT NOT NULL,
                 description TEXT,
                 duration INTEGER NOT NULL,
-                days TEXT NOT NULL,
+                days JSONB NOT NULL,
                 completion_reward INTEGER DEFAULT 0,
-                start_date DATETIME,
+                start_date TIMESTAMP,
                 is_active BOOLEAN DEFAULT TRUE,
                 difficulty TEXT DEFAULT 'beginner',
                 category TEXT,
-                tags TEXT DEFAULT '[]',
+                tags JSONB DEFAULT '[]',
                 participants_count INTEGER DEFAULT 0,
                 average_rating REAL DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 cover_image TEXT,
-                requirements TEXT DEFAULT '[]'
+                requirements JSONB DEFAULT '[]'
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица завершений марафонов
+            `
             CREATE TABLE IF NOT EXISTS marathon_completions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                marathon_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
+                marathon_id INTEGER NOT NULL REFERENCES marathons(id),
                 current_day INTEGER DEFAULT 1,
                 progress INTEGER DEFAULT 0,
                 completed BOOLEAN DEFAULT FALSE,
-                started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
+                started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 total_sparks_earned REAL DEFAULT 0,
-                days_completed TEXT DEFAULT '[]',
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (marathon_id) REFERENCES marathons(id),
+                days_completed JSONB DEFAULT '[]',
                 UNIQUE(user_id, marathon_id)
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица отправок марафонов
+            `
             CREATE TABLE IF NOT EXISTS marathon_submissions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                marathon_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
+                marathon_id INTEGER NOT NULL REFERENCES marathons(id),
                 day INTEGER NOT NULL,
                 submission_text TEXT,
                 submission_image TEXT,
-                submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 status TEXT DEFAULT 'pending',
-                moderator_id INTEGER,
-                moderated_at DATETIME,
+                moderator_id BIGINT,
+                moderated_at TIMESTAMP,
                 admin_comment TEXT,
                 sparks_awarded REAL DEFAULT 0,
                 is_late BOOLEAN DEFAULT FALSE,
-                time_spent INTEGER,
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (marathon_id) REFERENCES marathons(id)
+                time_spent INTEGER
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица товаров магазина
+            `
             CREATE TABLE IF NOT EXISTS shop_items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 title TEXT NOT NULL,
                 description TEXT,
                 type TEXT NOT NULL,
@@ -228,8 +256,6 @@ class EnhancedDatabaseService {
                 price REAL NOT NULL,
                 content_text TEXT,
                 embed_html TEXT,
-                file_data BLOB,
-                preview_data BLOB,
                 is_active BOOLEAN DEFAULT TRUE,
                 category TEXT,
                 difficulty TEXT,
@@ -237,31 +263,31 @@ class EnhancedDatabaseService {
                 instructor TEXT,
                 rating REAL DEFAULT 0,
                 students_count INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                tags TEXT DEFAULT '[]'
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                tags JSONB DEFAULT '[]'
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица покупок
+            `
             CREATE TABLE IF NOT EXISTS purchases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                item_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
+                item_id INTEGER NOT NULL REFERENCES shop_items(id),
                 price_paid REAL NOT NULL,
-                purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 status TEXT DEFAULT 'completed',
                 download_count INTEGER DEFAULT 0,
-                last_download DATETIME,
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (item_id) REFERENCES shop_items(id)
+                last_download TIMESTAMP
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица активностей
+            `
             CREATE TABLE IF NOT EXISTS activities (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
                 activity_type TEXT NOT NULL,
                 sparks_earned REAL NOT NULL,
                 description TEXT NOT NULL,
@@ -269,244 +295,224 @@ class EnhancedDatabaseService {
                 new_sparks REAL,
                 old_level TEXT,
                 new_level TEXT,
-                metadata TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
+                metadata JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица постов
+            `
             CREATE TABLE IF NOT EXISTS posts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 title TEXT NOT NULL,
                 content TEXT NOT NULL,
-                media_urls TEXT DEFAULT '[]',
-                allowed_actions TEXT DEFAULT '[]',
+                media_urls JSONB DEFAULT '[]',
+                allowed_actions JSONB DEFAULT '[]',
                 reward REAL DEFAULT 0,
                 is_published BOOLEAN DEFAULT TRUE,
                 views_count INTEGER DEFAULT 0,
                 likes_count INTEGER DEFAULT 0,
                 comments_count INTEGER DEFAULT 0,
                 shares_count INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                tags TEXT DEFAULT '[]',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                tags JSONB DEFAULT '[]',
                 category TEXT,
-                author_id INTEGER
+                author_id BIGINT
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица отзывов к постам
+            `
             CREATE TABLE IF NOT EXISTS post_reviews (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                post_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
+                post_id INTEGER NOT NULL REFERENCES posts(id),
                 review_text TEXT NOT NULL,
                 rating INTEGER DEFAULT 5,
                 status TEXT DEFAULT 'pending',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                moderated_at DATETIME,
-                moderator_id INTEGER,
-                admin_comment TEXT,
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (post_id) REFERENCES posts(id)
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                moderated_at TIMESTAMP,
+                moderator_id BIGINT,
+                admin_comment TEXT
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица работ пользователей
+            `
             CREATE TABLE IF NOT EXISTS user_works (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
                 title TEXT NOT NULL,
                 description TEXT,
                 image_url TEXT NOT NULL,
                 type TEXT DEFAULT 'image',
                 status TEXT DEFAULT 'pending',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                moderated_at DATETIME,
-                moderator_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                moderated_at TIMESTAMP,
+                moderator_id BIGINT,
                 admin_comment TEXT,
                 likes_count INTEGER DEFAULT 0,
                 comments_count INTEGER DEFAULT 0,
                 category TEXT,
-                tags TEXT DEFAULT '[]',
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
+                tags JSONB DEFAULT '[]'
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица отзывов к работам
+            `
             CREATE TABLE IF NOT EXISTS work_reviews (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                work_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
+                work_id INTEGER NOT NULL REFERENCES user_works(id),
                 review_text TEXT NOT NULL,
                 rating INTEGER DEFAULT 5,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (work_id) REFERENCES user_works(id)
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица интерактивов
+            `
             CREATE TABLE IF NOT EXISTS interactives (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 title TEXT NOT NULL,
                 description TEXT,
                 type TEXT NOT NULL,
                 category TEXT NOT NULL,
                 image_url TEXT,
                 question TEXT,
-                options TEXT DEFAULT '[]',
+                options JSONB DEFAULT '[]',
                 correct_answer INTEGER,
                 sparks_reward INTEGER DEFAULT 3,
                 allow_retake BOOLEAN DEFAULT FALSE,
                 is_active BOOLEAN DEFAULT TRUE,
                 difficulty TEXT DEFAULT 'beginner',
                 estimated_time INTEGER,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 attempts_count INTEGER DEFAULT 0,
                 success_rate REAL DEFAULT 0
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица завершений интерактивов
+            `
             CREATE TABLE IF NOT EXISTS interactive_completions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                interactive_id INTEGER NOT NULL,
-                completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
+                interactive_id INTEGER NOT NULL REFERENCES interactives(id),
+                completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 score INTEGER NOT NULL,
                 sparks_earned REAL NOT NULL,
                 answer TEXT,
                 time_spent INTEGER,
-                speed_bonus REAL DEFAULT 0,
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (interactive_id) REFERENCES interactives(id)
+                speed_bonus REAL DEFAULT 0
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица отправок интерактивов
+            `
             CREATE TABLE IF NOT EXISTS interactive_submissions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                interactive_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
+                interactive_id INTEGER NOT NULL REFERENCES interactives(id),
                 submission_data TEXT NOT NULL,
                 description TEXT,
-                submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 status TEXT DEFAULT 'pending',
-                moderator_id INTEGER,
-                moderated_at DATETIME,
-                admin_comment TEXT,
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (interactive_id) REFERENCES interactives(id)
+                moderator_id BIGINT,
+                moderated_at TIMESTAMP,
+                admin_comment TEXT
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица администраторов
+            `
             CREATE TABLE IF NOT EXISTS admins (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER UNIQUE NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT UNIQUE NOT NULL REFERENCES users(user_id),
                 username TEXT NOT NULL,
                 role TEXT DEFAULT 'moderator',
-                permissions TEXT DEFAULT '[]',
+                permissions JSONB DEFAULT '[]',
                 is_active BOOLEAN DEFAULT TRUE,
-                last_login DATETIME,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                notes TEXT,
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
+                last_login TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                notes TEXT
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица логов администраторов
+            `
             CREATE TABLE IF NOT EXISTS admin_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                admin_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                admin_id INTEGER NOT NULL REFERENCES admins(id),
                 admin_name TEXT NOT NULL,
                 action TEXT NOT NULL,
                 details TEXT,
                 target_id INTEGER,
                 target_type TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                ip_address TEXT,
-                FOREIGN KEY (admin_id) REFERENCES admins(id)
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                ip_address TEXT
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица ежедневных отзывов
+            `
             CREATE TABLE IF NOT EXISTS daily_reviews (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
                 date DATE NOT NULL,
                 type TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(user_id, date, type)
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица сессий
+            `
             CREATE TABLE IF NOT EXISTS sessions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
                 session_token TEXT UNIQUE NOT NULL,
-                expires_at DATETIME NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица уведомлений
+            `
             CREATE TABLE IF NOT EXISTS notifications (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(user_id),
                 title TEXT NOT NULL,
                 message TEXT NOT NULL,
                 type TEXT DEFAULT 'info',
                 is_read BOOLEAN DEFAULT FALSE,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        `);
-
-        await this.run(`
+            `,
+            
+            // Таблица системных настроек
+            `
             CREATE TABLE IF NOT EXISTS system_settings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 key TEXT UNIQUE NOT NULL,
                 value TEXT NOT NULL,
                 description TEXT,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        `);
+            `
+        ];
 
-        await this.initializeDefaultData();
-    }
+        for (const tableSQL of tables) {
+            try {
+                await this.client.query(tableSQL);
+            } catch (error) {
+                console.error('Ошибка создания таблицы:', error.message);
+            }
+        }
 
-    run(sql, params = []) {
-        return new Promise((resolve, reject) => {
-            this.db.run(sql, params, function(err) {
-                if (err) reject(err);
-                else resolve(this);
-            });
-        });
-    }
-
-    get(sql, params = []) {
-        return new Promise((resolve, reject) => {
-            this.db.get(sql, params, (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
-    }
-
-    all(sql, params = []) {
-        return new Promise((resolve, reject) => {
-            this.db.all(sql, params, (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
+        console.log('✅ Все таблицы созданы успешно');
     }
 
     async initializeDefaultData() {
@@ -530,7 +536,7 @@ class EnhancedDatabaseService {
 
             for (const [key, value, description] of systemSettings) {
                 await this.run(
-                    "INSERT INTO system_settings (key, value, description) VALUES (?, ?, ?)",
+                    "INSERT INTO system_settings (key, value, description) VALUES ($1, $2, $3)",
                     [key, value, description]
                 );
             }
@@ -545,7 +551,7 @@ class EnhancedDatabaseService {
 
             for (const role of roles) {
                 await this.run(
-                    "INSERT INTO roles (name, description, icon, available_buttons, color, display_order) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO roles (name, description, icon, available_buttons, color, display_order) VALUES ($1, $2, $3, $4, $5, $6)",
                     role
                 );
             }
@@ -561,7 +567,7 @@ class EnhancedDatabaseService {
 
             for (const character of characters) {
                 await this.run(
-                    "INSERT INTO characters (role_id, name, description, bonus_type, bonus_value, image_url, personality, special_ability) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO characters (role_id, name, description, bonus_type, bonus_value, image_url, personality, special_ability) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
                     character
                 );
             }
@@ -576,8 +582,8 @@ class EnhancedDatabaseService {
             for (const user of testUsers) {
                 await this.run(
                     `INSERT INTO users (user_id, tg_first_name, tg_username, sparks, level, class, character_id, character_name, is_registered, available_buttons) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]')`,
-                    user
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9)`,
+                    [...user, '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]']
                 );
             }
 
@@ -590,7 +596,7 @@ class EnhancedDatabaseService {
 
             for (const admin of admins) {
                 await this.run(
-                    "INSERT INTO admins (user_id, username, role, permissions) VALUES (?, ?, ?, ?)",
+                    "INSERT INTO admins (user_id, username, role, permissions) VALUES ($1, $2, $3, $4)",
                     admin
                 );
             }
@@ -599,10 +605,45 @@ class EnhancedDatabaseService {
         }
     }
 
+    async initializeFallbackDatabase() {
+        console.log('🔄 Используется fallback база данных (SQLite не поддерживается в этой версии)');
+        // В этой версии мы используем только PostgreSQL
+    }
+
+    async run(sql, params = []) {
+        try {
+            const result = await this.client.query(sql, params);
+            return result;
+        } catch (error) {
+            console.error('❌ Ошибка выполнения запроса:', error);
+            throw error;
+        }
+    }
+
+    async get(sql, params = []) {
+        try {
+            const result = await this.client.query(sql, params);
+            return result.rows[0] || null;
+        } catch (error) {
+            console.error('❌ Ошибка выполнения запроса:', error);
+            throw error;
+        }
+    }
+
+    async all(sql, params = []) {
+        try {
+            const result = await this.client.query(sql, params);
+            return result.rows;
+        } catch (error) {
+            console.error('❌ Ошибка выполнения запроса:', error);
+            throw error;
+        }
+    }
+
     // Вспомогательные методы для работы с JSON полями
     parseJSONField(field) {
         try {
-            return field ? JSON.parse(field) : [];
+            return field ? (typeof field === 'string' ? JSON.parse(field) : field) : [];
         } catch {
             return [];
         }
@@ -613,7 +654,7 @@ class EnhancedDatabaseService {
     }
 }
 
-const dbService = new EnhancedDatabaseService();
+const dbService = new PostgreSQLDatabaseService();
 
 // ==================== СИСТЕМА АУТЕНТИФИКАЦИИ И СЕССИЙ ====================
 class AuthService {
@@ -1202,13 +1243,13 @@ app.get('/health', async (req, res) => {
         const stats = await dbService.get(`
             SELECT 
                 (SELECT COUNT(*) FROM users) as total_users,
-                (SELECT COUNT(*) FROM users WHERE is_registered = 1) as registered_users,
-                (SELECT COUNT(*) FROM quizzes WHERE is_active = 1) as active_quizzes,
-                (SELECT COUNT(*) FROM marathons WHERE is_active = 1) as active_marathons,
-                (SELECT COUNT(*) FROM shop_items WHERE is_active = 1) as shop_items,
-                (SELECT COUNT(*) FROM interactives WHERE is_active = 1) as interactives,
-                (SELECT COUNT(*) FROM posts WHERE is_published = 1) as posts,
-                (SELECT COUNT(*) FROM admins WHERE is_active = 1) as admins
+                (SELECT COUNT(*) FROM users WHERE is_registered = true) as registered_users,
+                (SELECT COUNT(*) FROM quizzes WHERE is_active = true) as active_quizzes,
+                (SELECT COUNT(*) FROM marathons WHERE is_active = true) as active_marathons,
+                (SELECT COUNT(*) FROM shop_items WHERE is_active = true) as shop_items,
+                (SELECT COUNT(*) FROM interactives WHERE is_active = true) as interactives,
+                (SELECT COUNT(*) FROM posts WHERE is_published = true) as posts,
+                (SELECT COUNT(*) FROM admins WHERE is_active = true) as admins
         `);
 
         const healthInfo = {
@@ -1216,7 +1257,11 @@ app.get('/health', async (req, res) => {
             timestamp: new Date().toISOString(),
             version: '2.0.0',
             environment: process.env.NODE_ENV || 'development',
-            database: stats,
+            database: {
+                type: 'PostgreSQL',
+                connected: dbService.connected,
+                ...stats
+            },
             system: {
                 uptime: process.uptime(),
                 memory: process.memoryUsage(),
@@ -5720,30 +5765,32 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
     console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
     console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
+    console.log(`🗄️ Database: PostgreSQL (${dbService.connected ? 'Connected' : 'Disconnected'})`);
     
-    // Выводим статистику системы
-    try {
-        const stats = await dbService.get(`
-            SELECT 
-                (SELECT COUNT(*) FROM users) as users,
-                (SELECT COUNT(*) FROM quizzes WHERE is_active = 1) as quizzes,
-                (SELECT COUNT(*) FROM marathons WHERE is_active = 1) as marathons,
-                (SELECT COUNT(*) FROM shop_items WHERE is_active = 1) as shop_items,
-                (SELECT COUNT(*) FROM interactives WHERE is_active = 1) as interactives,
-                (SELECT COUNT(*) FROM posts WHERE is_published = 1) as posts,
-                (SELECT COUNT(*) FROM admins WHERE is_active = 1) as admins
-        `);
-        
-        console.log(`🎯 Квизов: ${stats.quizzes}`);
-        console.log(`🏃‍♂️ Марафонов: ${stats.marathons}`);
-        console.log(`🎮 Интерактивов: ${stats.interactives}`);
-        console.log(`🛒 Товаров: ${stats.shop_items}`);
-        console.log(`📝 Постов: ${stats.posts}`);
-        console.log(`👥 Пользователей: ${stats.users}`);
-        console.log(`🔧 Администраторов: ${stats.admins}`);
-        console.log('✅ Все системы работают!');
-        
-    } catch (error) {
-        console.log('⚠️ Не удалось получить статистику системы');
+    if (dbService.connected) {
+        try {
+            const stats = await dbService.get(`
+                SELECT 
+                    (SELECT COUNT(*) FROM users) as users,
+                    (SELECT COUNT(*) FROM quizzes WHERE is_active = true) as quizzes,
+                    (SELECT COUNT(*) FROM marathons WHERE is_active = true) as marathons,
+                    (SELECT COUNT(*) FROM shop_items WHERE is_active = true) as shop_items,
+                    (SELECT COUNT(*) FROM interactives WHERE is_active = true) as interactives,
+                    (SELECT COUNT(*) FROM posts WHERE is_published = true) as posts,
+                    (SELECT COUNT(*) FROM admins WHERE is_active = true) as admins
+            `);
+            
+            console.log(`🎯 Квизов: ${stats.quizzes}`);
+            console.log(`🏃‍♂️ Марафонов: ${stats.marathons}`);
+            console.log(`🎮 Интерактивов: ${stats.interactives}`);
+            console.log(`🛒 Товаров: ${stats.shop_items}`);
+            console.log(`📝 Постов: ${stats.posts}`);
+            console.log(`👥 Пользователей: ${stats.users}`);
+            console.log(`🔧 Администраторов: ${stats.admins}`);
+            console.log('✅ Все системы работают!');
+            
+        } catch (error) {
+            console.log('⚠️ Не удалось получить статистику системы');
+        }
     }
 });
