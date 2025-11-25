@@ -67,9 +67,6 @@ const SPARKS_SYSTEM = {
 
 // ==================== БАЗА ДАННЫХ POSTGRESQL ====================
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
 class SQLiteDatabaseService {
     constructor() {
         this.db = null;
