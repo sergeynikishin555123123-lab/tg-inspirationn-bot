@@ -1329,17 +1329,12 @@ app.post('/api/auth/logout', requireAuth, async (req, res) => {
 });
 
 // ==================== ПОЛНАЯ СИСТЕМА ПОЛЬЗОВАТЕЛЕЙ ====================
-app.get('/api/users/:userId', requireAuth, async (req, res) => {
+// Получение данных пользователя
+app.get('/api/users/:userId', async (req, res) => {
     try {
         const userId = parseInt(req.params.userId);
+        console.log('👤 API Запрос пользователя:', userId);
         
-        if (userId !== req.user.user_id) {
-            return res.status(403).json({ 
-                success: false, 
-                error: 'Доступ запрещен' 
-            });
-        }
-
         const user = await dbService.get(
             "SELECT * FROM users WHERE user_id = ?",
             [userId]
@@ -1352,19 +1347,34 @@ app.get('/api/users/:userId', requireAuth, async (req, res) => {
             });
         }
 
-        const stats = await EnhancedSparksService.getUserStats(userId);
+        // Базовая статистика
+        const stats = {
+            total_quizzes_completed: 0,
+            total_works: 0,
+            approved_works: 0,
+            total_marathons_completed: 0,
+            activityStreak: 0,
+            rank: 1
+        };
 
         res.json({
             success: true,
             user: {
-                ...user,
-                available_buttons: dbService.parseJSONField(user.available_buttons),
-                stats
+                user_id: user.user_id,
+                tg_first_name: user.tg_first_name || 'Пользователь',
+                tg_username: user.tg_username,
+                sparks: user.sparks || 0,
+                level: user.level || 'Ученик',
+                is_registered: user.is_registered || false,
+                class: user.class,
+                character_name: user.character_name,
+                available_buttons: user.available_buttons ? JSON.parse(user.available_buttons) : [],
+                stats: stats
             }
         });
 
     } catch (error) {
-        console.error('Ошибка получения пользователя:', error);
+        console.error('❌ Ошибка получения пользователя:', error);
         res.status(500).json({ 
             success: false, 
             error: 'Ошибка сервера' 
