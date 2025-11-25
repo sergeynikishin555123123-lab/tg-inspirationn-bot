@@ -13,6 +13,8 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
 import os from 'os'; // ← ДОБАВИТЬ ЭТУ СТРОЧКУ
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
 
 dotenv.config();
 
@@ -66,9 +68,6 @@ const SPARKS_SYSTEM = {
 };
 
 // ==================== БАЗА ДАННЫХ POSTGRESQL ====================
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import { join } from 'path';
 
 class SQLiteDatabaseService {
     constructor() {
