@@ -1845,7 +1845,7 @@
     <script>
         // ==================== КОНФИГУРАЦИЯ И ДАННЫЕ ====================
         const CONFIG = {
-            API_BASE_URL: 'https://your-api-domain.com/api',
+            API_BASE_URL: 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-e112.twc1.net/api',
             MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
             MOBILE_MAX_FILE_SIZE: 3 * 1024 * 1024, // 3MB
             CACHE_TTL: 5 * 60 * 1000, // 5 минут
@@ -2336,10 +2336,9 @@
             };
         }
 
-        // ==================== API ФУНКЦИИ ====================
-        class ApiService {
-            static async request(endpoint, options = {}) {
-                const url = `${CONFIG.API_BASE_URL}${endpoint}`;
+       class ApiService {
+    static async request(endpoint, options = {}) {
+        const url = `/api${endpoint}`; // ИСПРАВЛЕННЫЙ ПУТЬ
                 const cacheKey = getCacheKey(endpoint, options.body);
                 
                 // Проверяем кэш для GET запросов
@@ -2670,8 +2669,58 @@
             }
         }
 
-        // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
-        async function initApp() {
+// ==================== API SERVICE ====================
+class ApiService {
+    static async request(endpoint, options = {}) {
+        // Используем относительный путь к нашему серверу
+        const url = `/api${endpoint}`;
+        
+        console.log('📡 API Request:', endpoint, options.method || 'GET');
+        
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                ...options
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            return await response.json();
+            
+        } catch (error) {
+            console.error('❌ API Error:', error);
+            throw error;
+        }
+    }
+    
+    // Методы для работы с пользователями
+    static async getUser(userId) {
+        return this.request(`/users/${userId}`);
+    }
+    
+    static async registerUser(userData) {
+        return this.request('/users/register', {
+            method: 'POST',
+            body: JSON.stringify(userData)
+        });
+    }
+    
+    static async getRoles() {
+        return this.request('/webapp/roles');
+    }
+    
+    static async getCharacters(roleId) {
+        return this.request(`/webapp/characters/${roleId}`);
+    }
+}
+
+// ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
+async function initApp() {
             try {
                 console.log('🚀 Инициализация приложения...');
                 
@@ -2802,26 +2851,55 @@
             }
         }
 
-        async function loadUserData() {
-            try {
-                const userDataElement = document.getElementById('userData');
-                userDataElement.innerHTML = '<div class="loading"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div>Загрузка данных...</div>';
-                
-                const data = await ApiService.getUser(currentUserId);
-                
-                if (data.exists && data.user) {
-                    currentUser = data.user;
-                    showUserData();
-                    loadAvailableButtons();
-                } else {
-                    showWelcomeScreen();
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки пользователя:', error);
-                showMessage('❌ Ошибка загрузки данных', 'error');
-                showWelcomeScreen();
+async function loadUserData() {
+    try {
+        console.log('👤 Загрузка данных пользователя...', currentUserId);
+        
+        // Пробуем загрузить данные с сервера
+        const response = await ApiService.getUser(currentUserId);
+        
+        if (response.success) {
+            console.log('✅ Данные пользователя загружены:', response.user);
+            currentUser = response.user;
+            updateUserInfo();
+            
+            if (!currentUser.is_registered) {
+                showScreen('registration');
+            } else {
+                showScreen('main');
             }
+        } else {
+            throw new Error(response.error);
         }
+        
+    } catch (error) {
+        console.log('⚠️ Используем локальные данные:', error.message);
+        
+        // Локальные тестовые данные
+        currentUser = {
+            user_id: currentUserId,
+            tg_first_name: tg?.initDataUnsafe?.user?.first_name || 'Тестовый',
+            tg_username: tg?.initDataUnsafe?.user?.username || 'test_user',
+            sparks: 45.5,
+            level: 'Искатель',
+            is_registered: false,
+            class: null,
+            character_name: null,
+            available_buttons: ['quiz', 'marathon', 'works', 'shop'],
+            stats: {
+                total_quizzes_completed: 3,
+                total_works: 2,
+                approved_works: 1,
+                total_marathons_completed: 0,
+                activityStreak: 5,
+                rank: 42
+            }
+        };
+        
+        updateUserInfo();
+        showScreen('registration');
+    }
+}
 
         function showUserData() {
             const userDataElement = document.getElementById('userData');
@@ -3362,6 +3440,55 @@
             loadUserData();
         }
 
+function updateUserInfo() {
+    if (!currentUser) return;
+    
+    console.log('🔄 Обновление интерфейса пользователя:', currentUser);
+    
+    // Обновляем искры
+    const sparksElement = document.querySelector('.sparks');
+    if (sparksElement) {
+        sparksElement.textContent = currentUser.sparks.toFixed(1);
+    }
+    
+    // Обновляем уровень
+    const levelElement = document.querySelector('.user-level');
+    if (levelElement) {
+        levelElement.textContent = currentUser.level;
+    }
+    
+    // Обновляем имя
+    const nameElement = document.querySelector('.user-name');
+    if (nameElement) {
+        nameElement.textContent = currentUser.tg_first_name;
+    }
+    
+    // Обновляем статистику на главной
+    updateStatsDisplay();
+}
+
+function updateStatsDisplay() {
+    if (!currentUser?.stats) return;
+    
+    const stats = currentUser.stats;
+    
+    // Обновляем элементы статистики если они есть
+    const elements = {
+        'total-quizzes': stats.total_quizzes_completed,
+        'total-works': stats.total_works,
+        'approved-works': stats.approved_works,
+        'activity-streak': stats.activityStreak,
+        'user-rank': stats.rank
+    };
+    
+    Object.entries(elements).forEach(([className, value]) => {
+        const element = document.querySelector(`.${className}`);
+        if (element) {
+            element.textContent = value;
+        }
+    });
+}
+        
         // ==================== МАРАФОНЫ ====================
         async function loadMarathons() {
             try {
