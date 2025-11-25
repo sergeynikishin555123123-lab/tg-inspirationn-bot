@@ -69,6 +69,14 @@ const SPARKS_SYSTEM = {
 
 // ==================== БАЗА ДАННЫХ POSTGRESQL ====================
 
+import Database from 'better-sqlite3';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { mkdirSync, existsSync } from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 class SQLiteDatabaseService {
     constructor() {
         this.db = null;
@@ -78,14 +86,19 @@ class SQLiteDatabaseService {
 
     async init() {
         try {
-            // Создаем директорию для базы данных если нужно
-            const dbPath = join(process.cwd(), 'data', 'inspiration.db');
+            // Создаем директорию для базы данных
+            const dataDir = join(process.cwd(), 'data');
+            if (!existsSync(dataDir)) {
+                mkdirSync(dataDir, { recursive: true });
+            }
             
-            this.db = await open({
-                filename: dbPath,
-                driver: sqlite3.Database
-            });
-
+            const dbPath = join(dataDir, 'inspiration.db');
+            this.db = new Database(dbPath);
+            
+            // Включаем foreign keys и другие настройки
+            this.db.pragma('journal_mode = WAL');
+            this.db.pragma('foreign_keys = ON');
+            
             this.connected = true;
             console.log('✅ SQLite база данных подключена успешно');
             
@@ -94,17 +107,15 @@ class SQLiteDatabaseService {
             
         } catch (error) {
             console.error('❌ Ошибка подключения к SQLite:', error);
-            // Пробуем создать в памяти как fallback
+            // Fallback на in-memory базу
             await this.initializeInMemoryDatabase();
         }
     }
 
     async initializeInMemoryDatabase() {
         try {
-            this.db = await open({
-                filename: ':memory:',
-                driver: sqlite3.Database
-            });
+            this.db = new Database(':memory:');
+            this.db.pragma('foreign_keys = ON');
             this.connected = true;
             console.log('✅ In-memory SQLite база данных создана');
             
@@ -121,14 +132,14 @@ class SQLiteDatabaseService {
             `
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id BIGINT UNIQUE NOT NULL,
+                user_id INTEGER UNIQUE NOT NULL,
                 tg_first_name TEXT NOT NULL,
                 tg_username TEXT,
                 email TEXT UNIQUE,
                 phone TEXT,
                 sparks REAL DEFAULT 0,
                 level TEXT DEFAULT 'Ученик',
-                is_registered BOOLEAN DEFAULT FALSE,
+                is_registered BOOLEAN DEFAULT 0,
                 class TEXT,
                 character_id INTEGER,
                 character_name TEXT,
@@ -136,10 +147,10 @@ class SQLiteDatabaseService {
                 registration_date DATETIME DEFAULT CURRENT_TIMESTAMP,
                 last_active DATETIME DEFAULT CURRENT_TIMESTAMP,
                 status TEXT DEFAULT 'active',
-                invited_by BIGINT,
+                invited_by INTEGER,
                 invite_count INTEGER DEFAULT 0,
                 total_invited INTEGER DEFAULT 0,
-                is_active BOOLEAN DEFAULT TRUE
+                is_active BOOLEAN DEFAULT 1
             )
             `,
             
@@ -151,7 +162,7 @@ class SQLiteDatabaseService {
                 description TEXT,
                 icon TEXT,
                 available_buttons TEXT DEFAULT '[]',
-                is_active BOOLEAN DEFAULT TRUE,
+                is_active BOOLEAN DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 color TEXT,
                 display_order INTEGER DEFAULT 0
@@ -167,7 +178,7 @@ class SQLiteDatabaseService {
                 description TEXT,
                 bonus_type TEXT NOT NULL,
                 bonus_value TEXT NOT NULL,
-                is_active BOOLEAN DEFAULT TRUE,
+                is_active BOOLEAN DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 image_url TEXT,
                 personality TEXT,
@@ -186,8 +197,8 @@ class SQLiteDatabaseService {
                 sparks_per_correct REAL DEFAULT 1,
                 sparks_perfect_bonus INTEGER DEFAULT 5,
                 cooldown_hours INTEGER DEFAULT 24,
-                allow_retake BOOLEAN DEFAULT TRUE,
-                is_active BOOLEAN DEFAULT TRUE,
+                allow_retake BOOLEAN DEFAULT 1,
+                is_active BOOLEAN DEFAULT 1,
                 difficulty TEXT DEFAULT 'beginner',
                 estimated_time INTEGER,
                 category TEXT,
@@ -201,13 +212,13 @@ class SQLiteDatabaseService {
             `
             CREATE TABLE IF NOT EXISTS quiz_completions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id BIGINT NOT NULL,
+                user_id INTEGER NOT NULL,
                 quiz_id INTEGER NOT NULL,
                 completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 score INTEGER NOT NULL,
                 total_questions INTEGER NOT NULL,
                 sparks_earned REAL NOT NULL,
-                perfect_score BOOLEAN DEFAULT FALSE,
+                perfect_score BOOLEAN DEFAULT 0,
                 time_spent INTEGER,
                 answers TEXT,
                 speed_bonus REAL DEFAULT 0,
@@ -226,7 +237,7 @@ class SQLiteDatabaseService {
                 days TEXT NOT NULL,
                 completion_reward INTEGER DEFAULT 0,
                 start_date DATETIME,
-                is_active BOOLEAN DEFAULT TRUE,
+                is_active BOOLEAN DEFAULT 1,
                 difficulty TEXT DEFAULT 'beginner',
                 category TEXT,
                 tags TEXT DEFAULT '[]',
@@ -243,11 +254,11 @@ class SQLiteDatabaseService {
             `
             CREATE TABLE IF NOT EXISTS marathon_completions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id BIGINT NOT NULL,
+                user_id INTEGER NOT NULL,
                 marathon_id INTEGER NOT NULL,
                 current_day INTEGER DEFAULT 1,
                 progress INTEGER DEFAULT 0,
-                completed BOOLEAN DEFAULT FALSE,
+                completed BOOLEAN DEFAULT 0,
                 started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
                 total_sparks_earned REAL DEFAULT 0,
@@ -270,7 +281,7 @@ class SQLiteDatabaseService {
                 price REAL NOT NULL,
                 content_text TEXT,
                 embed_html TEXT,
-                is_active BOOLEAN DEFAULT TRUE,
+                is_active BOOLEAN DEFAULT 1,
                 category TEXT,
                 difficulty TEXT,
                 estimated_duration TEXT,
@@ -287,7 +298,7 @@ class SQLiteDatabaseService {
             `
             CREATE TABLE IF NOT EXISTS purchases (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id BIGINT NOT NULL,
+                user_id INTEGER NOT NULL,
                 item_id INTEGER NOT NULL,
                 price_paid REAL NOT NULL,
                 purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -303,7 +314,7 @@ class SQLiteDatabaseService {
             `
             CREATE TABLE IF NOT EXISTS activities (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id BIGINT NOT NULL,
+                user_id INTEGER NOT NULL,
                 activity_type TEXT NOT NULL,
                 sparks_earned REAL NOT NULL,
                 description TEXT NOT NULL,
@@ -326,7 +337,7 @@ class SQLiteDatabaseService {
                 media_urls TEXT DEFAULT '[]',
                 allowed_actions TEXT DEFAULT '[]',
                 reward REAL DEFAULT 0,
-                is_published BOOLEAN DEFAULT TRUE,
+                is_published BOOLEAN DEFAULT 1,
                 views_count INTEGER DEFAULT 0,
                 likes_count INTEGER DEFAULT 0,
                 comments_count INTEGER DEFAULT 0,
@@ -335,7 +346,7 @@ class SQLiteDatabaseService {
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 tags TEXT DEFAULT '[]',
                 category TEXT,
-                author_id BIGINT
+                author_id INTEGER
             )
             `,
             
@@ -343,7 +354,7 @@ class SQLiteDatabaseService {
             `
             CREATE TABLE IF NOT EXISTS user_works (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id BIGINT NOT NULL,
+                user_id INTEGER NOT NULL,
                 title TEXT NOT NULL,
                 description TEXT,
                 image_url TEXT NOT NULL,
@@ -351,7 +362,7 @@ class SQLiteDatabaseService {
                 status TEXT DEFAULT 'pending',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 moderated_at DATETIME,
-                moderator_id BIGINT,
+                moderator_id INTEGER,
                 admin_comment TEXT,
                 likes_count INTEGER DEFAULT 0,
                 comments_count INTEGER DEFAULT 0,
@@ -374,8 +385,8 @@ class SQLiteDatabaseService {
                 options TEXT DEFAULT '[]',
                 correct_answer INTEGER,
                 sparks_reward INTEGER DEFAULT 3,
-                allow_retake BOOLEAN DEFAULT FALSE,
-                is_active BOOLEAN DEFAULT TRUE,
+                allow_retake BOOLEAN DEFAULT 0,
+                is_active BOOLEAN DEFAULT 1,
                 difficulty TEXT DEFAULT 'beginner',
                 estimated_time INTEGER,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -399,7 +410,7 @@ class SQLiteDatabaseService {
 
         for (const tableSQL of tables) {
             try {
-                await this.db.exec(tableSQL);
+                this.db.exec(tableSQL);
             } catch (error) {
                 console.error('Ошибка создания таблицы:', error.message);
             }
@@ -411,10 +422,22 @@ class SQLiteDatabaseService {
     async initializeDefaultData() {
         try {
             // Проверяем, есть ли уже данные
-            const rolesCount = await this.get("SELECT COUNT(*) as count FROM roles");
+            const rolesCount = this.db.prepare("SELECT COUNT(*) as count FROM roles").get();
             
             if (rolesCount.count === 0) {
                 console.log('🔄 Инициализация базы данных с тестовыми данными...');
+
+                // Системные настройки
+                const systemSettings = [
+                    ['systemName', 'Мастерская Вдохновения', 'Название системы'],
+                    ['registrationReward', '10', 'Награда за регистрацию'],
+                    ['dailyBonus', '5', 'Ежедневный бонус']
+                ];
+
+                const insertSetting = this.db.prepare("INSERT OR IGNORE INTO system_settings (key, value, description) VALUES (?, ?, ?)");
+                for (const [key, value, description] of systemSettings) {
+                    insertSetting.run(key, value, description);
+                }
 
                 // Роли
                 const roles = [
@@ -424,11 +447,9 @@ class SQLiteDatabaseService {
                     ['Историки', 'Знатоки истории искусств и культуры', '🏛️', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#96CEB4', 4]
                 ];
 
+                const insertRole = this.db.prepare("INSERT OR IGNORE INTO roles (name, description, icon, available_buttons, color, display_order) VALUES (?, ?, ?, ?, ?, ?)");
                 for (const role of roles) {
-                    await this.run(
-                        "INSERT INTO roles (name, description, icon, available_buttons, color, display_order) VALUES (?, ?, ?, ?, ?, ?)",
-                        role
-                    );
+                    insertRole.run(...role);
                 }
 
                 // Персонажи
@@ -440,48 +461,21 @@ class SQLiteDatabaseService {
                     [4, 'София Хроник', 'Искусствовед и историк культуры', 'secret_advice', '2weeks', '/images/characters/sofia.jpg', 'Эрудированная, рассказчик', 'Мудрые советы']
                 ];
 
+                const insertCharacter = this.db.prepare("INSERT OR IGNORE INTO characters (role_id, name, description, bonus_type, bonus_value, image_url, personality, special_ability) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                 for (const character of characters) {
-                    await this.run(
-                        "INSERT INTO characters (role_id, name, description, bonus_type, bonus_value, image_url, personality, special_ability) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        character
-                    );
+                    insertCharacter.run(...character);
                 }
 
-                // Тестовые квизы
-                const quizzes = [
-                    ['Основы композиции', 'Проверьте свои знания основ композиции в искусстве', JSON.stringify([
-                        {
-                            question: "Что такое правило третей?",
-                            options: [
-                                "Разделение изображения на 9 равных частей",
-                                "Использование только трех цветов", 
-                                "Создание трехмерного эффекта",
-                                "Ограничение тремя объектами на изображении"
-                            ],
-                            correctAnswer: 0,
-                            explanation: "Правило третей помогает создавать гармоничные композиции"
-                        }
-                    ]), 2, 5, 24, true, 'beginner', 10, 'art']
+                // Тестовые пользователи
+                const testUsers = [
+                    [12345, 'Тестовый Пользователь', 'test_user', 45.5, 'Искатель', 'Художники', 1, 'Лука Цветной'],
+                    [898508164, 'Администратор', 'admin', 250.0, 'Мастер', 'Художники', 1, 'Лука Цветной']
                 ];
 
-                for (const quiz of quizzes) {
-                    await this.run(
-                        "INSERT INTO quizzes (title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake, difficulty, estimated_time, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        quiz
-                    );
-                }
-
-                // Тестовые товары магазина
-                const shopItems = [
-                    ['Основы живописи', 'Полный курс по основам живописи для начинающих', 'video', 'https://example.com/video1', 'https://via.placeholder.com/300x200/667eea/ffffff?text=Курс+живописи', 50, 'В этом курсе вы узнаете все основы живописи...'],
-                    ['Галерея текстур', 'Коллекция высококачественных текстур для ваших работ', 'image', 'https://example.com/textures.zip', 'https://via.placeholder.com/300x200/764ba2/ffffff?text=Текстуры', 30, 'Более 100 уникальных текстур в высоком разрешении.']
-                ];
-
-                for (const item of shopItems) {
-                    await this.run(
-                        "INSERT INTO shop_items (title, description, type, file_url, preview_url, price, content_text) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        item
-                    );
+                const insertUser = this.db.prepare(`INSERT OR IGNORE INTO users (user_id, tg_first_name, tg_username, sparks, level, class, character_id, character_name, is_registered, available_buttons) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`);
+                for (const user of testUsers) {
+                    insertUser.run(...user, '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]');
                 }
 
                 console.log('✅ База данных инициализирована с тестовыми данными');
@@ -493,7 +487,8 @@ class SQLiteDatabaseService {
 
     async run(sql, params = []) {
         try {
-            const result = await this.db.run(sql, params);
+            const stmt = this.db.prepare(sql);
+            const result = stmt.run(...params);
             return result;
         } catch (error) {
             console.error('❌ Ошибка выполнения запроса:', error);
@@ -503,7 +498,8 @@ class SQLiteDatabaseService {
 
     async get(sql, params = []) {
         try {
-            const result = await this.db.get(sql, params);
+            const stmt = this.db.prepare(sql);
+            const result = stmt.get(...params);
             return result || null;
         } catch (error) {
             console.error('❌ Ошибка выполнения запроса:', error);
@@ -513,7 +509,8 @@ class SQLiteDatabaseService {
 
     async all(sql, params = []) {
         try {
-            const result = await this.db.all(sql, params);
+            const stmt = this.db.prepare(sql);
+            const result = stmt.all(...params);
             return result;
         } catch (error) {
             console.error('❌ Ошибка выполнения запроса:', error);
@@ -536,7 +533,6 @@ class SQLiteDatabaseService {
 }
 
 const dbService = new SQLiteDatabaseService();
-
 // ==================== СИСТЕМА АУТЕНТИФИКАЦИИ И СЕССИЙ ====================
 class AuthService {
     static generateSessionToken() {
