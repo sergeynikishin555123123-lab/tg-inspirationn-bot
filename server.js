@@ -926,8 +926,8 @@ app.use(express.static(join(APP_ROOT, 'public'), {
     }
 }));
 
-// Serve admin static files
-app.use('/admin', express.static(join(APP_ROOT, 'admin'), {
+// Serve admin static files - исправленный путь
+app.use('/admin', express.static(join(APP_ROOT, 'public'), {
     maxAge: '1d',
     setHeaders: (res, path, stat) => {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -936,6 +936,29 @@ app.use('/admin', express.static(join(APP_ROOT, 'admin'), {
         res.setHeader('Access-Control-Allow-Origin', '*');
     }
 }));
+
+// Роут для админки - отдаем admin.html
+app.get('/admin', (req, res) => {
+    const filePath = join(process.cwd(), 'public', 'admin.html');
+    if (!existsSync(filePath)) {
+        return res.status(404).json({ 
+            success: false,
+            error: 'Админка не найдена'
+        });
+    }
+    res.sendFile(filePath);
+});
+
+app.get('/admin/*', (req, res) => {
+    const filePath = join(process.cwd(), 'public', 'admin.html');
+    if (!existsSync(filePath)) {
+        return res.status(404).json({ 
+            success: false,
+            error: 'Админка не найдена'
+        });
+    }
+    res.sendFile(filePath);
+});
 
 // Serve uploads
 app.use('/uploads', express.static(uploadsDir, {
@@ -1025,7 +1048,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/admin', (req, res) => {
-    const filePath = join(APP_ROOT, 'admin', 'index.html');
+    const filePath = join(process.cwd(), 'public', 'admin.html');
     if (!existsSync(filePath)) {
         return res.status(404).json({ 
             success: false,
