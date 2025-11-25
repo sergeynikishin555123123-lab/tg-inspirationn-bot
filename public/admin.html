@@ -5731,14 +5731,26 @@ async function initAdminPanel() {
 
         // ===== ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ =====
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Admin DOM полностью загружен');
             initAdminPanel();
             
             // Обработчики для динамических элементов
-            document.getElementById('shopItemType').addEventListener('change', updateShopFormVisibility);
+            const shopItemType = document.getElementById('shopItemType');
+            if (shopItemType) {
+                shopItemType.addEventListener('change', updateShopFormVisibility);
+            }
             
             // Ленивая загрузка для оптимизации
             setupLazyLoading();
         });
+
+        // Резервная инициализация для админ-панели
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAdminPanel);
+        } else {
+            console.log('🚀 Admin DOM уже загружен, запускаем инициализацию');
+            setTimeout(initAdminPanel, 50);
+        }
 
         // ===== ОПТИМИЗАЦИЯ: ЛЕНИВАЯ ЗАГРУЗКА =====
         function setupLazyLoading() {
