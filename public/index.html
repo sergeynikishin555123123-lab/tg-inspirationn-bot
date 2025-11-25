@@ -3173,20 +3173,65 @@ async function initApp() {
         // Проверка элементов DOM
         checkRequiredElements();
         
-        // ... существующий код initApp ...
+        // Инициализация Telegram WebApp
+        if (typeof Telegram === 'undefined') {
+            console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
+            tg = {
+                initDataUnsafe: {
+                    user: { id: 898508164, first_name: 'Тестовый' },
+                    start_param: null
+                },
+                expand: () => console.log('📱 Expand'),
+                enableClosingConfirmation: () => console.log('🔒 Closing confirmation'),
+                platform: 'web'
+            };
+        } else {
+            tg = window.Telegram.WebApp;
+            tg.expand();
+            tg.enableClosingConfirmation();
+        }
+        
+        currentUserId = tg.initDataUnsafe.user?.id || 
+                      tg.initDataUnsafe.start_param?.replace('ref_', '') || 
+                      898508164;
+        
+        console.log('👤 User ID:', currentUserId);
+        console.log('📱 Platform:', tg.platform);
+        
+        // Инициализация тестовых данных
+        userActivities = [
+            {
+                id: 1,
+                description: "Зарегистрировались в системе",
+                sparks_earned: 10,
+                created_at: new Date().toISOString()
+            }
+        ];
         
         await loadUserData();
         initDrawingCanvas();
         setupEventListeners();
         
-        // Финальная отладка
+        // Финальная отладка и ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ
         setTimeout(() => {
-            console.log('🎯 ФИНАЛЬНАЯ ПРОВЕРКА:');
+            console.log('🎯 ФИНАЛЬНАЯ ПРОВЕРКА И ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ');
             debugUserInterface();
             
-            // ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇ ДОБАВЬТЕ ЭТО ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇
-            // Запускаем тест функции showUserData
-            setTimeout(testShowUserData, 300);
+            // ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇ ЗАМЕНИТЕ НА ЭТО ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇
+            // ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
+            if (currentUser) {
+                console.log('🔧 Принудительно обновляем интерфейс');
+                updateUserInfo();
+                
+                // Дополнительная проверка через секунду
+                setTimeout(() => {
+                    const userDataContent = document.getElementById('userData')?.innerHTML;
+                    if (userDataContent?.includes('loading')) {
+                        console.log('🚨 Интерфейс все еще в состоянии загрузки! Запускаем аварийное обновление');
+                        emergencyUpdateInterface();
+                    }
+                }, 1000);
+            }
             // ⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆ ДО ЭТОГО МЕСТА ⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆
         }, 500);
         
@@ -3220,6 +3265,14 @@ function showScreen(screenName) {
         
         // Показываем целевой экран
         targetScreen.classList.add('active');
+        
+        // ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇ ДОБАВЬТЕ ЭТО ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇
+        // ОБНОВЛЯЕМ ИНТЕРФЕЙС ПРИ ПЕРЕКЛЮЧЕНИИ НА ГЛАВНЫЙ ЭКРАН
+        if (screenName === 'mainScreen' && currentUser) {
+            console.log('🔄 Обновляем интерфейс при показе главного экрана');
+            setTimeout(updateUserInfo, 50); // Небольшая задержка для гарантии
+        }
+        // ⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆ ДО ЭТОГО МЕСТА ⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆
         
         // Загружаем данные для экрана
         switch(screenName) {
@@ -3260,11 +3313,21 @@ function showScreen(screenName) {
         console.error('❌ Ошибка переключения экрана:', error);
     }
 }
-
 // ==================== ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ====================
 async function loadUserData() {
     try {
         console.log('👤 Загрузка данных пользователя...', currentUserId);
+        
+        // СРАЗУ показываем состояние загрузки
+        const userDataElement = document.getElementById('userData');
+        if (userDataElement) {
+            userDataElement.innerHTML = `
+                <div class="loading">
+                    <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                    Загрузка данных...
+                </div>
+            `;
+        }
         
         // Пробуем загрузить данные с сервера
         const response = await ApiService.getUser(currentUserId);
@@ -3275,21 +3338,8 @@ async function loadUserData() {
             console.log('✅ Данные пользователя загружены:', response.user);
             currentUser = response.user;
             
-            // ПРОВЕРКА: какие данные мы получили
-            console.log('🔍 ПРОВЕРКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ:', {
-                hasName: !!currentUser.tg_first_name,
-                name: currentUser.tg_first_name,
-                hasLevel: !!currentUser.level,
-                level: currentUser.level,
-                hasClass: !!currentUser.class,
-                class: currentUser.class,
-                hasCharacter: !!currentUser.character_name,
-                character: currentUser.character_name,
-                isRegistered: currentUser.is_registered,
-                sparks: currentUser.sparks
-            });
-            
-            // ОБНОВЛЯЕМ ИНТЕРФЕЙС СРАЗУ
+            // СРАЗУ ОБНОВЛЯЕМ ИНТЕРФЕЙС ПЕРЕД ПЕРЕКЛЮЧЕНИЕМ ЭКРАНОВ
+            console.log('🎨 НЕМЕДЛЕННО обновляем интерфейс');
             updateUserInfo();
             
             // Проверяем регистрацию пользователя и показываем соответствующий экран
@@ -3308,16 +3358,16 @@ async function loadUserData() {
     } catch (error) {
         console.log('⚠️ Используем локальные данные:', error.message);
         
-        // Локальные тестовые данные с ПРАВИЛЬНЫМИ значениями
+        // Локальные тестовые данные
         currentUser = {
             user_id: currentUserId,
-            tg_first_name: 'Тестовый Пользователь', // ⬅️ Убедимся что есть имя
+            tg_first_name: 'Тестовый Пользователь',
             tg_username: 'test_user',
             sparks: 45.5,
-            level: 'Искатель', // ⬅️ Убедимся что есть уровень
-            is_registered: true, // ⬅️ Сделаем зарегистрированным для теста
-            class: 'Художник', // ⬅️ Убедимся что есть класс
-            character_name: 'Импрессионист', // ⬅️ Убедимся что есть персонаж
+            level: 'Искатель',
+            is_registered: true,
+            class: 'Художник',
+            character_name: 'Импрессионист',
             available_buttons: ['quiz', 'marathon', 'works', 'shop'],
             stats: {
                 total_quizzes_completed: 3,
@@ -3331,7 +3381,8 @@ async function loadUserData() {
         
         console.log('🎯 Используем тестовые данные:', currentUser);
         
-        // ОБНОВЛЯЕМ ИНТЕРФЕЙС СРАЗУ
+        // СРАЗУ ОБНОВЛЯЕМ ИНТЕРФЕЙС ПЕРЕД ПЕРЕКЛЮЧЕНИЕМ ЭКРАНОВ
+        console.log('🎨 НЕМЕДЛЕННО обновляем интерфейс (локальные данные)');
         updateUserInfo();
         
         // Показываем главный экран для теста
@@ -5260,7 +5311,7 @@ function emergencyUpdateInterface() {
 }
 
 // Вызовите эту функцию из консоли браузера для принудительного обновления
-// emergencyUpdateInterface();
+emergencyUpdateInterface();
     </script>
 </body>
 </html>
