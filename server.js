@@ -21,7 +21,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const APP_ROOT = process.cwd();
+const APP_ROOT = process.env.NODE_ENV === 'production' ? '/tmp' : process.cwd();
 
 // ==================== КОНСТАНТЫ И НАСТРОЙКИ ====================
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
