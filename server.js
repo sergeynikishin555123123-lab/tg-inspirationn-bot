@@ -3,18 +3,16 @@ import TelegramBot from 'node-telegram-bot-api';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path'; // Объединяем все импорты из path
 import { readdirSync, existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'fs';
 import dotenv from 'dotenv';
 import multer from 'multer';
-import path from 'path';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
-import os from 'os'; // ← ДОБАВИТЬ ЭТУ СТРОЧКУ
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import Database from 'better-sqlite3'; // Убедитесь что это единственный импорт базы данных
+import os from 'os';
 
 dotenv.config();
 
@@ -68,11 +66,6 @@ const SPARKS_SYSTEM = {
 };
 
 // ==================== БАЗА ДАННЫХ POSTGRESQL ====================
-
-import Database from 'better-sqlite3';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { mkdirSync, existsSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
