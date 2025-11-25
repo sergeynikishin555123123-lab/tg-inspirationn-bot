@@ -4,7 +4,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readdirSync, existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { readdirSync, existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'fs';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import path from 'path';
@@ -13,6 +13,7 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
 import pkg from 'pg';
+import os from 'os'; // ← ДОБАВИТЬ ЭТУ СТРОЧКУ
 const { Client } = pkg;
 
 dotenv.config();
@@ -928,14 +929,51 @@ class EnhancedSparksService {
 }
 
 // ==================== СИСТЕМА ФАЙЛОВ И ЗАГРУЗКИ ====================
-const uploadsDir = join(APP_ROOT, 'uploads');
+import os from 'os';
+
+const getUploadsDir = () => {
+    // Пробуем разные возможные директории в порядке приоритета
+    const possibleDirs = [
+        join(process.cwd(), 'uploads'), // Текущая рабочая директория
+        join('/tmp', 'inspiration-uploads'), // Временная директория
+        join(os.tmpdir(), 'inspiration-uploads'), // Системная временная директория
+        join(process.env.HOME || '/tmp', 'uploads') // Домашняя директория
+    ];
+    
+    for (const dir of possibleDirs) {
+        try {
+            if (!existsSync(dir)) {
+                mkdirSync(dir, { recursive: true });
+            }
+            // Проверяем возможность записи
+            const testFile = join(dir, 'test-write.txt');
+            writeFileSync(testFile, 'test');
+            unlinkSync(testFile);
+            console.log(`✅ Директория для загрузок: ${dir}`);
+            return dir;
+        } catch (error) {
+            console.log(`⚠️ Директория ${dir} недоступна: ${error.message}`);
+            continue;
+        }
+    }
+    
+    throw new Error('Нет доступной директории для загрузки файлов');
+};
+
+const uploadsDir = getUploadsDir();
 const imagesDir = join(uploadsDir, 'images');
 const videosDir = join(uploadsDir, 'videos');
 const documentsDir = join(uploadsDir, 'documents');
 
-[uploadsDir, imagesDir, videosDir, documentsDir].forEach(dir => {
+// Создаем поддиректории
+[imagesDir, videosDir, documentsDir].forEach(dir => {
     if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
+        try {
+            mkdirSync(dir, { recursive: true });
+            console.log(`✅ Создана директория: ${dir}`);
+        } catch (error) {
+            console.error(`❌ Ошибка создания директории ${dir}:`, error.message);
+        }
     }
 });
 
