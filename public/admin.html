@@ -933,1030 +933,1089 @@
             color: #4a5568;
             font-size: 14px;
         }
+        
+        /* ===== АУТЕНТИФИКАЦИЯ ===== */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .login-form {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .login-form h2 {
+            margin-bottom: 24px;
+            color: #2d3748;
+        }
+        
+        .login-form .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+        }
+        
+        .admin-only {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Заголовок -->
-        <div class="header">
-            <div class="admin-header">
-                <div>
-                    <h1 style="margin-bottom: 8px;">🎨 Админ панель</h1>
-                    <p style="color: #718096; margin: 0;">Мастерская Вдохновения - Управление системой</p>
-                </div>
-                <div class="admin-actions">
-                    <button class="refresh-btn" onclick="loadAllData()">
-                        🔄 Обновить
-                    </button>
-                    <div style="color: #718096; font-size: 14px;">
-                        ID: <span id="adminId">-</span>
-                    </div>
-                </div>
+    <!-- Форма входа -->
+    <div id="loginContainer" class="login-container">
+        <div class="login-form">
+            <h2>🔐 Вход в админ-панель</h2>
+            <div class="form-group">
+                <label class="form-label">ID администратора:</label>
+                <input type="text" id="adminIdInput" class="form-control" placeholder="Введите ваш ID">
             </div>
+            <div class="form-group">
+                <label class="form-label">Ключ доступа:</label>
+                <input type="password" id="adminKeyInput" class="form-control" placeholder="Введите ключ доступа">
+            </div>
+            <button class="btn login-btn" onclick="loginAdmin()">🚀 Войти в систему</button>
+            <div id="loginMessage" style="margin-top: 16px;"></div>
         </div>
+    </div>
 
-        <!-- Навигация -->
-        <div class="nav-tabs">
-            <div class="nav-tab active" onclick="showTab('dashboard')">📊 Дашборд</div>
-            <div class="nav-tab" onclick="showTab('users')">👥 Пользователи</div>
-            <div class="nav-tab" onclick="showTab('roles')">🎭 Роли</div>
-            <div class="nav-tab" onclick="showTab('characters')">👤 Персонажи</div>
-            <div class="nav-tab" onclick="showTab('quizzes')">🎯 Квизы</div>
-            <div class="nav-tab" onclick="showTab('marathons')">🏃‍♂️ Марафоны</div>
-            <div class="nav-tab" onclick="showTab('interactives')">🎮 Интерактивы</div>
-            <div class="nav-tab" onclick="showTab('shop')">🛒 Магазин</div>
-            <div class="nav-tab" onclick="showTab('posts')">📰 Посты</div>
-            <div class="nav-tab" onclick="showTab('moderation')">⚖️ Модерация</div>
-            <div class="nav-tab" onclick="showTab('admins')">🔧 Админы</div>
-            <div class="nav-tab" onclick="showTab('settings')">⚙️ Настройки</div>
-        </div>
-
-        <!-- Дашборд -->
-        <div id="dashboard" class="tab-content active">
-            <div class="card">
-                <h2 style="margin-bottom: 24px;">📊 Общая статистика</h2>
-                <div class="stats-grid" id="statsGrid">
-                    <div class="loading">Загрузка статистики...</div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3 style="margin-bottom: 20px;">📈 Аналитика активности</h3>
-                <div class="chart-container">
-                    <div class="chart-placeholder" id="activityChart">
-                        График активности пользователей
+    <!-- Основной контент админ-панели -->
+    <div id="adminPanel" class="admin-only">
+        <div class="container">
+            <!-- Заголовок -->
+            <div class="header">
+                <div class="admin-header">
+                    <div>
+                        <h1 style="margin-bottom: 8px;">🎨 Админ панель</h1>
+                        <p style="color: #718096; margin: 0;">Мастерская Вдохновения - Управление системой</p>
                     </div>
-                </div>
-                <div class="chart-container">
-                    <div class="chart-placeholder" id="sparksChart">
-                        График распределения искр
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3 style="margin-bottom: 20px;">🚀 Быстрые действия</h3>
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="showTab('quizzes')">➕ Создать квиз</button>
-                    <button class="btn btn-info" onclick="showTab('marathons')">➕ Создать марафон</button>
-                    <button class="btn btn-warning" onclick="showTab('interactives')">➕ Создать интерактив</button>
-                    <button class="btn" onclick="showTab('shop')">➕ Добавить товар</button>
-                    <button class="btn btn-success" onclick="showTab('posts')">➕ Создать пост</button>
-                    <button class="btn btn-info" onclick="showTab('settings')">⚙️ Настройки системы</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Пользователи -->
-        <div id="users" class="tab-content">
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">👥 Управление пользователями</h2>
-                
-                <div class="filters">
-                    <div class="search-box">
-                        <input type="text" id="userSearch" class="search-input" placeholder="Поиск пользователей..." oninput="filterUsers()">
-                    </div>
-                    <select class="filter-select" id="roleFilter" onchange="filterUsers()">
-                        <option value="">Все роли</option>
-                    </select>
-                    <select class="filter-select" id="levelFilter" onchange="filterUsers()">
-                        <option value="">Все уровни</option>
-                        <option value="Ученик">Ученик</option>
-                        <option value="Искатель">Искатель</option>
-                        <option value="Знаток">Знаток</option>
-                        <option value="Мастер">Мастер</option>
-                        <option value="Наставник">Наставник</option>
-                    </select>
-                    <select class="filter-select" id="statusFilter" onchange="filterUsers()">
-                        <option value="">Все статусы</option>
-                        <option value="active">Активные</option>
-                        <option value="inactive">Неактивные</option>
-                    </select>
-                    <button class="export-btn" onclick="exportUsers()">
-                        📊 Экспорт в CSV
-                    </button>
-                </div>
-
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="showBulkSparksModal()">✨ Массовое начисление искр</button>
-                    <button class="btn btn-warning" onclick="showBulkNotificationModal()">📢 Массовая рассылка</button>
-                </div>
-
-                <div id="usersList" class="loading">
-                    Загрузка пользователей...
-                </div>
-
-                <!-- Пагинация -->
-                <div class="pagination" id="usersPagination"></div>
-            </div>
-        </div>
-
-        <!-- Роли -->
-        <div id="roles" class="tab-content">
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">🎭 Управление ролями</h2>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="showRoleForm()">➕ Добавить роль</button>
-                </div>
-
-                <div id="rolesList" class="loading">
-                    Загрузка ролей...
-                </div>
-
-                <!-- Форма создания/редактирования роли -->
-                <div id="roleForm" class="card" style="display: none;">
-                    <h3 id="roleFormTitle" style="margin-bottom: 20px;">Добавление новой роли</h3>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Название роли:</label>
-                        <input type="text" id="roleName" class="form-control" placeholder="Например: Художники">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Описание:</label>
-                        <textarea id="roleDescription" class="form-control" rows="3" placeholder="Описание роли..."></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Иконка:</label>
-                        <input type="text" id="roleIcon" class="form-control" placeholder="🎨" value="🎨">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Доступные кнопки:</label>
-                        <div class="buttons-grid" id="roleButtons">
-                            <!-- Кнопки загружаются динамически -->
+                    <div class="admin-actions">
+                        <button class="refresh-btn" onclick="loadAllData()">
+                            🔄 Обновить
+                        </button>
+                        <div style="color: #718096; font-size: 14px;">
+                            ID: <span id="currentAdminId">-</span>
                         </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">
-                            <input type="checkbox" id="roleActive" checked> Активная роль
-                        </label>
-                    </div>
-                    
-                    <div class="action-buttons">
-                        <button class="btn btn-success" onclick="saveRole()">💾 Сохранить роль</button>
-                        <button class="btn btn-danger" onclick="hideRoleForm()">❌ Отмена</button>
+                        <button class="btn btn-danger" onclick="logoutAdmin()">🚪 Выйти</button>
                     </div>
                 </div>
-
-                <!-- Пагинация -->
-                <div class="pagination" id="rolesPagination"></div>
-            </div>
-        </div>
-
-        <!-- Персонажи -->
-        <div id="characters" class="tab-content">
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">👤 Управление персонажами</h2>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="showCharacterForm()">➕ Добавить персонажа</button>
-                </div>
-
-                <div id="charactersList" class="loading">
-                    Загрузка персонажей...
-                </div>
-
-                <!-- Форма создания/редактирования персонажа -->
-                <div id="characterForm" class="card" style="display: none;">
-                    <h3 id="characterFormTitle" style="margin-bottom: 20px;">Добавление нового персонажа</h3>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Роль:</label>
-                        <select id="characterRole" class="form-control">
-                            <option value="">Выберите роль</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Имя персонажа:</label>
-                        <input type="text" id="characterName" class="form-control" placeholder="Например: Лука Цветной">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Описание:</label>
-                        <textarea id="characterDescription" class="form-control" rows="3" placeholder="Описание персонажа..."></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Тип бонуса:</label>
-                        <select id="characterBonusType" class="form-control">
-                            <option value="percent_bonus">Процентный бонус к наградам</option>
-                            <option value="forgiveness">Право на ошибку</option>
-                            <option value="random_gift">Случайный подарок</option>
-                            <option value="secret_advice">Секретные советы</option>
-                            <option value="series_bonus">Бонус к серийным наградам</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Значение бонуса:</label>
-                        <input type="text" id="characterBonusValue" class="form-control" placeholder="Например: 10">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">
-                            <input type="checkbox" id="characterActive" checked> Активный персонаж
-                        </label>
-                    </div>
-                    
-                    <div class="action-buttons">
-                        <button class="btn btn-success" onclick="saveCharacter()">💾 Сохранить персонажа</button>
-                        <button class="btn btn-danger" onclick="hideCharacterForm()">❌ Отмена</button>
-                    </div>
-                </div>
-
-                <!-- Пагинация -->
-                <div class="pagination" id="charactersPagination"></div>
-            </div>
-        </div>
-
-        <!-- Квизы -->
-        <div id="quizzes" class="tab-content">
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">🎯 Управление квизами</h2>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="showQuizForm()">➕ Создать квиз</button>
-                </div>
-
-                <div id="quizzesList" class="loading">
-                    Загрузка квизов...
-                </div>
-
-                <!-- Форма создания/редактирования квиза -->
-                <div id="quizForm" class="card" style="display: none;">
-                    <h3 id="quizFormTitle" style="margin-bottom: 20px;">Создание нового квиза</h3>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Название квиза:</label>
-                        <input type="text" id="quizTitle" class="form-control" placeholder="Например: Основы живописи">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Описание:</label>
-                        <textarea id="quizDescription" class="form-control" rows="3" placeholder="Описание квиза..."></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Искр за правильный ответ:</label>
-                        <input type="number" id="quizSparksPerCorrect" class="form-control" value="1" min="0" step="0.5">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Бонус за идеальный результат:</label>
-                        <input type="number" id="quizPerfectBonus" class="form-control" value="5" min="0" step="0.5">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Время ожидания перед повторным прохождением (часы):</label>
-                        <input type="number" id="quizCooldown" class="form-control" value="24" min="0">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">
-                            <input type="checkbox" id="quizAllowRetake" checked> Разрешить повторное прохождение
-                        </label>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">
-                            <input type="checkbox" id="quizActive" checked> Активный квиз
-                        </label>
-                    </div>
-                    
-                    <h4 style="margin: 24px 0 16px 0;">📝 Вопросы:</h4>
-                    <div id="quizQuestions">
-                        <!-- Вопросы добавляются динамически -->
-                    </div>
-                    
-                    <button class="btn btn-info" onclick="addQuestion()">➕ Добавить вопрос</button>
-                    
-                    <div class="action-buttons" style="margin-top: 24px;">
-                        <button class="btn btn-success" onclick="saveQuiz()">💾 Сохранить квиз</button>
-                        <button class="btn btn-danger" onclick="hideQuizForm()">❌ Отмена</button>
-                    </div>
-                </div>
-
-                <!-- Пагинация -->
-                <div class="pagination" id="quizzesPagination"></div>
-            </div>
-        </div>
-
-        <!-- Марафоны -->
-        <div id="marathons" class="tab-content">
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">🏃‍♂️ Управление марафонами</h2>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="showMarathonForm()">➕ Создать марафон</button>
-                </div>
-
-                <div id="marathonsList" class="loading">
-                    Загрузка марафонов...
-                </div>
-
-                <!-- Форма создания/редактирования марафона -->
-                <div id="marathonForm" class="card" style="display: none;">
-                    <h3 id="marathonFormTitle" style="margin-bottom: 20px;">Создание нового марафона</h3>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Название марафона:</label>
-                        <input type="text" id="marathonTitle" class="form-control" placeholder="Например: 7 дней акварели">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Описание:</label>
-                        <textarea id="marathonDescription" class="form-control" rows="3" placeholder="Описание марафона..."></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Продолжительность (дни):</label>
-                        <input type="number" id="marathonDuration" class="form-control" value="7" min="1" max="30">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Награда за завершение (искры):</label>
-                        <input type="number" id="marathonReward" class="form-control" value="50" min="0" step="0.5">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Дата начала:</label>
-                        <input type="date" id="marathonStartDate" class="form-control">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">
-                            <input type="checkbox" id="marathonActive" checked> Активный марафон
-                        </label>
-                    </div>
-                    
-                    <h4 style="margin: 24px 0 16px 0;">📅 Задания по дням:</h4>
-                    <div id="marathonDays">
-                        <!-- Дни добавляются динамически -->
-                    </div>
-                    
-                    <button class="btn btn-info" onclick="addMarathonDay()">➕ Добавить день</button>
-                    
-                    <div class="action-buttons" style="margin-top: 24px;">
-                        <button class="btn btn-success" onclick="saveMarathon()">💾 Сохранить марафон</button>
-                        <button class="btn btn-danger" onclick="hideMarathonForm()">❌ Отмена</button>
-                    </div>
-                </div>
-
-                <!-- Пагинация -->
-                <div class="pagination" id="marathonsPagination"></div>
-            </div>
-        </div>
-
-        <!-- Интерактивы -->
-        <div id="interactives" class="tab-content">
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">🎮 Управление интерактивами</h2>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="showInteractiveForm()">➕ Создать интерактив</button>
-                </div>
-
-                <div id="interactivesList" class="loading">
-                    Загрузка интерактивов...
-                </div>
-
-                <!-- Форма создания/редактирования интерактива -->
-                <div id="interactiveForm" class="card" style="display: none;">
-                    <h3 id="interactiveFormTitle" style="margin-bottom: 20px;">Создание нового интерактива</h3>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Тип интерактива:</label>
-                        <div class="interactive-type-selector">
-                            <div class="interactive-type" data-type="puzzle" onclick="selectInteractiveType('puzzle')">
-                                <div class="interactive-type-icon">🧩</div>
-                                <div>Пазл</div>
-                            </div>
-                            <div class="interactive-type" data-type="memory" onclick="selectInteractiveType('memory')">
-                                <div class="interactive-type-icon">🎴</div>
-                                <div>Мемори</div>
-                            </div>
-                            <div class="interactive-type" data-type="quiz" onclick="selectInteractiveType('quiz')">
-                                <div class="interactive-type-icon">❓</div>
-                                <div>Викторина</div>
-                            </div>
-                            <div class="interactive-type" data-type="drawing" onclick="selectInteractiveType('drawing')">
-                                <div class="interactive-type-icon">🎨</div>
-                                <div>Рисование</div>
-                            </div>
-                        </div>
-                        <input type="hidden" id="interactiveType" value="">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Название интерактива:</label>
-                        <input type="text" id="interactiveTitle" class="form-control" placeholder="Например: Собери картину">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Описание:</label>
-                        <textarea id="interactiveDescription" class="form-control" rows="3" placeholder="Описание интерактива..."></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Награда (искры):</label>
-                        <input type="number" id="interactiveReward" class="form-control" value="10" min="0" step="0.5">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Изображение:</label>
-                        <div class="image-upload-area" onclick="document.getElementById('interactiveImageInput').click()">
-                            <div>📁 Нажмите для загрузки изображения</div>
-                            <small style="color: #718096;">Рекомендуемый размер: 800x600px</small>
-                            <img id="interactiveImagePreview" class="upload-preview" style="display: none;">
-                        </div>
-                        <input type="file" id="interactiveImageInput" accept="image/*" style="display: none;" onchange="previewInteractiveImage(this)">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">
-                            <input type="checkbox" id="interactiveActive" checked> Активный интерактив
-                        </label>
-                    </div>
-                    
-                    <div class="action-buttons">
-                        <button class="btn btn-success" onclick="saveInteractive()">💾 Сохранить интерактив</button>
-                        <button class="btn btn-danger" onclick="hideInteractiveForm()">❌ Отмена</button>
-                    </div>
-                </div>
-
-                <!-- Пагинация -->
-                <div class="pagination" id="interactivesPagination"></div>
-            </div>
-        </div>
-
-        <!-- Магазин -->
-        <div id="shop" class="tab-content">
-            <div class="tab-subnav">
-                <div class="tab-subnav-item active" onclick="showShopTab('items')">🛍️ Товары</div>
-                <div class="tab-subnav-item" onclick="showShopTab('purchases')">📦 Покупки</div>
             </div>
 
-            <div id="shopItemsTab">
+            <!-- Навигация -->
+            <div class="nav-tabs">
+                <div class="nav-tab active" onclick="showTab('dashboard')">📊 Дашборд</div>
+                <div class="nav-tab" onclick="showTab('users')">👥 Пользователи</div>
+                <div class="nav-tab" onclick="showTab('roles')">🎭 Роли</div>
+                <div class="nav-tab" onclick="showTab('characters')">👤 Персонажи</div>
+                <div class="nav-tab" onclick="showTab('quizzes')">🎯 Квизы</div>
+                <div class="nav-tab" onclick="showTab('marathons')">🏃‍♂️ Марафоны</div>
+                <div class="nav-tab" onclick="showTab('interactives')">🎮 Интерактивы</div>
+                <div class="nav-tab" onclick="showTab('shop')">🛒 Магазин</div>
+                <div class="nav-tab" onclick="showTab('posts')">📰 Посты</div>
+                <div class="nav-tab" onclick="showTab('moderation')">⚖️ Модерация</div>
+                <div class="nav-tab" onclick="showTab('admins')">🔧 Админы</div>
+                <div class="nav-tab" onclick="showTab('settings')">⚙️ Настройки</div>
+            </div>
+
+            <!-- Дашборд -->
+            <div id="dashboard" class="tab-content active">
                 <div class="card">
-                    <h2 style="margin-bottom: 20px;">🛍️ Управление товарами</h2>
+                    <h2 style="margin-bottom: 24px;">📊 Общая статистика</h2>
+                    <div class="stats-grid" id="statsGrid">
+                        <div class="loading">Загрузка статистики...</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 20px;">📈 Аналитика активности</h3>
+                    <div class="chart-container">
+                        <div class="chart-placeholder" id="activityChart">
+                            График активности пользователей
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-placeholder" id="sparksChart">
+                            График распределения искр
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 20px;">🚀 Быстрые действия</h3>
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="showTab('quizzes')">➕ Создать квиз</button>
+                        <button class="btn btn-info" onclick="showTab('marathons')">➕ Создать марафон</button>
+                        <button class="btn btn-warning" onclick="showTab('interactives')">➕ Создать интерактив</button>
+                        <button class="btn" onclick="showTab('shop')">➕ Добавить товар</button>
+                        <button class="btn btn-success" onclick="showTab('posts')">➕ Создать пост</button>
+                        <button class="btn btn-info" onclick="showTab('settings')">⚙️ Настройки системы</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Пользователи -->
+            <div id="users" class="tab-content">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px;">👥 Управление пользователями</h2>
+                    
+                    <div class="filters">
+                        <div class="search-box">
+                            <input type="text" id="userSearch" class="search-input" placeholder="Поиск пользователей..." oninput="filterUsers()">
+                        </div>
+                        <select class="filter-select" id="roleFilter" onchange="filterUsers()">
+                            <option value="">Все роли</option>
+                        </select>
+                        <select class="filter-select" id="levelFilter" onchange="filterUsers()">
+                            <option value="">Все уровни</option>
+                            <option value="Ученик">Ученик</option>
+                            <option value="Искатель">Искатель</option>
+                            <option value="Знаток">Знаток</option>
+                            <option value="Мастер">Мастер</option>
+                            <option value="Наставник">Наставник</option>
+                        </select>
+                        <select class="filter-select" id="statusFilter" onchange="filterUsers()">
+                            <option value="">Все статусы</option>
+                            <option value="active">Активные</option>
+                            <option value="inactive">Неактивные</option>
+                        </select>
+                        <button class="export-btn" onclick="exportUsers()">
+                            📊 Экспорт в CSV
+                        </button>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="showBulkSparksModal()">✨ Массовое начисление искр</button>
+                        <button class="btn btn-warning" onclick="showBulkNotificationModal()">📢 Массовая рассылка</button>
+                    </div>
+
+                    <div id="usersList" class="loading">
+                        Загрузка пользователей...
+                    </div>
+
+                    <!-- Пагинация -->
+                    <div class="pagination" id="usersPagination"></div>
+                </div>
+            </div>
+
+            <!-- Роли -->
+            <div id="roles" class="tab-content">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px;">🎭 Управление ролями</h2>
                     
                     <div class="action-buttons">
-                        <button class="btn btn-success" onclick="showShopItemForm()">➕ Добавить товар</button>
+                        <button class="btn btn-success" onclick="showRoleForm()">➕ Добавить роль</button>
                     </div>
 
-                    <div id="shopItemsList" class="loading">
-                        Загрузка товаров...
+                    <div id="rolesList" class="loading">
+                        Загрузка ролей...
                     </div>
 
-                    <!-- Форма создания/редактирования товара -->
-                    <div id="shopItemForm" class="card" style="display: none;">
-                        <h3 id="shopItemFormTitle" style="margin-bottom: 20px;">Добавление нового товара</h3>
+                    <!-- Форма создания/редактирования роли -->
+                    <div id="roleForm" class="card" style="display: none;">
+                        <h3 id="roleFormTitle" style="margin-bottom: 20px;">Добавление новой роли</h3>
                         
                         <div class="form-group">
-                            <label class="form-label">Тип товара:</label>
-                            <select id="shopItemType" class="form-control">
-                                <option value="video">🎥 Видео</option>
-                                <option value="pdf">📚 PDF</option>
-                                <option value="text">📝 Текст</option>
-                                <option value="audio">🎧 Аудио</option>
-                                <option value="image">🖼️ Изображение</option>
-                                <option value="embed">🎬 Встроенный контент</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Название товара:</label>
-                            <input type="text" id="shopItemTitle" class="form-control" placeholder="Например: Урок по акварели">
+                            <label class="form-label">Название роли:</label>
+                            <input type="text" id="roleName" class="form-control" placeholder="Например: Художники">
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label">Описание:</label>
-                            <textarea id="shopItemDescription" class="form-control" rows="3" placeholder="Описание товара..."></textarea>
+                            <textarea id="roleDescription" class="form-control" rows="3" placeholder="Описание роли..."></textarea>
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">Цена (искры):</label>
-                            <input type="number" id="shopItemPrice" class="form-control" value="50" min="0" step="0.5">
-                        </div>
-                        
-                        <div class="form-group" id="shopFileUploadGroup">
-                            <label class="form-label">Файл:</label>
-                            <div class="image-upload-area" onclick="document.getElementById('shopItemFileInput').click()">
-                                <div>📁 Нажмите для загрузки файла</div>
-                                <small style="color: #718096;">Максимальный размер: 50MB</small>
-                            </div>
-                            <input type="file" id="shopItemFileInput" style="display: none;" onchange="handleShopFileUpload(this)">
-                        </div>
-                        
-                        <div class="form-group" id="shopEmbedGroup" style="display: none;">
-                            <label class="form-label">HTML код для встраивания:</label>
-                            <textarea id="shopItemEmbed" class="form-control" rows="4" placeholder="Вставьте HTML код..."></textarea>
-                        </div>
-                        
-                        <div class="form-group" id="shopContentGroup" style="display: none;">
-                            <label class="form-label">Текст контента:</label>
-                            <textarea id="shopItemContent" class="form-control" rows="6" placeholder="Текст контента..."></textarea>
+                            <label class="form-label">Иконка:</label>
+                            <input type="text" id="roleIcon" class="form-control" placeholder="🎨" value="🎨">
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">Превью (опционально):</label>
-                            <div class="image-upload-area" onclick="document.getElementById('shopItemPreviewInput').click()">
-                                <div>📁 Нажмите для загрузки превью</div>
-                                <small style="color: #718096;">Рекомендуемый размер: 400x300px</small>
-                                <img id="shopItemPreview" class="upload-preview" style="display: none;">
+                            <label class="form-label">Доступные кнопки:</label>
+                            <div class="buttons-grid" id="roleButtons">
+                                <!-- Кнопки загружаются динамически -->
                             </div>
-                            <input type="file" id="shopItemPreviewInput" accept="image/*" style="display: none;" onchange="previewShopItemImage(this)">
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label">
-                                <input type="checkbox" id="shopItemActive" checked> Активный товар
+                                <input type="checkbox" id="roleActive" checked> Активная роль
                             </label>
                         </div>
                         
                         <div class="action-buttons">
-                            <button class="btn btn-success" onclick="saveShopItem()">💾 Сохранить товар</button>
-                            <button class="btn btn-danger" onclick="hideShopItemForm()">❌ Отмена</button>
+                            <button class="btn btn-success" onclick="saveRole()">💾 Сохранить роль</button>
+                            <button class="btn btn-danger" onclick="hideRoleForm()">❌ Отмена</button>
                         </div>
                     </div>
 
                     <!-- Пагинация -->
-                    <div class="pagination" id="shopItemsPagination"></div>
+                    <div class="pagination" id="rolesPagination"></div>
                 </div>
             </div>
 
-            <div id="shopPurchasesTab" style="display: none;">
+            <!-- Персонажи -->
+            <div id="characters" class="tab-content">
                 <div class="card">
-                    <h2 style="margin-bottom: 20px;">📦 История покупок</h2>
-                    
-                    <div class="filters">
-                        <div class="search-box">
-                            <input type="text" id="purchaseSearch" class="search-input" placeholder="Поиск покупок..." oninput="filterPurchases()">
-                        </div>
-                        <select class="filter-select" id="purchaseItemFilter" onchange="filterPurchases()">
-                            <option value="">Все товары</option>
-                        </select>
-                        <select class="filter-select" id="purchaseDateFilter" onchange="filterPurchases()">
-                            <option value="">Все даты</option>
-                            <option value="today">Сегодня</option>
-                            <option value="week">За неделю</option>
-                            <option value="month">За месяц</option>
-                        </select>
-                    </div>
-
-                    <div id="purchasesList" class="loading">
-                        Загрузка покупок...
-                    </div>
-
-                    <!-- Пагинация -->
-                    <div class="pagination" id="purchasesPagination"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Посты -->
-        <div id="posts" class="tab-content">
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">📰 Управление постами</h2>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="showPostForm()">➕ Создать пост</button>
-                </div>
-
-                <div id="postsList" class="loading">
-                    Загрузка постов...
-                </div>
-
-                <!-- Форма создания/редактирования поста -->
-                <div id="postForm" class="card" style="display: none;">
-                    <h3 id="postFormTitle" style="margin-bottom: 20px;">Создание нового поста</h3>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Заголовок:</label>
-                        <input type="text" id="postTitle" class="form-control" placeholder="Заголовок поста">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Содержание:</label>
-                        <div class="post-content-editor" id="postContent" contenteditable="true"></div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Медиа файлы:</label>
-                        <div class="image-upload-area" onclick="document.getElementById('postMediaInput').click()">
-                            <div>📁 Нажмите для загрузки медиа</div>
-                            <small style="color: #718096;">Поддерживаются изображения и видео</small>
-                        </div>
-                        <input type="file" id="postMediaInput" accept="image/*,video/*" multiple style="display: none;" onchange="handlePostMediaUpload(this)">
-                        <div class="post-media-preview" id="postMediaPreview"></div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Действия:</label>
-                        <div class="buttons-grid">
-                            <div class="button-checkbox">
-                                <input type="checkbox" id="postActionLike" checked>
-                                <label for="postActionLike">👍 Лайки</label>
-                            </div>
-                            <div class="button-checkbox">
-                                <input type="checkbox" id="postActionComment" checked>
-                                <label for="postActionComment">💬 Комментарии</label>
-                            </div>
-                            <div class="button-checkbox">
-                                <input type="checkbox" id="postActionShare">
-                                <label for="postActionShare">🔄 Поделиться</label>
-                            </div>
-                            <div class="button-checkbox">
-                                <input type="checkbox" id="postActionSave">
-                                <label for="postActionSave">💾 Сохранить</label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Награда за взаимодействие (искры):</label>
-                        <input type="number" id="postReward" class="form-control" value="2" min="0" step="0.5">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">
-                            <input type="checkbox" id="postActive" checked> Опубликовать сразу
-                        </label>
-                    </div>
+                    <h2 style="margin-bottom: 20px;">👤 Управление персонажами</h2>
                     
                     <div class="action-buttons">
-                        <button class="btn btn-success" onclick="savePost()">💾 Сохранить пост</button>
-                        <button class="btn btn-info" onclick="previewPost()">👁️ Предпросмотр</button>
-                        <button class="btn btn-danger" onclick="hidePostForm()">❌ Отмена</button>
-                    </div>
-                </div>
-
-                <!-- Пагинация -->
-                <div class="pagination" id="postsPagination"></div>
-            </div>
-        </div>
-
-        <!-- Модерация -->
-        <div id="moderation" class="tab-content">
-            <div class="tab-subnav">
-                <div class="tab-subnav-item active" onclick="showModerationTab('works')">🖼️ Работы</div>
-                <div class="tab-subnav-item" onclick="showModerationTab('reviews')">💬 Отзывы</div>
-                <div class="tab-subnav-item" onclick="showModerationTab('marathon')">🏃‍♂️ Марафоны</div>
-            </div>
-
-            <div id="moderationWorksTab">
-                <div class="card">
-                    <h2 style="margin-bottom: 20px;">🖼️ Модерация работ</h2>
-                    
-                    <div class="filters">
-                        <select class="filter-select" id="workStatusFilter" onchange="loadWorksForModeration()">
-                            <option value="pending">⏳ На модерации</option>
-                            <option value="approved">✅ Одобренные</option>
-                            <option value="rejected">❌ Отклоненные</option>
-                        </select>
+                        <button class="btn btn-success" onclick="showCharacterForm()">➕ Добавить персонажа</button>
                     </div>
 
-                    <div id="worksModerationList" class="loading">
-                        Загрузка работ...
+                    <div id="charactersList" class="loading">
+                        Загрузка персонажей...
                     </div>
 
-                    <!-- Пагинация -->
-                    <div class="pagination" id="worksPagination"></div>
-                </div>
-            </div>
-
-            <div id="moderationReviewsTab" style="display: none;">
-                <div class="card">
-                    <h2 style="margin-bottom: 20px;">💬 Модерация отзывов</h2>
-                    
-                    <div class="filters">
-                        <select class="filter-select" id="reviewStatusFilter" onchange="loadReviewsForModeration()">
-                            <option value="pending">⏳ На модерации</option>
-                            <option value="approved">✅ Одобренные</option>
-                            <option value="rejected">❌ Отклоненные</option>
-                        </select>
-                    </div>
-
-                    <div id="reviewsModerationList" class="loading">
-                        Загрузка отзывов...
-                    </div>
-
-                    <!-- Пагинация -->
-                    <div class="pagination" id="reviewsPagination"></div>
-                </div>
-            </div>
-
-            <div id="moderationMarathonTab" style="display: none;">
-                <div class="card">
-                    <h2 style="margin-bottom: 20px;">🏃‍♂️ Модерация работ марафонов</h2>
-                    
-                    <div class="filters">
-                        <select class="filter-select" id="marathonFilter" onchange="loadMarathonSubmissions()">
-                            <option value="">Все марафоны</option>
-                        </select>
-                        <select class="filter-select" id="marathonDayFilter" onchange="loadMarathonSubmissions()">
-                            <option value="">Все дни</option>
-                        </select>
-                    </div>
-
-                    <div id="marathonSubmissionsList" class="loading">
-                        Загрузка работ марафонов...
-                    </div>
-
-                    <!-- Пагинация -->
-                    <div class="pagination" id="marathonSubmissionsPagination"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Админы -->
-        <div id="admins" class="tab-content">
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">🔧 Управление администраторами</h2>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="showAdminForm()">➕ Добавить админа</button>
-                    <button class="btn btn-info" onclick="showAdminLogs()">📋 Показать логи действий</button>
-                </div>
-
-                <div id="adminsList" class="loading">
-                    Загрузка администраторов...
-                </div>
-
-                <!-- Форма добавления админа -->
-                <div id="adminForm" class="card" style="display: none;">
-                    <h3 style="margin-bottom: 20px;">Добавление нового администратора</h3>
-                    
-                    <div class="form-group">
-                        <label class="form-label">ID пользователя Telegram:</label>
-                        <input type="number" id="adminUserId" class="form-control" placeholder="123456789">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Имя пользователя (опционально):</label>
-                        <input type="text" id="adminUsername" class="form-control" placeholder="@username">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Роль:</label>
-                        <select id="adminRole" class="form-control">
-                            <option value="moderator">Модератор</option>
-                            <option value="admin">Администратор</option>
-                            <option value="superadmin">Супер-админ</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Права доступа:</label>
-                        <div class="buttons-grid">
-                            <div class="button-checkbox">
-                                <input type="checkbox" id="adminPermUsers" checked>
-                                <label for="adminPermUsers">👥 Пользователи</label>
-                            </div>
-                            <div class="button-checkbox">
-                                <input type="checkbox" id="adminPermContent" checked>
-                                <label for="adminPermContent">📝 Контент</label>
-                            </div>
-                            <div class="button-checkbox">
-                                <input type="checkbox" id="adminPermModeration">
-                                <label for="adminPermModeration">⚖️ Модерация</label>
-                            </div>
-                            <div class="button-checkbox">
-                                <input type="checkbox" id="adminPermSettings">
-                                <label for="adminPermSettings">⚙️ Настройки</label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="action-buttons">
-                        <button class="btn btn-success" onclick="saveAdmin()">💾 Добавить админа</button>
-                        <button class="btn btn-danger" onclick="hideAdminForm()">❌ Отмена</button>
-                    </div>
-                </div>
-
-                <!-- Логи действий -->
-                <div id="adminLogs" class="card" style="display: none;">
-                    <h3 style="margin-bottom: 20px;">📋 Логи действий администраторов</h3>
-                    
-                    <div class="filters">
-                        <select class="filter-select" id="logAdminFilter" onchange="loadAdminLogs()">
-                            <option value="">Все админы</option>
-                        </select>
-                        <select class="filter-select" id="logActionFilter" onchange="loadAdminLogs()">
-                            <option value="">Все действия</option>
-                            <option value="create">Создание</option>
-                            <option value="update">Редактирование</option>
-                            <option value="delete">Удаление</option>
-                            <option value="moderate">Модерация</option>
-                        </select>
-                        <input type="date" id="logDateFilter" class="filter-select" onchange="loadAdminLogs()">
-                    </div>
-                    
-                    <div id="adminLogsList" class="loading">
-                        Загрузка логов...
-                    </div>
-                    
-                    <div class="pagination" id="adminLogsPagination"></div>
-                </div>
-
-                <!-- Пагинация -->
-                <div class="pagination" id="adminsPagination"></div>
-            </div>
-        </div>
-
-        <!-- Настройки -->
-        <div id="settings" class="tab-content">
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">⚙️ Настройки системы</h2>
-                
-                <div class="tab-subnav">
-                    <div class="tab-subnav-item active" onclick="showSettingsTab('general')">🔧 Основные</div>
-                    <div class="tab-subnav-item" onclick="showSettingsTab('notifications')">🔔 Уведомления</div>
-                    <div class="tab-subnav-item" onclick="showSettingsTab('backup')">💾 Резервное копирование</div>
-                </div>
-
-                <div id="settingsGeneralTab">
-                    <div class="settings-group">
-                        <h3 style="margin-bottom: 16px;">Основные настройки</h3>
+                    <!-- Форма создания/редактирования персонажа -->
+                    <div id="characterForm" class="card" style="display: none;">
+                        <h3 id="characterFormTitle" style="margin-bottom: 20px;">Добавление нового персонажа</h3>
                         
-                        <div class="settings-item">
-                            <div>
-                                <strong>Название системы</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Отображаемое название платформы</p>
-                            </div>
-                            <input type="text" id="systemName" class="form-control" style="width: 200px;" value="Мастерская Вдохновения">
-                        </div>
-                        
-                        <div class="settings-item">
-                            <div>
-                                <strong>Базовая награда за регистрацию</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Количество искр при регистрации</p>
-                            </div>
-                            <input type="number" id="registrationReward" class="form-control" style="width: 100px;" value="10" min="0" step="0.5">
-                        </div>
-                        
-                        <div class="settings-item">
-                            <div>
-                                <strong>Ежедневный бонус</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Награда за ежедневный вход</p>
-                            </div>
-                            <input type="number" id="dailyBonus" class="form-control" style="width: 100px;" value="5" min="0" step="0.5">
-                        </div>
-                        
-                        <div class="settings-item">
-                            <div>
-                                <strong>Лимит приглашений</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Максимальное количество приглашений в день</p>
-                            </div>
-                            <input type="number" id="inviteLimit" class="form-control" style="width: 100px;" value="5" min="1">
-                        </div>
-                    </div>
-                    
-                    <div class="settings-group">
-                        <h3 style="margin-bottom: 16px;">Настройки безопасности</h3>
-                        
-                        <div class="settings-item">
-                            <div>
-                                <strong>Требовать подтверждение для опасных действий</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Запрашивать подтверждение при удалении и массовых операциях</p>
-                            </div>
-                            <input type="checkbox" id="confirmDangerous" checked>
-                        </div>
-                        
-                        <div class="settings-item">
-                            <div>
-                                <strong>Логировать действия администраторов</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Сохранять историю всех действий в системе</p>
-                            </div>
-                            <input type="checkbox" id="logAdminActions" checked>
-                        </div>
-                        
-                        <div class="settings-item">
-                            <div>
-                                <strong>Ограничить доступ по IP</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Разрешить доступ только с указанных IP-адресов</p>
-                            </div>
-                            <input type="checkbox" id="restrictByIP">
-                        </div>
-                    </div>
-                    
-                    <div class="action-buttons">
-                        <button class="btn btn-success" onclick="saveSystemSettings()">💾 Сохранить настройки</button>
-                        <button class="btn btn-info" onclick="resetSystemSettings()">🔄 Сбросить к значениям по умолчанию</button>
-                    </div>
-                </div>
-
-                <div id="settingsNotificationsTab" style="display: none;">
-                    <div class="settings-group">
-                        <h3 style="margin-bottom: 16px;">Настройки уведомлений</h3>
-                        
-                        <div class="settings-item">
-                            <div>
-                                <strong>Уведомления о новых пользователях</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Отправлять уведомления при регистрации новых пользователей</p>
-                            </div>
-                            <input type="checkbox" id="notifyNewUsers" checked>
-                        </div>
-                        
-                        <div class="settings-item">
-                            <div>
-                                <strong>Уведомления о работах на модерации</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Уведомлять при появлении новых работ для модерации</p>
-                            </div>
-                            <input type="checkbox" id="notifyModeration" checked>
-                        </div>
-                        
-                        <div class="settings-item">
-                            <div>
-                                <strong>Уведомления об ошибках системы</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Отправлять уведомления о критических ошибках</p>
-                            </div>
-                            <input type="checkbox" id="notifyErrors" checked>
-                        </div>
-                        
-                        <div class="settings-item">
-                            <div>
-                                <strong>Ежедневный отчет</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Отправлять ежедневный отчет о активности системы</p>
-                            </div>
-                            <input type="checkbox" id="dailyReport">
-                        </div>
-                    </div>
-                    
-                    <div class="action-buttons">
-                        <button class="btn btn-success" onclick="saveNotificationSettings()">💾 Сохранить настройки</button>
-                        <button class="btn btn-info" onclick="testNotifications()">📧 Тест уведомлений</button>
-                    </div>
-                </div>
-
-                <div id="settingsBackupTab" style="display: none;">
-                    <div class="settings-group">
-                        <h3 style="margin-bottom: 16px;">Резервное копирование</h3>
-                        
-                        <div class="settings-item">
-                            <div>
-                                <strong>Автоматическое резервное копирование</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Создавать резервные копии автоматически</p>
-                            </div>
-                            <select id="backupFrequency" class="form-control" style="width: 150px;">
-                                <option value="daily">Ежедневно</option>
-                                <option value="weekly" selected>Еженедельно</option>
-                                <option value="monthly">Ежемесячно</option>
-                                <option value="disabled">Отключено</option>
+                        <div class="form-group">
+                            <label class="form-label">Роль:</label>
+                            <select id="characterRole" class="form-control">
+                                <option value="">Выберите роль</option>
                             </select>
                         </div>
                         
-                        <div class="settings-item">
-                            <div>
-                                <strong>Хранить резервные копии (дней)</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Количество дней хранения резервных копий</p>
-                            </div>
-                            <input type="number" id="backupRetention" class="form-control" style="width: 100px;" value="30" min="1">
+                        <div class="form-group">
+                            <label class="form-label">Имя персонажа:</label>
+                            <input type="text" id="characterName" class="form-control" placeholder="Например: Лука Цветной">
                         </div>
                         
-                        <div class="settings-item">
-                            <div>
-                                <strong>Последнее резервное копирование</strong>
-                                <p style="color: #718096; margin: 4px 0 0 0;">Дата и время последнего бэкапа</p>
-                            </div>
-                            <div id="lastBackupTime">Не выполнялось</div>
+                        <div class="form-group">
+                            <label class="form-label">Описание:</label>
+                            <textarea id="characterDescription" class="form-control" rows="3" placeholder="Описание персонажа..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Тип бонуса:</label>
+                            <select id="characterBonusType" class="form-control">
+                                <option value="percent_bonus">Процентный бонус к наградам</option>
+                                <option value="forgiveness">Право на ошибку</option>
+                                <option value="random_gift">Случайный подарок</option>
+                                <option value="secret_advice">Секретные советы</option>
+                                <option value="series_bonus">Бонус к серийным наградам</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Значение бонуса:</label>
+                            <input type="text" id="characterBonusValue" class="form-control" placeholder="Например: 10">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="characterActive" checked> Активный персонаж
+                            </label>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-success" onclick="saveCharacter()">💾 Сохранить персонажа</button>
+                            <button class="btn btn-danger" onclick="hideCharacterForm()">❌ Отмена</button>
                         </div>
                     </div>
+
+                    <!-- Пагинация -->
+                    <div class="pagination" id="charactersPagination"></div>
+                </div>
+            </div>
+
+            <!-- Квизы -->
+            <div id="quizzes" class="tab-content">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px;">🎯 Управление квизами</h2>
                     
                     <div class="action-buttons">
-                        <button class="btn btn-success" onclick="createBackup()">💾 Создать резервную копию</button>
-                        <button class="btn btn-info" onclick="showBackupHistory()">📋 История резервных копий</button>
-                        <button class="btn btn-warning" onclick="showRestoreModal()">🔄 Восстановить из копии</button>
+                        <button class="btn btn-success" onclick="showQuizForm()">➕ Создать квиз</button>
                     </div>
+
+                    <div id="quizzesList" class="loading">
+                        Загрузка квизов...
+                    </div>
+
+                    <!-- Форма создания/редактирования квиза -->
+                    <div id="quizForm" class="card" style="display: none;">
+                        <h3 id="quizFormTitle" style="margin-bottom: 20px;">Создание нового квиза</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Название квиза:</label>
+                            <input type="text" id="quizTitle" class="form-control" placeholder="Например: Основы живописи">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Описание:</label>
+                            <textarea id="quizDescription" class="form-control" rows="3" placeholder="Описание квиза..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Искр за правильный ответ:</label>
+                            <input type="number" id="quizSparksPerCorrect" class="form-control" value="1" min="0" step="0.5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Бонус за идеальный результат:</label>
+                            <input type="number" id="quizPerfectBonus" class="form-control" value="5" min="0" step="0.5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Время ожидания перед повторным прохождением (часы):</label>
+                            <input type="number" id="quizCooldown" class="form-control" value="24" min="0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="quizAllowRetake" checked> Разрешить повторное прохождение
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="quizActive" checked> Активный квиз
+                            </label>
+                        </div>
+                        
+                        <h4 style="margin: 24px 0 16px 0;">📝 Вопросы:</h4>
+                        <div id="quizQuestions">
+                            <!-- Вопросы добавляются динамически -->
+                        </div>
+                        
+                        <button class="btn btn-info" onclick="addQuestion()">➕ Добавить вопрос</button>
+                        
+                        <div class="action-buttons" style="margin-top: 24px;">
+                            <button class="btn btn-success" onclick="saveQuiz()">💾 Сохранить квиз</button>
+                            <button class="btn btn-danger" onclick="hideQuizForm()">❌ Отмена</button>
+                        </div>
+                    </div>
+
+                    <!-- Пагинация -->
+                    <div class="pagination" id="quizzesPagination"></div>
+                </div>
+            </div>
+
+            <!-- Марафоны -->
+            <div id="marathons" class="tab-content">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px;">🏃‍♂️ Управление марафонами</h2>
                     
-                    <div id="backupHistory" class="card" style="display: none; margin-top: 20px;">
-                        <h3 style="margin-bottom: 16px;">История резервных копий</h3>
-                        <div id="backupHistoryList" class="loading">
-                            Загрузка истории...
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="showMarathonForm()">➕ Создать марафон</button>
+                    </div>
+
+                    <div id="marathonsList" class="loading">
+                        Загрузка марафонов...
+                    </div>
+
+                    <!-- Форма создания/редактирования марафона -->
+                    <div id="marathonForm" class="card" style="display: none;">
+                        <h3 id="marathonFormTitle" style="margin-bottom: 20px;">Создание нового марафона</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Название марафона:</label>
+                            <input type="text" id="marathonTitle" class="form-control" placeholder="Например: 7 дней акварели">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Описание:</label>
+                            <textarea id="marathonDescription" class="form-control" rows="3" placeholder="Описание марафона..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Продолжительность (дни):</label>
+                            <input type="number" id="marathonDuration" class="form-control" value="7" min="1" max="30">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Награда за завершение (искры):</label>
+                            <input type="number" id="marathonReward" class="form-control" value="50" min="0" step="0.5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Дата начала:</label>
+                            <input type="date" id="marathonStartDate" class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="marathonActive" checked> Активный марафон
+                            </label>
+                        </div>
+                        
+                        <h4 style="margin: 24px 0 16px 0;">📅 Задания по дням:</h4>
+                        <div id="marathonDays">
+                            <!-- Дни добавляются динамически -->
+                        </div>
+                        
+                        <button class="btn btn-info" onclick="addMarathonDay()">➕ Добавить день</button>
+                        
+                        <div class="action-buttons" style="margin-top: 24px;">
+                            <button class="btn btn-success" onclick="saveMarathon()">💾 Сохранить марафон</button>
+                            <button class="btn btn-danger" onclick="hideMarathonForm()">❌ Отмена</button>
+                        </div>
+                    </div>
+
+                    <!-- Пагинация -->
+                    <div class="pagination" id="marathonsPagination"></div>
+                </div>
+            </div>
+
+            <!-- Интерактивы -->
+            <div id="interactives" class="tab-content">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px;">🎮 Управление интерактивами</h2>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="showInteractiveForm()">➕ Создать интерактив</button>
+                    </div>
+
+                    <div id="interactivesList" class="loading">
+                        Загрузка интерактивов...
+                    </div>
+
+                    <!-- Форма создания/редактирования интерактива -->
+                    <div id="interactiveForm" class="card" style="display: none;">
+                        <h3 id="interactiveFormTitle" style="margin-bottom: 20px;">Создание нового интерактива</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Тип интерактива:</label>
+                            <div class="interactive-type-selector">
+                                <div class="interactive-type" data-type="puzzle" onclick="selectInteractiveType('puzzle')">
+                                    <div class="interactive-type-icon">🧩</div>
+                                    <div>Пазл</div>
+                                </div>
+                                <div class="interactive-type" data-type="memory" onclick="selectInteractiveType('memory')">
+                                    <div class="interactive-type-icon">🎴</div>
+                                    <div>Мемори</div>
+                                </div>
+                                <div class="interactive-type" data-type="quiz" onclick="selectInteractiveType('quiz')">
+                                    <div class="interactive-type-icon">❓</div>
+                                    <div>Викторина</div>
+                                </div>
+                                <div class="interactive-type" data-type="drawing" onclick="selectInteractiveType('drawing')">
+                                    <div class="interactive-type-icon">🎨</div>
+                                    <div>Рисование</div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="interactiveType" value="">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Название интерактива:</label>
+                            <input type="text" id="interactiveTitle" class="form-control" placeholder="Например: Собери картину">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Описание:</label>
+                            <textarea id="interactiveDescription" class="form-control" rows="3" placeholder="Описание интерактива..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Награда (искры):</label>
+                            <input type="number" id="interactiveReward" class="form-control" value="10" min="0" step="0.5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Изображение:</label>
+                            <div class="image-upload-area" onclick="document.getElementById('interactiveImageInput').click()">
+                                <div>📁 Нажмите для загрузки изображения</div>
+                                <small style="color: #718096;">Рекомендуемый размер: 800x600px</small>
+                                <img id="interactiveImagePreview" class="upload-preview" style="display: none;">
+                            </div>
+                            <input type="file" id="interactiveImageInput" accept="image/*" style="display: none;" onchange="previewInteractiveImage(this)">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="interactiveActive" checked> Активный интерактив
+                            </label>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-success" onclick="saveInteractive()">💾 Сохранить интерактив</button>
+                            <button class="btn btn-danger" onclick="hideInteractiveForm()">❌ Отмена</button>
+                        </div>
+                    </div>
+
+                    <!-- Пагинация -->
+                    <div class="pagination" id="interactivesPagination"></div>
+                </div>
+            </div>
+
+            <!-- Магазин -->
+            <div id="shop" class="tab-content">
+                <div class="tab-subnav">
+                    <div class="tab-subnav-item active" onclick="showShopTab('items')">🛍️ Товары</div>
+                    <div class="tab-subnav-item" onclick="showShopTab('purchases')">📦 Покупки</div>
+                </div>
+
+                <div id="shopItemsTab">
+                    <div class="card">
+                        <h2 style="margin-bottom: 20px;">🛍️ Управление товарами</h2>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-success" onclick="showShopItemForm()">➕ Добавить товар</button>
+                        </div>
+
+                        <div id="shopItemsList" class="loading">
+                            Загрузка товаров...
+                        </div>
+
+                        <!-- Форма создания/редактирования товара -->
+                        <div id="shopItemForm" class="card" style="display: none;">
+                            <h3 id="shopItemFormTitle" style="margin-bottom: 20px;">Добавление нового товара</h3>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Тип товара:</label>
+                                <select id="shopItemType" class="form-control">
+                                    <option value="video">🎥 Видео</option>
+                                    <option value="pdf">📚 PDF</option>
+                                    <option value="text">📝 Текст</option>
+                                    <option value="audio">🎧 Аудио</option>
+                                    <option value="image">🖼️ Изображение</option>
+                                    <option value="embed">🎬 Встроенный контент</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Название товара:</label>
+                                <input type="text" id="shopItemTitle" class="form-control" placeholder="Например: Урок по акварели">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Описание:</label>
+                                <textarea id="shopItemDescription" class="form-control" rows="3" placeholder="Описание товара..."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Цена (искры):</label>
+                                <input type="number" id="shopItemPrice" class="form-control" value="50" min="0" step="0.5">
+                            </div>
+                            
+                            <div class="form-group" id="shopFileUploadGroup">
+                                <label class="form-label">Файл:</label>
+                                <div class="image-upload-area" onclick="document.getElementById('shopItemFileInput').click()">
+                                    <div>📁 Нажмите для загрузки файла</div>
+                                    <small style="color: #718096;">Максимальный размер: 50MB</small>
+                                </div>
+                                <input type="file" id="shopItemFileInput" style="display: none;" onchange="handleShopFileUpload(this)">
+                            </div>
+                            
+                            <div class="form-group" id="shopEmbedGroup" style="display: none;">
+                                <label class="form-label">HTML код для встраивания:</label>
+                                <textarea id="shopItemEmbed" class="form-control" rows="4" placeholder="Вставьте HTML код..."></textarea>
+                            </div>
+                            
+                            <div class="form-group" id="shopContentGroup" style="display: none;">
+                                <label class="form-label">Текст контента:</label>
+                                <textarea id="shopItemContent" class="form-control" rows="6" placeholder="Текст контента..."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Превью (опционально):</label>
+                                <div class="image-upload-area" onclick="document.getElementById('shopItemPreviewInput').click()">
+                                    <div>📁 Нажмите для загрузки превью</div>
+                                    <small style="color: #718096;">Рекомендуемый размер: 400x300px</small>
+                                    <img id="shopItemPreview" class="upload-preview" style="display: none;">
+                                </div>
+                                <input type="file" id="shopItemPreviewInput" accept="image/*" style="display: none;" onchange="previewShopItemImage(this)">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="shopItemActive" checked> Активный товар
+                                </label>
+                            </div>
+                            
+                            <div class="action-buttons">
+                                <button class="btn btn-success" onclick="saveShopItem()">💾 Сохранить товар</button>
+                                <button class="btn btn-danger" onclick="hideShopItemForm()">❌ Отмена</button>
+                            </div>
+                        </div>
+
+                        <!-- Пагинация -->
+                        <div class="pagination" id="shopItemsPagination"></div>
+                    </div>
+                </div>
+
+                <div id="shopPurchasesTab" style="display: none;">
+                    <div class="card">
+                        <h2 style="margin-bottom: 20px;">📦 История покупок</h2>
+                        
+                        <div class="filters">
+                            <div class="search-box">
+                                <input type="text" id="purchaseSearch" class="search-input" placeholder="Поиск покупок..." oninput="filterPurchases()">
+                            </div>
+                            <select class="filter-select" id="purchaseItemFilter" onchange="filterPurchases()">
+                                <option value="">Все товары</option>
+                            </select>
+                            <select class="filter-select" id="purchaseDateFilter" onchange="filterPurchases()">
+                                <option value="">Все даты</option>
+                                <option value="today">Сегодня</option>
+                                <option value="week">За неделю</option>
+                                <option value="month">За месяц</option>
+                            </select>
+                        </div>
+
+                        <div id="purchasesList" class="loading">
+                            Загрузка покупок...
+                        </div>
+
+                        <!-- Пагинация -->
+                        <div class="pagination" id="purchasesPagination"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Посты -->
+            <div id="posts" class="tab-content">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px;">📰 Управление постами</h2>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="showPostForm()">➕ Создать пост</button>
+                    </div>
+
+                    <div id="postsList" class="loading">
+                        Загрузка постов...
+                    </div>
+
+                    <!-- Форма создания/редактирования поста -->
+                    <div id="postForm" class="card" style="display: none;">
+                        <h3 id="postFormTitle" style="margin-bottom: 20px;">Создание нового поста</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Заголовок:</label>
+                            <input type="text" id="postTitle" class="form-control" placeholder="Заголовок поста">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Содержание:</label>
+                            <div class="post-content-editor" id="postContent" contenteditable="true"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Медиа файлы:</label>
+                            <div class="image-upload-area" onclick="document.getElementById('postMediaInput').click()">
+                                <div>📁 Нажмите для загрузки медиа</div>
+                                <small style="color: #718096;">Поддерживаются изображения и видео</small>
+                            </div>
+                            <input type="file" id="postMediaInput" accept="image/*,video/*" multiple style="display: none;" onchange="handlePostMediaUpload(this)">
+                            <div class="post-media-preview" id="postMediaPreview"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Действия:</label>
+                            <div class="buttons-grid">
+                                <div class="button-checkbox">
+                                    <input type="checkbox" id="postActionLike" checked>
+                                    <label for="postActionLike">👍 Лайки</label>
+                                </div>
+                                <div class="button-checkbox">
+                                    <input type="checkbox" id="postActionComment" checked>
+                                    <label for="postActionComment">💬 Комментарии</label>
+                                </div>
+                                <div class="button-checkbox">
+                                    <input type="checkbox" id="postActionShare">
+                                    <label for="postActionShare">🔄 Поделиться</label>
+                                </div>
+                                <div class="button-checkbox">
+                                    <input type="checkbox" id="postActionSave">
+                                    <label for="postActionSave">💾 Сохранить</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Награда за взаимодействие (искры):</label>
+                            <input type="number" id="postReward" class="form-control" value="2" min="0" step="0.5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="postActive" checked> Опубликовать сразу
+                            </label>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-success" onclick="savePost()">💾 Сохранить пост</button>
+                            <button class="btn btn-info" onclick="previewPost()">👁️ Предпросмотр</button>
+                            <button class="btn btn-danger" onclick="hidePostForm()">❌ Отмена</button>
+                        </div>
+                    </div>
+
+                    <!-- Пагинация -->
+                    <div class="pagination" id="postsPagination"></div>
+                </div>
+            </div>
+
+            <!-- Модерация -->
+            <div id="moderation" class="tab-content">
+                <div class="tab-subnav">
+                    <div class="tab-subnav-item active" onclick="showModerationTab('works')">🖼️ Работы</div>
+                    <div class="tab-subnav-item" onclick="showModerationTab('reviews')">💬 Отзывы</div>
+                    <div class="tab-subnav-item" onclick="showModerationTab('marathon')">🏃‍♂️ Марафоны</div>
+                </div>
+
+                <div id="moderationWorksTab">
+                    <div class="card">
+                        <h2 style="margin-bottom: 20px;">🖼️ Модерация работ</h2>
+                        
+                        <div class="filters">
+                            <select class="filter-select" id="workStatusFilter" onchange="loadWorksForModeration()">
+                                <option value="pending">⏳ На модерации</option>
+                                <option value="approved">✅ Одобренные</option>
+                                <option value="rejected">❌ Отклоненные</option>
+                            </select>
+                        </div>
+
+                        <div id="worksModerationList" class="loading">
+                            Загрузка работ...
+                        </div>
+
+                        <!-- Пагинация -->
+                        <div class="pagination" id="worksPagination"></div>
+                    </div>
+                </div>
+
+                <div id="moderationReviewsTab" style="display: none;">
+                    <div class="card">
+                        <h2 style="margin-bottom: 20px;">💬 Модерация отзывов</h2>
+                        
+                        <div class="filters">
+                            <select class="filter-select" id="reviewStatusFilter" onchange="loadReviewsForModeration()">
+                                <option value="pending">⏳ На модерации</option>
+                                <option value="approved">✅ Одобренные</option>
+                                <option value="rejected">❌ Отклоненные</option>
+                            </select>
+                        </div>
+
+                        <div id="reviewsModerationList" class="loading">
+                            Загрузка отзывов...
+                        </div>
+
+                        <!-- Пагинация -->
+                        <div class="pagination" id="reviewsPagination"></div>
+                    </div>
+                </div>
+
+                <div id="moderationMarathonTab" style="display: none;">
+                    <div class="card">
+                        <h2 style="margin-bottom: 20px;">🏃‍♂️ Модерация работ марафонов</h2>
+                        
+                        <div class="filters">
+                            <select class="filter-select" id="marathonFilter" onchange="loadMarathonSubmissions()">
+                                <option value="">Все марафоны</option>
+                            </select>
+                            <select class="filter-select" id="marathonDayFilter" onchange="loadMarathonSubmissions()">
+                                <option value="">Все дни</option>
+                            </select>
+                        </div>
+
+                        <div id="marathonSubmissionsList" class="loading">
+                            Загрузка работ марафонов...
+                        </div>
+
+                        <!-- Пагинация -->
+                        <div class="pagination" id="marathonSubmissionsPagination"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Админы -->
+            <div id="admins" class="tab-content">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px;">🔧 Управление администраторами</h2>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="showAdminForm()">➕ Добавить админа</button>
+                        <button class="btn btn-info" onclick="showAdminLogs()">📋 Показать логи действий</button>
+                    </div>
+
+                    <div id="adminsList" class="loading">
+                        Загрузка администраторов...
+                    </div>
+
+                    <!-- Форма добавления админа -->
+                    <div id="adminForm" class="card" style="display: none;">
+                        <h3 style="margin-bottom: 20px;">Добавление нового администратора</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">ID пользователя Telegram:</label>
+                            <input type="number" id="adminUserId" class="form-control" placeholder="123456789">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Имя пользователя (опционально):</label>
+                            <input type="text" id="adminUsername" class="form-control" placeholder="@username">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Роль:</label>
+                            <select id="adminRole" class="form-control">
+                                <option value="moderator">Модератор</option>
+                                <option value="admin">Администратор</option>
+                                <option value="superadmin">Супер-админ</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Права доступа:</label>
+                            <div class="buttons-grid">
+                                <div class="button-checkbox">
+                                    <input type="checkbox" id="adminPermUsers" checked>
+                                    <label for="adminPermUsers">👥 Пользователи</label>
+                                </div>
+                                <div class="button-checkbox">
+                                    <input type="checkbox" id="adminPermContent" checked>
+                                    <label for="adminPermContent">📝 Контент</label>
+                                </div>
+                                <div class="button-checkbox">
+                                    <input type="checkbox" id="adminPermModeration">
+                                    <label for="adminPermModeration">⚖️ Модерация</label>
+                                </div>
+                                <div class="button-checkbox">
+                                    <input type="checkbox" id="adminPermSettings">
+                                    <label for="adminPermSettings">⚙️ Настройки</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-success" onclick="saveAdmin()">💾 Добавить админа</button>
+                            <button class="btn btn-danger" onclick="hideAdminForm()">❌ Отмена</button>
+                        </div>
+                    </div>
+
+                    <!-- Логи действий -->
+                    <div id="adminLogs" class="card" style="display: none;">
+                        <h3 style="margin-bottom: 20px;">📋 Логи действий администраторов</h3>
+                        
+                        <div class="filters">
+                            <select class="filter-select" id="logAdminFilter" onchange="loadAdminLogs()">
+                                <option value="">Все админы</option>
+                            </select>
+                            <select class="filter-select" id="logActionFilter" onchange="loadAdminLogs()">
+                                <option value="">Все действия</option>
+                                <option value="create">Создание</option>
+                                <option value="update">Редактирование</option>
+                                <option value="delete">Удаление</option>
+                                <option value="moderate">Модерация</option>
+                            </select>
+                            <input type="date" id="logDateFilter" class="filter-select" onchange="loadAdminLogs()">
+                        </div>
+                        
+                        <div id="adminLogsList" class="loading">
+                            Загрузка логов...
+                        </div>
+                        
+                        <div class="pagination" id="adminLogsPagination"></div>
+                    </div>
+
+                    <!-- Пагинация -->
+                    <div class="pagination" id="adminsPagination"></div>
+                </div>
+            </div>
+
+            <!-- Настройки -->
+            <div id="settings" class="tab-content">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px;">⚙️ Настройки системы</h2>
+                    
+                    <div class="tab-subnav">
+                        <div class="tab-subnav-item active" onclick="showSettingsTab('general')">🔧 Основные</div>
+                        <div class="tab-subnav-item" onclick="showSettingsTab('notifications')">🔔 Уведомления</div>
+                        <div class="tab-subnav-item" onclick="showSettingsTab('backup')">💾 Резервное копирование</div>
+                    </div>
+
+                    <div id="settingsGeneralTab">
+                        <div class="settings-group">
+                            <h3 style="margin-bottom: 16px;">Основные настройки</h3>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Название системы</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Отображаемое название платформы</p>
+                                </div>
+                                <input type="text" id="systemName" class="form-control" style="width: 200px;" value="Мастерская Вдохновения">
+                            </div>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Базовая награда за регистрацию</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Количество искр при регистрации</p>
+                                </div>
+                                <input type="number" id="registrationReward" class="form-control" style="width: 100px;" value="10" min="0" step="0.5">
+                            </div>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Ежедневный бонус</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Награда за ежедневный вход</p>
+                                </div>
+                                <input type="number" id="dailyBonus" class="form-control" style="width: 100px;" value="5" min="0" step="0.5">
+                            </div>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Лимит приглашений</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Максимальное количество приглашений в день</p>
+                                </div>
+                                <input type="number" id="inviteLimit" class="form-control" style="width: 100px;" value="5" min="1">
+                            </div>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <h3 style="margin-bottom: 16px;">Настройки безопасности</h3>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Требовать подтверждение для опасных действий</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Запрашивать подтверждение при удалении и массовых операциях</p>
+                                </div>
+                                <input type="checkbox" id="confirmDangerous" checked>
+                            </div>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Логировать действия администраторов</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Сохранять историю всех действий в системе</p>
+                                </div>
+                                <input type="checkbox" id="logAdminActions" checked>
+                            </div>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Ограничить доступ по IP</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Разрешить доступ только с указанных IP-адресов</p>
+                                </div>
+                                <input type="checkbox" id="restrictByIP">
+                            </div>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-success" onclick="saveSystemSettings()">💾 Сохранить настройки</button>
+                            <button class="btn btn-info" onclick="resetSystemSettings()">🔄 Сбросить к значениям по умолчанию</button>
+                        </div>
+                    </div>
+
+                    <div id="settingsNotificationsTab" style="display: none;">
+                        <div class="settings-group">
+                            <h3 style="margin-bottom: 16px;">Настройки уведомлений</h3>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Уведомления о новых пользователях</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Отправлять уведомления при регистрации новых пользователей</p>
+                                </div>
+                                <input type="checkbox" id="notifyNewUsers" checked>
+                            </div>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Уведомления о работах на модерации</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Уведомлять при появлении новых работ для модерации</p>
+                                </div>
+                                <input type="checkbox" id="notifyModeration" checked>
+                            </div>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Уведомления об ошибках системы</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Отправлять уведомления о критических ошибках</p>
+                                </div>
+                                <input type="checkbox" id="notifyErrors" checked>
+                            </div>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Ежедневный отчет</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Отправлять ежедневный отчет о активности системы</p>
+                                </div>
+                                <input type="checkbox" id="dailyReport">
+                            </div>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-success" onclick="saveNotificationSettings()">💾 Сохранить настройки</button>
+                            <button class="btn btn-info" onclick="testNotifications()">📧 Тест уведомлений</button>
+                        </div>
+                    </div>
+
+                    <div id="settingsBackupTab" style="display: none;">
+                        <div class="settings-group">
+                            <h3 style="margin-bottom: 16px;">Резервное копирование</h3>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Автоматическое резервное копирование</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Создавать резервные копии автоматически</p>
+                                </div>
+                                <select id="backupFrequency" class="form-control" style="width: 150px;">
+                                    <option value="daily">Ежедневно</option>
+                                    <option value="weekly" selected>Еженедельно</option>
+                                    <option value="monthly">Ежемесячно</option>
+                                    <option value="disabled">Отключено</option>
+                                </select>
+                            </div>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Хранить резервные копии (дней)</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Количество дней хранения резервных копий</p>
+                                </div>
+                                <input type="number" id="backupRetention" class="form-control" style="width: 100px;" value="30" min="1">
+                            </div>
+                            
+                            <div class="settings-item">
+                                <div>
+                                    <strong>Последнее резервное копирование</strong>
+                                    <p style="color: #718096; margin: 4px 0 0 0;">Дата и время последнего бэкапа</p>
+                                </div>
+                                <div id="lastBackupTime">Не выполнялось</div>
+                            </div>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-success" onclick="createBackup()">💾 Создать резервную копию</button>
+                            <button class="btn btn-info" onclick="showBackupHistory()">📋 История резервных копий</button>
+                            <button class="btn btn-warning" onclick="showRestoreModal()">🔄 Восстановить из копии</button>
+                        </div>
+                        
+                        <div id="backupHistory" class="card" style="display: none; margin-top: 20px;">
+                            <h3 style="margin-bottom: 16px;">История резервных копий</h3>
+                            <div id="backupHistoryList" class="loading">
+                                Загрузка истории...
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Сообщения -->
+            <div id="messageArea"></div>
         </div>
 
-        <!-- Сообщения -->
-        <div id="messageArea"></div>
-    </div>
-
-    <!-- Модальные окна -->
-    <div id="modalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
-        <div id="modalContent" style="background: white; border-radius: 16px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;"></div>
+        <!-- Модальные окна -->
+        <div id="modalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+            <div id="modalContent" style="background: white; border-radius: 16px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;"></div>
+        </div>
     </div>
 
     <script>
         // ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
         let currentAdmin = null;
-        let currentUserId = null;
         let currentEditingId = null;
         let currentShopTab = 'items';
         let currentModerationTab = 'works';
@@ -1988,12 +2047,86 @@
             logs: { currentPage: 1, totalPages: 1, pageSize: 20 }
         };
 
+        // ===== СИСТЕМА АУТЕНТИФИКАЦИИ =====
+        function loginAdmin() {
+            const adminId = document.getElementById('adminIdInput').value.trim();
+            const adminKey = document.getElementById('adminKeyInput').value.trim();
+            
+            if (!adminId || !adminKey) {
+                showLoginMessage('❌ Введите ID и ключ доступа', 'error');
+                return;
+            }
+            
+            // Проверка доступа администратора
+            checkAdminAccess(adminId, adminKey)
+                .then(admin => {
+                    if (admin) {
+                        currentAdmin = admin;
+                        document.getElementById('currentAdminId').textContent = admin.user_id;
+                        document.getElementById('loginContainer').style.display = 'none';
+                        document.getElementById('adminPanel').style.display = 'block';
+                        showMessage('✅ Успешный вход в систему', 'success');
+                        loadAllData();
+                    } else {
+                        showLoginMessage('❌ Неверный ID или ключ доступа', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка входа:', error);
+                    showLoginMessage('❌ Ошибка подключения к серверу', 'error');
+                });
+        }
+        
+        function logoutAdmin() {
+            currentAdmin = null;
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('loginContainer').style.display = 'flex';
+            document.getElementById('adminIdInput').value = '';
+            document.getElementById('adminKeyInput').value = '';
+            showLoginMessage('✅ Вы вышли из системы', 'success');
+        }
+        
+        function showLoginMessage(message, type) {
+            const messageEl = document.getElementById('loginMessage');
+            messageEl.textContent = message;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+        }
+        
+        // Функция проверки доступа администратора
+        async function checkAdminAccess(adminId, adminKey) {
+            try {
+                // В реальном приложении здесь будет запрос к серверу
+                // Для демонстрации используем тестовые данные
+                const testAdmins = [
+                    { user_id: '898508164', username: 'admin', role: 'superadmin', is_active: true },
+                    { user_id: '123456789', username: 'moderator', role: 'moderator', is_active: true }
+                ];
+                
+                const admin = testAdmins.find(a => a.user_id === adminId);
+                
+                // В реальном приложении здесь будет проверка ключа доступа
+                if (admin && adminKey === 'admin123') {
+                    return admin;
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('Ошибка проверки доступа:', error);
+                return null;
+            }
+        }
+
         // ===== API МОДУЛЬ =====
         const API = {
             baseUrl: '/api/admin',
             
             async request(endpoint, options = {}) {
-                const url = `${this.baseUrl}${endpoint}${endpoint.includes('?') ? '&' : '?'}userId=${currentUserId}`;
+                if (!currentAdmin) {
+                    throw new Error('Требуется авторизация');
+                }
+                
+                const url = `${this.baseUrl}${endpoint}${endpoint.includes('?') ? '&' : '?'}adminId=${currentAdmin.user_id}`;
                 
                 try {
                     const response = await fetch(url, {
@@ -2027,7 +2160,7 @@
                     limit: limit,
                     ...filters
                 });
-                return this.request(`/users-report?${queryParams}`);
+                return this.request(`/users?${queryParams}`);
             },
             
             async addSparksToUser(userId, sparks, reason) {
@@ -2052,7 +2185,7 @@
             },
             
             async exportUsers() {
-                const response = await fetch(`${this.baseUrl}/export/users?userId=${currentUserId}`);
+                const response = await fetch(`${this.baseUrl}/export/users?adminId=${currentAdmin.user_id}`);
                 return response.blob();
             },
             
@@ -2179,7 +2312,7 @@
                 const formData = new FormData();
                 formData.append('image', imageFile);
                 
-                const response = await fetch(`${this.baseUrl}/interactives/${interactiveId}/image?userId=${currentUserId}`, {
+                const response = await fetch(`${this.baseUrl}/interactives/${interactiveId}/image?adminId=${currentAdmin.user_id}`, {
                     method: 'POST',
                     body: formData
                 });
@@ -2221,7 +2354,7 @@
                 formData.append('file', file);
                 formData.append('type', fileType);
                 
-                const response = await fetch(`${this.baseUrl}/shop/items/${itemId}/file?userId=${currentUserId}`, {
+                const response = await fetch(`${this.baseUrl}/shop/items/${itemId}/file?adminId=${currentAdmin.user_id}`, {
                     method: 'POST',
                     body: formData
                 });
@@ -2273,7 +2406,7 @@
                     formData.append('media', file);
                 });
                 
-                const response = await fetch(`${this.baseUrl}/posts/${postId}/media?userId=${currentUserId}`, {
+                const response = await fetch(`${this.baseUrl}/posts/${postId}/media?adminId=${currentAdmin.user_id}`, {
                     method: 'POST',
                     body: formData
                 });
@@ -2391,32 +2524,30 @@
             }
         };
 
-      // ===== ИНИЦИАЛИЗАЦИЯ =====
-async function initAdminPanel() {
-    console.log("🚀 Загрузка админ-панели");
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    currentUserId = urlParams.get('userId') || '898508164';
-    
-    // Тестовые данные администратора
-    currentAdmin = { 
-        user_id: currentUserId,
-        username: 'admin',
-        role: 'superadmin',
-        is_active: true
-    };
-    
-    document.getElementById('adminId').textContent = currentUserId;
-    
-    // Загружаем все данные
-    await loadAllData();
-    
-    // Показываем успешное сообщение
-    showMessage('✅ Админ-панель успешно загружена', 'success');
-}
+        // ===== ИНИЦИАЛИЗАЦИЯ =====
+        function initAdminPanel() {
+            console.log("🚀 Загрузка админ-панели");
+            
+            // Проверяем, есть ли сохраненная сессия
+            const savedAdmin = localStorage.getItem('currentAdmin');
+            if (savedAdmin) {
+                try {
+                    currentAdmin = JSON.parse(savedAdmin);
+                    document.getElementById('currentAdminId').textContent = currentAdmin.user_id;
+                    document.getElementById('loginContainer').style.display = 'none';
+                    document.getElementById('adminPanel').style.display = 'block';
+                    loadAllData();
+                } catch (error) {
+                    console.error('Ошибка восстановления сессии:', error);
+                    localStorage.removeItem('currentAdmin');
+                }
+            }
+        }
 
         // ===== ОСНОВНЫЕ ФУНКЦИИ =====
         async function loadAllData() {
+            if (!currentAdmin) return;
+            
             console.log('🔄 Начало загрузки всех данных...');
             
             try {
@@ -2436,10 +2567,13 @@ async function initAdminPanel() {
                 console.log('✅ Все данные успешно загружены');
             } catch (error) {
                 console.error('❌ Ошибка загрузки данных:', error);
+                showMessage('❌ Ошибка загрузки данных', 'error');
             }
         }
 
         function showTab(tabName) {
+            if (!currentAdmin) return;
+            
             console.log('🎯 Переключение на вкладку:', tabName);
             
             const targetTab = document.getElementById(tabName);
@@ -2471,6 +2605,8 @@ async function initAdminPanel() {
 
         // ===== ЗАГРУЗКА ДАННЫХ ДЛЯ ВКЛАДОК =====
         async function loadTabData(tabName) {
+            if (!currentAdmin) return;
+            
             try {
                 console.log('📱 Загрузка данных для вкладки:', tabName);
                 
@@ -2563,6 +2699,8 @@ async function initAdminPanel() {
 
         // ===== СТАТИСТИКА =====
         async function loadStats() {
+            if (!currentAdmin) return;
+            
             try {
                 // Проверяем кэш
                 const now = Date.now();
@@ -2672,6 +2810,8 @@ async function initAdminPanel() {
 
         // ===== ПОЛЬЗОВАТЕЛИ =====
         async function loadUsers(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('usersList', 5);
                 
@@ -2714,6 +2854,8 @@ async function initAdminPanel() {
 
         // ===== ФУНКЦИОНАЛ НАЧИСЛЕНИЯ ИСКР =====
         async function addSparksToUser(userId) {
+            if (!currentAdmin) return;
+            
             const sparksAmount = prompt('Введите количество искр для начисления:');
             if (!sparksAmount || isNaN(sparksAmount) || sparksAmount <= 0) {
                 alert('Введите корректное количество искр');
@@ -2769,6 +2911,8 @@ async function initAdminPanel() {
         }
 
         async function processBulkSparks() {
+            if (!currentAdmin) return;
+            
             const sparksAmount = parseFloat(document.getElementById('bulkSparksAmount').value);
             const reason = document.getElementById('bulkSparksReason').value || 'Массовое начисление';
             
@@ -2824,6 +2968,8 @@ async function initAdminPanel() {
         }
 
         async function processBulkNotification() {
+            if (!currentAdmin) return;
+            
             const message = document.getElementById('bulkNotificationMessage').value.trim();
             
             if (!message) {
@@ -2947,6 +3093,8 @@ async function initAdminPanel() {
 
         // ===== РОЛИ =====
         async function loadRoles(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('rolesList', 3);
                 
@@ -3053,6 +3201,8 @@ async function initAdminPanel() {
         }
 
         async function saveRole() {
+            if (!currentAdmin) return;
+            
             const name = document.getElementById('roleName').value.trim();
             const description = document.getElementById('roleDescription').value.trim();
             const icon = document.getElementById('roleIcon').value.trim();
@@ -3097,6 +3247,8 @@ async function initAdminPanel() {
         }
 
         async function editRole(roleId) {
+            if (!currentAdmin) return;
+            
             try {
                 const roles = await API.getRoles();
                 const role = (roles.data || roles).find(r => r.id === roleId);
@@ -3131,6 +3283,8 @@ async function initAdminPanel() {
         }
 
         async function deleteRole(roleId) {
+            if (!currentAdmin) return;
+            
             if (!confirm('Вы уверены, что хотите удалить эту роль?')) return;
             
             try {
@@ -3155,6 +3309,8 @@ async function initAdminPanel() {
 
         // ===== ПЕРСОНАЖИ =====
         async function loadCharacters(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('charactersList', 3);
                 
@@ -3254,6 +3410,8 @@ async function initAdminPanel() {
         }
 
         async function saveCharacter() {
+            if (!currentAdmin) return;
+            
             const role_id = document.getElementById('characterRole').value;
             const name = document.getElementById('characterName').value.trim();
             const description = document.getElementById('characterDescription').value.trim();
@@ -3296,6 +3454,8 @@ async function initAdminPanel() {
         }
 
         async function editCharacter(characterId) {
+            if (!currentAdmin) return;
+            
             try {
                 const characters = await API.getCharacters();
                 const character = (characters.data || characters).find(c => c.id === characterId);
@@ -3322,6 +3482,8 @@ async function initAdminPanel() {
         }
 
         async function deleteCharacter(characterId) {
+            if (!currentAdmin) return;
+            
             if (!confirm('Вы уверены, что хотите удалить этого персонажа?')) return;
             
             try {
@@ -3346,6 +3508,8 @@ async function initAdminPanel() {
 
         // ===== КВИЗЫ =====
         async function loadQuizzes(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('quizzesList', 3);
                 
@@ -3502,6 +3666,8 @@ async function initAdminPanel() {
         }
 
         async function saveQuiz() {
+            if (!currentAdmin) return;
+            
             const title = document.getElementById('quizTitle').value.trim();
             const description = document.getElementById('quizDescription').value.trim();
             const sparks_per_correct = parseFloat(document.getElementById('quizSparksPerCorrect').value);
@@ -3574,6 +3740,8 @@ async function initAdminPanel() {
         }
 
         async function editQuiz(quizId) {
+            if (!currentAdmin) return;
+            
             try {
                 const quizzes = await API.getQuizzes();
                 const quiz = (quizzes.data || quizzes).find(q => q.id === quizId);
@@ -3629,6 +3797,8 @@ async function initAdminPanel() {
         }
 
         async function deleteQuiz(quizId) {
+            if (!currentAdmin) return;
+            
             if (!confirm('Вы уверены, что хотите удалить этот квиз?')) return;
             
             try {
@@ -3653,6 +3823,8 @@ async function initAdminPanel() {
 
         // ===== МАРАФОНЫ =====
         async function loadMarathons(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('marathonsList', 3);
                 
@@ -3793,6 +3965,8 @@ async function initAdminPanel() {
         }
 
         async function saveMarathon() {
+            if (!currentAdmin) return;
+            
             const title = document.getElementById('marathonTitle').value.trim();
             const description = document.getElementById('marathonDescription').value.trim();
             const duration = parseInt(document.getElementById('marathonDuration').value);
@@ -3869,6 +4043,8 @@ async function initAdminPanel() {
         }
 
         async function editMarathon(marathonId) {
+            if (!currentAdmin) return;
+            
             try {
                 const marathons = await API.getMarathons();
                 const marathon = (marathons.data || marathons).find(m => m.id === marathonId);
@@ -3922,6 +4098,8 @@ async function initAdminPanel() {
         }
 
         async function deleteMarathon(marathonId) {
+            if (!currentAdmin) return;
+            
             if (!confirm('Вы уверены, что хотите удалить этот марафон?')) return;
             
             try {
@@ -3946,6 +4124,8 @@ async function initAdminPanel() {
 
         // ===== ИНТЕРАКТИВЫ =====
         async function loadInteractives(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('interactivesList', 3);
                 
@@ -4060,6 +4240,8 @@ async function initAdminPanel() {
         }
 
         async function saveInteractive() {
+            if (!currentAdmin) return;
+            
             const type = document.getElementById('interactiveType').value;
             const title = document.getElementById('interactiveTitle').value.trim();
             const description = document.getElementById('interactiveDescription').value.trim();
@@ -4118,6 +4300,8 @@ async function initAdminPanel() {
         }
 
         async function editInteractive(interactiveId) {
+            if (!currentAdmin) return;
+            
             try {
                 const interactives = await API.getInteractives();
                 const interactive = (interactives.data || interactives).find(i => i.id === interactiveId);
@@ -4148,6 +4332,8 @@ async function initAdminPanel() {
         }
 
         async function deleteInteractive(interactiveId) {
+            if (!currentAdmin) return;
+            
             if (!confirm('Вы уверены, что хотите удалить этот интерактив?')) return;
             
             try {
@@ -4192,6 +4378,8 @@ async function initAdminPanel() {
         }
 
         async function loadShopItems(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('shopItemsList', 3);
                 
@@ -4340,6 +4528,8 @@ async function initAdminPanel() {
         }
 
         async function saveShopItem() {
+            if (!currentAdmin) return;
+            
             const type = document.getElementById('shopItemType').value;
             const title = document.getElementById('shopItemTitle').value.trim();
             const description = document.getElementById('shopItemDescription').value.trim();
@@ -4405,6 +4595,8 @@ async function initAdminPanel() {
         }
 
         async function editShopItem(itemId) {
+            if (!currentAdmin) return;
+            
             try {
                 const items = await API.getShopItems();
                 const item = (items.data || items).find(i => i.id === itemId);
@@ -4443,6 +4635,8 @@ async function initAdminPanel() {
         }
 
         async function deleteShopItem(itemId) {
+            if (!currentAdmin) return;
+            
             if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
             
             try {
@@ -4467,6 +4661,8 @@ async function initAdminPanel() {
 
         // ===== ПОКУПКИ =====
         async function loadPurchases(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('purchasesList', 5);
                 
@@ -4539,6 +4735,8 @@ async function initAdminPanel() {
 
         // ===== ПОСТЫ =====
         async function loadPosts(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('postsList', 3);
                 
@@ -4655,6 +4853,8 @@ async function initAdminPanel() {
         }
 
         async function savePost() {
+            if (!currentAdmin) return;
+            
             const title = document.getElementById('postTitle').value.trim();
             const content = document.getElementById('postContent').innerHTML;
             const reward = parseFloat(document.getElementById('postReward').value);
@@ -4740,6 +4940,8 @@ async function initAdminPanel() {
         }
 
         async function editPost(postId) {
+            if (!currentAdmin) return;
+            
             try {
                 const posts = await API.getPosts();
                 const post = (posts.data || posts).find(p => p.id === postId);
@@ -4771,6 +4973,8 @@ async function initAdminPanel() {
         }
 
         async function deletePost(postId) {
+            if (!currentAdmin) return;
+            
             if (!confirm('Вы уверены, что хотите удалить этот пост?')) return;
             
             try {
@@ -4795,6 +4999,8 @@ async function initAdminPanel() {
 
         // ===== АДМИНЫ =====
         async function loadAdmins(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('adminsList', 3);
                 
@@ -4872,6 +5078,8 @@ async function initAdminPanel() {
         }
 
         async function saveAdmin() {
+            if (!currentAdmin) return;
+            
             const user_id = document.getElementById('adminUserId').value;
             const username = document.getElementById('adminUsername').value.trim();
             const role = document.getElementById('adminRole').value;
@@ -4911,6 +5119,8 @@ async function initAdminPanel() {
         }
 
         async function deleteAdmin(adminId) {
+            if (!currentAdmin) return;
+            
             if (!confirm('Вы уверены, что хотите удалить этого администратора?')) return;
             
             try {
@@ -4938,6 +5148,8 @@ async function initAdminPanel() {
         }
 
         async function loadAdminLogs(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('adminLogsList', 5);
                 
@@ -5007,6 +5219,8 @@ async function initAdminPanel() {
         }
 
         async function loadWorksForModeration(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('worksModerationList', 5);
                 
@@ -5071,6 +5285,8 @@ async function initAdminPanel() {
         }
 
         async function moderateWork(workId, action) {
+            if (!currentAdmin) return;
+            
             const reason = action === 'reject' ? prompt('Причина отклонения:') : '';
             
             if (action === 'reject' && !reason) {
@@ -5120,6 +5336,8 @@ async function initAdminPanel() {
         }
 
         async function loadReviewsForModeration(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('reviewsModerationList', 5);
                 
@@ -5182,6 +5400,8 @@ async function initAdminPanel() {
         }
 
         async function moderateReview(reviewId, action) {
+            if (!currentAdmin) return;
+            
             const reason = action === 'reject' ? prompt('Причина отклонения:') : '';
             
             if (action === 'reject' && !reason) {
@@ -5205,6 +5425,8 @@ async function initAdminPanel() {
         }
 
         async function loadMarathonSubmissions(page = 1) {
+            if (!currentAdmin) return;
+            
             try {
                 showSkeleton('marathonSubmissionsList', 5);
                 
@@ -5273,6 +5495,8 @@ async function initAdminPanel() {
         }
 
         async function moderateMarathonSubmission(submissionId, action) {
+            if (!currentAdmin) return;
+            
             const reason = action === 'reject' ? prompt('Причина отклонения:') : '';
             
             if (action === 'reject' && !reason) {
@@ -5320,6 +5544,8 @@ async function initAdminPanel() {
         }
 
         async function loadSystemSettings() {
+            if (!currentAdmin) return;
+            
             try {
                 const settings = await API.getSystemSettings();
                 displaySystemSettings(settings);
@@ -5381,6 +5607,8 @@ async function initAdminPanel() {
         }
 
         async function saveSystemSettings() {
+            if (!currentAdmin) return;
+            
             const settings = {
                 systemName: document.getElementById('systemName').value,
                 registrationReward: parseFloat(document.getElementById('registrationReward').value),
@@ -5405,6 +5633,8 @@ async function initAdminPanel() {
         }
 
         async function saveNotificationSettings() {
+            if (!currentAdmin) return;
+            
             const settings = {
                 notifyNewUsers: document.getElementById('notifyNewUsers').checked,
                 notifyModeration: document.getElementById('notifyModeration').checked,
@@ -5441,6 +5671,8 @@ async function initAdminPanel() {
         }
 
         async function createBackup() {
+            if (!currentAdmin) return;
+            
             try {
                 const result = await API.createBackup();
                 
@@ -5546,6 +5778,8 @@ async function initAdminPanel() {
         }
 
         async function processRestore() {
+            if (!currentAdmin) return;
+            
             const backupId = document.getElementById('restoreBackupSelect').value;
             
             if (!backupId) {
@@ -5574,6 +5808,8 @@ async function initAdminPanel() {
         }
 
         async function testNotifications() {
+            if (!currentAdmin) return;
+            
             try {
                 const result = await API.testNotifications();
                 
@@ -5645,6 +5881,8 @@ async function initAdminPanel() {
         }
 
         async function exportUsers() {
+            if (!currentAdmin) return;
+            
             try {
                 console.log('📤 Начало экспорта пользователей...');
                 
