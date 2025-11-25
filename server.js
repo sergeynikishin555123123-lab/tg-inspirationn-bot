@@ -11,7 +11,6 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
-import Database from 'better-sqlite3'; // Убедитесь что это единственный импорт базы данных
 import os from 'os';
 
 dotenv.config();
@@ -65,421 +64,126 @@ const SPARKS_SYSTEM = {
     COMMUNITY_HELP: 8
 };
 
-// ==================== БАЗА ДАННЫХ POSTGRESQL ====================
-
-class SQLiteDatabaseService {
+// ==================== PURE JAVASCRIPT БАЗА ДАННЫХ ====================
+class MemoryDatabaseService {
     constructor() {
-        this.db = null;
-        this.connected = false;
+        this.tables = {
+            users: new Map(),
+            roles: new Map(),
+            characters: new Map(),
+            quizzes: new Map(),
+            quiz_completions: new Map(),
+            marathons: new Map(),
+            marathon_completions: new Map(),
+            shop_items: new Map(),
+            purchases: new Map(),
+            activities: new Map(),
+            posts: new Map(),
+            user_works: new Map(),
+            interactives: new Map(),
+            system_settings: new Map(),
+            sessions: new Map(),
+            notifications: new Map(),
+            post_reviews: new Map(),
+            work_reviews: new Map(),
+            daily_reviews: new Map(),
+            interactive_completions: new Map(),
+            interactive_submissions: new Map(),
+            marathon_submissions: new Map(),
+            admins: new Map(),
+            admin_logs: new Map()
+        };
+        
+        this.counters = {};
+        this.connected = true;
+        
+        // Инициализируем счетчики для ID
+        for (const tableName in this.tables) {
+            this.counters[tableName] = 1;
+        }
+        
         this.init();
     }
 
     async init() {
-        try {
-            // Создаем директорию для базы данных
-            const dataDir = join(process.cwd(), 'data');
-            if (!existsSync(dataDir)) {
-                mkdirSync(dataDir, { recursive: true });
-            }
-            
-            const dbPath = join(dataDir, 'inspiration.db');
-            this.db = new Database(dbPath);
-            
-            // Включаем foreign keys и другие настройки
-            this.db.pragma('journal_mode = WAL');
-            this.db.pragma('foreign_keys = ON');
-            
-            this.connected = true;
-            console.log('✅ SQLite база данных подключена успешно');
-            
-            await this.createTables();
-            await this.initializeDefaultData();
-            
-        } catch (error) {
-            console.error('❌ Ошибка подключения к SQLite:', error);
-            // Fallback на in-memory базу
-            await this.initializeInMemoryDatabase();
-        }
-    }
-
-    async initializeInMemoryDatabase() {
-        try {
-            this.db = new Database(':memory:');
-            this.db.pragma('foreign_keys = ON');
-            this.connected = true;
-            console.log('✅ In-memory SQLite база данных создана');
-            
-            await this.createTables();
-            await this.initializeDefaultData();
-        } catch (error) {
-            console.error('❌ Ошибка создания in-memory базы:', error);
-        }
-    }
-
-    async createTables() {
-        const tables = [
-            // Таблица пользователей
-            `
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER UNIQUE NOT NULL,
-                tg_first_name TEXT NOT NULL,
-                tg_username TEXT,
-                email TEXT UNIQUE,
-                phone TEXT,
-                sparks REAL DEFAULT 0,
-                level TEXT DEFAULT 'Ученик',
-                is_registered BOOLEAN DEFAULT 0,
-                class TEXT,
-                character_id INTEGER,
-                character_name TEXT,
-                available_buttons TEXT DEFAULT '[]',
-                registration_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-                last_active DATETIME DEFAULT CURRENT_TIMESTAMP,
-                status TEXT DEFAULT 'active',
-                invited_by INTEGER,
-                invite_count INTEGER DEFAULT 0,
-                total_invited INTEGER DEFAULT 0,
-                is_active BOOLEAN DEFAULT 1
-            )
-            `,
-            
-            // Таблица ролей
-            `
-            CREATE TABLE IF NOT EXISTS roles (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL,
-                description TEXT,
-                icon TEXT,
-                available_buttons TEXT DEFAULT '[]',
-                is_active BOOLEAN DEFAULT 1,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                color TEXT,
-                display_order INTEGER DEFAULT 0
-            )
-            `,
-            
-            // Таблица персонажей
-            `
-            CREATE TABLE IF NOT EXISTS characters (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                role_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                description TEXT,
-                bonus_type TEXT NOT NULL,
-                bonus_value TEXT NOT NULL,
-                is_active BOOLEAN DEFAULT 1,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                image_url TEXT,
-                personality TEXT,
-                special_ability TEXT,
-                FOREIGN KEY (role_id) REFERENCES roles(id)
-            )
-            `,
-            
-            // Таблица квизов
-            `
-            CREATE TABLE IF NOT EXISTS quizzes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                description TEXT,
-                questions TEXT NOT NULL,
-                sparks_per_correct REAL DEFAULT 1,
-                sparks_perfect_bonus INTEGER DEFAULT 5,
-                cooldown_hours INTEGER DEFAULT 24,
-                allow_retake BOOLEAN DEFAULT 1,
-                is_active BOOLEAN DEFAULT 1,
-                difficulty TEXT DEFAULT 'beginner',
-                estimated_time INTEGER,
-                category TEXT,
-                tags TEXT DEFAULT '[]',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-            `,
-            
-            // Таблица завершений квизов
-            `
-            CREATE TABLE IF NOT EXISTS quiz_completions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                quiz_id INTEGER NOT NULL,
-                completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                score INTEGER NOT NULL,
-                total_questions INTEGER NOT NULL,
-                sparks_earned REAL NOT NULL,
-                perfect_score BOOLEAN DEFAULT 0,
-                time_spent INTEGER,
-                answers TEXT,
-                speed_bonus REAL DEFAULT 0,
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
-            )
-            `,
-            
-            // Таблица марафонов
-            `
-            CREATE TABLE IF NOT EXISTS marathons (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                description TEXT,
-                duration INTEGER NOT NULL,
-                days TEXT NOT NULL,
-                completion_reward INTEGER DEFAULT 0,
-                start_date DATETIME,
-                is_active BOOLEAN DEFAULT 1,
-                difficulty TEXT DEFAULT 'beginner',
-                category TEXT,
-                tags TEXT DEFAULT '[]',
-                participants_count INTEGER DEFAULT 0,
-                average_rating REAL DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                cover_image TEXT,
-                requirements TEXT DEFAULT '[]'
-            )
-            `,
-            
-            // Таблица завершений марафонов
-            `
-            CREATE TABLE IF NOT EXISTS marathon_completions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                marathon_id INTEGER NOT NULL,
-                current_day INTEGER DEFAULT 1,
-                progress INTEGER DEFAULT 0,
-                completed BOOLEAN DEFAULT 0,
-                started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
-                total_sparks_earned REAL DEFAULT 0,
-                days_completed TEXT DEFAULT '[]',
-                UNIQUE(user_id, marathon_id),
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (marathon_id) REFERENCES marathons(id)
-            )
-            `,
-            
-            // Таблица товаров магазина
-            `
-            CREATE TABLE IF NOT EXISTS shop_items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                description TEXT,
-                type TEXT NOT NULL,
-                file_url TEXT,
-                preview_url TEXT,
-                price REAL NOT NULL,
-                content_text TEXT,
-                embed_html TEXT,
-                is_active BOOLEAN DEFAULT 1,
-                category TEXT,
-                difficulty TEXT,
-                estimated_duration TEXT,
-                instructor TEXT,
-                rating REAL DEFAULT 0,
-                students_count INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                tags TEXT DEFAULT '[]'
-            )
-            `,
-            
-            // Таблица покупок
-            `
-            CREATE TABLE IF NOT EXISTS purchases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                item_id INTEGER NOT NULL,
-                price_paid REAL NOT NULL,
-                purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                status TEXT DEFAULT 'completed',
-                download_count INTEGER DEFAULT 0,
-                last_download DATETIME,
-                FOREIGN KEY (user_id) REFERENCES users(user_id),
-                FOREIGN KEY (item_id) REFERENCES shop_items(id)
-            )
-            `,
-            
-            // Таблица активностей
-            `
-            CREATE TABLE IF NOT EXISTS activities (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                activity_type TEXT NOT NULL,
-                sparks_earned REAL NOT NULL,
-                description TEXT NOT NULL,
-                old_sparks REAL,
-                new_sparks REAL,
-                old_level TEXT,
-                new_level TEXT,
-                metadata TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
-            )
-            `,
-            
-            // Таблица постов
-            `
-            CREATE TABLE IF NOT EXISTS posts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                content TEXT NOT NULL,
-                media_urls TEXT DEFAULT '[]',
-                allowed_actions TEXT DEFAULT '[]',
-                reward REAL DEFAULT 0,
-                is_published BOOLEAN DEFAULT 1,
-                views_count INTEGER DEFAULT 0,
-                likes_count INTEGER DEFAULT 0,
-                comments_count INTEGER DEFAULT 0,
-                shares_count INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                tags TEXT DEFAULT '[]',
-                category TEXT,
-                author_id INTEGER
-            )
-            `,
-            
-            // Таблица работ пользователей
-            `
-            CREATE TABLE IF NOT EXISTS user_works (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                title TEXT NOT NULL,
-                description TEXT,
-                image_url TEXT NOT NULL,
-                type TEXT DEFAULT 'image',
-                status TEXT DEFAULT 'pending',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                moderated_at DATETIME,
-                moderator_id INTEGER,
-                admin_comment TEXT,
-                likes_count INTEGER DEFAULT 0,
-                comments_count INTEGER DEFAULT 0,
-                category TEXT,
-                tags TEXT DEFAULT '[]',
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
-            )
-            `,
-            
-            // Таблица интерактивов
-            `
-            CREATE TABLE IF NOT EXISTS interactives (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                description TEXT,
-                type TEXT NOT NULL,
-                category TEXT NOT NULL,
-                image_url TEXT,
-                question TEXT,
-                options TEXT DEFAULT '[]',
-                correct_answer INTEGER,
-                sparks_reward INTEGER DEFAULT 3,
-                allow_retake BOOLEAN DEFAULT 0,
-                is_active BOOLEAN DEFAULT 1,
-                difficulty TEXT DEFAULT 'beginner',
-                estimated_time INTEGER,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                attempts_count INTEGER DEFAULT 0,
-                success_rate REAL DEFAULT 0
-            )
-            `,
-            
-            // Таблица системных настроек
-            `
-            CREATE TABLE IF NOT EXISTS system_settings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                key TEXT UNIQUE NOT NULL,
-                value TEXT NOT NULL,
-                description TEXT,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-            `
-        ];
-
-        for (const tableSQL of tables) {
-            try {
-                this.db.exec(tableSQL);
-            } catch (error) {
-                console.error('Ошибка создания таблицы:', error.message);
-            }
-        }
-
-        console.log('✅ Все таблицы созданы успешно');
+        console.log('✅ Pure JavaScript база данных инициализирована');
+        await this.initializeDefaultData();
     }
 
     async initializeDefaultData() {
-        try {
-            // Проверяем, есть ли уже данные
-            const rolesCount = this.db.prepare("SELECT COUNT(*) as count FROM roles").get();
-            
-            if (rolesCount.count === 0) {
-                console.log('🔄 Инициализация базы данных с тестовыми данными...');
+        // Системные настройки
+        const systemSettings = [
+            { key: 'systemName', value: 'Мастерская Вдохновения', description: 'Название системы' },
+            { key: 'registrationReward', value: '10', description: 'Награда за регистрацию' },
+            { key: 'dailyBonus', value: '5', description: 'Ежедневный бонус' }
+        ];
 
-                // Системные настройки
-                const systemSettings = [
-                    ['systemName', 'Мастерская Вдохновения', 'Название системы'],
-                    ['registrationReward', '10', 'Награда за регистрацию'],
-                    ['dailyBonus', '5', 'Ежедневный бонус']
-                ];
+        systemSettings.forEach(setting => {
+            this.tables.system_settings.set(setting.key, { id: this.getNextId('system_settings'), ...setting });
+        });
 
-                const insertSetting = this.db.prepare("INSERT OR IGNORE INTO system_settings (key, value, description) VALUES (?, ?, ?)");
-                for (const [key, value, description] of systemSettings) {
-                    insertSetting.run(key, value, description);
-                }
+        // Роли
+        const roles = [
+            { name: 'Художники', description: 'Творцы изобразительного искусства', icon: '🎨', available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', color: '#FF6B6B', display_order: 1 },
+            { name: 'Стилисты', description: 'Мастера создания гармоничных образов', icon: '👗', available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', color: '#4ECDC4', display_order: 2 },
+            { name: 'Мастера', description: 'Ремесленники прикладного искусства', icon: '🧵', available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', color: '#45B7D1', display_order: 3 },
+            { name: 'Историки', description: 'Знатоки истории искусств и культуры', icon: '🏛️', available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', color: '#96CEB4', display_order: 4 }
+        ];
 
-                // Роли
-                const roles = [
-                    ['Художники', 'Творцы изобразительного искусства', '🎨', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#FF6B6B', 1],
-                    ['Стилисты', 'Мастера создания гармоничных образов', '👗', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#4ECDC4', 2],
-                    ['Мастера', 'Ремесленники прикладного искусства', '🧵', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#45B7D1', 3],
-                    ['Историки', 'Знатоки истории искусств и культуры', '🏛️', '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', '#96CEB4', 4]
-                ];
+        roles.forEach(role => {
+            const id = this.getNextId('roles');
+            this.tables.roles.set(id, { id, ...role, is_active: true });
+        });
 
-                const insertRole = this.db.prepare("INSERT OR IGNORE INTO roles (name, description, icon, available_buttons, color, display_order) VALUES (?, ?, ?, ?, ?, ?)");
-                for (const role of roles) {
-                    insertRole.run(...role);
-                }
+        // Персонажи
+        const characters = [
+            { role_id: 1, name: 'Лука Цветной', description: 'Рисует с детства, обожает эксперименты с цветом', bonus_type: 'percent_bonus', bonus_value: '10', image_url: '/images/characters/luka.jpg', personality: 'Энергичный, экспериментатор', special_ability: 'Цветовое чутье' },
+            { role_id: 1, name: 'Марина Кисть', description: 'Строгая преподавательница академической живописи', bonus_type: 'forgiveness', bonus_value: '1', image_url: '/images/characters/marina.jpg', personality: 'Строгая, мудрая', special_ability: 'Право на ошибку' },
+            { role_id: 2, name: 'Эстелла Моде', description: 'Бывший стилист парижских модных домов', bonus_type: 'percent_bonus', bonus_value: '5', image_url: '/images/characters/estella.jpg', personality: 'Элегантная, внимательная', special_ability: 'Стильный взгляд' }
+        ];
 
-                // Персонажи
-                const characters = [
-                    [1, 'Лука Цветной', 'Рисует с детства, обожает эксперименты с цветом', 'percent_bonus', '10', '/images/characters/luka.jpg', 'Энергичный, экспериментатор', 'Цветовое чутье'],
-                    [1, 'Марина Кисть', 'Строгая преподавательница академической живописи', 'forgiveness', '1', '/images/characters/marina.jpg', 'Строгая, мудрая', 'Право на ошибку'],
-                    [2, 'Эстелла Моде', 'Бывший стилист парижских модных домов', 'percent_bonus', '5', '/images/characters/estella.jpg', 'Элегантная, внимательная', 'Стильный взгляд'],
-                    [3, 'Артем Резчик', 'Мастер по дереву и керамике', 'random_gift', '1-3', '/images/characters/artem.jpg', 'Терпеливый, основательный', 'Щедрая душа'],
-                    [4, 'София Хроник', 'Искусствовед и историк культуры', 'secret_advice', '2weeks', '/images/characters/sofia.jpg', 'Эрудированная, рассказчик', 'Мудрые советы']
-                ];
+        characters.forEach(character => {
+            const id = this.getNextId('characters');
+            this.tables.characters.set(id, { id, ...character, is_active: true });
+        });
 
-                const insertCharacter = this.db.prepare("INSERT OR IGNORE INTO characters (role_id, name, description, bonus_type, bonus_value, image_url, personality, special_ability) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                for (const character of characters) {
-                    insertCharacter.run(...character);
-                }
+        // Тестовые пользователи
+        const testUsers = [
+            { user_id: 898508164, tg_first_name: 'Администратор', tg_username: 'admin', sparks: 250.0, level: 'Мастер', class: 'Художники', character_id: 1, character_name: 'Лука Цветной', is_registered: true, available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]' },
+            { user_id: 12345, tg_first_name: 'Тестовый Пользователь', tg_username: 'test_user', sparks: 45.5, level: 'Искатель', class: 'Художники', character_id: 1, character_name: 'Лука Цветной', is_registered: true, available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]' }
+        ];
 
-                // Тестовые пользователи
-                const testUsers = [
-                    [12345, 'Тестовый Пользователь', 'test_user', 45.5, 'Искатель', 'Художники', 1, 'Лука Цветной'],
-                    [898508164, 'Администратор', 'admin', 250.0, 'Мастер', 'Художники', 1, 'Лука Цветной']
-                ];
+        testUsers.forEach(user => {
+            this.tables.users.set(user.user_id, { 
+                id: this.getNextId('users'), 
+                ...user, 
+                status: 'active',
+                registration_date: new Date().toISOString(),
+                last_active: new Date().toISOString()
+            });
+        });
 
-                const insertUser = this.db.prepare(`INSERT OR IGNORE INTO users (user_id, tg_first_name, tg_username, sparks, level, class, character_id, character_name, is_registered, available_buttons) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`);
-                for (const user of testUsers) {
-                    insertUser.run(...user, '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]');
-                }
+        console.log('✅ Тестовые данные загружены в базу');
+    }
 
-                console.log('✅ База данных инициализирована с тестовыми данными');
-            }
-        } catch (error) {
-            console.error('Ошибка инициализации данных:', error);
-        }
+    getNextId(tableName) {
+        const id = this.counters[tableName];
+        this.counters[tableName]++;
+        return id;
     }
 
     async run(sql, params = []) {
         try {
-            const stmt = this.db.prepare(sql);
-            const result = stmt.run(...params);
-            return result;
+            // Простая имитация SQL запросов
+            if (sql.includes('INSERT INTO')) {
+                return this.handleInsert(sql, params);
+            } else if (sql.includes('UPDATE')) {
+                return this.handleUpdate(sql, params);
+            } else if (sql.includes('DELETE FROM')) {
+                return this.handleDelete(sql, params);
+            }
+            
+            return { lastID: this.getNextId('general') };
         } catch (error) {
             console.error('❌ Ошибка выполнения запроса:', error);
             throw error;
@@ -488,9 +192,10 @@ class SQLiteDatabaseService {
 
     async get(sql, params = []) {
         try {
-            const stmt = this.db.prepare(sql);
-            const result = stmt.get(...params);
-            return result || null;
+            if (sql.includes('SELECT') && sql.includes('FROM')) {
+                return this.handleSelectOne(sql, params);
+            }
+            return null;
         } catch (error) {
             console.error('❌ Ошибка выполнения запроса:', error);
             throw error;
@@ -499,13 +204,96 @@ class SQLiteDatabaseService {
 
     async all(sql, params = []) {
         try {
-            const stmt = this.db.prepare(sql);
-            const result = stmt.all(...params);
-            return result;
+            if (sql.includes('SELECT') && sql.includes('FROM')) {
+                return this.handleSelectAll(sql, params);
+            }
+            return [];
         } catch (error) {
             console.error('❌ Ошибка выполнения запроса:', error);
             throw error;
         }
+    }
+
+    // Обработчики SQL запросов
+    handleInsert(sql, params) {
+        const tableMatch = sql.match(/INSERT INTO (\w+)/i);
+        if (!tableMatch) return { lastID: 0 };
+        
+        const tableName = tableMatch[1];
+        const table = this.tables[tableName];
+        if (!table) return { lastID: 0 };
+        
+        const id = this.getNextId(tableName);
+        
+        // Простая логика для пользователей
+        if (tableName === 'users' && params[0]) {
+            const userData = {
+                id,
+                user_id: params[0],
+                tg_first_name: params[1] || 'Пользователь',
+                tg_username: params[2],
+                sparks: 0,
+                level: 'Ученик',
+                is_registered: false,
+                status: 'active',
+                registration_date: new Date().toISOString(),
+                last_active: new Date().toISOString()
+            };
+            table.set(params[0], userData);
+            return { lastID: id };
+        }
+        
+        return { lastID: id };
+    }
+
+    handleSelectOne(sql, params) {
+        // Для пользователей
+        if (sql.includes('users') && sql.includes('user_id')) {
+            const userId = params[0];
+            return this.tables.users.get(userId) || null;
+        }
+        
+        // Для ролей
+        if (sql.includes('roles')) {
+            const roles = Array.from(this.tables.roles.values());
+            return roles[0] || null;
+        }
+        
+        return null;
+    }
+
+    handleSelectAll(sql, params) {
+        // Для ролей
+        if (sql.includes('roles')) {
+            return Array.from(this.tables.roles.values());
+        }
+        
+        // Для персонажей
+        if (sql.includes('characters') && sql.includes('role_id')) {
+            const roleId = params[0];
+            const characters = Array.from(this.tables.characters.values());
+            return characters.filter(c => c.role_id === roleId);
+        }
+        
+        return [];
+    }
+
+    handleUpdate(sql, params) {
+        // Простая реализация для обновления пользователя
+        if (sql.includes('UPDATE users') && sql.includes('user_id')) {
+            const userId = params[params.length - 1]; // Последний параметр обычно WHERE условие
+            const user = this.tables.users.get(userId);
+            if (user) {
+                // Обновляем last_active
+                user.last_active = new Date().toISOString();
+                return { changes: 1 };
+            }
+        }
+        return { changes: 0 };
+    }
+
+    handleDelete(sql, params) {
+        return { changes: 0 };
     }
 
     // Вспомогательные методы для работы с JSON полями
@@ -522,7 +310,7 @@ class SQLiteDatabaseService {
     }
 }
 
-const dbService = new SQLiteDatabaseService();
+const dbService = new MemoryDatabaseService();
 // ==================== СИСТЕМА АУТЕНТИФИКАЦИИ И СЕССИЙ ====================
 class AuthService {
     static generateSessionToken() {
