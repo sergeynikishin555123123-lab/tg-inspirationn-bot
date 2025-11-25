@@ -24,6 +24,20 @@ const __dirname = dirname(__filename);
 const app = express();
 const APP_ROOT = process.env.NODE_ENV === 'production' ? '/tmp' : process.cwd();
 
+// ==================== КОНФИГУРАЦИЯ ПРИЛОЖЕНИЯ ====================
+const config = {
+    appUrl: process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-e112.twc1.net',
+    apiUrl: process.env.API_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-e112.twc1.net',
+    port: process.env.PORT || 3000,
+    isProduction: process.env.NODE_ENV === 'production'
+};
+
+console.log('🔧 Конфигурация приложения:');
+console.log('   App URL:', config.appUrl);
+console.log('   API URL:', config.apiUrl);
+console.log('   Port:', config.port);
+console.log('   Production:', config.isProduction);
+
 // ==================== КОНСТАНТЫ И НАСТРОЙКИ ====================
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 const SESSION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 дней
@@ -1130,7 +1144,7 @@ const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:5173',
     'https://localhost:3000',
-    'https://sergeynikishin555123123-lab-tg-inspirationn-bot-e112.twc1.net' // ← БЕЗ .com!
+    config.appUrl  // ← используем config.appUrl вместо хардкода
 ];
         
         // Разрешаем все origins в development
@@ -1219,31 +1233,80 @@ app.use(bodyParser.urlencoded({
     parameterLimit: 100000
 }));
 
+// ==================== MIDDLEWARE ДЛЯ TELEGRAM WEB APP ====================
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isTelegramWebApp = userAgent.includes('Telegram') || 
+                            req.headers['sec-fetch-site'] === 'cross-site' || 
+                            req.query.tgWebAppData ||
+                            req.headers['x-telegram-init-data'];
+    
+    if (isTelegramWebApp) {
+        console.log('🔗 Telegram Web App запрос:', req.method, req.url);
+        
+        // Убираем ограничения для Telegram Web App
+        res.removeHeader('X-Frame-Options');
+        res.setHeader('Content-Security-Policy', 
+            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+            "script-src * 'unsafe-inline' 'unsafe-eval'; " +
+            "connect-src * 'unsafe-inline'; " +
+            "img-src * data: blob: 'unsafe-inline'; " +
+            "frame-src *; " +
+            "style-src * 'unsafe-inline';"
+        );
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-telegram-init-data');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    
+    next();
+});
+
 // Статические файлы
 app.use(express.static(join(APP_ROOT, 'public'), {
     maxAge: '1d',
     setHeaders: (res, path, stat) => {
-        if (path.endsWith('.html')) {
-            res.removeHeader('X-Frame-Options');
-            res.setHeader('X-Frame-Options', 'ALLOWALL');
-        }
+        // Разрешаем iframe для Telegram Web App
+        res.removeHeader('X-Frame-Options');
+        res.setHeader('X-Frame-Options', 'ALLOWALL');
+        
+        // Настройки CORS для статических файлов
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
         
         if (path.endsWith('.js') || path.endsWith('.css')) {
             res.setHeader('Cache-Control', 'public, max-age=3600');
         } else if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
             res.setHeader('Cache-Control', 'public, max-age=86400');
+        } else {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         }
     }
 }));
 
+// Serve admin static files
 app.use('/admin', express.static(join(APP_ROOT, 'admin'), {
     maxAge: '1d',
     setHeaders: (res, path, stat) => {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
+        res.setHeader('Access-Control-Allow-Origin', '*');
     }
 }));
+
+// Serve uploads
+app.use('/uploads', express.static(uploadsDir, {
+    maxAge: '7d',
+    setHeaders: (res, path, stat) => {
+        res.setHeader('Cache-Control', 'public, max-age=604800');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+}));
+
+
 
 app.use('/uploads', express.static(uploadsDir, {
     maxAge: '7d',
@@ -1251,6 +1314,58 @@ app.use('/uploads', express.static(uploadsDir, {
         res.setHeader('Cache-Control', 'public, max-age=604800');
     }
 }));
+
+// ==================== API HEALTH CHECKS ====================
+// Health check с информацией о домене
+app.get('/api/health', async (req, res) => {
+    try {
+        const healthInfo = {
+            status: 'OK',
+            timestamp: new Date().toISOString(),
+            domain: config.appUrl,
+            api_domain: config.apiUrl,
+            environment: process.env.NODE_ENV || 'development',
+            cors: {
+                allowed_origins: [
+                    'https://web.telegram.org',
+                    'https://oauth.telegram.org', 
+                    config.appUrl
+                ]
+            },
+            features: {
+                telegram_bot: !!process.env.BOT_TOKEN,
+                database: dbService.connected,
+                file_uploads: true
+            },
+            system: {
+                node_version: process.version,
+                platform: process.platform,
+                uptime: process.uptime(),
+                memory: process.memoryUsage()
+            }
+        };
+        
+        res.json(healthInfo);
+    } catch (error) {
+        res.status(500).json({
+            status: 'ERROR',
+            error: error.message,
+            domain: config.appUrl,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Простой тестовый endpoint
+app.get('/api/test', (req, res) => {
+    res.json({
+        success: true,
+        message: 'API работает корректно',
+        domain: config.appUrl,
+        timestamp: new Date().toISOString(),
+        request_headers: req.headers
+    });
+});
 
 // ==================== ОСНОВНЫЕ МАРШРУТЫ ====================
 app.get('/', (req, res) => {
