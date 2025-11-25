@@ -2805,6 +2805,8 @@ function showUserData() {
             return;
         }
         
+        console.log('🎨 Рендерим данные пользователя в showUserData()');
+        
         userDataElement.innerHTML = `
             <div id="userContent">
                 <div class="user-info-grid">
@@ -2850,6 +2852,14 @@ function showUserData() {
                 </div>
             </div>
         `;
+        
+        console.log('✅ HTML сгенерирован с данными:', {
+            name: currentUser.tg_first_name,
+            level: currentUser.level,
+            role: currentUser.class,
+            character: currentUser.character_name,
+            sparks: currentUser.sparks
+        });
         
         // Обновляем поле имени в форме регистрации если оно существует
         const userFirstNameInput = document.getElementById('userFirstName');
@@ -3337,7 +3347,6 @@ function showScreen(screenName) {
 }
 
 // ==================== ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ====================
-// ==================== ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ====================
 async function loadUserData() {
     try {
         console.log('👤 Загрузка данных пользователя...', currentUserId);
@@ -3345,38 +3354,55 @@ async function loadUserData() {
         // Пробуем загрузить данные с сервера
         const response = await ApiService.getUser(currentUserId);
         
+        console.log('📥 Ответ от API:', response);
+        
         if (response.success && response.user) {
             console.log('✅ Данные пользователя загружены:', response.user);
             currentUser = response.user;
+            
+            // ПРОВЕРКА: какие данные мы получили
+            console.log('🔍 ПРОВЕРКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ:', {
+                hasName: !!currentUser.tg_first_name,
+                name: currentUser.tg_first_name,
+                hasLevel: !!currentUser.level,
+                level: currentUser.level,
+                hasClass: !!currentUser.class,
+                class: currentUser.class,
+                hasCharacter: !!currentUser.character_name,
+                character: currentUser.character_name,
+                isRegistered: currentUser.is_registered,
+                sparks: currentUser.sparks
+            });
             
             // ОБНОВЛЯЕМ ИНТЕРФЕЙС СРАЗУ
             updateUserInfo();
             
             // Проверяем регистрацию пользователя и показываем соответствующий экран
             if (!currentUser.is_registered) {
-                console.log('➡️ Показываем экран регистрации');
+                console.log('➡️ Пользователь НЕ зарегистрирован, показываем экран регистрации');
                 showScreen('registrationScreen');
             } else {
-                console.log('➡️ Показываем главный экран');
+                console.log('➡️ Пользователь зарегистрирован, показываем главный экран');
                 showScreen('mainScreen');
             }
         } else {
+            console.log('❌ Ошибка в ответе API:', response);
             throw new Error(response.error || 'Неверный формат ответа');
         }
         
     } catch (error) {
         console.log('⚠️ Используем локальные данные:', error.message);
         
-        // Локальные тестовые данные
+        // Локальные тестовые данные с ПРАВИЛЬНЫМИ значениями
         currentUser = {
             user_id: currentUserId,
-            tg_first_name: tg?.initDataUnsafe?.user?.first_name || 'Тестовый',
-            tg_username: tg?.initDataUnsafe?.user?.username || 'test_user',
+            tg_first_name: 'Тестовый Пользователь', // ⬅️ Убедимся что есть имя
+            tg_username: 'test_user',
             sparks: 45.5,
-            level: 'Искатель',
-            is_registered: false,
-            class: null,
-            character_name: null,
+            level: 'Искатель', // ⬅️ Убедимся что есть уровень
+            is_registered: true, // ⬅️ Сделаем зарегистрированным для теста
+            class: 'Художник', // ⬅️ Убедимся что есть класс
+            character_name: 'Импрессионист', // ⬅️ Убедимся что есть персонаж
             available_buttons: ['quiz', 'marathon', 'works', 'shop'],
             stats: {
                 total_quizzes_completed: 3,
@@ -3388,17 +3414,14 @@ async function loadUserData() {
             }
         };
         
+        console.log('🎯 Используем тестовые данные:', currentUser);
+        
         // ОБНОВЛЯЕМ ИНТЕРФЕЙС СРАЗУ
         updateUserInfo();
         
-        // Показываем соответствующий экран
-        if (currentUser.is_registered) {
-            console.log('➡️ Показываем главный экран (локальные данные)');
-            showScreen('mainScreen');
-        } else {
-            console.log('➡️ Показываем экран регистрации (локальные данные)');
-            showScreen('registrationScreen');
-        }
+        // Показываем главный экран для теста
+        console.log('➡️ Показываем главный экран (тестовые данные)');
+        showScreen('mainScreen');
     }
 }
 
@@ -3409,42 +3432,16 @@ function updateUserInfo() {
         return;
     }
     
-    console.log('🔄 Обновление интерфейса пользователя:', currentUser);
+    console.log('🔄 ОБНОВЛЕНИЕ ИНТЕРФЕЙСА - данные пользователя:', {
+        name: currentUser.tg_first_name,
+        registered: currentUser.is_registered,
+        sparks: currentUser.sparks
+    });
     
     try {
-        // ОТЛАДКА: показываем что происходит
-        console.log('🔧 Вызываем showUserData()');
+        // СПОСОБ 1: Полная перерисовка через showUserData
+        console.log('🎨 Вызываем showUserData() для полной перерисовки');
         showUserData();
-        
-        // Дополнительное обновление на случай если showUserData не сработал
-        const sparksElement = document.getElementById('sparksCount');
-        if (sparksElement) {
-            sparksElement.textContent = `✨ ${currentUser.sparks?.toFixed(1) || '0'}`;
-            console.log('✅ Обновлены искры:', sparksElement.textContent);
-        } else {
-            console.log('❌ Элемент sparksCount не найден');
-        }
-        
-        // Обновляем отдельные элементы
-        const elementsToUpdate = {
-            'userName': currentUser.tg_first_name || 'Пользователь',
-            'userLevel': currentUser.level || 'Ученик',
-            'userRole': currentUser.class || 'Не выбрана',
-            'userCharacter': currentUser.character_name || 'Не выбран'
-        };
-        
-        Object.entries(elementsToUpdate).forEach(([id, value]) => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = value;
-                console.log(`✅ Обновлен ${id}:`, value);
-            } else {
-                console.log(`❌ Элемент ${id} не найден`);
-            }
-        });
-        
-        // Обновляем статистику
-        updateStatsDisplay();
         
         // Управляем видимостью блоков
         const welcomeBlock = document.getElementById('welcomeBlock');
@@ -3474,10 +3471,7 @@ function updateUserInfo() {
             loadAvailableButtons();
         }
         
-        // Вызываем отладку
-        setTimeout(debugUserInterface, 100);
-        
-        console.log('✅ Интерфейс пользователя обновлен завершен');
+        console.log('✅ Обновление интерфейса завершено');
         
     } catch (error) {
         console.error('❌ Критическая ошибка в updateUserInfo:', error);
