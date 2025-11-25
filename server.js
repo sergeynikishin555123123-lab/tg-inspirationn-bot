@@ -5784,37 +5784,73 @@ process.on('uncaughtException', (error) => {
 });
 
 // ==================== SERVER START ====================
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', async () => {
-    console.log(`🚀 Сервер запущен на порту ${PORT}`);
-    console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
-    console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
-    console.log(`🗄️ Database: PostgreSQL (${dbService.connected ? 'Connected' : 'Disconnected'})`);
-    
-    if (dbService.connected) {
-        try {
-            const stats = await dbService.get(`
-                SELECT 
-                    (SELECT COUNT(*) FROM users) as users,
-                    (SELECT COUNT(*) FROM quizzes WHERE is_active = true) as quizzes,
-                    (SELECT COUNT(*) FROM marathons WHERE is_active = true) as marathons,
-                    (SELECT COUNT(*) FROM shop_items WHERE is_active = true) as shop_items,
-                    (SELECT COUNT(*) FROM interactives WHERE is_active = true) as interactives,
-                    (SELECT COUNT(*) FROM posts WHERE is_published = true) as posts,
-                    (SELECT COUNT(*) FROM admins WHERE is_active = true) as admins
-            `);
-            
-            console.log(`🎯 Квизов: ${stats.quizzes}`);
-            console.log(`🏃‍♂️ Марафонов: ${stats.marathons}`);
-            console.log(`🎮 Интерактивов: ${stats.interactives}`);
-            console.log(`🛒 Товаров: ${stats.shop_items}`);
-            console.log(`📝 Постов: ${stats.posts}`);
-            console.log(`👥 Пользователей: ${stats.users}`);
-            console.log(`🔧 Администраторов: ${stats.admins}`);
-            console.log('✅ Все системы работают!');
-            
-        } catch (error) {
-            console.log('⚠️ Не удалось получить статистику системы');
-        }
+const startServer = async (port) => {
+    return new Promise((resolve, reject) => {
+        const server = app.listen(port, '0.0.0.0')
+            .once('listening', () => {
+                console.log(`🚀 Сервер запущен на порту ${port}`);
+                resolve(server);
+            })
+            .once('error', (error) => {
+                if (error.code === 'EADDRINUSE') {
+                    console.log(`⚠️ Порт ${port} занят, пробуем ${port + 1}...`);
+                    resolve(null);
+                } else {
+                    reject(error);
+                }
+            });
+    });
+};
+
+const findAvailablePort = async (startPort = 3000, maxAttempts = 10) => {
+    for (let i = 0; i < maxAttempts; i++) {
+        const port = startPort + i;
+        const server = await startServer(port);
+        if (server) return { server, port };
     }
-});
+    throw new Error(`Не удалось найти свободный порт в диапазоне ${startPort}-${startPort + maxAttempts - 1}`);
+};
+
+const initializeServer = async () => {
+    try {
+        const PORT = process.env.PORT || 3000;
+        const { server, port } = await findAvailablePort(parseInt(PORT));
+        
+        console.log(`🎯 Финальный порт: ${port}`);
+        console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${port}`}`);
+        console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${port}`}/admin`);
+        console.log(`🗄️ Database: SQLite (${dbService.connected ? 'Connected' : 'Disconnected'})`);
+        
+        if (dbService.connected) {
+            try {
+                const stats = await dbService.get(`
+                    SELECT 
+                        (SELECT COUNT(*) FROM users) as users,
+                        (SELECT COUNT(*) FROM quizzes WHERE is_active = 1) as quizzes,
+                        (SELECT COUNT(*) FROM marathons WHERE is_active = 1) as marathons,
+                        (SELECT COUNT(*) FROM shop_items WHERE is_active = 1) as shop_items,
+                        (SELECT COUNT(*) FROM interactives WHERE is_active = 1) as interactives,
+                        (SELECT COUNT(*) FROM posts WHERE is_published = 1) as posts
+                `);
+                
+                console.log(`🎯 Квизов: ${stats.quizzes}`);
+                console.log(`🏃‍♂️ Марафонов: ${stats.marathons}`);
+                console.log(`🎮 Интерактивов: ${stats.interactives}`);
+                console.log(`🛒 Товаров: ${stats.shop_items}`);
+                console.log(`📝 Постов: ${stats.posts}`);
+                console.log(`👥 Пользователей: ${stats.users}`);
+                console.log('✅ Все системы работают!');
+                
+            } catch (error) {
+                console.log('⚠️ Не удалось получить статистику системы');
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Не удалось запустить сервер:', error);
+        process.exit(1);
+    }
+};
+
+// Запускаем сервер
+initializeServer();
