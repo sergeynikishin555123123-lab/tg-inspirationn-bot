@@ -2672,53 +2672,117 @@
 
         // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
         async function initApp() {
-            try {
-                console.log('🚀 Инициализация приложения...');
-                
-                // Инициализация Telegram WebApp
-                if (typeof Telegram === 'undefined') {
-                    console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
-                    tg = {
-                        initDataUnsafe: {
-                            user: { id: 898508164, first_name: 'Тестовый' },
-                            start_param: null
-                        },
-                        expand: () => console.log('📱 Expand'),
-                        enableClosingConfirmation: () => console.log('🔒 Closing confirmation'),
-                        platform: 'web'
-                    };
-                } else {
-                    tg = window.Telegram.WebApp;
-                    tg.expand();
-                    tg.enableClosingConfirmation();
-                }
-                
-                currentUserId = tg.initDataUnsafe.user?.id || 
-                              tg.initDataUnsafe.start_param?.replace('ref_', '') || 
-                              898508164;
-                
-                console.log('👤 User ID:', currentUserId);
-                console.log('📱 Platform:', tg.platform);
-                
-                // Инициализация тестовых данных
-                userActivities = [
-                    {
-                        id: 1,
-                        description: "Зарегистрировались в системе",
-                        sparks_earned: 10,
-                        created_at: new Date().toISOString()
-                    }
-                ];
-                
-                await loadUserData();
-                initDrawingCanvas();
-                setupEventListeners();
-                
-            } catch (error) {
-                console.error('💥 Критическая ошибка инициализации:', error);
-                showMessage('❌ Ошибка загрузки приложения: ' + error.message, 'error');
-            }
+    try {
+        console.log('🚀 Инициализация приложения...');
+        
+        // Инициализация Telegram WebApp
+        if (typeof Telegram === 'undefined') {
+            console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
+            tg = {
+                initDataUnsafe: {
+                    user: { id: 898508164, first_name: 'Администратор' },
+                    start_param: null
+                },
+                expand: () => console.log('📱 Expand'),
+                enableClosingConfirmation: () => console.log('🔒 Closing confirmation'),
+                platform: 'web'
+            };
+        } else {
+            tg = window.Telegram.WebApp;
+            tg.expand();
+            tg.enableClosingConfirmation();
         }
+        
+        currentUserId = tg.initDataUnsafe.user?.id || 
+                      898508164; // Ваш реальный ID как fallback
+        
+        console.log('👤 User ID:', currentUserId);
+        console.log('📱 Platform:', tg.platform);
+        
+        // Проверяем, является ли пользователь администратором
+        await checkAdminStatus();
+        
+        // Загружаем данные пользователя
+        await loadUserData();
+        initDrawingCanvas();
+        setupEventListeners();
+        
+    } catch (error) {
+        console.error('💥 Критическая ошибка инициализации:', error);
+        showMessage('❌ Ошибка загрузки приложения: ' + error.message, 'error');
+    }
+}
+
+// Новая функция проверки статуса администратора
+async function checkAdminStatus() {
+    try {
+        // Проверяем, есть ли пользователь в списке админов
+        const adminCheck = await ApiService.getUser(currentUserId);
+        
+        if (adminCheck.exists && adminCheck.user) {
+            console.log('✅ Пользователь найден в системе');
+            currentUser = adminCheck.user;
+            
+            // Если пользователь не зарегистрирован, но является админом - регистрируем автоматически
+            if (!currentUser.is_registered) {
+                console.log('🔄 Автоматическая регистрация администратора...');
+                await autoRegisterAdmin();
+            }
+        } else {
+            console.log('🆕 Новый пользователь, требуется регистрация');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка проверки статуса:', error);
+    }
+}
+
+// Автоматическая регистрация администратора
+async function autoRegisterAdmin() {
+    try {
+        const firstName = tg.initDataUnsafe.user?.first_name || 'Администратор';
+        
+        // Автоматически регистрируем как администратора с ролью Художника
+        const result = await ApiService.registerUser({
+            userId: currentUserId,
+            firstName: firstName,
+            roleId: 1, // Художники
+            characterId: 1 // Лука Цветной
+        });
+        
+        if (result.success) {
+            console.log('✅ Администратор автоматически зарегистрирован');
+            currentUser = result.user;
+            
+            // Добавляем пользователя в список админов если его там нет
+            await addUserToAdmins();
+        }
+    } catch (error) {
+        console.error('❌ Ошибка автоматической регистрации:', error);
+    }
+}
+
+// Добавление пользователя в список администраторов
+async function addUserToAdmins() {
+    try {
+        // В реальном приложении здесь будет API вызов
+        console.log('🔧 Добавление пользователя в список администраторов');
+        
+        // Для демонстрации просто добавляем в локальный список
+        const adminExists = db.admins.find(a => a.user_id == currentUserId);
+        if (!adminExists) {
+            db.admins.push({
+                id: Date.now(),
+                user_id: parseInt(currentUserId),
+                username: tg.initDataUnsafe.user?.username || 'admin',
+                role: 'admin',
+                created_at: new Date().toISOString()
+            });
+            console.log('✅ Пользователь добавлен как администратор');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка добавления в админы:', error);
+    }
+}
 
         function setupEventListeners() {
             // Табы интерактивов
@@ -2802,26 +2866,34 @@
             }
         }
 
-        async function loadUserData() {
-            try {
-                const userDataElement = document.getElementById('userData');
-                userDataElement.innerHTML = '<div class="loading"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div>Загрузка данных...</div>';
-                
-                const data = await ApiService.getUser(currentUserId);
-                
-                if (data.exists && data.user) {
-                    currentUser = data.user;
-                    showUserData();
-                    loadAvailableButtons();
-                } else {
-                    showWelcomeScreen();
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки пользователя:', error);
-                showMessage('❌ Ошибка загрузки данных', 'error');
-                showWelcomeScreen();
-            }
+       async function loadUserData() {
+    try {
+        const userDataElement = document.getElementById('userData');
+        userDataElement.innerHTML = '<div class="loading"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div>Загрузка данных...</div>';
+        
+        // Если пользователь уже загружен (из checkAdminStatus), используем его
+        if (currentUser) {
+            showUserData();
+            loadAvailableButtons();
+            return;
         }
+        
+        // Иначе загружаем данные через API
+        const data = await ApiService.getUser(currentUserId);
+        
+        if (data.exists && data.user) {
+            currentUser = data.user;
+            showUserData();
+            loadAvailableButtons();
+        } else {
+            showWelcomeScreen();
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки пользователя:', error);
+        showMessage('❌ Ошибка загрузки данных', 'error');
+        showWelcomeScreen();
+    }
+}
 
         function showUserData() {
             const userDataElement = document.getElementById('userData');
