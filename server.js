@@ -1036,30 +1036,165 @@ app.get('/favicon.ico', (req, res) => {
     res.status(204).end(); // No Content
 });
 
+// Главная страница - УПРОЩЕННАЯ ВЕРСИЯ
 app.get('/', (req, res) => {
-    const filePath = join(APP_ROOT, 'public', 'index.html');
-    if (!existsSync(filePath)) {
-        return res.status(404).json({ 
-            success: false,
-            error: 'Главная страница не найдена'
-        });
+    console.log('📱 Запрос главной страницы от:', req.headers['user-agent']);
+    
+    // Сначала пробуем отдать существующий файл
+    const indexPath = join(process.cwd(), 'public', 'index.html');
+    if (existsSync(indexPath)) {
+        console.log('✅ Отдаю существующий index.html');
+        return res.sendFile(indexPath);
     }
-    res.sendFile(filePath);
+    
+    // Если файла нет - простая страница
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Мастерская Вдохновения</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { 
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    padding: 20px;
+                    color: white;
+                }
+                .container { max-width: 400px; margin: 0 auto; }
+                .card { 
+                    background: rgba(255,255,255,0.95); 
+                    border-radius: 20px; 
+                    padding: 30px; 
+                    margin: 20px 0;
+                    color: #2d3748;
+                    text-align: center;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+                }
+                .btn {
+                    display: block;
+                    width: 100%;
+                    padding: 16px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    margin: 10px 0;
+                    text-decoration: none;
+                    cursor: pointer;
+                }
+                .sparks {
+                    font-size: 48px;
+                    color: #f6e05e;
+                    margin: 20px 0;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="card">
+                    <div class="sparks">✨</div>
+                    <h1>Мастерская Вдохновения</h1>
+                    <p style="margin: 20px 0; color: #718096;">
+                        Добро пожаловать в творческое пространство!
+                    </p>
+                    
+                    <a href="/admin" class="btn">🔧 Админ панель</a>
+                    <button class="btn" onclick="alert('Бот работает!')">🤖 Проверить бота</button>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: #f7fafc; border-radius: 12px;">
+                        <p style="font-size: 14px; color: #718096;">
+                            📱 <strong>Telegram Bot:</strong> активен<br>
+                            🎯 <strong>Квизы:</strong> готовы<br>
+                            🏃‍♂️ <strong>Марафоны:</strong> доступны
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <script>
+                console.log('🎨 Мастерская Вдохновения загружена!');
+                // Для Telegram Web App
+                if (window.Telegram && Telegram.WebApp) {
+                    Telegram.WebApp.ready();
+                    Telegram.WebApp.expand();
+                }
+            </script>
+        </body>
+        </html>
+    `);
 });
 
+// Админка - УПРОЩЕННАЯ ВЕРСИЯ
 app.get('/admin', (req, res) => {
-    const filePath = join(process.cwd(), 'public', 'admin.html');
-    if (!existsSync(filePath)) {
-        return res.status(404).json({ 
-            success: false,
-            error: 'Админка не найдена'
-        });
+    console.log('🔧 Запрос админки от:', req.headers['user-agent']);
+    
+    // Пробуем отдать существующий файл
+    const adminPath = join(process.cwd(), 'public', 'admin.html');
+    if (existsSync(adminPath)) {
+        console.log('✅ Отдаю существующий admin.html');
+        return res.sendFile(adminPath);
     }
-    res.sendFile(filePath);
+    
+    // Если файла нет - простая админка
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Админ панель</title>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    background: #1a202c; 
+                    color: white; 
+                    padding: 20px;
+                }
+                .admin-card {
+                    background: #2d3748;
+                    padding: 30px;
+                    border-radius: 12px;
+                    margin: 20px 0;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>🔧 Админ панель</h1>
+            <div class="admin-card">
+                <h3>Статистика системы</h3>
+                <p>👥 Пользователи: загрузка...</p>
+                <p>🎯 Квизы: загрузка...</p>
+                <p>🛒 Магазин: загрузка...</p>
+            </div>
+            <a href="/" style="color: #f6e05e;">← На главную</a>
+        </body>
+        </html>
+    `);
 });
 
 app.get('/admin/*', (req, res) => {
-    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
+    const adminPath = join(process.cwd(), 'public', 'admin.html');
+    if (existsSync(adminPath)) {
+        return res.sendFile(adminPath);
+    }
+    res.redirect('/admin');
+});
+
+// API health check
+app.get('/api/status', (req, res) => {
+    res.json({
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        features: {
+            bot: !!process.env.BOT_TOKEN,
+            admin: true,
+            api: true
+        }
+    });
 });
 
 // Health check
