@@ -1368,6 +1368,11 @@ app.get('/api/test', (req, res) => {
 });
 
 // ==================== ОСНОВНЫЕ МАРШРУТЫ ====================
+// Заглушка для favicon.ico чтобы избежать 404 ошибок
+app.get('/favicon.ico', (req, res) => {
+    res.status(204).end(); // No Content
+});
+
 app.get('/', (req, res) => {
     const filePath = join(APP_ROOT, 'public', 'index.html');
     if (!existsSync(filePath)) {
