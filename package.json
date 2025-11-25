@@ -1,7 +1,7 @@
 {
   "name": "tg-inspiration-bot",
   "version": "12.0.0",
-  "description": "Telegram bot with Mini App for inspiration workshop - Full Production Version",
+  "description": "Telegram bot with Mini App for inspiration workshop - Pure JavaScript Version",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -23,8 +23,7 @@
     "multer": "^1.4.5-lts.1",
     "sharp": "^0.32.6",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "better-sqlite3": "^8.6.0"
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
@@ -33,7 +32,7 @@
     "telegram",
     "bot",
     "mini-app",
-    "sqlite",
+    "javascript",
     "inspiration",
     "creative",
     "workshop",
@@ -43,7 +42,9 @@
     "design",
     "marathon",
     "quizzes",
-    "interactive"
+    "interactive",
+    "memory-database",
+    "json-database"
   ],
   "author": "Мастерская Вдохновения",
   "license": "MIT",
