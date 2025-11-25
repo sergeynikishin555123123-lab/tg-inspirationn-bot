@@ -2391,41 +2391,29 @@
             }
         };
 
-        // ===== ИНИЦИАЛИЗАЦИЯ =====
-        async function initAdminPanel() {
-            console.log("🚀 Загрузка админ-панели");
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            currentUserId = urlParams.get('userId');
-            
-            if (!currentUserId) {
-                document.body.innerHTML = `
-                    <div class="admin-login">
-                        <h1>❌ Ошибка</h1>
-                        <p>Не указан ID пользователя</p>
-                        <p style="color: #718096; font-size: 14px;">
-                            Добавьте ?userId=ВАШ_ID к URL
-                        </p>
-                        <button class="btn" onclick="location.href = '/admin?userId=898508164'" style="margin-top: 20px;">
-                            🔧 Использовать тестовый ID
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-            
-            try {
-                const response = await API.getStats();
-                currentAdmin = { user_id: currentUserId };
-                document.getElementById('adminId').textContent = currentUserId;
-                loadAllData();
-            } catch (error) {
-                console.error('Ошибка проверки доступа:', error);
-                currentAdmin = { user_id: currentUserId };
-                document.getElementById('adminId').textContent = currentUserId;
-                loadAllData();
-            }
-        }
+      // ===== ИНИЦИАЛИЗАЦИЯ =====
+async function initAdminPanel() {
+    console.log("🚀 Загрузка админ-панели");
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    currentUserId = urlParams.get('userId') || '898508164';
+    
+    // Тестовые данные администратора
+    currentAdmin = { 
+        user_id: currentUserId,
+        username: 'admin',
+        role: 'superadmin',
+        is_active: true
+    };
+    
+    document.getElementById('adminId').textContent = currentUserId;
+    
+    // Загружаем все данные
+    await loadAllData();
+    
+    // Показываем успешное сообщение
+    showMessage('✅ Админ-панель успешно загружена', 'success');
+}
 
         // ===== ОСНОВНЫЕ ФУНКЦИИ =====
         async function loadAllData() {
