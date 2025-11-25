@@ -2907,6 +2907,32 @@ function debugUserInterface() {
         }
     });
 }
+
+// ==================== ПРОСТАЯ ПРОВЕРКА ФУНКЦИЙ ====================
+function testShowUserData() {
+    console.log('🧪 ТЕСТ: Запускаем showUserData() вручную');
+    
+    if (!currentUser) {
+        console.log('❌ currentUser не определен для теста');
+        return;
+    }
+    
+    console.log('📝 Данные для отображения:', {
+        name: currentUser.tg_first_name,
+        level: currentUser.level,
+        class: currentUser.class,
+        character: currentUser.character_name
+    });
+    
+    // Вызываем функцию напрямую
+    showUserData();
+    
+    // Проверяем результат через 100ms
+    setTimeout(() => {
+        const userDataContent = document.getElementById('userData')?.innerHTML;
+        console.log('📋 Результат userData:', userDataContent?.substring(0, 200) + '...');
+    }, 100);
+}
         
         // ==================== РЕГИСТРАЦИЯ И РОЛИ ====================
         async function loadRoles() {
@@ -3138,88 +3164,7 @@ function checkRequiredElements() {
         console.log(`${element ? '✅' : '❌'} ${elementId}: ${element ? 'найден' : 'НЕ НАЙДЕН'}`);
     });
 }
-
-// ==================== ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С ДАННЫМИ ====================
-function showUserData() {
-    try {
-        const userDataElement = document.getElementById('userData');
-        if (!userDataElement) {
-            console.error('❌ Элемент userData не найден');
-            return;
-        }
-        
-        userDataElement.innerHTML = `
-            <div id="userContent">
-                <div class="user-info-grid">
-                    <div class="user-info-item">
-                        <span class="user-info-label">Имя:</span>
-                        <span id="userName" class="user-info-value">${currentUser.tg_first_name || 'Пользователь'}</span>
-                    </div>
-                    <div class="user-info-item">
-                        <span class="user-info-label">Уровень:</span>
-                        <span id="userLevel" class="user-info-value">${currentUser.level || 'Ученик'}</span>
-                    </div>
-                    <div class="user-info-item">
-                        <span class="user-info-label">Роль:</span>
-                        <span id="userRole" class="user-info-value">${currentUser.class || 'Не выбрана'}</span>
-                    </div>
-                    <div class="user-info-item">
-                        <span class="user-info-label">Персонаж:</span>
-                        <span id="userCharacter" class="user-info-value">${currentUser.character_name || 'Не выбран'}</span>
-                    </div>
-                </div>
-                
-                <div class="sparks pulse" id="sparksCount">✨ ${currentUser.sparks?.toFixed(1) || '0'}</div>
-                
-                <div id="userStats">
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-number" id="statQuizzes">${currentUser.stats?.total_quizzes_completed || currentUser.stats?.totalQuizzesCompleted || 0}</div>
-                            <div class="stat-label">Квизов</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" id="statWorks">${currentUser.stats?.total_works || currentUser.stats?.totalWorks || 0}</div>
-                            <div class="stat-label">Работ</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" id="statMarathons">${currentUser.stats?.total_marathons_completed || currentUser.stats?.totalMarathonsCompleted || 0}</div>
-                            <div class="stat-label">Марафонов</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" id="statInteractives">${currentUser.stats?.total_interactives_completed || currentUser.stats?.totalInteractivesCompleted || 0}</div>
-                            <div class="stat-label">Интерактивов</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Обновляем поле имени в форме регистрации если оно существует
-        const userFirstNameInput = document.getElementById('userFirstName');
-        if (userFirstNameInput) {
-            userFirstNameInput.value = currentUser.tg_first_name || '';
-        }
-        
-    } catch (error) {
-        console.error('❌ Ошибка отображения данных пользователя:', error);
-    }
-}
-
-function showWelcomeScreen() {
-    try {
-        const userContent = document.getElementById('userContent');
-        const welcomeBlock = document.getElementById('welcomeBlock');
-        const actionsBlock = document.getElementById('actionsBlock');
-        
-        if (userContent) userContent.style.display = 'none';
-        if (welcomeBlock) welcomeBlock.style.display = 'block';
-        if (actionsBlock) actionsBlock.style.display = 'none';
-        
-    } catch (error) {
-        console.error('❌ Ошибка показа welcome screen:', error);
-    }
-}
-        
+     
 // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
 async function initApp() {
     try {
@@ -3228,52 +3173,22 @@ async function initApp() {
         // Проверка элементов DOM
         checkRequiredElements();
         
-        // Инициализация Telegram WebApp
-        if (typeof Telegram === 'undefined') {
-            console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
-            tg = {
-                initDataUnsafe: {
-                    user: { id: 898508164, first_name: 'Тестовый' },
-                    start_param: null
-                },
-                expand: () => console.log('📱 Expand'),
-                enableClosingConfirmation: () => console.log('🔒 Closing confirmation'),
-                platform: 'web'
-            };
-        } else {
-            tg = window.Telegram.WebApp;
-            tg.expand();
-            tg.enableClosingConfirmation();
-        }
-        
-        currentUserId = tg.initDataUnsafe.user?.id || 
-                      tg.initDataUnsafe.start_param?.replace('ref_', '') || 
-                      898508164;
-        
-        console.log('👤 User ID:', currentUserId);
-        console.log('📱 Platform:', tg.platform);
-        
-        // Инициализация тестовых данных
-        userActivities = [
-            {
-                id: 1,
-                description: "Зарегистрировались в системе",
-                sparks_earned: 10,
-                created_at: new Date().toISOString()
-            }
-        ];
+        // ... существующий код initApp ...
         
         await loadUserData();
         initDrawingCanvas();
         setupEventListeners();
         
-        // ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇ ДОБАВЬТЕ ЭТО ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇
         // Финальная отладка
         setTimeout(() => {
             console.log('🎯 ФИНАЛЬНАЯ ПРОВЕРКА:');
             debugUserInterface();
+            
+            // ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇ ДОБАВЬТЕ ЭТО ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇
+            // Запускаем тест функции showUserData
+            setTimeout(testShowUserData, 300);
+            // ⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆ ДО ЭТОГО МЕСТА ⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆
         }, 500);
-        // ⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆ ДО ЭТОГО МЕСТА ⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆⬆
         
     } catch (error) {
         console.error('💥 Критическая ошибка инициализации:', error);
@@ -5271,6 +5186,81 @@ function updateStatsDisplay() {
                 }, index * 100);
             });
         }, 500);
+
+        // ==================== АВАРИЙНАЯ ФУНКЦИЯ ДЛЯ ОБНОВЛЕНИЯ ИНТЕРФЕЙСА ====================
+function emergencyUpdateInterface() {
+    console.log('🚨 АВАРИЙНОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА');
+    
+    if (!currentUser) {
+        console.log('❌ Нет данных пользователя');
+        return;
+    }
+    
+    const userDataElement = document.getElementById('userData');
+    if (!userDataElement) {
+        console.log('❌ Элемент userData не найден');
+        return;
+    }
+    
+    // Полностью перезаписываем содержимое
+    userDataElement.innerHTML = `
+        <div id="userContent" style="display: block;">
+            <div class="user-info-grid">
+                <div class="user-info-item">
+                    <span class="user-info-label">Имя:</span>
+                    <span id="userName" class="user-info-value">${currentUser.tg_first_name || 'Администратор'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Уровень:</span>
+                    <span id="userLevel" class="user-info-value">${currentUser.level || 'Мастер'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Роль:</span>
+                    <span id="userRole" class="user-info-value">${currentUser.class || 'Администратор'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Персонаж:</span>
+                    <span id="userCharacter" class="user-info-value">${currentUser.character_name || 'Системный'}</span>
+                </div>
+            </div>
+            
+            <div class="sparks pulse" id="sparksCount">✨ ${currentUser.sparks?.toFixed(1) || '250.0'}</div>
+            
+            <div id="userStats" style="display: block;">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="statQuizzes">${currentUser.stats?.total_quizzes_completed || 5}</div>
+                        <div class="stat-label">Квизов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="statWorks">${currentUser.stats?.total_works || 10}</div>
+                        <div class="stat-label">Работ</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="statMarathons">${currentUser.stats?.total_marathons_completed || 3}</div>
+                        <div class="stat-label">Марафонов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="statInteractives">${currentUser.stats?.total_interactives_completed || 8}</div>
+                        <div class="stat-label">Интерактивов</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Скрываем welcome блок и показываем actions блок
+    const welcomeBlock = document.getElementById('welcomeBlock');
+    const actionsBlock = document.getElementById('actionsBlock');
+    
+    if (welcomeBlock) welcomeBlock.style.display = 'none';
+    if (actionsBlock) actionsBlock.style.display = 'block';
+    
+    console.log('✅ Аварийное обновление завершено');
+}
+
+// Вызовите эту функцию из консоли браузера для принудительного обновления
+// emergencyUpdateInterface();
     </script>
 </body>
 </html>
