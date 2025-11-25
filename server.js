@@ -39,7 +39,7 @@ console.log('   Port:', config.port);
 console.log('   Production:', config.isProduction);
 
 // ==================== КОНСТАНТЫ И НАСТРОЙКИ ====================
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'inspiration_bot_prod_2025_Sergey_Nikishin_898508164_strong_secret_key_@123!';
 const SESSION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 дней
 
 const SPARKS_SYSTEM = {
