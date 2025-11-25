@@ -1954,42 +1954,113 @@
     </div>
 
     <script>
-        // ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
-        let currentAdmin = null;
-        let currentUserId = null;
-        let currentEditingId = null;
-        let currentShopTab = 'items';
-        let currentModerationTab = 'works';
-        let currentSettingsTab = 'general';
-        
-        // Кэш данных для оптимизации
-        const dataCache = {
-            users: { data: null, timestamp: 0 },
-            roles: { data: null, timestamp: 0 },
-            stats: { data: null, timestamp: 0 }
-        };
-        
-        const CACHE_DURATION = 5 * 60 * 1000; // 5 минут
-        
-        // Пагинация
-        const paginationConfig = {
-            users: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            roles: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            characters: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            quizzes: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            marathons: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            interactives: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            shopItems: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            posts: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            admins: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            works: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            reviews: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            purchases: { currentPage: 1, totalPages: 1, pageSize: 20 },
-            logs: { currentPage: 1, totalPages: 1, pageSize: 20 }
-        };
+// ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+let currentAdmin = null;
+let currentUserId = null;
+let currentEditingId = null;
+let currentShopTab = 'items';
+let currentModerationTab = 'works';
+let currentSettingsTab = 'general';
 
-        // ===== API МОДУЛЬ =====
-        const API = {
+// Кэш данных для оптимизации
+const dataCache = {
+    users: { data: null, timestamp: 0 },
+    roles: { data: null, timestamp: 0 },
+    stats: { data: null, timestamp: 0 }
+};
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 минут
+
+// Пагинация
+const paginationConfig = {
+    users: { currentPage: 1, totalPages: 1, pageSize: 20 },
+    // ... остальная конфигурация пагинации
+};
+
+// ===== ОСНОВНЫЕ ФУНКЦИИ =====
+// ★★★★☆ ДОБАВЬТЕ ФУНКЦИЮ showTab ЗДЕСЬ ★★★★☆
+function showTab(tabName) {
+    console.log('🎯 Переключение на вкладку:', tabName);
+    
+    // Скрываем все вкладки
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Убираем активный класс со всех табов
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Показываем выбранную вкладку
+    const targetTab = document.getElementById(tabName);
+    if (targetTab) {
+        targetTab.classList.add('active');
+    }
+    
+    // Активируем соответствующий таб в навигации
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        if (tab.getAttribute('onclick')?.includes(`showTab('${tabName}')`)) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Загружаем данные для вкладки
+    loadTabData(tabName);
+}
+
+function loadTabData(tabName) {
+    console.log('📱 Загрузка данных для вкладки:', tabName);
+    
+    try {
+        switch(tabName) {
+            case 'dashboard':
+                loadStats();
+                break;
+            case 'users':
+                loadUsers();
+                break;
+            case 'roles':
+                loadRoles();
+                break;
+            case 'characters':
+                loadCharacters();
+                break;
+            case 'quizzes':
+                loadQuizzes();
+                break;
+            case 'marathons':
+                loadMarathons();
+                break;
+            case 'interactives':
+                loadInteractives();
+                break;
+            case 'shop':
+                loadShopItems();
+                break;
+            case 'posts':
+                loadPosts();
+                break;
+            case 'moderation':
+                loadWorksForModeration();
+                break;
+            case 'admins':
+                loadAdmins();
+                break;
+            case 'settings':
+                loadSystemSettings();
+                break;
+            default:
+                console.log('ℹ️ Нет специальной загрузки для:', tabName);
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки:', error);
+        showMessage('Ошибка загрузки данных', 'error');
+    }
+}
+
+// ===== API МОДУЛЬ =====
+const API = {
             baseUrl: '/api/admin',
             
             async request(endpoint, options = {}) {
@@ -2391,7 +2462,6 @@
             }
         };
 
-        // ===== ИНИЦИАЛИЗАЦИЯ =====
 async function initAdminPanel() {
     console.log("🚀 Загрузка админ-панели");
     
@@ -2408,7 +2478,7 @@ async function initAdminPanel() {
     }
     
     try {
-        const response = await API.getStats();
+        const response = await API.getStats(); // Теперь это корректно
         currentAdmin = { user_id: currentUserId };
         document.getElementById('adminId').textContent = currentUserId;
         loadAllData();
