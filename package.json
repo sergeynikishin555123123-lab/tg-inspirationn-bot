@@ -9,9 +9,7 @@
     "dev": "node --watch server.js",
     "test": "echo \"No tests specified\" && exit 0",
     "deploy": "node server.js",
-    "db:init": "node -e \"import('./server.js').then(() => console.log('Database initialized'))\"",
-    "build": "echo 'No build step required for Node.js app'",
-    "postinstall": "echo 'Dependencies installed successfully'"
+    "db:init": "node -e \"import('./server.js').then(() => console.log('Database initialized'))\""
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -33,40 +31,11 @@
     "bot",
     "mini-app",
     "javascript",
-    "inspiration",
-    "creative",
-    "workshop",
-    "education",
-    "learning",
-    "art",
-    "design",
-    "marathon",
-    "quizzes",
-    "interactive",
-    "memory-database",
-    "json-database"
+    "inspiration"
   ],
   "author": "Мастерская Вдохновения",
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/your-username/tg-inspiration-bot"
-  },
-  "bugs": {
-    "url": "https://github.com/your-username/tg-inspiration-bot/issues"
-  },
-  "homepage": "https://github.com/your-username/tg-inspiration-bot#readme",
-  "os": [
-    "linux",
-    "darwin",
-    "win32"
-  ],
-  "cpu": [
-    "x64",
-    "arm64"
-  ]
+    "node": ">=18.0.0"
+  }
 }
