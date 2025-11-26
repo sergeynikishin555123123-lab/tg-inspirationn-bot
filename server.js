@@ -971,56 +971,76 @@ app.get('/api/webapp/private-videos', (req, res) => {
     res.json({ videos: videosWithAccess });
 });
 
-// Покупка доступа к видео из приватного канала
+// ИСПРАВЛЕННАЯ покупка доступа к приватному видео
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
+    console.log('🎬 Запрос на покупку приватного видео:', req.body);
+    
     const { userId, videoId } = req.body;
     
     if (!userId || !videoId) {
+        console.log('❌ Отсутствуют обязательные поля:', { userId, videoId });
         return res.status(400).json({ error: 'User ID and video ID are required' });
     }
     
-    const user = db.users.find(u => u.user_id == userId);
-    const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
-    
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    if (!video) return res.status(404).json({ error: 'Video not found' });
-    
-    // Проверяем, не куплен ли уже доступ
-    const existingAccess = db.video_access.find(
-        access => access.user_id === userId && access.video_id === videoId
-    );
-    
-    if (existingAccess) {
-        return res.status(400).json({ error: 'У вас уже есть доступ к этому видео' });
-    }
-    
-    if (user.sparks < video.price) {
-        return res.status(400).json({ error: 'Недостаточно искр' });
-    }
-    
     try {
+        const user = db.users.find(u => u.user_id == userId);
+        const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
+        
+        if (!user) {
+            console.log('❌ Пользователь не найден:', userId);
+            return res.status(404).json({ error: 'User not found' });
+        }
+        if (!video) {
+            console.log('❌ Видео не найдено:', videoId);
+            return res.status(404).json({ error: 'Video not found' });
+        }
+        
+        // Проверяем, не куплен ли уже доступ
+        const existingAccess = db.video_access.find(
+            access => access.user_id === userId && access.video_id === videoId
+        );
+        
+        if (existingAccess) {
+            console.log('❌ Доступ уже существует:', { userId, videoId });
+            return res.status(400).json({ error: 'У вас уже есть доступ к этому видео' });
+        }
+        
+        if (user.sparks < video.price) {
+            console.log('❌ Недостаточно искр:', { sparks: user.sparks, price: video.price });
+            return res.status(400).json({ error: 'Недостаточно искр' });
+        }
+        
+        console.log('✅ Проверки пройдены, начинаем покупку...');
+        
         // 1. Списание искр
         user.sparks -= video.price;
+        console.log('💰 Искры списаны. Новый баланс:', user.sparks);
         
         // 2. Создаем запись о доступе
         const accessRecord = {
             id: Date.now(),
-            user_id: userId,
-            video_id: videoId,
+            user_id: parseInt(userId),
+            video_id: parseInt(videoId),
             purchased_at: new Date().toISOString(),
             access_expires: null,
             telegram_message_id: null
         };
         
         db.video_access.push(accessRecord);
+        console.log('📝 Запись о доступе создана:', accessRecord);
         
         // 3. Логируем покупку
         addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
         
-        // 4. Предоставляем доступ через Telegram бота
+        // 4. Предоставляем доступ через Telegram бота (асинхронно, без ожидания)
         if (bot && PRIVATE_CHANNEL_CONFIG.BOT_TOKEN) {
-            await grantVideoAccess(userId, videoId);
+            grantVideoAccess(userId, videoId).catch(error => {
+                console.error('⚠️ Ошибка при предоставлении доступа через бота:', error);
+                // Не прерываем выполнение, просто логируем ошибку
+            });
         }
+        
+        console.log('✅ Покупка завершена успешно');
         
         res.json({
             success: true,
@@ -1030,13 +1050,22 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Ошибка при покупке доступа к видео:', error);
+        console.error('💥 Критическая ошибка при покупке доступа к видео:', error);
+        
         // Откатываем списание искр в случае ошибки
-        user.sparks += video.price;
-        res.status(500).json({ error: 'Ошибка предоставления доступа' });
+        const user = db.users.find(u => u.user_id == userId);
+        const video = db.private_channel_videos.find(v => v.id == videoId);
+        if (user && video) {
+            user.sparks += video.price;
+            console.log('🔄 Искры возвращены из-за ошибки');
+        }
+        
+        res.status(500).json({ 
+            error: 'Внутренняя ошибка сервера при обработке покупки',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
-
 // Получить информацию о конкретном видео
 app.get('/api/webapp/private-videos/:videoId', (req, res) => {
     const userId = parseInt(req.query.userId);
@@ -1058,9 +1087,11 @@ app.get('/api/webapp/private-videos/:videoId', (req, res) => {
     });
 });
 
-// Функция предоставления доступа через Telegram бота
+// УЛУЧШЕННАЯ функция предоставления доступа через Telegram бота
 async function grantVideoAccess(userId, videoId) {
     try {
+        console.log('🔗 Начинаем предоставление доступа:', { userId, videoId });
+        
         const user = db.users.find(u => u.user_id == userId);
         const video = db.private_channel_videos.find(v => v.id == videoId);
         const accessRecord = db.video_access.find(a => a.user_id === userId && a.video_id === videoId);
@@ -1069,11 +1100,15 @@ async function grantVideoAccess(userId, videoId) {
             throw new Error('Данные для предоставления доступа не найдены');
         }
         
+        console.log('✅ Данные найдены, создаем ссылку...');
+        
         // Создаем уникальную ссылку-приглашение в канал
         const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
             member_limit: 1,
             expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
         });
+        
+        console.log('🔗 Ссылка создана:', chatInviteLink.invite_link);
         
         // Отправляем пользователю сообщение с доступом
         const message = await bot.sendMessage(userId, 
@@ -1088,12 +1123,21 @@ async function grantVideoAccess(userId, videoId) {
         
         // Сохраняем ID сообщения
         accessRecord.telegram_message_id = message.message_id;
+        accessRecord.invite_link = chatInviteLink.invite_link;
         
         console.log(`✅ Доступ к видео ${videoId} предоставлен пользователю ${userId}`);
         
     } catch (error) {
         console.error('❌ Ошибка предоставления доступа:', error);
-        throw error;
+        
+        // Логируем ошибку, но не прерываем выполнение
+        const accessRecord = db.video_access.find(a => a.user_id === userId && a.video_id === videoId);
+        if (accessRecord) {
+            accessRecord.error = error.message;
+            accessRecord.error_time = new Date().toISOString();
+        }
+        
+        throw error; // Пробрасываем ошибку дальше
     }
 }
 
