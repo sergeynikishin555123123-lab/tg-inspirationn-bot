@@ -3261,7 +3261,6 @@ function generatePurchaseContent(purchase) {
             `;
 
 case 'embed':
-    // Ищем HTML в разных возможных полях
     const embedHtml = purchase.embed_html || purchase.html_content || purchase.content_html || purchase.content;
     
     console.log('🎬 Найденный embed HTML:', {
@@ -3289,10 +3288,16 @@ case 'embed':
                 <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
                     Используйте элементы управления плеера для управления воспроизведением
                 </div>
+                
+                <!-- Альтернативная ссылка для мобильных -->
+                <div style="text-align: center; margin-top: 16px;">
+                    <a href="https://vimeo.com/1139315921" target="_blank" class="btn btn-success">
+                        📱 Открыть в приложении Vimeo
+                    </a>
+                </div>
             </div>
         `;
     } else {
-        // Если HTML не найден, показываем информационное сообщение
         return `
             <div style="margin: 20px 0;">
                 <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
@@ -3302,15 +3307,13 @@ case 'embed':
                     <div style="color: #c53030; font-size: 14px; margin-bottom: 12px;">
                         ⚠️ Ошибка загрузки видео контента
                     </div>
-                    <div style="color: #718096; font-size: 12px;">
-                        HTML-код для встраивания видео не найден в базе данных. 
-                        Обратитесь к администратору для исправления этой проблемы.
-                    </div>
                 </div>
                 <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
                     <div style="font-size: 64px; margin-bottom: 16px;">❌</div>
                     <div style="font-weight: 600; margin-bottom: 8px;">Контент временно недоступен</div>
-                    <div style="color: #718096;">Пожалуйста, сообщите администратору о проблеме</div>
+                    <a href="https://vimeo.com/1139315921" target="_blank" class="btn btn-success" style="margin-top: 16px;">
+                        📺 Перейти к видео на Vimeo
+                    </a>
                 </div>
             </div>
         `;
