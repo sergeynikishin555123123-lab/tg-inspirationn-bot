@@ -20,6 +20,118 @@ const APP_ROOT = process.cwd();
 console.log('🎨 Мастерская Вдохновения - Запуск системы...');
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 
+// Глобальный мониторинг изменений баланса
+const balanceMonitor = {
+    changes: [],
+    
+    logChange: function(userId, oldBalance, newBalance, operation, details = {}) {
+        const change = {
+            id: Date.now(),
+            userId,
+            timestamp: new Date().toISOString(),
+            oldBalance,
+            newBalance,
+            difference: newBalance - oldBalance,
+            operation,
+            details
+        };
+        
+        this.changes.push(change);
+        console.log('💰 Монитор баланса:', change);
+        
+        // Храним только последние 1000 изменений
+        if (this.changes.length > 1000) {
+            this.changes = this.changes.slice(-1000);
+        }
+    },
+    
+    getUserHistory: function(userId) {
+        return this.changes.filter(change => change.userId === userId);
+    },
+    
+    findDiscrepancies: function() {
+        const discrepancies = [];
+        const users = db.users;
+        
+        users.forEach(user => {
+            const userActivities = db.activities.filter(a => a.user_id === user.user_id);
+            const calculatedBalance = userActivities.reduce((sum, activity) => sum + activity.sparks_earned, 0);
+            
+            if (Math.abs(user.sparks - calculatedBalance) > 0.1) {
+                discrepancies.push({
+                    userId: user.user_id,
+                    storedBalance: user.sparks,
+                    calculatedBalance: calculatedBalance,
+                    difference: user.sparks - calculatedBalance
+                });
+            }
+        });
+        
+        return discrepancies;
+    },
+    
+    // Метод для получения статистики по монитору
+    getStats: function() {
+        return {
+            totalChanges: this.changes.length,
+            uniqueUsers: [...new Set(this.changes.map(change => change.userId))].length,
+            discrepancies: this.findDiscrepancies().length,
+            lastChange: this.changes[this.changes.length - 1]
+        };
+    }
+};
+
+// API для отладки баланса (только для админов)
+app.get('/api/debug/balance-monitor', requireAdmin, (req, res) => {
+    const stats = balanceMonitor.getStats();
+    const discrepancies = balanceMonitor.findDiscrepancies();
+    
+    res.json({
+        monitor_stats: stats,
+        discrepancies: discrepancies,
+        recent_changes: balanceMonitor.changes.slice(-50).reverse(),
+        total_users: db.users.length,
+        users_with_issues: discrepancies.length
+    });
+});
+
+// API для проверки конкретного пользователя
+app.get('/api/debug/user-balance/:userId', requireAdmin, (req, res) => {
+    const userId = parseInt(req.params.userId);
+    
+    const user = db.users.find(u => u.user_id === userId);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const userActivities = db.activities.filter(a => a.user_id === userId);
+    const calculatedBalance = userActivities.reduce((sum, activity) => sum + activity.sparks_earned, 0);
+    
+    const userChanges = balanceMonitor.getUserHistory(userId);
+    const purchases = db.purchases.filter(p => p.user_id === userId);
+    
+    res.json({
+        user: {
+            id: user.user_id,
+            name: user.tg_first_name,
+            stored_balance: user.sparks,
+            level: user.level
+        },
+        balance_analysis: {
+            calculated_from_activities: calculatedBalance,
+            difference: user.sparks - calculatedBalance,
+            is_correct: Math.abs(user.sparks - calculatedBalance) < 0.1
+        },
+        activities: {
+            total: userActivities.length,
+            earnings: userActivities.filter(a => a.sparks_earned > 0).reduce((sum, a) => sum + a.sparks_earned, 0),
+            spendings: userActivities.filter(a => a.sparks_earned < 0).reduce((sum, a) => sum + Math.abs(a.sparks_earned), 0)
+        },
+        purchases: purchases.length,
+        monitor_changes: userChanges.slice(-20).reverse()
+    });
+});
+
 // ==================== НАСТРОЙКИ ТАЙМАУТОВ ДЛЯ МОБИЛЬНЫХ ====================
 
 // Увеличение таймаутов для мобильных устройств
