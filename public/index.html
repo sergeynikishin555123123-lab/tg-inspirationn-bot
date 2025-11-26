@@ -4779,15 +4779,15 @@ function showTelegramAccessModal(inviteLink, expiresAt) {
         </div>
     `;
 
-    // Закрытие по клику на фон
-    modal.onclick = (e) => {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
-        }
-    };
+           // Закрытие по клику на фон
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        };
 
-    document.body.appendChild(modal);
-}
+        document.body.appendChild(modal);
+    }
     </script>
 </body>
 </html>
