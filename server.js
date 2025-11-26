@@ -65,7 +65,8 @@ const SPARKS_SYSTEM = {
     COMMUNITY_HELP: 8
 };
 
-// ==================== РЕАЛЬНАЯ SQLite БАЗА ДАННЫХ ====================
+import sqlite3 from 'sqlite3';
+
 class RealDatabaseService {
     constructor() {
         this.dbPath = './data/inspiration.db';
@@ -73,13 +74,12 @@ class RealDatabaseService {
     }
 
     init() {
-        const sqlite3 = require('sqlite3').verbose();
-        const fs = require('fs');
-        
         // Создаем директорию для данных
-        if (!fs.existsSync('./data')) {
-            fs.mkdirSync('./data', { recursive: true });
-        }
+        import('fs').then(fs => {
+            if (!fs.existsSync('./data')) {
+                fs.mkdirSync('./data', { recursive: true });
+            }
+        }).catch(console.error);
 
         this.db = new sqlite3.Database(this.dbPath, (err) => {
             if (err) {
