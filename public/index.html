@@ -2358,16 +2358,13 @@ function hideMobileMenu() {
     }
 }
 
-// Улучшенная инициализация приложения
+// Инициализация приложения - УПРОЩЕННАЯ ВЕРСИЯ
 async function initApp() {
     try {
         console.log('🚀 Инициализация приложения...');
+        console.log('📱 Мобильное устройство:', isMobileDevice);
         
-        // Определяем мобильное устройство
-        const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        console.log('📱 Мобильное устройство:', isMobile);
-        
-        // Инициализация Telegram WebApp
+        // Простая инициализация Telegram WebApp
         if (typeof Telegram !== 'undefined') {
             tg = window.Telegram.WebApp;
             tg.expand();
@@ -2385,89 +2382,71 @@ async function initApp() {
         
         console.log('👤 User ID:', currentUserId);
         
-        // Показываем загрузку с учетом мобильного устройства
-        const loadingText = isMobile ? 
-            '📱 Загрузка (это может занять несколько секунд)...' : 
-            'Загрузка данных...';
-            
-        document.getElementById('userData').innerHTML = `
-            <div class="loading">
-                <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-                ${loadingText}
-            </div>
-        `;
+        // Показываем загрузку
+        document.getElementById('userData').innerHTML = '<div class="loading"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div>Загрузка данных...</div>';
         
-        // Используем оптимизированный API для мобильных
-        if (isMobile) {
-            await loadMobileOptimizedData();
-        } else {
-            await loadUserData();
-        }
+        // Простая загрузка пользователя
+        await loadUserData();
         
         // Инициализация остальных компонентов
         initDrawingCanvas();
-        setupEventHandlers();
         
-        // Применяем мобильную оптимизацию если нужно
-        if (isMobile) {
-            optimizeMobileInterface();
-        }
+        // Настройка обработчиков
+        setupEventHandlers();
         
         console.log('✅ Приложение инициализировано');
         
     } catch (error) {
         console.error('💥 Ошибка инициализации:', error);
-        
-        // Показываем пользовательскую ошибку
-        const errorMessage = isMobile ? 
-            '📱 Проблемы с подключением. Проверьте интернет и попробуйте снова.' :
-            '❌ Ошибка загрузки приложения';
-            
-        showMessage(errorMessage, 'error');
-        
+        showMessage('❌ Ошибка загрузки приложения', 'error');
         // Показываем экран приветствия в случае ошибки
         showWelcomeScreen();
     }
 }
 
-// Оптимизированная загрузка для мобильных
-async function loadMobileOptimizedData() {
-    try {
-        console.log('📱 Загрузка оптимизированных данных для мобильного...');
-        
-        // Добавляем таймаут для запроса
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000);
-        
-        const response = await fetch(`/api/mobile/optimized-data?userId=${currentUserId}`, {
-            signal: controller.signal
+// Настройка обработчиков событий
+function setupEventHandlers() {
+    // Обработчики для интерактивных вкладок
+    document.querySelectorAll('.interactive-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            currentInteractiveCategory = this.dataset.category;
+            loadInteractives();
         });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.optimized) {
-            displayMobileOptimizedData(data);
-        } else {
-            // Fallback на стандартную загрузку
-            await loadUserData();
-        }
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки оптимизированных данных:', error);
-        
-        if (error.name === 'AbortError') {
-            showMessage('⏰ Превышено время ожидания. Проверьте интернет-соединение.', 'error');
-        }
-        
-        // Пробуем стандартную загрузку как fallback
-        await loadUserData();
-    }
+    });
+    
+    // Обработчики для выбора цвета
+    document.querySelectorAll('.color-picker').forEach(picker => {
+        picker.addEventListener('click', function() {
+            document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
+            this.classList.add('active');
+            currentColor = this.dataset.color;
+            updateDrawingTool();
+        });
+    });
+}
+
+// Оптимизация интерфейса для мобильных
+function optimizeMobileInterface() {
+    console.log('📱 Применяем мобильную оптимизацию интерфейса');
+    
+    // Упрощаем тяжелые элементы
+    const heavyElements = document.querySelectorAll('.interactive-image, .media-preview, .work-image');
+    heavyElements.forEach(el => {
+        el.style.maxHeight = '200px';
+        el.style.objectFit = 'cover';
+    });
+    
+    // Улучшаем тач-интерфейс
+    const buttons = document.querySelectorAll('.btn, .option, .role-card, .character-card');
+    buttons.forEach(btn => {
+        btn.style.minHeight = '44px';
+        btn.style.padding = '12px 16px';
+    });
+    
+    // Добавляем мобильные обработчики
+    document.addEventListener('touchstart', function() {}, { passive: true });
 }
 
 // Загрузка данных пользователя - УПРОЩЕННАЯ ВЕРСИЯ
@@ -2588,186 +2567,6 @@ function showUserData() {
             document.getElementById('actionsBlock').style.display = 'none';
         }
 
-// === ВСТАВЬТЕ ЭТО ПЕРЕД ФУНКЦИЕЙ loadAvailableButtons() ===
-
-// Функция для проверки баланса
-async function checkUserBalance() {
-    try {
-        const response = await fetch(`/api/users/${currentUserId}/balance`);
-        const data = await response.json();
-        
-        console.log('💰 Детальная информация о балансе:', data);
-        return data;
-    } catch (error) {
-        console.error('❌ Ошибка проверки баланса:', error);
-        return null;
-    }
-}
-
-// Функция для отображения истории операций
-function showBalanceHistory() {
-    checkUserBalance().then(data => {
-        if (!data) return;
-        
-        const modal = document.createElement('div');
-        modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            padding: 20px;
-        `;
-        
-        modal.innerHTML = `
-            <div class="card" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
-                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 20px;">
-                    <h2 style="margin: 0;">💰 История операций</h2>
-                    <button class="btn btn-danger" onclick="this.closest('.modal').remove()" style="margin-left: auto;">✕</button>
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-                        <div class="stat-item">
-                            <div class="stat-number">${data.user.current_balance.toFixed(1)}</div>
-                            <div class="stat-label">Текущий баланс</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">${data.stats.total_earned.toFixed(1)}</div>
-                            <div class="stat-label">Всего заработано</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">${data.stats.total_spent.toFixed(1)}</div>
-                            <div class="stat-label">Всего потрачено</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">${data.stats.total_purchases}</div>
-                            <div class="stat-label">Покупок</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <h3 style="margin-bottom: 16px;">📊 Последние операции</h3>
-                <div style="max-height: 300px; overflow-y: auto;">
-                    ${data.recent_activities.map(activity => `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #e2e8f0;">
-                            <div style="flex: 1;">
-                                <div style="font-weight: 600; margin-bottom: 4px;">${activity.description}</div>
-                                <div style="color: #718096; font-size: 12px;">
-                                    ${new Date(activity.date).toLocaleString('ru-RU')}
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-weight: 600; color: ${activity.amount >= 0 ? '#48bb78' : '#f56565'};">
-                                    ${activity.amount >= 0 ? '+' : ''}${activity.amount}✨
-                                </div>
-                                <div style="color: #718096; font-size: 12px;">
-                                    ${activity.balance_after.toFixed(1)}✨
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                
-                <div style="margin-top: 20px; text-align: center;">
-                    <button class="btn btn-primary" onclick="location.reload()">
-                        🔄 Обновить страницу
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        modal.classList.add('modal');
-        document.body.appendChild(modal);
-        
-        // Закрытие по клику на фон
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-            }
-        });
-    });
-}
-
-// === КОНЕЦ ВСТАВКИ ===
-
-// Загрузка доступных кнопок - ИСПРАВЛЕННАЯ ВЕРСИЯ
-function loadAvailableButtons() {
-    const buttonsContainer = document.getElementById('actionButtons');
-    const availableButtons = currentUser.available_buttons || [];
-    
-    console.log('🔄 Загрузка кнопок для пользователя:', currentUser.tg_first_name);
-    console.log('📋 Доступные кнопки:', availableButtons);
-    
-    // Всегда показываем основные кнопки, даже если их нет в available_buttons
-    const allButtons = {
-        'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary', icon: '🎯' },
-        'marathon': { text: '🏃‍♂️ Участвовать в марафоне', screen: 'marathonsScreen', color: 'btn-warning', icon: '🏃‍♂️' },
-        'works': { text: '🖼️ Мои работы', screen: 'worksScreen', color: 'btn-info', icon: '🖼️' },
-        'activities': { text: '📊 История активностей', screen: 'activitiesScreen', color: 'btn', icon: '📊' },
-        'posts': { text: '📰 Полезные материалы', screen: 'postsScreen', color: 'btn-success', icon: '📰' },
-        'shop': { text: '🛒 Магазин знаний', screen: 'shopScreen', color: 'btn-danger', icon: '🛒' },
-        'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info', icon: '👥' },
-        'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success', icon: '🎮' },
-        'change_role': { text: '🔄 Сменить роль', screen: 'changeRoleScreen', color: 'change-role-btn', icon: '🔄' },
-        'private_videos': { text: '🎬 Приватные видео', screen: 'privateVideosScreen', color: 'btn-warning', icon: '🎬' }
-    };
-    
-    buttonsContainer.innerHTML = '';
-    
-    // Показываем все кнопки для зарегистрированных пользователей
-    if (currentUser.is_registered) {
-        Object.keys(allButtons).forEach(buttonKey => {
-            const buttonInfo = allButtons[buttonKey];
-            const featureCard = document.createElement('div');
-            featureCard.className = 'feature-card';
-            featureCard.style.cursor = 'pointer';
-            featureCard.innerHTML = `
-                <div class="feature-icon">${buttonInfo.icon}</div>
-                <div class="feature-title">${buttonInfo.text}</div>
-            `;
-            featureCard.onclick = () => {
-                console.log('🎯 Нажата кнопка:', buttonInfo.text);
-                showScreen(buttonInfo.screen);
-            };
-            buttonsContainer.appendChild(featureCard);
-        });
-        
-        // === ДОБАВЬТЕ ЭТУ КНОПКУ В КОНЕЦ КОНТЕЙНЕРА ===
-        const balanceCard = document.createElement('div');
-        balanceCard.className = 'feature-card';
-        balanceCard.style.cursor = 'pointer';
-        balanceCard.style.background = 'linear-gradient(135deg, #f6e05e, #d69e2e)';
-        balanceCard.innerHTML = `
-            <div class="feature-icon">💰</div>
-            <div class="feature-title">Проверить баланс</div>
-            <div style="font-size: 12px; color: #744210; margin-top: 4px;">Отладка</div>
-        `;
-        balanceCard.onclick = showBalanceHistory;
-        buttonsContainer.appendChild(balanceCard);
-        // === КОНЕЦ ДОБАВЛЕНИЯ КНОПКИ ===
-        
-    } else {
-        // Для незарегистрированных показываем только кнопку регистрации
-        const featureCard = document.createElement('div');
-        featureCard.className = 'feature-card';
-        featureCard.style.cursor = 'pointer';
-        featureCard.innerHTML = `
-            <div class="feature-icon">🚀</div>
-            <div class="feature-title">Начать регистрацию</div>
-        `;
-        featureCard.onclick = () => showScreen('registrationScreen');
-        buttonsContainer.appendChild(featureCard);
-    }
-    
-    console.log('✅ Кнопки загружены');
-}
-    
         // Загрузка доступных кнопок - ИСПРАВЛЕННАЯ ВЕРСИЯ
         function loadAvailableButtons() {
             const buttonsContainer = document.getElementById('actionButtons');
@@ -3462,6 +3261,7 @@ function generatePurchaseContent(purchase) {
             `;
 
 case 'embed':
+    // Ищем HTML в разных возможных полях
     const embedHtml = purchase.embed_html || purchase.html_content || purchase.content_html || purchase.content;
     
     console.log('🎬 Найденный embed HTML:', {
@@ -3489,16 +3289,10 @@ case 'embed':
                 <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
                     Используйте элементы управления плеера для управления воспроизведением
                 </div>
-                
-                <!-- Альтернативная ссылка для мобильных -->
-                <div style="text-align: center; margin-top: 16px;">
-                    <a href="https://vimeo.com/1139315921" target="_blank" class="btn btn-success">
-                        📱 Открыть в приложении Vimeo
-                    </a>
-                </div>
             </div>
         `;
     } else {
+        // Если HTML не найден, показываем информационное сообщение
         return `
             <div style="margin: 20px 0;">
                 <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
@@ -3508,13 +3302,15 @@ case 'embed':
                     <div style="color: #c53030; font-size: 14px; margin-bottom: 12px;">
                         ⚠️ Ошибка загрузки видео контента
                     </div>
+                    <div style="color: #718096; font-size: 12px;">
+                        HTML-код для встраивания видео не найден в базе данных. 
+                        Обратитесь к администратору для исправления этой проблемы.
+                    </div>
                 </div>
                 <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
                     <div style="font-size: 64px; margin-bottom: 16px;">❌</div>
                     <div style="font-weight: 600; margin-bottom: 8px;">Контент временно недоступен</div>
-                    <a href="https://vimeo.com/1139315921" target="_blank" class="btn btn-success" style="margin-top: 16px;">
-                        📺 Перейти к видео на Vimeo
-                    </a>
+                    <div style="color: #718096;">Пожалуйста, сообщите администратору о проблеме</div>
                 </div>
             </div>
         `;
@@ -4818,39 +4614,6 @@ async function loadInteractives() {
             }
         }
 
-// Функция для обработки ошибок Vimeo
-function handleVimeoError(videoElement) {
-    const container = videoElement.closest('.purchase-item') || videoElement.closest('.shop-item');
-    
-    if (container) {
-        const fallbackHtml = `
-            <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
-                <div style="font-size: 64px; margin-bottom: 16px;">🎬</div>
-                <h4 style="margin-bottom: 12px;">Видео на Vimeo</h4>
-                <p style="color: #718096; margin-bottom: 20px;">
-                    Для просмотра видео перейдите по ссылке ниже
-                </p>
-                <a href="https://vimeo.com/1139315921" target="_blank" class="btn btn-success">
-                    📺 Смотреть на Vimeo
-                </a>
-            </div>
-        `;
-        
-        container.innerHTML = fallbackHtml;
-    }
-}
-
-// Автоматическая обработка ошибок Vimeo при загрузке страницы
-document.addEventListener('DOMContentLoaded', function() {
-    // Обработка iframe ошибок
-    document.querySelectorAll('iframe').forEach(iframe => {
-        iframe.onerror = function() {
-            console.log('❌ Ошибка загрузки iframe:', iframe.src);
-            handleVimeoError(iframe);
-        };
-    });
-});
-    
         // Обработка загрузки изображения
         function handleImageUpload(file) {
             if (!file) return;
