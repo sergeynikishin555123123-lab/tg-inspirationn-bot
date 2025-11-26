@@ -2202,6 +2202,244 @@ function hideMobileMenu() {
     }
 }
         
+// Глобальный детектор мобильных устройств
+const isMobileDevice = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+console.log(`📱 Мобильное устройство: ${isMobileDevice}`);
+
+// Оптимизация для мобильных - уменьшаем таймауты и ограничиваем данные
+if (isMobileDevice) {
+    // Уменьшаем таймауты для мобильных
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд для мобильных
+        
+        return originalFetch(...args, { signal: controller.signal })
+            .finally(() => clearTimeout(timeoutId));
+    };
+    
+    // Оптимизация рендеринга для мобильных
+    document.addEventListener('DOMContentLoaded', function() {
+        // Уменьшаем анимации для мобильных
+        const style = document.createElement('style');
+        style.textContent = `
+            @media (max-width: 768px) {
+                .card, .btn, .feature-card {
+                    transition: none !important;
+                    transform: none !important;
+                }
+                
+                .interactive-image, .media-preview, .work-image {
+                    max-height: 150px !important;
+                    object-fit: cover;
+                }
+                
+                .content-preview {
+                    max-height: 100px !important;
+                    font-size: 12px !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    });
+}
+
+// Универсальная загрузка данных с оптимизацией для мобильных
+async function loadUniversalData() {
+    try {
+        console.log('🔄 Универсальная загрузка данных для мобильного:', isMobileDevice);
+        
+        const apiUrl = isMobileDevice ? 
+            `/api/mobile/universal-data?userId=${currentUserId}` :
+            `/api/users/${currentUserId}`;
+            
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        if (isMobileDevice && data.optimized) {
+            console.log('✅ Получены оптимизированные данные для мобильного');
+            displayMobileOptimizedData(data);
+        } else {
+            // Стандартная обработка для десктоп
+            if (data.exists) {
+                currentUser = data.user;
+                showUserData();
+                loadAvailableButtons();
+            } else {
+                showWelcomeScreen();
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки универсальных данных:', error);
+        // Fallback на стандартный метод
+        await loadUserData();
+    }
+}
+
+// Отображение оптимизированных данных для мобильных
+function displayMobileOptimizedData(data) {
+    console.log('📱 Отображение оптимизированных мобильных данных');
+    
+    const userDataElement = document.getElementById('userData');
+    const actionsBlock = document.getElementById('actionsBlock');
+    
+    // Обновляем данные пользователя
+    userDataElement.innerHTML = `
+        <div id="userContent">
+            <div class="user-info-grid">
+                <div class="user-info-item">
+                    <span class="user-info-label">Имя:</span>
+                    <span id="userName" class="user-info-value">${data.user.name}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Уровень:</span>
+                    <span id="userLevel" class="user-info-value">${data.user.level}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Роль:</span>
+                    <span id="userRole" class="user-info-value">${data.user.role || 'Не выбрана'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Персонаж:</span>
+                    <span id="userCharacter" class="user-info-value">${data.user.character || 'Не выбран'}</span>
+                </div>
+            </div>
+            
+            <div class="sparks pulse">✨ ${data.user.sparks.toFixed(1)}</div>
+            
+            <div id="userStats">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">${data.stats?.totalQuizzesCompleted || 0}</div>
+                        <div class="stat-label">Квизов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${data.stats?.totalWorks || 0}</div>
+                        <div class="stat-label">Работ</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${data.stats?.totalMarathonsCompleted || 0}</div>
+                        <div class="stat-label">Марафонов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${data.stats?.totalInteractivesCompleted || 0}</div>
+                        <div class="stat-label">Интерактивов</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Показываем блок действий
+    document.getElementById('welcomeBlock').style.display = 'none';
+    actionsBlock.style.display = 'block';
+    
+    // Загружаем оптимизированные кнопки
+    loadMobileOptimizedButtons(data);
+}
+
+// Загрузка оптимизированных кнопок для мобильных
+function loadMobileOptimizedButtons(data) {
+    const buttonsContainer = document.getElementById('actionButtons');
+    
+    // Упрощенный набор кнопок для мобильных
+    const mobileButtons = [
+        { id: 'quiz', text: '🎯 Квизы', screen: 'quizzesScreen', icon: '🎯' },
+        { id: 'marathon', text: '🏃‍♂️ Марафоны', screen: 'marathonsScreen', icon: '🏃‍♂️' },
+        { id: 'works', text: '🖼️ Работы', screen: 'worksScreen', icon: '🖼️' },
+        { id: 'interactives', text: '🎮 Интерактивы', screen: 'interactivesScreen', icon: '🎮' },
+        { id: 'shop', text: '🛒 Магазин', screen: 'shopScreen', icon: '🛒' },
+        { id: 'posts', text: '📰 Посты', screen: 'postsScreen', icon: '📰' }
+    ];
+    
+    buttonsContainer.innerHTML = '';
+    
+    mobileButtons.forEach(button => {
+        const featureCard = document.createElement('div');
+        featureCard.className = 'feature-card mobile-optimized';
+        featureCard.style.cursor = 'pointer';
+        featureCard.innerHTML = `
+            <div class="feature-icon">${button.icon}</div>
+            <div class="feature-title">${button.text}</div>
+        `;
+        featureCard.onclick = () => {
+            console.log('📱 Мобильная кнопка:', button.text);
+            showScreen(button.screen);
+        };
+        buttonsContainer.appendChild(featureCard);
+    });
+    
+    // Добавляем кнопку "Еще" для дополнительных функций
+    if (isMobileDevice) {
+        const moreCard = document.createElement('div');
+        moreCard.className = 'feature-card mobile-more';
+        moreCard.style.cursor = 'pointer';
+        moreCard.innerHTML = `
+            <div class="feature-icon">🔍</div>
+            <div class="feature-title">Еще</div>
+        `;
+        moreCard.onclick = () => showMobileMoreMenu();
+        buttonsContainer.appendChild(moreCard);
+    }
+}
+
+// Мобильное меню дополнительных функций
+function showMobileMoreMenu() {
+    const additionalButtons = [
+        { text: '📊 Активности', screen: 'activitiesScreen' },
+        { text: '👥 Пригласить', screen: 'inviteScreen' },
+        { text: '🔄 Сменить роль', screen: 'changeRoleScreen' },
+        { text: '🎬 Приватные видео', screen: 'privateVideosScreen' }
+    ];
+    
+    let menuHTML = '<div style="padding: 16px; background: white; border-radius: 16px; margin: 16px 0;">';
+    menuHTML += '<h3 style="text-align: center; margin-bottom: 16px;">📱 Дополнительные функции</h3>';
+    
+    additionalButtons.forEach(button => {
+        menuHTML += `
+            <div class="btn" style="margin-bottom: 8px; text-align: center;" 
+                 onclick="showScreen('${button.screen}'); hideMobileMenu()">
+                ${button.text}
+            </div>
+        `;
+    });
+    
+    menuHTML += `
+        <div class="btn btn-danger" style="margin-top: 12px; text-align: center;" 
+             onclick="hideMobileMenu()">
+            ❌ Закрыть
+        </div>
+    </div>`;
+    
+    // Показываем меню
+    const menuDiv = document.createElement('div');
+    menuDiv.id = 'mobileMoreMenu';
+    menuDiv.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        padding: 20px;
+    `;
+    menuDiv.innerHTML = menuHTML;
+    
+    document.body.appendChild(menuDiv);
+}
+
+function hideMobileMenu() {
+    const menu = document.getElementById('mobileMoreMenu');
+    if (menu) {
+        menu.remove();
+    }
+}
+
 // Инициализация приложения - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ ДЛЯ МОБИЛЬНЫХ
 async function initApp() {
     try {
