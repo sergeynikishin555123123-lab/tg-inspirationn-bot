@@ -616,17 +616,24 @@ app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
 
 // ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
 app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
-app.use('/admin', express.static(join(APP_ROOT, 'admin'), { maxAge: '1d' }));
+
+// Правильная настройка для админ-панели
+app.use('/admin', express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
 
 app.get('/admin', (req, res) => {
-    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
+    res.sendFile(join(APP_ROOT, 'public', 'admin.html'));
 });
 
 app.get('/admin/*', (req, res) => {
-    res.sendFile(join(APP_ROOT, 'admin', 'index.html'));
+    // Перенаправляем все админ-запросы на admin.html
+    if (!req.path.includes('.')) { // Если это не файл (css, js, etc)
+        res.sendFile(join(APP_ROOT, 'public', 'admin.html'));
+    } else {
+        // Для статических файлов используем основной public
+        const filePath = req.path.replace('/admin/', '');
+        res.sendFile(join(APP_ROOT, 'public', filePath));
+    }
 });
-
-console.log('🎨 Система инициализирована успешно!');
 
 // ==================== НАСТРОЙКИ ДЛЯ БОЛЬШИХ ФАЙЛОВ ====================
 
@@ -780,6 +787,159 @@ app.get('/health', (req, res) => {
         marathons: db.marathons.length,
         shop_items: db.shop_items.length,
         interactives: db.interactives.length
+    });
+});
+
+// ==================== ОПТИМИЗИРОВАННЫЕ API ДЛЯ МОБИЛЬНЫХ ====================
+
+// Универсальный мобильный API с оптимизацией данных
+app.get('/api/mobile/universal-data', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const isMobile = req.isMobile;
+    
+    console.log(`📱 Универсальный мобильный API запрос от пользователя: ${userId}, мобильный: ${isMobile}`);
+    
+    try {
+        // Базовые данные пользователя
+        const user = db.users.find(u => u.user_id === userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Оптимизированные данные для мобильных
+        const response = {
+            user: {
+                id: user.user_id,
+                name: user.tg_first_name,
+                level: user.level,
+                sparks: user.sparks,
+                role: user.class,
+                character: user.character_name,
+                is_registered: user.is_registered
+            },
+            // Ограничиваем количество элементов для мобильных
+            quizzes: db.quizzes.filter(q => q.is_active)
+                .slice(0, isMobile ? 10 : 50)
+                .map(quiz => ({
+                    id: quiz.id,
+                    title: quiz.title,
+                    description: quiz.description,
+                    questions_count: quiz.questions.length,
+                    sparks_per_correct: quiz.sparks_per_correct
+                })),
+                
+            marathons: db.marathons.filter(m => m.is_active)
+                .slice(0, isMobile ? 5 : 20)
+                .map(marathon => ({
+                    id: marathon.id,
+                    title: marathon.title,
+                    description: marathon.description,
+                    duration_days: marathon.duration_days,
+                    sparks_per_day: marathon.sparks_per_day
+                })),
+                
+            shop_items: db.shop_items.filter(i => i.is_active)
+                .slice(0, isMobile ? 8 : 30)
+                .map(item => ({
+                    id: item.id,
+                    title: item.title,
+                    description: item.description,
+                    type: item.type,
+                    price: item.price,
+                    preview_url: item.preview_url
+                    // Исключаем тяжелый контент для мобильных
+                })),
+                
+            interactives: db.interactives.filter(i => i.is_active)
+                .slice(0, isMobile ? 6 : 20)
+                .map(interactive => ({
+                    id: interactive.id,
+                    title: interactive.title,
+                    description: interactive.description,
+                    type: interactive.type,
+                    category: interactive.category,
+                    sparks_reward: interactive.sparks_reward
+                })),
+                
+            // Статистика
+            stats: getUserStats(userId),
+            
+            // Флаги оптимизации
+            optimized: isMobile,
+            timestamp: new Date().toISOString()
+        };
+        
+        res.json(response);
+        
+    } catch (error) {
+        console.error('❌ Ошибка мобильного API:', error);
+        res.status(500).json({ 
+            error: 'Mobile API error',
+            optimized: true 
+        });
+    }
+});
+
+// Оптимизированная загрузка тяжелого контента по частям
+app.get('/api/mobile/lazy-content', (req, res) => {
+    const { type, page = 1, limit = 10 } = req.query;
+    const isMobile = req.isMobile;
+    
+    const actualLimit = isMobile ? Math.min(limit, 8) : limit;
+    const offset = (page - 1) * actualLimit;
+    
+    let content = [];
+    
+    switch(type) {
+        case 'shop':
+            content = db.shop_items
+                .filter(i => i.is_active)
+                .slice(offset, offset + actualLimit)
+                .map(item => ({
+                    id: item.id,
+                    title: item.title,
+                    description: item.description,
+                    type: item.type,
+                    price: item.price,
+                    preview_url: item.preview_url
+                }));
+            break;
+            
+        case 'interactives':
+            content = db.interactives
+                .filter(i => i.is_active)
+                .slice(offset, offset + actualLimit)
+                .map(interactive => ({
+                    id: interactive.id,
+                    title: interactive.title,
+                    description: interactive.description,
+                    type: interactive.type,
+                    category: interactive.category,
+                    image_url: interactive.image_url,
+                    sparks_reward: interactive.sparks_reward
+                }));
+            break;
+            
+        case 'quizzes':
+            content = db.quizzes
+                .filter(q => q.is_active)
+                .slice(offset, offset + actualLimit)
+                .map(quiz => ({
+                    id: quiz.id,
+                    title: quiz.title,
+                    description: quiz.description,
+                    questions_count: quiz.questions.length,
+                    sparks_per_correct: quiz.sparks_per_correct
+                }));
+            break;
+    }
+    
+    res.json({
+        content,
+        page: parseInt(page),
+        limit: actualLimit,
+        hasMore: content.length === actualLimit,
+        optimized: isMobile
     });
 });
 
@@ -2867,17 +3027,24 @@ app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
 
 // ==================== МОБИЛЬНАЯ ОПТИМИЗАЦИЯ ====================
 
-// Middleware для мобильных устройств
+// Middleware для определения мобильных устройств
 app.use((req, res, next) => {
-    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(req.headers['user-agent']);
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
     req.isMobile = isMobile;
     
-    // Оптимизация для мобильных - ограничиваем размер данных
     if (isMobile) {
-        console.log('📱 Мобильное устройство обнаружено, применяем оптимизацию');
+        console.log('📱 Мобильное устройство обнаружено:', userAgent.substring(0, 50));
+        // Устанавливаем специальные заголовки для мобильных
+        res.set('X-Mobile-Optimized', 'true');
     }
     next();
 });
+
+// Глобальный детектор мобильных для использования в других модулях
+global.isMobileDevice = (userAgent) => {
+    return /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+};
 
 // Оптимизированные API для мобильных устройств
 app.get('/api/webapp/mobile/shop/items', async (req, res) => {
