@@ -2588,7 +2588,63 @@ if (process.env.BOT_TOKEN) {
         console.log('CHANNEL_ID:', PRIVATE_CHANNEL_CONFIG.CHANNEL_ID);
         console.log('CHANNEL_USERNAME:', PRIVATE_CHANNEL_CONFIG.CHANNEL_USERNAME);
         console.log('==================================');
-        
+
+        bot.onText(/\/start/, (msg) => {
+            const chatId = msg.chat.id;
+            const name = msg.from.first_name || 'Друг';
+            const userId = msg.from.id;
+            
+            let user = db.users.find(u => u.user_id === userId);
+            if (!user) {
+                user = {
+                    id: Date.now(),
+                    user_id: userId,
+                    tg_first_name: msg.from.first_name,
+                    tg_username: msg.from.username,
+                    sparks: 0,
+                    level: 'Ученик',
+                    is_registered: false,
+                    class: null,
+                    character_id: null,
+                    character_name: null,
+                    available_buttons: [],
+                    registration_date: new Date().toISOString(),
+                    last_active: new Date().toISOString()
+                };
+                db.users.push(user);
+            } else {
+                user.last_active = new Date().toISOString();
+            }
+            
+            const welcomeText = `🎨 Привет, ${name}!
+
+Добро пожаловать в **Мастерская Вдохновения**!
+
+✨ Откройте личный кабинет чтобы:
+• 🎯 Проходить квизы и получать искры
+• 🏃‍♂️ Участвовать в марафонах  
+• 🖼️ Загружать свои работы
+• 🎮 Выполнять интерактивные задания
+• 🔄 Менять роль и персонажа
+• 📊 Отслеживать прогресс
+• 🛒 Покупать обучающие материалы
+• 🎬 Получать доступ к приватным видео
+
+Нажмите кнопку ниже чтобы начать!`;
+            
+            const keyboard = {
+                inline_keyboard: [[
+                    {
+                        text: "📱 Открыть Личный Кабинет",
+                        web_app: { url: process.env.APP_URL || `https://your-domain.timeweb.cloud` }
+                    }
+                ]]
+            };
+
+            bot.sendMessage(chatId, welcomeText, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            });
         });
 
         // Обработчик для запроса доступа к видео
@@ -2632,60 +2688,6 @@ if (process.env.BOT_TOKEN) {
                 console.error('Ошибка при запросе доступа:', error);
                 bot.sendMessage(chatId, '❌ Произошла ошибка при получении доступа. Попробуйте позже.');
             }
-        });
-
-        bot.onText(/\/admin/, (msg) => {
-            
-            let user = db.users.find(u => u.user_id === userId);
-            if (!user) {
-                user = {
-                    id: Date.now(),
-                    user_id: userId,
-                    tg_first_name: msg.from.first_name,
-                    tg_username: msg.from.username,
-                    sparks: 0,
-                    level: 'Ученик',
-                    is_registered: false,
-                    class: null,
-                    character_id: null,
-                    character_name: null,
-                    available_buttons: [],
-                    registration_date: new Date().toISOString(),
-                    last_active: new Date().toISOString()
-                };
-                db.users.push(user);
-            } else {
-                user.last_active = new Date().toISOString();
-            }
-            
-            const welcomeText = `🎨 Привет, ${name}!
-
-Добро пожаловать в **Мастерская Вдохновения**!
-
-✨ Откройте личный кабинет чтобы:
-• 🎯 Проходить квизы и получать искры
-• 🏃‍♂️ Участвовать в марафонах  
-• 🖼️ Загружать свои работы
-• 🎮 Выполнять интерактивные задания
-• 🔄 Менять роль и персонажа
-• 📊 Отслеживать прогресс
-• 🛒 Покупать обучающие материалы
-
-Нажмите кнопку ниже чтобы начать!`;
-            
-            const keyboard = {
-                inline_keyboard: [[
-                    {
-                        text: "📱 Открыть Личный Кабинет",
-                        web_app: { url: process.env.APP_URL || `https://your-domain.timeweb.cloud` }
-                    }
-                ]]
-            };
-
-            bot.sendMessage(chatId, welcomeText, {
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            });
         });
 
         bot.onText(/\/admin/, (msg) => {
@@ -2733,7 +2735,9 @@ if (process.env.BOT_TOKEN) {
                 activeQuizzes: db.quizzes.filter(q => q.is_active).length,
                 activeMarathons: db.marathons.filter(m => m.is_active).length,
                 shopItems: db.shop_items.filter(i => i.is_active).length,
-                totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0)
+                totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
+                privateVideos: db.private_channel_videos.filter(v => v.is_active).length,
+                videoAccesses: db.video_access.length
             };
             
             const statsText = `📊 Статистика бота:
@@ -2743,6 +2747,8 @@ if (process.env.BOT_TOKEN) {
 🎯 Активных квизов: ${stats.activeQuizzes}
 🏃‍♂️ Активных марафонов: ${stats.activeMarathons}
 🛒 Товаров в магазине: ${stats.shopItems}
+🎬 Приватных видео: ${stats.privateVideos}
+🔗 Активных доступов: ${stats.videoAccesses}
 ✨ Всего искр: ${stats.totalSparks.toFixed(1)}`;
             
             bot.sendMessage(chatId, statsText);
