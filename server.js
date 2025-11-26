@@ -17,6 +17,17 @@ const app = express();
 // Автоматическое определение пути для TimeWeb
 const APP_ROOT = process.cwd();
 
+// ==================== TELEGRAM VIDEO SYSTEM ====================
+
+const TELEGRAM_VIDEO_CONFIG = {
+    CHANNEL_USERNAME: '@inspiration_videos_archive', // Замените на ваш username
+    BOT_TOKEN: process.env.BOT_TOKEN,
+    ACCESS_DURATION: 'forever'
+};
+
+// Хранилище для доступа пользователей
+let telegramVideoAccess = [];
+
 console.log('🎨 Мастерская Вдохновения - Запуск системы...');
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 
@@ -398,7 +409,34 @@ let db = {
     content_text: "Это тестовый embed-контент для проверки отображения",
     is_active: true,
     created_at: new Date().toISOString()
-}  
+}      {
+        id: 7,
+        title: "🎬 Премиум видео-курс по масляной живописи",
+        description: "Полный курс из 10 уроков по основам масляной живописи для начинающих",
+        type: "telegram_video",
+        telegram_channel_id: "@inspiration_videos_archive",
+        telegram_message_id: "123", // Будет заполнено автоматически
+        file_url: "",
+        preview_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
+        price: 0, // Бесплатно для тестирования
+        content_text: "Этот премиум видео-курс доступен через наш приватный Telegram-канал. После покупки вы получите специальную ссылку для доступа к видео.",
+        is_active: true,
+        created_at: new Date().toISOString()
+    },
+    {
+        id: 8,
+        title: "🎨 Уроки акварели для продвинутых",
+        description: "5 продвинутых техник работы с акварелью",
+        type: "telegram_video", 
+        telegram_channel_id: "@inspiration_videos_archive",
+        telegram_message_id: "124",
+        file_url: "",
+        preview_url: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=400&h=300&fit=crop",
+        price: 25,
+        content_text: "Продвинутые техники акварельной живописи от профессионального художника. Доступ через Telegram-канал.",
+        is_active: true,
+        created_at: new Date().toISOString()
+    }
     ],
     activities: [],
     admins: [
@@ -660,6 +698,79 @@ const SPARKS_SYSTEM = {
     MARATHON_SUBMISSION: 5,
     ROLE_CHANGE: 0
 };
+
+// Функция для предоставления доступа к видео
+async function grantTelegramVideoAccess(userId, messageId) {
+    if (!bot) {
+        console.error('❌ Бот не инициализирован');
+        return false;
+    }
+
+    try {
+        const user = db.users.find(u => u.user_id == userId);
+        if (!user) {
+            console.error('❌ Пользователь не найден');
+            return false;
+        }
+
+        // Создаем ссылку-приглашение в канал
+        const inviteLink = await bot.createChatInviteLink(TELEGRAM_VIDEO_CONFIG.CHANNEL_USERNAME, {
+            member_limit: 1,
+            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
+        });
+
+        // Сохраняем информацию о доступе
+        const accessRecord = {
+            id: Date.now(),
+            user_id: userId,
+            message_id: messageId,
+            invite_link: inviteLink.invite_link,
+            granted_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        };
+
+        telegramVideoAccess.push(accessRecord);
+
+        console.log('✅ Доступ предоставлен пользователю:', userId);
+        return accessRecord;
+
+    } catch (error) {
+        console.error('❌ Ошибка предоставления доступа:', error);
+        return false;
+    }
+}
+
+// Функция для публикации видео в канал
+async function publishVideoToTelegram(videoBuffer, title, description) {
+    if (!bot) {
+        console.error('❌ Бот не инициализирован');
+        return null;
+    }
+
+    try {
+        // Отправляем видео в канал
+        const message = await bot.sendVideo(
+            TELEGRAM_VIDEO_CONFIG.CHANNEL_USERNAME,
+            videoBuffer,
+            {
+                caption: `🎬 ${title}\n\n${description}\n\n#видео #курс_мастерская`,
+                parse_mode: 'HTML'
+            }
+        );
+
+        console.log('✅ Видео опубликовано в канал. ID сообщения:', message.message_id);
+        
+        return {
+            message_id: message.message_id,
+            chat_id: message.chat.id,
+            chat_username: message.chat.username
+        };
+
+    } catch (error) {
+        console.error('❌ Ошибка публикации видео в канал:', error);
+        return null;
+    }
+}
 
 // Вспомогательные функции
 function calculateLevel(sparks) {
@@ -2308,6 +2419,108 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     };
     
     res.json(stats);
+});
+
+// ==================== TELEGRAM VIDEO API ====================
+
+// API для получения доступа к Telegram видео
+app.post('/api/webapp/telegram-video/access', async (req, res) => {
+    const { userId, itemId } = req.body;
+
+    if (!userId || !itemId) {
+        return res.status(400).json({ error: 'User ID and item ID are required' });
+    }
+
+    try {
+        const user = db.users.find(u => u.user_id == userId);
+        const item = db.shop_items.find(i => i.id == itemId && i.is_active);
+
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!item) return res.status(404).json({ error: 'Item not found' });
+        if (item.type !== 'telegram_video') {
+            return res.status(400).json({ error: 'This item is not a Telegram video' });
+        }
+
+        // Проверяем покупку
+        const purchase = db.purchases.find(
+            p => p.user_id === userId && p.item_id === itemId
+        );
+
+        if (!purchase && item.price > 0) {
+            return res.status(403).json({ error: 'You need to purchase this item first' });
+        }
+
+        // Предоставляем доступ
+        const access = await grantTelegramVideoAccess(userId, item.telegram_message_id);
+
+        if (access) {
+            res.json({
+                success: true,
+                message: 'Доступ к видео предоставлен!',
+                invite_link: access.invite_link,
+                expires_at: access.expires_at
+            });
+        } else {
+            res.status(500).json({ error: 'Ошибка предоставления доступа' });
+        }
+
+    } catch (error) {
+        console.error('❌ Ошибка предоставления доступа к видео:', error);
+        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+    }
+});
+
+// API для загрузки видео в Telegram канал (админка)
+app.post('/api/admin/telegram-video/upload', requireAdmin, async (req, res) => {
+    const { title, description, price, preview_url, content_text } = req.body;
+    
+    if (!title || !req.files || !req.files.video) {
+        return res.status(400).json({ error: 'Title and video file are required' });
+    }
+
+    try {
+        const videoFile = req.files.video;
+        
+        // Публикуем видео в канал
+        const telegramResult = await publishVideoToTelegram(
+            videoFile.data,
+            title,
+            description
+        );
+
+        if (!telegramResult) {
+            return res.status(500).json({ error: 'Ошибка публикации видео в канал' });
+        }
+
+        // Создаем товар в магазине
+        const newItem = {
+            id: Date.now(),
+            title,
+            description: description || '',
+            type: "telegram_video",
+            telegram_channel_id: TELEGRAM_VIDEO_CONFIG.CHANNEL_USERNAME,
+            telegram_message_id: telegramResult.message_id.toString(),
+            file_url: "",
+            preview_url: preview_url || '',
+            price: price ? parseFloat(price) : 0,
+            content_text: content_text || `Видео "${title}" доступно в нашем Telegram-канале.`,
+            is_active: true,
+            created_at: new Date().toISOString()
+        };
+
+        db.shop_items.push(newItem);
+
+        res.json({
+            success: true,
+            message: 'Видео успешно загружено в Telegram-канал и добавлено в магазин',
+            itemId: newItem.id,
+            telegram_message_id: telegramResult.message_id
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка загрузки видео:', error);
+        res.status(500).json({ error: 'Ошибка загрузки видео' });
+    }
 });
 
 // Telegram Bot
