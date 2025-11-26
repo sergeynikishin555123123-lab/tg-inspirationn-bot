@@ -1671,6 +1671,31 @@
             </div>
         </div>
 
+        <!-- Экран приватных видео -->
+        <div id="privateVideosScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
+                <h2 style="text-align: center; margin-bottom: 24px;">🎬 Приватные видео</h2>
+                <p style="text-align: center; color: #718096; margin-bottom: 24px;">
+                    Эксклюзивные видеоуроки из закрытого канала. После покупки вы получите доступ к видео в Telegram.
+                </p>
+                
+                <div id="privateVideosList" class="loading">
+                    Загрузка видео...
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран деталей приватного видео -->
+        <div id="privateVideoDetailScreen" class="screen">
+            <div class="card">
+                <button class="btn back-btn" onclick="showScreen('privateVideosScreen')">← Назад</button>
+                <div id="privateVideoDetailContent">
+                    <!-- Детальная информация о видео -->
+                </div>
+            </div>
+        </div>
+
         <!-- Экран приглашений -->
         <div id="inviteScreen" class="screen">
             <div class="card">
@@ -1898,7 +1923,8 @@
                 'shop': { text: '🛒 Магазин знаний', screen: 'shopScreen', color: 'btn-danger', icon: '🛒' },
                 'invite': { text: '👥 Пригласить друга', screen: 'inviteScreen', color: 'btn-info', icon: '👥' },
                 'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success', icon: '🎮' },
-                'change_role': { text: '🔄 Сменить роль', screen: 'changeRoleScreen', color: 'change-role-btn', icon: '🔄' }
+                'change_role': { text: '🔄 Сменить роль', screen: 'changeRoleScreen', color: 'change-role-btn', icon: '🔄' },
+                'private_videos': { text: '🎬 Приватные видео', screen: 'privateVideosScreen', color: 'btn-warning', icon: '🎬' } // <-- ДОБАВЛЯЕМ
             };
             
             buttonsContainer.innerHTML = '';
@@ -1946,10 +1972,13 @@
             document.getElementById(screenName).classList.add('active');
             
             // Загружаем данные для экрана
-            switch(screenName) {
+                       switch(screenName) {
                 case 'registrationScreen':
                     console.log('🎯 Загрузка экрана регистрации');
                     loadRoles();
+                    break;
+                case 'privateVideosScreen':  // <-- ДОБАВЛЯЕМ
+                    loadPrivateVideos();
                     break;
                 case 'quizzesScreen':
                     loadQuizzes();
@@ -2295,7 +2324,173 @@
             }
         }
 
-        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПОКУПОК ====================
+        // ==================== ПРИВАТНЫЕ ВИДЕО ====================
+
+        // Загрузка списка приватных видео
+        async function loadPrivateVideos() {
+            try {
+                const response = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
+                const data = await response.json();
+                
+                displayPrivateVideos(data.videos);
+                
+            } catch (error) {
+                document.getElementById('privateVideosList').innerHTML = '<div class="error">Ошибка загрузки видео</div>';
+            }
+        }
+
+        // Отображение списка приватных видео
+        function displayPrivateVideos(videos) {
+            const videosList = document.getElementById('privateVideosList');
+            
+            if (videos.length === 0) {
+                videosList.innerHTML = '<div class="info">Пока нет доступных видео</div>';
+                return;
+            }
+            
+            videosList.innerHTML = '';
+            
+            videos.forEach(video => {
+                const videoCard = document.createElement('div');
+                videoCard.className = 'shop-item';
+                videoCard.style.cursor = 'pointer';
+                videoCard.onclick = () => showPrivateVideoDetail(video);
+                
+                videoCard.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 8px 0;">${video.title}</h3>
+                            <p style="color: #718096; margin-bottom: 12px;">${video.description}</p>
+                            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                                <span class="badge badge-info">⏱️ ${video.duration}</span>
+                                <span class="badge badge-secondary">💾 ${video.file_size}</span>
+                                ${video.tags.map(tag => `<span class="badge">${tag}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            ${video.has_access ? 
+                                '<span class="badge badge-success">✅ Доступ есть</span>' : 
+                                `<div class="spark-badge">${video.price}✨</div>`
+                            }
+                        </div>
+                    </div>
+                    ${video.has_access ? 
+                        '<div class="success" style="text-align: center; margin-top: 12px;">✅ Доступ активирован. Используйте команду /доступ в боте</div>' :
+                        '<button class="btn btn-success" onclick="event.stopPropagation(); purchasePrivateVideo(' + video.id + ')">🛒 Купить доступ</button>'
+                    }
+                `;
+                
+                videosList.appendChild(videoCard);
+            });
+        }
+
+        // Показать детали приватного видео
+        function showPrivateVideoDetail(video) {
+            const detailContent = document.getElementById('privateVideoDetailContent');
+            
+            detailContent.innerHTML = `
+                <h2 style="text-align: center; margin-bottom: 16px;">${video.title}</h2>
+                
+                <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                    <p style="color: #718096; line-height: 1.6; margin-bottom: 16px;">${video.description}</p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 14px; color: #718096;">⏱️ Длительность</div>
+                            <div style="font-weight: 600;">${video.duration}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 14px; color: #718096;">💾 Размер</div>
+                            <div style="font-weight: 600;">${video.file_size}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 14px; color: #718096;">💰 Стоимость</div>
+                            <div style="font-weight: 600; color: #d69e2e;">${video.price}✨</div>
+                        </div>
+                    </div>
+                    
+                    ${video.tags.length > 0 ? `
+                        <div style="text-align: center;">
+                            <div style="font-size: 14px; color: #718096; margin-bottom: 8px;">🏷️ Теги</div>
+                            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                                ${video.tags.map(tag => `<span class="badge">${tag}</span>`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                ${video.has_access ? 
+                    `<div class="success" style="text-align: center; padding: 20px;">
+                        <h3 style="margin-bottom: 12px;">✅ Доступ активирован!</h3>
+                        <p style="margin-bottom: 16px;">Используйте команду <strong>/доступ</strong> в Telegram боте чтобы получить ссылку для просмотра</p>
+                        <button class="btn btn-success" onclick="showScreen('privateVideosScreen')">
+                            ← Назад к списку видео
+                        </button>
+                    </div>` :
+                    `<div style="text-align: center;">
+                        <button class="btn btn-success" onclick="purchasePrivateVideo(${video.id})" style="font-size: 18px; padding: 16px 32px;">
+                            🛒 Купить доступ за ${video.price}✨
+                        </button>
+                        <div style="color: #718096; margin-top: 12px; font-size: 14px;">
+                            После покупки вы получите приватную ссылку в Telegram
+                        </div>
+                    </div>`
+                }
+            `;
+            
+            showScreen('privateVideoDetailScreen');
+        }
+
+        // Покупка доступа к приватному видео
+        async function purchasePrivateVideo(videoId) {
+            if (!confirm('Вы уверены, что хотите купить доступ к этому видео?')) return;
+            
+            try {
+                const response = await fetch('/api/webapp/private-videos/purchase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        videoId: videoId
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    loadUserData(); // Обновляем баланс
+                    
+                    // Перезагружаем список видео или показываем детали
+                    if (currentScreen === 'privateVideoDetailScreen') {
+                        // Обновляем текущий экран
+                        const video = await getPrivateVideoDetail(videoId);
+                        showPrivateVideoDetail(video);
+                    } else {
+                        loadPrivateVideos();
+                    }
+                    
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка покупки доступа', 'error');
+            }
+        }
+
+        // Получить детальную информацию о видео
+        async function getPrivateVideoDetail(videoId) {
+            try {
+                const response = await fetch(`/api/webapp/private-videos/${videoId}?userId=${currentUserId}`);
+                return await response.json();
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки видео', 'error');
+                return null;
+            }
+        }
+
+        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 
 // Генерация полного содержимого покупки для детального просмотра
 function generatePurchaseContent(purchase) {
