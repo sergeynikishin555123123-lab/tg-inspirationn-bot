@@ -20,6 +20,43 @@ const APP_ROOT = process.cwd();
 console.log('🎨 Мастерская Вдохновения - Запуск системы...');
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 
+// ==================== НАСТРОЙКИ ТАЙМАУТОВ ДЛЯ МОБИЛЬНЫХ ====================
+
+// Увеличение таймаутов для мобильных устройств
+const MOBILE_TIMEOUTS = {
+    request: 60000, // 60 секунд для запросов
+    upload: 300000, // 5 минут для загрузки файлов
+    download: 300000 // 5 минут для скачивания
+};
+
+// Middleware для определения мобильных устройств и установки таймаутов
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    req.isMobile = isMobile;
+    
+    // Устанавливаем увеличенные таймауты для мобильных
+    if (isMobile) {
+        console.log('📱 Мобильное устройство обнаружено, устанавливаем увеличенные таймауты');
+        req.setTimeout(MOBILE_TIMEOUTS.request);
+        res.setTimeout(MOBILE_TIMEOUTS.request);
+    }
+    
+    next();
+});
+
+// Глобальный обработчик для больших файлов
+app.use((req, res, next) => {
+    // Увеличиваем таймауты для загрузки файлов
+    if (req.path.includes('/upload-work') || req.path.includes('/submit-day')) {
+        console.log('⏰ Установка увеличенных таймаутов для загрузки файлов');
+        req.setTimeout(MOBILE_TIMEOUTS.upload);
+        res.setTimeout(MOBILE_TIMEOUTS.upload);
+    }
+    
+    next();
+});
+
 // In-memory база данных с улучшенной структурой
 let db = {
     users: [
@@ -792,21 +829,26 @@ app.get('/health', (req, res) => {
 
 // ==================== ОПТИМИЗИРОВАННЫЕ API ДЛЯ МОБИЛЬНЫХ ====================
 
-// Универсальный мобильный API с оптимизацией данных
-app.get('/api/mobile/universal-data', (req, res) => {
+// Оптимизированный API для мобильных с увеличенными таймаутами
+app.get('/api/mobile/optimized-data', (req, res) => {
     const userId = parseInt(req.query.userId);
     const isMobile = req.isMobile;
     
-    console.log(`📱 Универсальный мобильный API запрос от пользователя: ${userId}, мобильный: ${isMobile}`);
+    console.log(`📱 Оптимизированный мобильный API запрос от пользователя: ${userId}`);
+    
+    // Устанавливаем увеличенный таймаут для мобильных
+    if (isMobile) {
+        req.setTimeout(45000); // 45 секунд
+        res.setTimeout(45000);
+    }
     
     try {
-        // Базовые данные пользователя
         const user = db.users.find(u => u.user_id === userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
         
-        // Оптимизированные данные для мобильных
+        // Упрощенные данные для мобильных
         const response = {
             user: {
                 id: user.user_id,
@@ -814,65 +856,24 @@ app.get('/api/mobile/universal-data', (req, res) => {
                 level: user.level,
                 sparks: user.sparks,
                 role: user.class,
-                character: user.character_name,
-                is_registered: user.is_registered
+                character: user.character_name
             },
-            // Ограничиваем количество элементов для мобильных
-            quizzes: db.quizzes.filter(q => q.is_active)
-                .slice(0, isMobile ? 10 : 50)
-                .map(quiz => ({
-                    id: quiz.id,
-                    title: quiz.title,
-                    description: quiz.description,
-                    questions_count: quiz.questions.length,
-                    sparks_per_correct: quiz.sparks_per_correct
-                })),
-                
-            marathons: db.marathons.filter(m => m.is_active)
-                .slice(0, isMobile ? 5 : 20)
-                .map(marathon => ({
-                    id: marathon.id,
-                    title: marathon.title,
-                    description: marathon.description,
-                    duration_days: marathon.duration_days,
-                    sparks_per_day: marathon.sparks_per_day
-                })),
-                
-            shop_items: db.shop_items.filter(i => i.is_active)
-                .slice(0, isMobile ? 8 : 30)
-                .map(item => ({
-                    id: item.id,
-                    title: item.title,
-                    description: item.description,
-                    type: item.type,
-                    price: item.price,
-                    preview_url: item.preview_url
-                    // Исключаем тяжелый контент для мобильных
-                })),
-                
-            interactives: db.interactives.filter(i => i.is_active)
-                .slice(0, isMobile ? 6 : 20)
-                .map(interactive => ({
-                    id: interactive.id,
-                    title: interactive.title,
-                    description: interactive.description,
-                    type: interactive.type,
-                    category: interactive.category,
-                    sparks_reward: interactive.sparks_reward
-                })),
-                
-            // Статистика
-            stats: getUserStats(userId),
-            
-            // Флаги оптимизации
-            optimized: isMobile,
-            timestamp: new Date().toISOString()
+            // Минимальные данные для быстрой загрузки
+            quick_stats: {
+                quizzes: db.quizzes.filter(q => q.is_active).length,
+                marathons: db.marathons.filter(m => m.is_active).length,
+                shop_items: db.shop_items.filter(i => i.is_active).length,
+                interactives: db.interactives.filter(i => i.is_active).length
+            },
+            optimized: true,
+            timestamp: new Date().toISOString(),
+            timeouts_set: isMobile
         };
         
         res.json(response);
         
     } catch (error) {
-        console.error('❌ Ошибка мобильного API:', error);
+        console.error('❌ Ошибка оптимизированного API:', error);
         res.status(500).json({ 
             error: 'Mobile API error',
             optimized: true 
@@ -880,67 +881,72 @@ app.get('/api/mobile/universal-data', (req, res) => {
     }
 });
 
-// Оптимизированная загрузка тяжелого контента по частям
-app.get('/api/mobile/lazy-content', (req, res) => {
-    const { type, page = 1, limit = 10 } = req.query;
+// Улучшенный endpoint для загрузки тяжелого контента
+app.get('/api/mobile/lazy-load', (req, res) => {
+    const { type, page = 1, limit = 8 } = req.query;
     const isMobile = req.isMobile;
     
-    const actualLimit = isMobile ? Math.min(limit, 8) : limit;
-    const offset = (page - 1) * actualLimit;
+    console.log(`📱 Ленивая загрузка: ${type}, страница ${page}`);
     
-    let content = [];
-    
-    switch(type) {
-        case 'shop':
-            content = db.shop_items
-                .filter(i => i.is_active)
-                .slice(offset, offset + actualLimit)
-                .map(item => ({
-                    id: item.id,
-                    title: item.title,
-                    description: item.description,
-                    type: item.type,
-                    price: item.price,
-                    preview_url: item.preview_url
-                }));
-            break;
-            
-        case 'interactives':
-            content = db.interactives
-                .filter(i => i.is_active)
-                .slice(offset, offset + actualLimit)
-                .map(interactive => ({
-                    id: interactive.id,
-                    title: interactive.title,
-                    description: interactive.description,
-                    type: interactive.type,
-                    category: interactive.category,
-                    image_url: interactive.image_url,
-                    sparks_reward: interactive.sparks_reward
-                }));
-            break;
-            
-        case 'quizzes':
-            content = db.quizzes
-                .filter(q => q.is_active)
-                .slice(offset, offset + actualLimit)
-                .map(quiz => ({
-                    id: quiz.id,
-                    title: quiz.title,
-                    description: quiz.description,
-                    questions_count: quiz.questions.length,
-                    sparks_per_correct: quiz.sparks_per_correct
-                }));
-            break;
+    // Устанавливаем увеличенный таймаут
+    if (isMobile) {
+        req.setTimeout(30000);
+        res.setTimeout(30000);
     }
     
-    res.json({
-        content,
-        page: parseInt(page),
-        limit: actualLimit,
-        hasMore: content.length === actualLimit,
-        optimized: isMobile
-    });
+    try {
+        let content = [];
+        const actualLimit = isMobile ? Math.min(limit, 6) : limit;
+        const offset = (page - 1) * actualLimit;
+        
+        switch(type) {
+            case 'shop':
+                content = db.shop_items
+                    .filter(i => i.is_active)
+                    .slice(offset, offset + actualLimit)
+                    .map(item => ({
+                        id: item.id,
+                        title: item.title,
+                        description: item.description,
+                        type: item.type,
+                        price: item.price,
+                        preview_url: item.preview_url,
+                        // Для embed-видео добавляем специальную пометку
+                        is_embed: item.type === 'embed'
+                    }));
+                break;
+                
+            case 'interactives':
+                content = db.interactives
+                    .filter(i => i.is_active)
+                    .slice(offset, offset + actualLimit)
+                    .map(interactive => ({
+                        id: interactive.id,
+                        title: interactive.title,
+                        description: interactive.description,
+                        type: interactive.type,
+                        category: interactive.category,
+                        sparks_reward: interactive.sparks_reward
+                    }));
+                break;
+        }
+        
+        res.json({
+            content,
+            page: parseInt(page),
+            limit: actualLimit,
+            hasMore: content.length === actualLimit,
+            optimized: isMobile,
+            load_time: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка ленивой загрузки:', error);
+        res.status(500).json({ 
+            error: 'Lazy load error',
+            optimized: true 
+        });
+    }
 });
 
 // ==================== API ДЛЯ ПРИВАТНОГО КАНАЛА ====================
