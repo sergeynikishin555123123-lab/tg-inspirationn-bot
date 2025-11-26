@@ -1966,188 +1966,271 @@
                 }
             }
 
-            static getLocalData(endpoint, options) {
-                console.log('📋 Используем локальные данные для:', endpoint);
+    static getLocalData(endpoint, options) {
+        console.log('📋 Используем локальные данные для:', endpoint);
+        
+        // Эмуляция API ответов на основе локальных данных
+        const body = options.body ? JSON.parse(options.body) : {};
+        
+        switch(endpoint) {
+            case '/users/register':
+                return {
+                    success: true,
+                    message: "Регистрация успешно завершена!",
+                    user: {
+                        id: currentUserId,
+                        tg_first_name: body.firstName || 'Пользователь',
+                        sparks: 10,
+                        level: 1,
+                        is_registered: true,
+                        class: APP_DATA.roles.find(r => r.id === body.roleId)?.name,
+                        character_name: APP_DATA.characters[body.roleId]?.[0]?.name,
+                        stats: {
+                            totalQuizzesCompleted: 0,
+                            totalWorks: 0,
+                            totalMarathonsCompleted: 0,
+                            totalInteractivesCompleted: 0
+                        }
+                    }
+                };
+            
+            case '/users/change-role':
+                return {
+                    success: true,
+                    message: "Роль успешно изменена!"
+                };
+            
+            case '/webapp/roles':
+                return APP_DATA.roles;
+            
+            case '/webapp/characters/1':
+                return APP_DATA.characters[1] || [];
+            case '/webapp/characters/2':
+                return APP_DATA.characters[2] || [];
+            case '/webapp/characters/3':
+                return APP_DATA.characters[3] || [];
+            case '/webapp/characters/4':
+                return APP_DATA.characters[4] || [];
+            case '/webapp/characters/5':
+                return APP_DATA.characters[5] || [];
+            
+            case '/webapp/quizzes':
+                return APP_DATA.quizzes.map(quiz => ({
+                    ...quiz,
+                    completed: Math.random() > 0.7,
+                    can_retake: true,
+                    user_score: Math.random() > 0.7 ? Math.floor(Math.random() * quiz.total_questions) + 1 : null
+                }));
+            
+            case '/webapp/quizzes/1/submit':
+            case '/webapp/quizzes/2/submit':
+            case '/webapp/quizzes/3/submit':
+            case '/webapp/quizzes/4/submit':
+                const quizId = parseInt(endpoint.split('/')[3]);
+                const quiz = APP_DATA.quizzes.find(q => q.id === quizId);
+                const submission = body;
                 
-                switch(endpoint) {
-                    case '/users/register':
-                        return {
-                            success: true,
-                            message: "Регистрация успешно завершена!",
-                            user: {
-                                id: currentUserId,
-                                tg_first_name: options.body ? JSON.parse(options.body).firstName : 'Пользователь',
-                                sparks: 10,
-                                level: 1,
-                                is_registered: true,
-                                class: APP_DATA.roles.find(r => r.id === (options.body ? JSON.parse(options.body).roleId : 1))?.name,
-                                character_name: APP_DATA.characters[options.body ? JSON.parse(options.body).roleId : 1]?.[0]?.name,
-                                stats: {
-                                    totalQuizzesCompleted: 0,
-                                    totalWorks: 0,
-                                    totalMarathonsCompleted: 0,
-                                    totalInteractivesCompleted: 0
-                                }
-                            }
-                        };
-                    
-                    case '/users/change-role':
-                        return {
-                            success: true,
-                            message: "Роль успешно изменена!"
-                        };
-                    
-                    case '/webapp/roles':
-                        return APP_DATA.roles;
-                    
-                    case '/webapp/characters/1':
-                    case '/webapp/characters/2':
-                    case '/webapp/characters/3':
-                        const roleId = parseInt(endpoint.split('/').pop());
-                        return APP_DATA.characters[roleId] || [];
-                    
-                    case '/webapp/quizzes':
-                        return APP_DATA.quizzes.map(quiz => ({
-                            ...quiz,
-                            completed: Math.random() > 0.7,
-                            can_retake: true,
-                            user_score: Math.random() > 0.7 ? Math.floor(Math.random() * quiz.total_questions) + 1 : null
-                        }));
-                    
-                    case '/webapp/quizzes/1/submit':
-                        const quizId = parseInt(endpoint.split('/')[3]);
-                        const quiz = APP_DATA.quizzes.find(q => q.id === quizId);
-                        const submission = options.body ? JSON.parse(options.body) : { answers: [] };
-                        
-                        const correctAnswers = submission.answers.filter((answer, index) => 
-                            answer === quiz.questions[index].correct_answer
-                        ).length;
-                        
-                        const sparksEarned = correctAnswers * quiz.sparks_per_correct;
-                        const perfectScore = correctAnswers === quiz.questions.length;
-                        
-                        return {
-                            success: true,
-                            correctAnswers,
-                            totalQuestions: quiz.questions.length,
-                            sparksEarned: perfectScore ? sparksEarned + quiz.sparks_perfect_bonus : sparksEarned,
-                            perfectScore,
-                            message: perfectScore ? 
-                                "Идеальный результат! Вы настоящий эксперт!" :
-                                `Хороший результат! Правильных ответов: ${correctAnswers}/${quiz.questions.length}`
-                        };
-                    
-                    case '/webapp/shop/items':
-                        return APP_DATA.shopItems;
-                    
-                    case '/webapp/shop/purchase':
-                        const purchaseData = options.body ? JSON.parse(options.body) : {};
-                        const item = APP_DATA.shopItems.find(i => i.id === purchaseData.itemId);
-                        
-                        if (!item) {
-                            return {
-                                success: false,
-                                error: "Товар не найден"
-                            };
-                        }
-                        
-                        if (currentUser.sparks < item.price) {
-                            return {
-                                success: false,
-                                error: "Недостаточно искр"
-                            };
-                        }
-                        
-                        userPurchases.push({
-                            ...item,
-                            purchased_at: new Date().toISOString(),
-                            price_paid: item.price
-                        });
-                        
-                        currentUser.sparks -= item.price;
-                        
-                        return {
-                            success: true,
-                            message: "Покупка успешно завершена!",
-                            sparks_remaining: currentUser.sparks
-                        };
-                    
-                    case '/webapp/users/purchases':
-                        return {
-                            purchases: userPurchases
-                        };
-                    
-                    case '/webapp/users/works':
-                        return {
-                            works: userWorks
-                        };
-                    
-                    case '/webapp/upload-work':
-                        const workData = options.body ? JSON.parse(options.body) : {};
-                        const newWork = {
-                            id: generateId(),
-                            title: workData.title,
-                            description: workData.description,
-                            image_url: workData.imageUrl,
-                            status: 'pending',
-                            created_at: new Date().toISOString(),
-                            admin_comment: null
-                        };
-                        
-                        userWorks.push(newWork);
-                        
-                        return {
-                            success: true,
-                            message: "Работа успешно загружена и отправлена на модерацию!",
-                            work_id: newWork.id
-                        };
-                    
-                    case '/webapp/users/activities':
-                        return {
-                            activities: userActivities
-                        };
-                    
-                    case '/webapp/marathons':
-                        return APP_DATA.marathons.map(marathon => ({
-                            ...marathon,
-                            user_progress: Math.random() > 0.5 ? Math.floor(Math.random() * marathon.total_days) : 0,
-                            completed: Math.random() > 0.8
-                        }));
-                    
-                    case '/webapp/interactives':
-                        return APP_DATA.interactives.map(interactive => ({
-                            ...interactive,
-                            completed: Math.random() > 0.7
-                        }));
-                    
-                    case '/webapp/posts':
-                        return APP_DATA.posts;
-                    
-                    default:
-                        if (endpoint.startsWith('/users/')) {
-                            return {
-                                exists: true,
-                                user: currentUser || {
-                                    id: currentUserId,
-                                    tg_first_name: 'Тестовый Пользователь',
-                                    sparks: 50,
-                                    level: 2,
-                                    is_registered: true,
-                                    class: 'Художник',
-                                    character_name: 'Импрессионист',
-                                    stats: {
-                                        totalQuizzesCompleted: 3,
-                                        totalWorks: 5,
-                                        totalMarathonsCompleted: 1,
-                                        totalInteractivesCompleted: 2
-                                    }
-                                }
-                            };
-                        }
-                        
-                        return { success: false, error: "Endpoint not found" };
+                if (!quiz) {
+                    return {
+                        success: false,
+                        error: "Квиз не найден"
+                    };
                 }
-            }
+                
+                const correctAnswers = submission.answers.filter((answer, index) => 
+                    answer === quiz.questions[index].correct_answer
+                ).length;
+                
+                const sparksEarned = correctAnswers * quiz.sparks_per_correct;
+                const perfectScore = correctAnswers === quiz.questions.length;
+                
+                return {
+                    success: true,
+                    correctAnswers,
+                    totalQuestions: quiz.questions.length,
+                    sparksEarned: perfectScore ? sparksEarned + quiz.sparks_perfect_bonus : sparksEarned,
+                    perfectScore,
+                    message: perfectScore ? 
+                        "Идеальный результат! Вы настоящий эксперт!" :
+                        `Хороший результат! Правильных ответов: ${correctAnswers}/${quiz.questions.length}`
+                };
+            
+            case '/webapp/shop/items':
+                return APP_DATA.shopItems;
+            
+            case '/webapp/shop/purchase':
+                const item = APP_DATA.shopItems.find(i => i.id === body.itemId);
+                
+                if (!item) {
+                    return {
+                        success: false,
+                        error: "Товар не найден"
+                    };
+                }
+                
+                if (currentUser && currentUser.sparks < item.price) {
+                    return {
+                        success: false,
+                        error: "Недостаточно искр"
+                    };
+                }
+                
+                // Добавляем покупку
+                userPurchases.push({
+                    ...item,
+                    purchased_at: new Date().toISOString(),
+                    price_paid: item.price
+                });
+                
+                // Обновляем баланс
+                if (currentUser) {
+                    currentUser.sparks -= item.price;
+                }
+                
+                return {
+                    success: true,
+                    message: "Покупка успешно завершена!",
+                    sparks_remaining: currentUser ? currentUser.sparks : 0
+                };
+            
+            case '/webapp/users/purchases':
+                return {
+                    purchases: userPurchases
+                };
+            
+            case '/webapp/users/works':
+                return {
+                    works: userWorks
+                };
+            
+            case '/webapp/upload-work':
+                const newWork = {
+                    id: generateId(),
+                    title: body.title,
+                    description: body.description,
+                    image_url: body.imageUrl,
+                    status: 'pending',
+                    created_at: new Date().toISOString(),
+                    admin_comment: null
+                };
+                
+                userWorks.push(newWork);
+                
+                return {
+                    success: true,
+                    message: "Работа успешно загружена и отправлена на модерацию!",
+                    work_id: newWork.id
+                };
+            
+            case '/webapp/users/activities':
+                return {
+                    activities: userActivities
+                };
+            
+            case '/webapp/marathons':
+                return APP_DATA.marathons.map(marathon => ({
+                    ...marathon,
+                    user_progress: Math.random() > 0.5 ? Math.floor(Math.random() * marathon.total_days) : 0,
+                    completed: Math.random() > 0.8
+                }));
+            
+            case '/webapp/interactives':
+                return APP_DATA.interactives.map(interactive => ({
+                    ...interactive,
+                    completed: Math.random() > 0.7
+                }));
+
+            case '/webapp/interactives/color-wheel/submit':
+                return {
+                    success: true,
+                    sparks_earned: 12,
+                    message: "Отличная цветовая палитра! +12✨"
+                };
+            
+            case '/webapp/interactives/analysis/submit':
+                return {
+                    success: true,
+                    sparks_earned: 10,
+                    message: "Глубокий анализ! +10✨"
+                };
+            
+            case '/webapp/posts':
+                return APP_DATA.posts;
+
+            // Новые методы для дополнительных функций
+            case '/webapp/achievements':
+                return {
+                    achievements: [
+                        {
+                            id: 1,
+                            title: "Первый шаг",
+                            description: "Завершите регистрацию",
+                            icon: "🚀",
+                            completed: true,
+                            sparks_reward: 10
+                        },
+                        {
+                            id: 2,
+                            title: "Любознательный",
+                            description: "Пройдите 3 квиза",
+                            icon: "🎯",
+                            completed: false,
+                            sparks_reward: 25
+                        }
+                    ]
+                };
+            
+            case '/webapp/notifications':
+                return {
+                    notifications: [
+                        {
+                            id: 1,
+                            title: "Добро пожаловать!",
+                            message: "Начните свое творческое путешествие",
+                            type: "info",
+                            read: true,
+                            created_at: new Date(Date.now() - 86400000).toISOString()
+                        }
+                    ]
+                };
+            
+            case '/webapp/users/stats':
+                return {
+                    weekly_progress: [
+                        { day: "Пн", sparks: 15, activities: 2 },
+                        { day: "Вт", sparks: 25, activities: 3 }
+                    ],
+                    activity_distribution: [
+                        { type: "Квизы", count: 5 },
+                        { type: "Работы", count: 8 }
+                    ]
+                };
+            
+            case '/webapp/leaderboard':
+                return {
+                    weekly: [
+                        { rank: 1, name: "Анна Художница", sparks: 245, avatar: "👩‍🎨" }
+                    ]
+                };
+            
+            case '/webapp/feedback':
+                return {
+                    success: true,
+                    message: "Спасибо за вашу обратную связь!"
+                };
+            
+            default:
+                if (endpoint.startsWith('/users/')) {
+                    // Для тестирования - создаем тестового пользователя
+                    return {
+                        exists: false,
+                        user: null
+                    };
+                }
+                
+                return { success: false, error: "Endpoint not found: " + endpoint };
+        }
+    }
 
             static async getUser(userId) {
                 return await this.request(`/users/${userId}`);
@@ -2294,7 +2377,7 @@
             }
         }
 
-        // ==================== ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ====================
+              // ==================== ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ====================
         async function loadUserData() {
             try {
                 console.log('👤 Загрузка данных пользователя...', currentUserId);
@@ -2309,22 +2392,35 @@
                     `;
                 }
                 
-                const result = await ApiService.getUser(currentUserId);
-                
-                if (result.exists && result.user) {
-                    currentUser = result.user;
-                    console.log('✅ Данные пользователя загружены:', currentUser);
-                    
-                    updateUserInterface();
-                    
-                    if (!currentUser.is_registered) {
-                        showWelcomeScreen();
-                    } else {
-                        showActionsScreen();
+                // Для демонстрации используем тестовые данные
+                const testUser = {
+                    id: currentUserId,
+                    tg_first_name: 'Тестовый Пользователь',
+                    tg_username: 'testuser',
+                    sparks: 50,
+                    level: 2,
+                    is_registered: false, // Измените на true для теста зарегистрированного пользователя
+                    class: 'Художник',
+                    character_name: 'Импрессионист',
+                    available_buttons: ['quiz', 'marathon', 'works', 'shop', 'posts', 'activities', 'invite', 'interactives', 'change_role'],
+                    stats: {
+                        totalQuizzesCompleted: 3,
+                        totalWorks: 5,
+                        totalMarathonsCompleted: 1,
+                        totalInteractivesCompleted: 2
                     }
-                } else {
-                    console.log('❌ Пользователь не найден, показываем регистрацию');
+                };
+                
+                // Используем тестовые данные вместо API
+                currentUser = testUser;
+                console.log('✅ Тестовые данные пользователя загружены:', currentUser);
+                
+                updateUserInterface();
+                
+                if (!currentUser.is_registered) {
                     showWelcomeScreen();
+                } else {
+                    showActionsScreen();
                 }
                 
             } catch (error) {
@@ -2501,13 +2597,19 @@
             }
         }
 
-        // ==================== РЕГИСТРАЦИЯ И РОЛИ ====================
+               // ==================== РЕГИСТРАЦИЯ И РОЛИ ====================
         async function loadRoles() {
             try {
-                const roles = await ApiService.getRoles();
+                // Используем локальные данные вместо API
+                const roles = APP_DATA.roles;
                 const rolesList = document.getElementById('rolesList');
                 
                 rolesList.innerHTML = '';
+                
+                if (roles.length === 0) {
+                    rolesList.innerHTML = '<div class="info">Нет доступных ролей</div>';
+                    return;
+                }
                 
                 roles.forEach(role => {
                     const roleCard = document.createElement('div');
@@ -2522,6 +2624,7 @@
                 });
                 
             } catch (error) {
+                console.error('❌ Ошибка загрузки ролей:', error);
                 document.getElementById('rolesList').innerHTML = '<div class="error">Ошибка загрузки ролей</div>';
             }
         }
@@ -2577,14 +2680,20 @@
             loadCharactersForChange(role.id);
         }
 
-        async function loadCharacters(roleId) {
+         async function loadCharacters(roleId) {
             try {
-                const characters = await ApiService.getCharacters(roleId);
+                // Используем локальные данные вместо API
+                const characters = APP_DATA.characters[roleId] || [];
                 const charactersSection = document.getElementById('charactersSection');
                 const charactersList = document.getElementById('charactersList');
                 
                 charactersSection.style.display = 'block';
                 charactersList.innerHTML = '';
+                
+                if (characters.length === 0) {
+                    charactersList.innerHTML = '<div class="info">Нет доступных персонажей для этой роли</div>';
+                    return;
+                }
                 
                 characters.forEach(character => {
                     const characterCard = document.createElement('div');
@@ -2598,6 +2707,7 @@
                     charactersList.appendChild(characterCard);
                 });
             } catch (error) {
+                console.error('❌ Ошибка загрузки персонажей:', error);
                 document.getElementById('charactersList').innerHTML = '<div class="error">Ошибка загрузки персонажей</div>';
             }
         }
