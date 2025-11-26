@@ -2327,6 +2327,30 @@ function generatePurchaseContent(purchase) {
                     </div>
                 </div>
             `;
+
+        case 'telegram_video':
+            return `
+                <div style="margin: 20px 0;">
+                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                        📱 Видео в Telegram-канале
+                    </h4>
+                    <div style="background: #e6fffa; padding: 24px; border-radius: 16px; text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📺</div>
+                        <h3 style="margin-bottom: 12px; color: #234e52;">Приватное видео</h3>
+                        <p style="color: #4a5568; margin-bottom: 20px; line-height: 1.6;">
+                            Это видео доступно в нашем приватном Telegram-канале. 
+                            После покупки вы получите временный доступ для просмотра.
+                        </p>
+                        <div style="background: white; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">Канал:</div>
+                            <div style="color: #667eea; font-family: monospace;">${purchase.telegram_channel_id}</div>
+                        </div>
+                        <button class="btn btn-success" onclick="getTelegramVideoAccess(${purchase.id})">
+                            🎬 Получить доступ
+                        </button>
+                    </div>
+                </div>
+            `;
             
         case 'image':
             const images = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
@@ -4118,10 +4142,108 @@ function showPurchaseDetail(purchase) {
     console.log('📋 Все поля покупки:', Object.keys(purchase));
     console.log('🎯 Тип покупки:', purchase.type);
     
-    const detailContent = document.getElementById('purchaseDetailContent');
+// ОСОБЫЙ СЛУЧАЙ ДЛЯ TELEGRAM ВИДЕО
+    if (purchase.type === 'telegram_video') {
+        detailContent.innerHTML = `
+            <div style="text-align: center; margin-bottom: 24px;">
+                <h2 style="margin-bottom: 8px; color: #2d3748;">${purchase.title}</h2>
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;">
+                    <span class="badge badge-info">
+                        🎬 Telegram Видео
+                    </span>
+                    <span class="badge badge-success">
+                        💰 ${purchase.price_paid || purchase.price}✨
+                    </span>
+                </div>
+            </div>
+            
+            <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                <h4 style="margin-bottom: 12px; color: #4a5568;">📝 Описание</h4>
+                <p style="color: #718096; line-height: 1.6; margin: 0;">${purchase.description}</p>
+            </div>
+
+            <!-- Контент Telegram видео -->
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin-bottom: 16px; color: #4a5568; text-align: center;">🎬 Видео в Telegram-канале</h4>
+                
+                <div style="background: #e6fffa; padding: 24px; border-radius: 16px; text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">📱</div>
+                    <h3 style="margin-bottom: 12px; color: #234e52;">Доступ к приватному видео</h3>
+                    <p style="color: #4a5568; margin-bottom: 20px; line-height: 1.6;">
+                        Это видео размещено в нашем приватном Telegram-канале. 
+                        Для просмотра вам нужно получить временный доступ.
+                    </p>
+                    
+                    <div style="background: white; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 12px; color: #2d3748;">📋 Как получить доступ:</h4>
+                        <ol style="text-align: left; color: #4a5568; line-height: 1.6; padding-left: 20px;">
+                            <li>Нажмите кнопку "Получить доступ к видео"</li>
+                            <li>Вы получите ссылку-приглашение в Telegram-канал</li>
+                            <li>Перейдите по ссылке и присоединитесь к каналу</li>
+                            <li>Найдите видео с названием: <strong>"${purchase.title}"</strong></li>
+                            <li>Доступ действителен 24 часа</li>
+                        </ol>
+                    </div>
+                    
+                    <button class="btn btn-success" onclick="getTelegramVideoAccess(${purchase.id})" 
+                            style="font-size: 18px; padding: 16px 32px;">
+                        🎬 Получить доступ к видео
+                    </button>
+                </div>
+
+                ${purchase.preview_url ? `
+                    <div style="text-align: center; margin: 20px 0;">
+                        <h4 style="margin-bottom: 12px;">🖼️ Превью видео</h4>
+                        <img src="${purchase.preview_url}" class="media-preview" 
+                             style="max-width: 400px; border-radius: 12px;">
+                    </div>
+                ` : ''}
+            </div>
+            
+            ${purchase.content_text ? `
+                <div style="background: #f0fff4; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                    <h4 style="margin-bottom: 12px; color: #276749;">📄 Описание содержимого</h4>
+                    <div style="color: #4a5568; line-height: 1.6; white-space: pre-line;">${purchase.content_text}</div>
+                </div>
+            ` : ''}
+        `;
+        
+        showScreen('purchaseDetailScreen');
+        return;
+    }
     
-    // Генерируем полное содержимое покупки
+    // ОСТАЛЬНОЙ КОД ФУНКЦИИ ДЛЯ ОБЫЧНЫХ ТОВАРОВ (не меняется)
     const fullContent = generatePurchaseContent(purchase);
+    
+    detailContent.innerHTML = `
+        <div style="text-align: center; margin-bottom: 24px;">
+            <h2 style="margin-bottom: 8px; color: #2d3748;">${purchase.title}</h2>
+            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;">
+                <span class="badge badge-info">
+                    ${getPurchaseTypeIcon(purchase.type)} ${getPurchaseTypeName(purchase.type)}
+                </span>
+                <span class="badge badge-success">
+                    💰 Куплено за ${purchase.price_paid || purchase.price}✨
+                </span>
+            </div>
+        </div>
+        
+        ${purchase.description ? `
+            <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                <h4 style="margin-bottom: 12px; color: #4a5568;">📝 Описание</h4>
+                <p style="color: #718096; line-height: 1.6; margin: 0;">${purchase.description}</p>
+            </div>
+        ` : ''}
+        
+        <!-- Основное содержимое покупки -->
+        <div style="margin-bottom: 24px;">
+            <h4 style="margin-bottom: 16px; color: #4a5568; text-align: center;">🎁 Содержимое товара</h4>
+            ${fullContent}
+        </div>
+    `;
+    
+    showScreen('purchaseDetailScreen');
+}
     
     detailContent.innerHTML = `
         <div style="text-align: center; margin-bottom: 24px;">
@@ -4212,6 +4334,17 @@ function generatePurchasePreview(purchase) {
                 <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
                     <div style="font-size: 32px; margin-bottom: 8px;">🎥</div>
                     <div style="color: #718096; font-size: 12px;">Видео контент</div>
+                    ${previewUrl ? `
+                        <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
+                    ` : ''}
+                </div>
+            `;
+
+case 'telegram_video':
+            return `
+                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">📱</div>
+                    <div style="color: #718096; font-size: 12px;">Видео в Telegram</div>
                     ${previewUrl ? `
                         <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
                     ` : ''}
@@ -4582,6 +4715,104 @@ function filterPurchasesByType(type) {
 
         // Вызов анимации при загрузке
         setTimeout(animateElements, 500);
+
+        // ==================== TELEGRAM VIDEO FUNCTIONS ====================
+
+// Функция для получения доступа к Telegram видео
+async function getTelegramVideoAccess(itemId) {
+    try {
+        const response = await fetch('/api/webapp/telegram-video/access', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentUserId,
+                itemId: itemId
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Показываем ссылку и инструкции
+            showTelegramAccessModal(result.invite_link, result.expires_at);
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+
+    } catch (error) {
+        console.error('❌ Ошибка получения доступа:', error);
+        showMessage('❌ Ошибка получения доступа к видео', 'error');
+    }
+}
+
+// Функция для показа модального окна с доступом
+function showTelegramAccessModal(inviteLink, expiresAt) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        padding: 20px;
+    `;
+
+    const expiresDate = new Date(expiresAt);
+    const formattedDate = expiresDate.toLocaleString('ru-RU');
+
+    modal.innerHTML = `
+        <div style="background: white; border-radius: 20px; padding: 30px; max-width: 500px; width: 100%; text-align: center;">
+            <div style="font-size: 64px; margin-bottom: 20px;">🎉</div>
+            <h2 style="margin-bottom: 16px; color: #2d3748;">Доступ предоставлен!</h2>
+            
+            <div style="background: #f0fff4; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                <h4 style="margin-bottom: 12px; color: #276749;">📱 Инструкция:</h4>
+                <ol style="text-align: left; color: #4a5568; line-height: 1.6;">
+                    <li>Нажмите на ссылку ниже</li>
+                    <li>Присоединитесь к Telegram-каналу</li>
+                    <li>Найдите видео в списке сообщений</li>
+                    <li>Наслаждайтесь просмотром!</li>
+                </ol>
+            </div>
+
+            <div style="background: #ebf8ff; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                <div style="font-weight: 600; margin-bottom: 8px; color: #2c5aa0;">⏰ Срок действия:</div>
+                <div style="color: #4a5568;">До ${formattedDate}</div>
+            </div>
+
+            <a href="${inviteLink}" target="_blank" 
+               style="display: block; background: #0088cc; color: white; padding: 16px; 
+                      border-radius: 12px; text-decoration: none; font-weight: 600; 
+                      font-size: 18px; margin-bottom: 16px;">
+               📲 Перейти в Telegram-канал
+            </a>
+
+            <div style="color: #718096; font-size: 14px; margin-bottom: 20px;">
+                Ссылка откроется в приложении Telegram
+            </div>
+
+            <button onclick="this.parentElement.parentElement.remove()" 
+                    style="background: #e53e3e; color: white; border: none; padding: 12px 24px; 
+                           border-radius: 12px; cursor: pointer; font-weight: 600;">
+                Закрыть
+            </button>
+        </div>
+    `;
+
+    // Закрытие по клику на фон
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    };
+
+    document.body.appendChild(modal);
+}
     </script>
 </body>
 </html>
