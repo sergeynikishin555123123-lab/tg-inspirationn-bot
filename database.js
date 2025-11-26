@@ -28,44 +28,51 @@ export class DatabaseService {
         });
     }
 
-    createTables() {
-        const tables = [
-            `CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER UNIQUE NOT NULL,
-                tg_first_name TEXT,
-                tg_username TEXT,
-                sparks REAL DEFAULT 50,
-                level TEXT DEFAULT 'Ученик',
-                is_registered BOOLEAN DEFAULT 0,
-                class TEXT,
-                character_id INTEGER,
-                character_name TEXT,
-                available_buttons TEXT DEFAULT '[]',
-                registration_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-                last_active DATETIME DEFAULT CURRENT_TIMESTAMP,
-                status TEXT DEFAULT 'active'
-            )`,
-            `CREATE TABLE IF NOT EXISTS roles (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                description TEXT,
-                icon TEXT,
-                available_buttons TEXT DEFAULT '[]',
-                color TEXT,
-                display_order INTEGER DEFAULT 1,
-                is_active BOOLEAN DEFAULT 1
-            )`,
-            `CREATE TABLE IF NOT EXISTS characters (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                role_id INTEGER,
-                name TEXT NOT NULL,
-                description TEXT,
-                bonus_type TEXT,
-                bonus_value TEXT,
-                is_active BOOLEAN DEFAULT 1
-            )`
-       CREATE TABLE IF NOT EXISTS quizzes (
+createTables() {
+    const tables = [
+        // Пользователи
+        `CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER UNIQUE NOT NULL,
+            tg_first_name TEXT,
+            tg_username TEXT,
+            sparks REAL DEFAULT 50,
+            level TEXT DEFAULT 'Ученик',
+            is_registered BOOLEAN DEFAULT 0,
+            class TEXT,
+            character_id INTEGER,
+            character_name TEXT,
+            available_buttons TEXT DEFAULT '[]',
+            registration_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            last_active DATETIME DEFAULT CURRENT_TIMESTAMP,
+            status TEXT DEFAULT 'active'
+        )`,
+
+        // Роли
+        `CREATE TABLE IF NOT EXISTS roles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            icon TEXT,
+            available_buttons TEXT DEFAULT '[]',
+            color TEXT,
+            display_order INTEGER DEFAULT 1,
+            is_active BOOLEAN DEFAULT 1
+        )`,
+
+        // Персонажи
+        `CREATE TABLE IF NOT EXISTS characters (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role_id INTEGER,
+            name TEXT NOT NULL,
+            description TEXT,
+            bonus_type TEXT,
+            bonus_value TEXT,
+            is_active BOOLEAN DEFAULT 1
+        )`,
+
+        // Квизы
+        `CREATE TABLE IF NOT EXISTS quizzes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             description TEXT,
@@ -80,7 +87,8 @@ export class DatabaseService {
             is_active BOOLEAN DEFAULT 1,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`,
-        
+
+        // Магазин
         `CREATE TABLE IF NOT EXISTS shop_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
@@ -101,7 +109,8 @@ export class DatabaseService {
             tags TEXT DEFAULT '[]',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`,
-        
+
+        // Посты
         `CREATE TABLE IF NOT EXISTS posts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
@@ -120,6 +129,40 @@ export class DatabaseService {
             category TEXT
         )`
     ];
+
+    // Создаем таблицы последовательно
+    const createTable = (sql) => {
+        return new Promise((resolve, reject) => {
+            this.db.run(sql, (err) => {
+                if (err) {
+                    console.error('❌ Ошибка создания таблицы:', err.message);
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    };
+
+    // Создаем таблицы по очереди
+    let promiseChain = Promise.resolve();
+    
+    tables.forEach((sql, index) => {
+        promiseChain = promiseChain.then(() => {
+            console.log(`📊 Создаем таблицу ${index + 1}/${tables.length}`);
+            return createTable(sql);
+        });
+    });
+
+    promiseChain
+        .then(() => {
+            console.log('✅ Все таблицы созданы успешно');
+            this.initializeData();
+        })
+        .catch(err => {
+            console.error('❌ Ошибка при создании таблиц:', err);
+        });
+}
 
         tables.forEach(sql => {
             this.db.run(sql, (err) => {
