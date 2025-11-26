@@ -3189,6 +3189,329 @@
             }
         }
 
+        // ==================== СИСТЕМА МАРАФОНОВ ====================
+        async function loadMarathons() {
+            try {
+                const response = await fetch(`/api/webapp/marathons?userId=${currentUserId}`);
+                const marathons = await response.json();
+                
+                const marathonsList = document.getElementById('marathonsList');
+                marathonsList.innerHTML = '';
+                
+                if (marathons.length === 0) {
+                    marathonsList.innerHTML = '<div class="info">Пока нет доступных марафонов</div>';
+                    return;
+                }
+                
+                marathons.forEach(marathon => {
+                    const marathonCard = document.createElement('div');
+                    marathonCard.className = 'marathon-card';
+                    
+                    const progressPercent = marathon.current_day ? Math.round((marathon.current_day / marathon.total_days) * 100) : 0;
+                    
+                    marathonCard.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <h3 style="margin: 0;">${marathon.title}</h3>
+                            ${marathon.completed ? 
+                                '<span class="status-badge status-approved">🏆 Завершен</span>' : 
+                                marathon.current_day > 0 ? 
+                                    `<span class="status-badge status-pending">📊 ${progressPercent}%</span>` : 
+                                    '<span class="status-badge status-pending">🎯 Доступен</span>'
+                            }
+                        </div>
+                        <p style="color: #718096; margin-bottom: 12px;">${marathon.description}</p>
+                        <div style="color: #4a5568; font-size: 14px; margin-bottom: 12px;">
+                            📅 Дней: ${marathon.total_days} 
+                            • ✨ ${marathon.sparks_per_day} за день
+                            ${marathon.sparks_completion_bonus ? `• 🎉 ${marathon.sparks_completion_bonus} бонус за завершение` : ''}
+                            ${marathon.current_day ? `• Прогресс: ${marathon.current_day}/${marathon.total_days}` : ''}
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                        </div>
+                        <button class="btn ${marathon.completed ? 'btn-secondary' : 'btn-primary'}" 
+                                onclick="startMarathon(${marathon.id})" 
+                                ${marathon.completed ? 'disabled' : ''}>
+                            ${marathon.completed ? '🏆 Завершен' : marathon.current_day > 0 ? '📝 Продолжить' : '🎯 Начать марафон'}
+                        </button>
+                    `;
+                    
+                    marathonsList.appendChild(marathonCard);
+                });
+            } catch (error) {
+                document.getElementById('marathonsList').innerHTML = '<div class="error">Ошибка загрузки марафонов</div>';
+            }
+        }
+
+        async function startMarathon(marathonId) {
+            try {
+                const response = await fetch(`/api/webapp/marathons?userId=${currentUserId}`);
+                const marathons = await response.json();
+                currentMarathon = marathons.find(m => m.id === marathonId);
+                
+                if (!currentMarathon) {
+                    showMessage('❌ Марафон не найден', 'error');
+                    return;
+                }
+                
+                currentMarathonDay = currentMarathon.current_day || 1;
+                
+                document.getElementById('marathonTitle').textContent = currentMarathon.title;
+                document.getElementById('marathonDescription').textContent = currentMarathon.description;
+                document.getElementById('totalDays').textContent = currentMarathon.total_days;
+                
+                showScreen('marathonScreen');
+                showMarathonDay();
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки марафона', 'error');
+            }
+        }
+
+        function showMarathonDay() {
+            const day = currentMarathon.days[currentMarathonDay - 1];
+            const marathonContent = document.getElementById('marathonContent');
+            
+            const progressPercent = Math.round((currentMarathonDay / currentMarathon.total_days) * 100);
+            
+            document.getElementById('currentDay').textContent = currentMarathonDay;
+            document.getElementById('progressPercent').textContent = progressPercent;
+            document.getElementById('marathonProgress').style.width = `${progressPercent}%`;
+            
+            marathonContent.innerHTML = `
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <h3 style="margin-bottom: 12px;">📅 День ${currentMarathonDay}</h3>
+                    <h4 style="margin-bottom: 16px; color: #667eea;">${day.title}</h4>
+                    <p style="color: #718096; line-height: 1.6; margin-bottom: 20px;">${day.description}</p>
+                </div>
+                
+                ${day.image_url ? `
+                    <img src="${day.image_url}" class="interactive-image">
+                ` : ''}
+                
+                ${day.task ? `
+                    <div style="background: #f7fafc; padding: 20px; border-radius: 16px; margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 12px;">🎯 Задание дня:</h4>
+                        <p style="line-height: 1.6;">${day.task}</p>
+                    </div>
+                ` : ''}
+                
+                ${day.tips ? `
+                    <div style="background: #feebc8; padding: 20px; border-radius: 16px; margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 12px;">💡 Советы:</h4>
+                        <p style="line-height: 1.6;">${day.tips}</p>
+                    </div>
+                ` : ''}
+                
+                <div style="margin-top: 24px;">
+                    <h4 style="margin-bottom: 12px;">📤 Загрузите вашу работу:</h4>
+                    <div class="upload-area" id="marathonUploadArea" onclick="document.getElementById('marathonImageInput').click()">
+                        <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
+                        <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки изображения</div>
+                        <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
+                    </div>
+                    <input type="file" id="marathonImageInput" accept="image/*" style="display: none;" onchange="handleMarathonImageUpload(this.files[0])">
+                    
+                    <div id="marathonImagePreview" style="display: none;">
+                        <img id="marathonPreviewImage" class="work-image">
+                        <button class="btn btn-danger" onclick="clearMarathonImage()" style="margin-top: 12px;">
+                            🗑️ Удалить изображение
+                        </button>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Комментарий к работе:</label>
+                        <textarea id="marathonWorkComment" class="form-control" rows="3" placeholder="Опишите вашу работу..."></textarea>
+                    </div>
+
+                    <button class="btn btn-success" onclick="submitMarathonDay()" id="submitMarathonBtn" disabled style="margin-top: 24px;">
+                        📤 Отправить работу
+                    </button>
+                </div>
+            `;
+        }
+
+        function handleMarathonImageUpload(file) {
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                showMessage('❌ Пожалуйста, выберите изображение', 'error');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                showMessage('❌ Размер файла не должен превышать 5MB', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                marathonUploadedImage = e.target.result;
+                document.getElementById('marathonPreviewImage').src = marathonUploadedImage;
+                document.getElementById('marathonImagePreview').style.display = 'block';
+                document.getElementById('marathonUploadArea').style.display = 'none';
+                document.getElementById('submitMarathonBtn').disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearMarathonImage() {
+            marathonUploadedImage = null;
+            document.getElementById('marathonImagePreview').style.display = 'none';
+            document.getElementById('marathonUploadArea').style.display = 'block';
+            document.getElementById('marathonImageInput').value = '';
+            document.getElementById('submitMarathonBtn').disabled = true;
+        }
+
+        async function submitMarathonDay() {
+            const comment = document.getElementById('marathonWorkComment').value.trim();
+            
+            if (!marathonUploadedImage) {
+                showMessage('❌ Загрузите изображение работы', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/webapp/marathons/${currentMarathon.id}/submit-day`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        day: currentMarathonDay,
+                        imageUrl: marathonUploadedImage,
+                        comment: comment
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    
+                    // Переходим к следующему дню или завершаем марафон
+                    if (currentMarathonDay < currentMarathon.total_days) {
+                        currentMarathonDay++;
+                        clearMarathonImage();
+                        document.getElementById('marathonWorkComment').value = '';
+                        document.getElementById('submitMarathonBtn').disabled = true;
+                        showMarathonDay();
+                    } else {
+                        // Марафон завершен
+                        showMessage('🎉 Поздравляем! Вы завершили марафон!', 'success');
+                        showScreen('marathonsScreen');
+                        loadUserData();
+                    }
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка отправки работы', 'error');
+            }
+        }
+
+        // ==================== СИСТЕМА ПОСТОВ ====================
+        async function loadPosts() {
+            try {
+                const response = await fetch('/api/webapp/posts');
+                const posts = await response.json();
+                
+                const postsList = document.getElementById('postsList');
+                postsList.innerHTML = '';
+                
+                if (posts.length === 0) {
+                    postsList.innerHTML = '<div class="info">Пока нет доступных материалов</div>';
+                    return;
+                }
+                
+                posts.forEach(post => {
+                    const postCard = document.createElement('div');
+                    postCard.className = 'post-card';
+                    
+                    postCard.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <h3 style="margin: 0;">${post.title}</h3>
+                            <span class="badge badge-info">${post.category}</span>
+                        </div>
+                        <p style="color: #718096; margin-bottom: 12px;">${post.description}</p>
+                        
+                        ${post.image_url ? `
+                            <img src="${post.image_url}" class="interactive-image">
+                        ` : ''}
+                        
+                        ${post.content ? `
+                            <div class="content-preview">
+                                ${post.content}
+                            </div>
+                        ` : ''}
+                        
+                        <div style="color: #718096; font-size: 14px; margin-top: 12px;">
+                            📅 ${new Date(post.created_at).toLocaleDateString('ru-RU')}
+                            ${post.read_time ? ` • ⏱️ ${post.read_time} мин` : ''}
+                        </div>
+                        
+                        <button class="btn" onclick="showPostDetail(${post.id})" style="margin-top: 16px;">
+                            📖 Читать полностью
+                        </button>
+                    `;
+                    
+                    postsList.appendChild(postCard);
+                });
+            } catch (error) {
+                document.getElementById('postsList').innerHTML = '<div class="error">Ошибка загрузки материалов</div>';
+            }
+        }
+
+        // ==================== СИСТЕМА АКТИВНОСТЕЙ ====================
+        async function loadActivities() {
+            try {
+                const response = await fetch(`/api/webapp/users/${currentUserId}/activities`);
+                const activities = await response.json();
+                
+                const activitiesList = document.getElementById('activitiesList');
+                activitiesList.innerHTML = '';
+                
+                if (activities.length === 0) {
+                    activitiesList.innerHTML = '<div class="info">Пока нет активностей</div>';
+                    return;
+                }
+                
+                activities.forEach(activity => {
+                    const activityCard = document.createElement('div');
+                    activityCard.className = 'work-card';
+                    
+                    const icons = {
+                        'quiz_completed': '🎯',
+                        'work_uploaded': '🖼️',
+                        'marathon_completed': '🏃‍♂️',
+                        'interactive_completed': '🎮',
+                        'purchase_made': '🛒',
+                        'sparks_earned': '✨',
+                        'level_up': '📈'
+                    };
+                    
+                    activityCard.innerHTML = `
+                        <div style="display: flex; align-items: start; margin-bottom: 12px;">
+                            <div style="font-size: 24px; margin-right: 12px;">${icons[activity.type] || '📝'}</div>
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 6px 0;">${activity.title}</h4>
+                                <p style="color: #718096; margin: 0; line-height: 1.4;">${activity.description}</p>
+                            </div>
+                            ${activity.sparks_earned ? `
+                                <div class="spark-badge">+${activity.sparks_earned}✨</div>
+                            ` : ''}
+                        </div>
+                        <div style="color: #718096; font-size: 14px;">
+                            📅 ${new Date(activity.created_at).toLocaleString('ru-RU')}
+                        </div>
+                    `;
+                    
+                    activitiesList.appendChild(activityCard);
+                });
+            } catch (error) {
+                document.getElementById('activitiesList').innerHTML = '<div class="error">Ошибка загрузки активностей</div>';
+            }
+        }
+
         // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
         function setupEventHandlers() {
             // Обработчики для интерактивных вкладок
@@ -3263,22 +3586,6 @@
             }).catch(() => {
                 showMessage('❌ Не удалось скопировать ссылку', 'error');
             });
-        }
-
-        // ==================== ЗАГРУЗКА ОСТАЛЬНЫХ МОДУЛЕЙ ====================
-        async function loadMarathons() {
-            // Заглушка для марафонов
-            document.getElementById('marathonsList').innerHTML = '<div class="info">Функция марафонов в разработке</div>';
-        }
-
-        async function loadPosts() {
-            // Заглушка для постов
-            document.getElementById('postsList').innerHTML = '<div class="info">Функция постов в разработке</div>';
-        }
-
-        async function loadActivities() {
-            // Заглушка для активностей
-            document.getElementById('activitiesList').innerHTML = '<div class="info">Функция активностей в разработке</div>';
         }
 
         // ==================== ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ ====================
