@@ -9,16 +9,15 @@ const __dirname = dirname(__filename);
 
 export class DatabaseService {
     constructor() {
-        this.dbPath = join(__dirname, 'data', 'inspiration.db');
+        // ИЗМЕНИТЕ путь на временную директорию
+        this.dbPath = join('/tmp', 'inspiration.db');
         this.init();
     }
 
     init() {
-        const dataDir = join(__dirname, 'data');
-        if (!existsSync(dataDir)) {
-            mkdirSync(dataDir, { recursive: true });
-        }
-
+        console.log('🔧 Инициализация базы данных по пути:', this.dbPath);
+        
+        // Для /tmp не нужно создавать директорию - она уже существует
         this.db = new sqlite3.Database(this.dbPath, (err) => {
             if (err) {
                 console.error('❌ Ошибка подключения к базе:', err.message);
