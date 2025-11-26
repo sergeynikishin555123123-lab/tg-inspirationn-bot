@@ -2453,6 +2453,14 @@ case 'embed':
     });
     
     if (embedHtml && embedHtml.trim()) {
+        // Очищаем HTML от проблемных атрибутов
+        const cleanHtml = embedHtml
+            .replace(/allow=["'](autoplay|encrypted-media|clipboard-write|web-share|presentation)["']/gi, '')
+            .replace(/allowfullscreen/gi, '')
+            .replace(/frameborder=["']0["']/gi, '')
+            .replace(/<script/gi, '<!-- script')
+            .replace(/<\/script>/gi, '</script -->');
+        
         return `
             <div style="margin: 20px 0;">
                 <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
@@ -2461,18 +2469,17 @@ case 'embed':
                 
                 <div style="background: #f7fafc; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
                     <div style="color: #718096; font-size: 14px; line-height: 1.5;">
-                        💡 <strong>Совет:</strong> Для лучшего просмотра используйте стабильное интернет-соединение. 
-                        Видео автоматически адаптируется под размер экрана.
+                        💡 <strong>Совет:</strong> Нажмите на видео для запуска. Для лучшего просмотра используйте стабильное интернет-соединение.
                     </div>
                 </div>
                 
-                <!-- Контейнер для видео с фиксированными пропорциями -->
+                <!-- Безопасный контейнер для видео -->
                 <div style="
                     position: relative; 
                     width: 100%; 
                     height: 0; 
-                    padding-bottom: 56.25%; /* Соотношение 16:9 */
-                    background: #000; 
+                    padding-bottom: 56.25%;
+                    background: #f8f9fa; 
                     border-radius: 12px; 
                     overflow: hidden;
                     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
@@ -2488,11 +2495,10 @@ case 'embed':
                         align-items: center;
                         justify-content: center;
                     ">
-                        ${embedHtml}
+                        ${cleanHtml}
                     </div>
                 </div>
                 
-                <!-- Информация под видео -->
                 <div style="
                     display: flex;
                     justify-content: space-between;
@@ -2503,10 +2509,10 @@ case 'embed':
                     border: 1px solid #e2e8f0;
                 ">
                     <div style="color: #718096; font-size: 14px;">
-                        🎯 Используйте элементы управления плеера
+                        🎯 Нажмите на видео для управления воспроизведением
                     </div>
                     <div style="color: #667eea; font-size: 12px; font-weight: 600;">
-                        📱 Адаптивный плеер
+                        📱 Безопасный плеер
                     </div>
                 </div>
             </div>
