@@ -1932,90 +1932,394 @@ if (isMobileDevice) {
         document.head.appendChild(style);
     });
 }
-        
-        // Инициализация приложения - ИСПРАВЛЕННАЯ ВЕРСИЯ
-        async function initApp() {
-            try {
-                console.log('🚀 Инициализация приложения...');
-                
-                // Добавьте эту проверку
-                if (typeof Telegram === 'undefined') {
-                    console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
-                    tg = {
-                        initDataUnsafe: {
-                            user: { id: 898508164, first_name: 'Тестовый' },
-                            start_param: null
-                        },
-                        expand: () => console.log('📱 Expand'),
-                        enableClosingConfirmation: () => console.log('🔒 Closing confirmation')
-                    };
-                } else {
-                    tg = window.Telegram.WebApp;
-                    tg.expand();
-                    tg.enableClosingConfirmation();
-                }
-                
-                currentUserId = tg.initDataUnsafe.user?.id || tg.initDataUnsafe.start_param?.replace('ref_', '') || 898508164;
-                
-                console.log('👤 User ID:', currentUserId);
-                console.log('📱 Platform:', tg.platform);
-                        
-                // Загружаем данные пользователя
-                await loadUserData();
-                
-                // Инициализация рисовального холста
-                initDrawingCanvas();
-                
-                // Обработчики для интерактивных вкладок
-                document.querySelectorAll('.interactive-tab').forEach(tab => {
-                    tab.addEventListener('click', function() {
-                        document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
-                        this.classList.add('active');
-                        currentInteractiveCategory = this.dataset.category;
-                        loadInteractives();
-                    });
-                });
-                
-                // Обработчики для выбора цвета
-                document.querySelectorAll('.color-picker').forEach(picker => {
-                    picker.addEventListener('click', function() {
-                        document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
-                        this.classList.add('active');
-                        currentColor = this.dataset.color;
-                        updateDrawingTool();
-                    });
-                });
-                
-            } catch (error) {
-                console.error('💥 Критическая ошибка инициализации:', error);
-                showMessage('❌ Ошибка загрузки приложения: ' + error.message, 'error');
-            }
-        }
 
-        // Загрузка данных пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
-        async function loadUserData() {
-            try {
-                const userDataElement = document.getElementById('userData');
-                userDataElement.innerHTML = '<div class="loading"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div>Загрузка данных...</div>';
-                
-                const response = await fetch(`/api/users/${currentUserId}`);
-                const data = await response.json();
-                
-                if (data.exists) {
-                    currentUser = data.user;
-                    showUserData();
-                    loadAvailableButtons();
-                } else {
-                    showWelcomeScreen();
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки пользователя:', error);
-                showMessage('❌ Ошибка загрузки данных', 'error');
-                // Показываем экран приветствия в случае ошибки
+// ==================== МОБИЛЬНАЯ ОПТИМИЗАЦИЯ ====================
+
+// Детектор мобильных устройств
+const isMobileDevice = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+console.log(`📱 Мобильное устройство: ${isMobileDevice}, UserAgent: ${navigator.userAgent.substring(0, 80)}`);
+
+// Оптимизация для мобильных
+if (isMobileDevice) {
+    // Добавляем мобильные CSS классы
+    document.body.classList.add('mobile-device');
+    
+    // Оптимизация производительности
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), isMobileDevice ? 15000 : 30000);
+        
+        // Добавляем мобильные заголовки
+        if (args[1]) {
+            args[1].headers = {
+                ...args[1].headers,
+                'X-Mobile-Request': 'true',
+                'X-User-Agent': navigator.userAgent
+            };
+            args[1].signal = controller.signal;
+        }
+        
+        return originalFetch(...args)
+            .finally(() => clearTimeout(timeoutId));
+    };
+    
+    // Упрощаем анимации для мобильных
+    const style = document.createElement('style');
+    style.textContent = `
+        .mobile-device .card,
+        .mobile-device .btn,
+        .mobile-device .feature-card {
+            transition: transform 0.2s ease !important;
+        }
+        
+        .mobile-device .interactive-image,
+        .mobile-device .media-preview,
+        .mobile-device .work-image {
+            max-height: 200px !important;
+            object-fit: cover;
+        }
+        
+        .mobile-device .content-preview {
+            max-height: 120px !important;
+            font-size: 13px !important;
+        }
+        
+        .mobile-device .sparks {
+            font-size: 32px !important;
+            padding: 12px !important;
+        }
+        
+        /* Улучшаем тач-интерфейс */
+        .mobile-device .btn {
+            min-height: 44px !important;
+            padding: 12px 16px !important;
+        }
+        
+        .mobile-device .option,
+        .mobile-device .role-card,
+        .mobile-device .character-card {
+            min-height: 50px !important;
+            padding: 12px !important;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Универсальная загрузка данных с оптимизацией для мобильных
+async function loadUniversalData() {
+    try {
+        console.log('🔄 Универсальная загрузка данных для мобильного:', isMobileDevice);
+        
+        const apiUrl = isMobileDevice ? 
+            `/api/mobile/universal-data?userId=${currentUserId}` :
+            `/api/users/${currentUserId}`;
+            
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        if (isMobileDevice && data.optimized) {
+            console.log('✅ Получены оптимизированные данные для мобильного');
+            displayMobileOptimizedData(data);
+        } else {
+            // Стандартная обработка для десктоп
+            if (data.exists) {
+                currentUser = data.user;
+                showUserData();
+                loadAvailableButtons();
+            } else {
                 showWelcomeScreen();
             }
         }
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки универсальных данных:', error);
+        // Fallback на стандартный метод
+        await loadUserData();
+    }
+}
 
+// Отображение оптимизированных данных для мобильных
+function displayMobileOptimizedData(data) {
+    console.log('📱 Отображение оптимизированных мобильных данных');
+    
+    const userDataElement = document.getElementById('userData');
+    const actionsBlock = document.getElementById('actionsBlock');
+    
+    // Обновляем данные пользователя
+    userDataElement.innerHTML = `
+        <div id="userContent">
+            <div class="user-info-grid">
+                <div class="user-info-item">
+                    <span class="user-info-label">Имя:</span>
+                    <span id="userName" class="user-info-value">${data.user.name}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Уровень:</span>
+                    <span id="userLevel" class="user-info-value">${data.user.level}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Роль:</span>
+                    <span id="userRole" class="user-info-value">${data.user.role || 'Не выбрана'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Персонаж:</span>
+                    <span id="userCharacter" class="user-info-value">${data.user.character || 'Не выбран'}</span>
+                </div>
+            </div>
+            
+            <div class="sparks pulse">✨ ${data.user.sparks.toFixed(1)}</div>
+            
+            <div id="userStats">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">${data.stats?.totalQuizzesCompleted || 0}</div>
+                        <div class="stat-label">Квизов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${data.stats?.totalWorks || 0}</div>
+                        <div class="stat-label">Работ</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${data.stats?.totalMarathonsCompleted || 0}</div>
+                        <div class="stat-label">Марафонов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${data.stats?.totalInteractivesCompleted || 0}</div>
+                        <div class="stat-label">Интерактивов</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Показываем блок действий
+    document.getElementById('welcomeBlock').style.display = 'none';
+    actionsBlock.style.display = 'block';
+    
+    // Загружаем оптимизированные кнопки
+    loadMobileOptimizedButtons(data);
+}
+
+// Загрузка оптимизированных кнопок для мобильных
+function loadMobileOptimizedButtons(data) {
+    const buttonsContainer = document.getElementById('actionButtons');
+    
+    // Упрощенный набор кнопок для мобильных
+    const mobileButtons = [
+        { id: 'quiz', text: '🎯 Квизы', screen: 'quizzesScreen', icon: '🎯' },
+        { id: 'marathon', text: '🏃‍♂️ Марафоны', screen: 'marathonsScreen', icon: '🏃‍♂️' },
+        { id: 'works', text: '🖼️ Работы', screen: 'worksScreen', icon: '🖼️' },
+        { id: 'interactives', text: '🎮 Интерактивы', screen: 'interactivesScreen', icon: '🎮' },
+        { id: 'shop', text: '🛒 Магазин', screen: 'shopScreen', icon: '🛒' },
+        { id: 'posts', text: '📰 Посты', screen: 'postsScreen', icon: '📰' }
+    ];
+    
+    buttonsContainer.innerHTML = '';
+    
+    mobileButtons.forEach(button => {
+        const featureCard = document.createElement('div');
+        featureCard.className = 'feature-card mobile-optimized';
+        featureCard.style.cursor = 'pointer';
+        featureCard.innerHTML = `
+            <div class="feature-icon">${button.icon}</div>
+            <div class="feature-title">${button.text}</div>
+        `;
+        featureCard.onclick = () => {
+            console.log('📱 Мобильная кнопка:', button.text);
+            showScreen(button.screen);
+        };
+        buttonsContainer.appendChild(featureCard);
+    });
+    
+    // Добавляем кнопку "Еще" для дополнительных функций
+    if (isMobileDevice) {
+        const moreCard = document.createElement('div');
+        moreCard.className = 'feature-card mobile-more';
+        moreCard.style.cursor = 'pointer';
+        moreCard.innerHTML = `
+            <div class="feature-icon">🔍</div>
+            <div class="feature-title">Еще</div>
+        `;
+        moreCard.onclick = () => showMobileMoreMenu();
+        buttonsContainer.appendChild(moreCard);
+    }
+}
+
+// Мобильное меню дополнительных функций
+function showMobileMoreMenu() {
+    const additionalButtons = [
+        { text: '📊 Активности', screen: 'activitiesScreen' },
+        { text: '👥 Пригласить', screen: 'inviteScreen' },
+        { text: '🔄 Сменить роль', screen: 'changeRoleScreen' },
+        { text: '🎬 Приватные видео', screen: 'privateVideosScreen' }
+    ];
+    
+    let menuHTML = '<div style="padding: 16px; background: white; border-radius: 16px; margin: 16px 0;">';
+    menuHTML += '<h3 style="text-align: center; margin-bottom: 16px;">📱 Дополнительные функции</h3>';
+    
+    additionalButtons.forEach(button => {
+        menuHTML += `
+            <div class="btn" style="margin-bottom: 8px; text-align: center;" 
+                 onclick="showScreen('${button.screen}'); hideMobileMenu()">
+                ${button.text}
+            </div>
+        `;
+    });
+    
+    menuHTML += `
+        <div class="btn btn-danger" style="margin-top: 12px; text-align: center;" 
+             onclick="hideMobileMenu()">
+            ❌ Закрыть
+        </div>
+    </div>`;
+    
+    // Показываем меню
+    const menuDiv = document.createElement('div');
+    menuDiv.id = 'mobileMoreMenu';
+    menuDiv.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        padding: 20px;
+    `;
+    menuDiv.innerHTML = menuHTML;
+    
+    document.body.appendChild(menuDiv);
+}
+
+function hideMobileMenu() {
+    const menu = document.getElementById('mobileMoreMenu');
+    if (menu) {
+        menu.remove();
+    }
+}
+        
+// Инициализация приложения - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ ДЛЯ МОБИЛЬНЫХ
+async function initApp() {
+    try {
+        console.log('🚀 Инициализация приложения...');
+        console.log('📱 Мобильное устройство:', isMobileDevice);
+        
+        // Добавьте эту проверку
+        if (typeof Telegram === 'undefined') {
+            console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
+            tg = {
+                initDataUnsafe: {
+                    user: { id: 898508164, first_name: 'Тестовый' },
+                    start_param: null
+                },
+                expand: () => console.log('📱 Expand'),
+                enableClosingConfirmation: () => console.log('🔒 Closing confirmation')
+            };
+        } else {
+            tg = window.Telegram.WebApp;
+            tg.expand();
+            tg.enableClosingConfirmation();
+        }
+        
+        currentUserId = tg.initDataUnsafe.user?.id || tg.initDataUnsafe.start_param?.replace('ref_', '') || 898508164;
+        
+        console.log('👤 User ID:', currentUserId);
+        console.log('📱 Platform:', tg.platform);
+        
+        // Используем универсальную загрузку данных с оптимизацией для мобильных
+        await loadUniversalData();
+        
+        // Инициализация рисовального холста
+        initDrawingCanvas();
+        
+        // Обработчики для интерактивных вкладок
+        document.querySelectorAll('.interactive-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                currentInteractiveCategory = this.dataset.category;
+                loadInteractives();
+            });
+        });
+        
+        // Обработчики для выбора цвета
+        document.querySelectorAll('.color-picker').forEach(picker => {
+            picker.addEventListener('click', function() {
+                document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                currentColor = this.dataset.color;
+                updateDrawingTool();
+            });
+        });
+        
+        // Мобильная оптимизация интерфейса
+        if (isMobileDevice) {
+            optimizeMobileInterface();
+        }
+        
+    } catch (error) {
+        console.error('💥 Критическая ошибка инициализации:', error);
+        showMessage('❌ Ошибка загрузки приложения: ' + error.message, 'error');
+    }
+}
+
+// Оптимизация интерфейса для мобильных
+function optimizeMobileInterface() {
+    console.log('📱 Применяем мобильную оптимизацию интерфейса');
+    
+    // Упрощаем тяжелые элементы
+    const heavyElements = document.querySelectorAll('.interactive-image, .media-preview, .work-image');
+    heavyElements.forEach(el => {
+        el.style.maxHeight = '200px';
+        el.style.objectFit = 'cover';
+    });
+    
+    // Улучшаем тач-интерфейс
+    const buttons = document.querySelectorAll('.btn, .option, .role-card, .character-card');
+    buttons.forEach(btn => {
+        btn.style.minHeight = '44px';
+        btn.style.padding = '12px 16px';
+    });
+    
+    // Добавляем мобильные обработчики
+    document.addEventListener('touchstart', function() {}, { passive: true });
+}
+
+// Загрузка данных пользователя - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ ДЛЯ МОБИЛЬНЫХ
+async function loadUserData() {
+    try {
+        const userDataElement = document.getElementById('userData');
+        userDataElement.innerHTML = '<div class="loading"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div>Загрузка данных...</div>';
+        
+        // Используем оптимизированный API для мобильных
+        const apiUrl = isMobileDevice ? 
+            `/api/mobile/universal-data?userId=${currentUserId}` :
+            `/api/users/${currentUserId}`;
+            
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        if (isMobileDevice && data.optimized) {
+            // Используем оптимизированные данные
+            displayMobileOptimizedData(data);
+        } else if (data.exists) {
+            currentUser = data.user;
+            showUserData();
+            loadAvailableButtons();
+        } else {
+            showWelcomeScreen();
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки пользователя:', error);
+        showMessage('❌ Ошибка загрузки данных', 'error');
+        // Показываем экран приветствия в случае ошибки
+        showWelcomeScreen();
+    }
+}
         // Показать данные пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
         function showUserData() {
             const userDataElement = document.getElementById('userData');
