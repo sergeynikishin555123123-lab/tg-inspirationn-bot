@@ -2781,7 +2781,7 @@
             document.getElementById('completeRoleChangeBtn').disabled = false;
         }
 
-        async function completeRegistration() {
+               async function completeRegistration() {
             if (!selectedRole || !selectedCharacter) {
                 showMessage('❌ Выберите роль и персонажа', 'error');
                 return;
@@ -2792,6 +2792,12 @@
                 showMessage('❌ Введите ваше имя', 'error');
                 return;
             }
+            
+            // Показываем загрузку
+            const completeBtn = document.getElementById('completeBtn');
+            const originalText = completeBtn.innerHTML;
+            completeBtn.innerHTML = '⏳ Регистрация...';
+            completeBtn.disabled = true;
             
             try {
                 const result = await ApiService.registerUser({
@@ -2804,13 +2810,33 @@
                 if (result.success) {
                     showMessage(`✅ ${result.message}`, 'success');
                     currentUser = result.user;
+                    
+                    // Добавляем начальную активность
+                    userActivities.unshift({
+                        id: generateId(),
+                        description: "Завершена регистрация в системе",
+                        sparks_earned: 10,
+                        created_at: new Date().toISOString()
+                    });
+                    
+                    // Обновляем интерфейс
                     await loadUserData();
-                    showScreen('mainScreen');
+                    
+                    // Показываем приветственное сообщение
+                    setTimeout(() => {
+                        showScreen('mainScreen');
+                        showMessage(`🎉 Добро пожаловать, ${firstName}! Вы стали ${selectedRole.name.toLowerCase()} - ${selectedCharacter.name}`, 'success');
+                    }, 1500);
+                    
                 } else {
                     showMessage(`❌ ${result.error}`, 'error');
+                    completeBtn.innerHTML = originalText;
+                    completeBtn.disabled = false;
                 }
             } catch (error) {
                 showMessage('❌ Ошибка регистрации: ' + error.message, 'error');
+                completeBtn.innerHTML = originalText;
+                completeBtn.disabled = false;
             }
         }
 
@@ -3280,24 +3306,253 @@
             }
         }
 
-        function showInteractiveContent() {
-            const interactiveContent = document.getElementById('interactiveContent');
+        // Дополнительные интерактивные задания
+        function showColorWheelInteractive(container) {
+            container.innerHTML = `
+                <div class="interactive-description">
+                    ${currentInteractive.instructions}
+                </div>
+                
+                <div style="text-align: center; margin: 20px 0;">
+                    <h4 style="margin-bottom: 16px;">🎨 Создайте цветовую палитру</h4>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px;">
+                        <div class="color-picker-large" style="background: #ff6b6b;" data-color="#ff6b6b"></div>
+                        <div class="color-picker-large" style="background: #4ecdc4;" data-color="#4ecdc4"></div>
+                        <div class="color-picker-large" style="background: #45b7d1;" data-color="#45b7d1"></div>
+                        <div class="color-picker-large" style="background: #96ceb4;" data-color="#96ceb4"></div>
+                        <div class="color-picker-large" style="background: #feca57;" data-color="#feca57"></div>
+                        <div class="color-picker-large" style="background: #ff9ff3;" data-color="#ff9ff3"></div>
+                        <div class="color-picker-large" style="background: #54a0ff;" data-color="#54a0ff"></div>
+                        <div class="color-picker-large" style="background: #5f27cd;" data-color="#5f27cd"></div>
+                        <div class="color-picker-large" style="background: #00d2d3;" data-color="#00d2d3"></div>
+                        <div class="color-picker-large" style="background: #ff9f43;" data-color="#ff9f43"></div>
+                    </div>
+                    
+                    <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <h5 style="margin-bottom: 12px;">Ваша палитра:</h5>
+                        <div id="selectedColors" style="display: flex; gap: 10px; flex-wrap: wrap; min-height: 50px; padding: 10px; background: white; border-radius: 8px; border: 2px dashed #e2e8f0;">
+                            <div style="color: #718096; text-align: center; width: 100%;">Выберите цвета выше</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Название палитры:</label>
+                        <input type="text" id="paletteName" class="form-control" placeholder="Например: 'Летний закат'">
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Описание (опционально):</label>
+                        <textarea id="paletteDescription" class="form-control" rows="3" placeholder="Опишите настроение или применение вашей палитры..."></textarea>
+                    </div>
+                </div>
+                
+                <button class="btn btn-success" onclick="submitColorWheel()" id="submitColorWheelBtn" disabled>
+                    🎨 Сохранить палитру
+                </button>
+            `;
             
-            switch(currentInteractive.type) {
-                case 'quiz':
-                    showQuizInteractive(interactiveContent);
-                    break;
-                case 'drawing':
-                    showDrawingInteractive(interactiveContent);
-                    break;
-                case 'compliment':
-                    showComplimentInteractive(interactiveContent);
-                    break;
-                case 'puzzle':
-                    showPuzzleInteractive(interactiveContent);
-                    break;
-                default:
-                    interactiveContent.innerHTML = '<div class="error">Тип интерактива не поддерживается</div>';
+            // Инициализация выбора цветов
+            initializeColorWheel();
+        }
+
+        function initializeColorWheel() {
+            const selectedColors = [];
+            
+            document.querySelectorAll('.color-picker-large').forEach(picker => {
+                picker.addEventListener('click', function() {
+                    const color = this.dataset.color;
+                    const index = selectedColors.indexOf(color);
+                    
+                    if (index > -1) {
+                        // Удаляем цвет если уже выбран
+                        selectedColors.splice(index, 1);
+                        this.style.border = '2px solid #e2e8f0';
+                    } else if (selectedColors.length < 5) {
+                        // Добавляем цвет если меньше 5
+                        selectedColors.push(color);
+                        this.style.border = '3px solid #667eea';
+                    } else {
+                        showMessage('❌ Можно выбрать не более 5 цветов', 'error');
+                        return;
+                    }
+                    
+                    updateSelectedColorsDisplay(selectedColors);
+                    updateSubmitButton(selectedColors);
+                });
+            });
+            
+            // Обновление поля названия
+            document.getElementById('paletteName').addEventListener('input', function() {
+                updateSubmitButton(selectedColors);
+            });
+            
+            window.selectedColors = selectedColors;
+        }
+
+        function updateSelectedColorsDisplay(colors) {
+            const container = document.getElementById('selectedColors');
+            
+            if (colors.length === 0) {
+                container.innerHTML = '<div style="color: #718096; text-align: center; width: 100%;">Выберите цвета выше</div>';
+                return;
+            }
+            
+            container.innerHTML = colors.map(color => `
+                <div style="width: 40px; height: 40px; border-radius: 8px; background: ${color}; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+            `).join('');
+        }
+
+        function updateSubmitButton(colors) {
+            const name = document.getElementById('paletteName').value.trim();
+            const btn = document.getElementById('submitColorWheelBtn');
+            btn.disabled = !(colors.length >= 3 && name);
+        }
+
+        async function submitColorWheel() {
+            const name = document.getElementById('paletteName').value.trim();
+            const description = document.getElementById('paletteDescription').value.trim();
+            const colors = window.selectedColors || [];
+            
+            try {
+                const result = await ApiService.submitColorWheel({
+                    paletteName: name,
+                    paletteDescription: description,
+                    colors: colors,
+                    userId: currentUserId
+                });
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    
+                    // Добавляем активность
+                    userActivities.unshift({
+                        id: generateId(),
+                        description: `Создана цветовая палитра: "${name}"`,
+                        sparks_earned: result.sparks_earned,
+                        created_at: new Date().toISOString()
+                    });
+                    
+                    // Обновляем статистику
+                    if (currentUser.stats) {
+                        currentUser.stats.totalInteractivesCompleted = (currentUser.stats.totalInteractivesCompleted || 0) + 1;
+                    }
+                    
+                    // Обновляем искры
+                    currentUser.sparks += result.sparks_earned;
+                    
+                    // Помечаем интерактив как завершенный
+                    currentInteractive.completed = true;
+                    
+                    showScreen('interactivesScreen');
+                    loadUserData();
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка сохранения палитры', 'error');
+            }
+        }
+
+        function showAnalysisInteractive(container) {
+            container.innerHTML = `
+                <div class="interactive-description">
+                    ${currentInteractive.instructions}
+                </div>
+                
+                <div style="text-align: center; margin: 20px 0;">
+                    <img src="${currentInteractive.image_url}" class="interactive-image">
+                </div>
+                
+                <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 16px;">📝 Анализ композиции</h4>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Композиционные приемы:</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <label style="display: flex; align-items: center; gap: 6px;">
+                                <input type="checkbox" name="composition" value="rule_of_thirds"> Правило третей
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px;">
+                                <input type="checkbox" name="composition" value="leading_lines"> Направляющие линии
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px;">
+                                <input type="checkbox" name="composition" value="symmetry"> Симметрия
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px;">
+                                <input type="checkbox" name="composition" value="framing"> Обрамление
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Точка фокуса:</label>
+                        <input type="text" id="focusPoint" class="form-control" placeholder="Что привлекает внимание в первую очередь?">
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Использование цвета:</label>
+                        <textarea id="colorUsage" class="form-control" rows="3" placeholder="Как используются цветовые акценты и контрасты?"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Общее впечатление:</label>
+                        <textarea id="overallImpression" class="form-control" rows="3" placeholder="Какое настроение создает изображение?"></textarea>
+                    </div>
+                </div>
+                
+                <button class="btn btn-success" onclick="submitAnalysis()">
+                    📊 Отправить анализ
+                </button>
+            `;
+        }
+
+        async function submitAnalysis() {
+            const composition = Array.from(document.querySelectorAll('input[name="composition"]:checked'))
+                .map(cb => cb.value);
+            const focusPoint = document.getElementById('focusPoint').value.trim();
+            const colorUsage = document.getElementById('colorUsage').value.trim();
+            const overallImpression = document.getElementById('overallImpression').value.trim();
+            
+            if (!focusPoint || !colorUsage || !overallImpression) {
+                showMessage('❌ Заполните все поля анализа', 'error');
+                return;
+            }
+            
+            try {
+                const result = await ApiService.submitAnalysis({
+                    composition: composition,
+                    focusPoint: focusPoint,
+                    colorUsage: colorUsage,
+                    overallImpression: overallImpression,
+                    userId: currentUserId
+                });
+                
+                if (result.success) {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    
+                    // Добавляем активность
+                    userActivities.unshift({
+                        id: generateId(),
+                        description: `Проанализирована композиция фотографии`,
+                        sparks_earned: result.sparks_earned,
+                        created_at: new Date().toISOString()
+                    });
+                    
+                    // Обновляем статистику
+                    if (currentUser.stats) {
+                        currentUser.stats.totalInteractivesCompleted = (currentUser.stats.totalInteractivesCompleted || 0) + 1;
+                    }
+                    
+                    // Обновляем искры
+                    currentUser.sparks += result.sparks_earned;
+                    
+                    // Помечаем интерактив как завершенный
+                    currentInteractive.completed = true;
+                    
+                    showScreen('interactivesScreen');
+                    loadUserData();
+                }
+            } catch (error) {
+                showMessage('❌ Ошибка отправки анализа', 'error');
             }
         }
 
