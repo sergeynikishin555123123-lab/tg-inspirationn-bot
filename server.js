@@ -12,7 +12,6 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
 import os from 'os';
-import sqlite3 from 'sqlite3';
 import { dbService } from './database.js';
 
 dotenv.config();
