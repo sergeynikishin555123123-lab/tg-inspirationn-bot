@@ -2358,13 +2358,16 @@ function hideMobileMenu() {
     }
 }
 
-// Инициализация приложения - УПРОЩЕННАЯ ВЕРСИЯ
+// Улучшенная инициализация приложения
 async function initApp() {
     try {
         console.log('🚀 Инициализация приложения...');
-        console.log('📱 Мобильное устройство:', isMobileDevice);
         
-        // Простая инициализация Telegram WebApp
+        // Определяем мобильное устройство
+        const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        console.log('📱 Мобильное устройство:', isMobile);
+        
+        // Инициализация Telegram WebApp
         if (typeof Telegram !== 'undefined') {
             tg = window.Telegram.WebApp;
             tg.expand();
@@ -2382,71 +2385,89 @@ async function initApp() {
         
         console.log('👤 User ID:', currentUserId);
         
-        // Показываем загрузку
-        document.getElementById('userData').innerHTML = '<div class="loading"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div>Загрузка данных...</div>';
+        // Показываем загрузку с учетом мобильного устройства
+        const loadingText = isMobile ? 
+            '📱 Загрузка (это может занять несколько секунд)...' : 
+            'Загрузка данных...';
+            
+        document.getElementById('userData').innerHTML = `
+            <div class="loading">
+                <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                ${loadingText}
+            </div>
+        `;
         
-        // Простая загрузка пользователя
-        await loadUserData();
+        // Используем оптимизированный API для мобильных
+        if (isMobile) {
+            await loadMobileOptimizedData();
+        } else {
+            await loadUserData();
+        }
         
         // Инициализация остальных компонентов
         initDrawingCanvas();
-        
-        // Настройка обработчиков
         setupEventHandlers();
+        
+        // Применяем мобильную оптимизацию если нужно
+        if (isMobile) {
+            optimizeMobileInterface();
+        }
         
         console.log('✅ Приложение инициализировано');
         
     } catch (error) {
         console.error('💥 Ошибка инициализации:', error);
-        showMessage('❌ Ошибка загрузки приложения', 'error');
+        
+        // Показываем пользовательскую ошибку
+        const errorMessage = isMobile ? 
+            '📱 Проблемы с подключением. Проверьте интернет и попробуйте снова.' :
+            '❌ Ошибка загрузки приложения';
+            
+        showMessage(errorMessage, 'error');
+        
         // Показываем экран приветствия в случае ошибки
         showWelcomeScreen();
     }
 }
 
-// Настройка обработчиков событий
-function setupEventHandlers() {
-    // Обработчики для интерактивных вкладок
-    document.querySelectorAll('.interactive-tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-            document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
-            this.classList.add('active');
-            currentInteractiveCategory = this.dataset.category;
-            loadInteractives();
+// Оптимизированная загрузка для мобильных
+async function loadMobileOptimizedData() {
+    try {
+        console.log('📱 Загрузка оптимизированных данных для мобильного...');
+        
+        // Добавляем таймаут для запроса
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 45000);
+        
+        const response = await fetch(`/api/mobile/optimized-data?userId=${currentUserId}`, {
+            signal: controller.signal
         });
-    });
-    
-    // Обработчики для выбора цвета
-    document.querySelectorAll('.color-picker').forEach(picker => {
-        picker.addEventListener('click', function() {
-            document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
-            this.classList.add('active');
-            currentColor = this.dataset.color;
-            updateDrawingTool();
-        });
-    });
-}
-
-// Оптимизация интерфейса для мобильных
-function optimizeMobileInterface() {
-    console.log('📱 Применяем мобильную оптимизацию интерфейса');
-    
-    // Упрощаем тяжелые элементы
-    const heavyElements = document.querySelectorAll('.interactive-image, .media-preview, .work-image');
-    heavyElements.forEach(el => {
-        el.style.maxHeight = '200px';
-        el.style.objectFit = 'cover';
-    });
-    
-    // Улучшаем тач-интерфейс
-    const buttons = document.querySelectorAll('.btn, .option, .role-card, .character-card');
-    buttons.forEach(btn => {
-        btn.style.minHeight = '44px';
-        btn.style.padding = '12px 16px';
-    });
-    
-    // Добавляем мобильные обработчики
-    document.addEventListener('touchstart', function() {}, { passive: true });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.optimized) {
+            displayMobileOptimizedData(data);
+        } else {
+            // Fallback на стандартную загрузку
+            await loadUserData();
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки оптимизированных данных:', error);
+        
+        if (error.name === 'AbortError') {
+            showMessage('⏰ Превышено время ожидания. Проверьте интернет-соединение.', 'error');
+        }
+        
+        // Пробуем стандартную загрузку как fallback
+        await loadUserData();
+    }
 }
 
 // Загрузка данных пользователя - УПРОЩЕННАЯ ВЕРСИЯ
@@ -4617,6 +4638,39 @@ async function loadInteractives() {
             }
         }
 
+// Функция для обработки ошибок Vimeo
+function handleVimeoError(videoElement) {
+    const container = videoElement.closest('.purchase-item') || videoElement.closest('.shop-item');
+    
+    if (container) {
+        const fallbackHtml = `
+            <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
+                <div style="font-size: 64px; margin-bottom: 16px;">🎬</div>
+                <h4 style="margin-bottom: 12px;">Видео на Vimeo</h4>
+                <p style="color: #718096; margin-bottom: 20px;">
+                    Для просмотра видео перейдите по ссылке ниже
+                </p>
+                <a href="https://vimeo.com/1139315921" target="_blank" class="btn btn-success">
+                    📺 Смотреть на Vimeo
+                </a>
+            </div>
+        `;
+        
+        container.innerHTML = fallbackHtml;
+    }
+}
+
+// Автоматическая обработка ошибок Vimeo при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработка iframe ошибок
+    document.querySelectorAll('iframe').forEach(iframe => {
+        iframe.onerror = function() {
+            console.log('❌ Ошибка загрузки iframe:', iframe.src);
+            handleVimeoError(iframe);
+        };
+    });
+});
+    
         // Обработка загрузки изображения
         function handleImageUpload(file) {
             if (!file) return;
