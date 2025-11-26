@@ -2737,23 +2737,48 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     res.json(stats);
 });
 
-// Telegram Bot
-let bot;
-if (process.env.BOT_TOKEN) {
-    try {
-        bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-        
-        console.log('✅ Telegram Bot инициализирован');
-        console.log('=== НАСТРОЙКИ ПРИВАТНОГО КАНАЛА ===');
-        console.log('CHANNEL_ID:', PRIVATE_CHANNEL_CONFIG.CHANNEL_ID);
-        console.log('CHANNEL_USERNAME:', PRIVATE_CHANNEL_CONFIG.CHANNEL_USERNAME);
-        console.log('==================================');
+// Telegram Bot с улучшенной обработкой ошибок
+let bot = null;
 
-        bot.onText(/\/start/, (msg) => {
-            const chatId = msg.chat.id;
-            const name = msg.from.first_name || 'Друг';
-            const userId = msg.from.id;
-            
+const initializeBot = async () => {
+    if (!process.env.BOT_TOKEN) {
+        console.log('⚠️ BOT_TOKEN не указан, бот не будет запущен');
+        return null;
+    }
+
+    try {
+        console.log('🤖 Попытка инициализации Telegram бота...');
+        
+        // Создаем экземпляр бота без автоматического polling
+        const botInstance = new TelegramBot(process.env.BOT_TOKEN);
+        
+        // Проверяем токен бота
+        const botInfo = await botInstance.getMe();
+        console.log(`✅ Бот инициализирован: @${botInfo.username}`);
+        
+        // Настраиваем обработчики команд
+        setupBotHandlers(botInstance);
+        
+        // Запускаем polling с обработкой ошибок
+        startBotPolling(botInstance);
+        
+        return botInstance;
+    } catch (error) {
+        console.error('❌ Ошибка инициализации бота:', error.message);
+        return null;
+    }
+};
+
+const setupBotHandlers = (botInstance) => {
+    // Обработчик команды /start
+    botInstance.onText(/\/start/, async (msg) => {
+        const chatId = msg.chat.id;
+        const name = msg.from.first_name || 'Друг';
+        const userId = msg.from.id;
+        
+        console.log(`👋 Команда /start от ${name} (${userId})`);
+        
+        try {
             let user = db.users.find(u => u.user_id === userId);
             if (!user) {
                 user = {
@@ -2772,8 +2797,10 @@ if (process.env.BOT_TOKEN) {
                     last_active: new Date().toISOString()
                 };
                 db.users.push(user);
+                console.log(`✅ Создан новый пользователь: ${name}`);
             } else {
                 user.last_active = new Date().toISOString();
+                console.log(`✅ Обновлен существующий пользователь: ${name}`);
             }
             
             const welcomeText = `🎨 Привет, ${name}!
@@ -2792,76 +2819,46 @@ if (process.env.BOT_TOKEN) {
 
 Нажмите кнопку ниже чтобы начать!`;
             
+            const baseUrl = process.env.APP_URL || `http://localhost:${PORT}`;
             const keyboard = {
                 inline_keyboard: [[
                     {
                         text: "📱 Открыть Личный Кабинет",
-                        web_app: { url: process.env.APP_URL || `https://your-domain.timeweb.cloud` }
+                        web_app: { url: baseUrl }
                     }
                 ]]
             };
 
-            bot.sendMessage(chatId, welcomeText, {
+            await botInstance.sendMessage(chatId, welcomeText, {
                 parse_mode: 'Markdown',
                 reply_markup: keyboard
             });
-        });
-
-        // Обработчик для запроса доступа к видео
-        bot.onText(/\/доступ|доступ/i, async (msg) => {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
             
+        } catch (error) {
+            console.error('❌ Ошибка обработки /start:', error);
             try {
-                const userAccess = db.video_access.filter(access => access.user_id === userId);
-                
-                if (userAccess.length === 0) {
-                    bot.sendMessage(chatId, 
-                        'У вас нет активного доступа к видео.\n\n' +
-                        '📹 Приобрести доступ можно в разделе "Приватные видео" в вашем личном кабинете.'
-                    );
-                    return;
-                }
-                
-                let message = '🎬 Ваши активные доступы к видео:\n\n';
-                
-                for (const access of userAccess) {
-                    const video = db.private_channel_videos.find(v => v.id === access.video_id);
-                    if (video && video.is_active) {
-                        // Создаем новую временную ссылку
-                        const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
-                            member_limit: 1,
-                            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
-                        });
-                        
-                        message += `📹 ${video.title}\n`;
-                        message += `🔗 ${chatInviteLink.invite_link}\n`;
-                        message += `⏰ Ссылка действительна 24 часа\n\n`;
-                    }
-                }
-                
-                message += '⚠️ Для повторного доступа используйте команду /доступ';
-                
-                bot.sendMessage(chatId, message);
-                
-            } catch (error) {
-                console.error('Ошибка при запросе доступа:', error);
-                bot.sendMessage(chatId, '❌ Произошла ошибка при получении доступа. Попробуйте позже.');
+                await botInstance.sendMessage(chatId, 
+                    '❌ Произошла ошибка при обработке команды. Пожалуйста, попробуйте позже.'
+                );
+            } catch (e) {
+                console.error('❌ Не удалось отправить сообщение об ошибке:', e);
             }
-        });
+        }
+    });
 
-        bot.onText(/\/admin/, (msg) => {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
-            
+    // Обработчик команды /admin
+    botInstance.onText(/\/admin/, async (msg) => {
+        const chatId = msg.chat.id;
+        const userId = msg.from.id;
+        
+        try {
             const admin = db.admins.find(a => a.user_id == userId);
             if (!admin) {
-                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+                await botInstance.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
                 return;
             }
             
-            // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
-            const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
+            const baseUrl = process.env.APP_URL || `http://localhost:${PORT}`;
             const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
             
             const keyboard = {
@@ -2873,19 +2870,25 @@ if (process.env.BOT_TOKEN) {
                 ]]
             };
             
-            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            });
-        });
-
-        bot.onText(/\/stats/, (msg) => {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
+            await botInstance.sendMessage(chatId, 
+                `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`,
+                { parse_mode: 'Markdown', reply_markup: keyboard }
+            );
             
+        } catch (error) {
+            console.error('❌ Ошибка обработки /admin:', error);
+        }
+    });
+
+    // Обработчик команды /stats
+    botInstance.onText(/\/stats/, async (msg) => {
+        const chatId = msg.chat.id;
+        const userId = msg.from.id;
+        
+        try {
             const admin = db.admins.find(a => a.user_id == userId);
             if (!admin) {
-                bot.sendMessage(chatId, '❌ У вас нет прав доступа.');
+                await botInstance.sendMessage(chatId, '❌ У вас нет прав доступа.');
                 return;
             }
             
@@ -2895,9 +2898,7 @@ if (process.env.BOT_TOKEN) {
                 activeQuizzes: db.quizzes.filter(q => q.is_active).length,
                 activeMarathons: db.marathons.filter(m => m.is_active).length,
                 shopItems: db.shop_items.filter(i => i.is_active).length,
-                totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
-                privateVideos: db.private_channel_videos.filter(v => v.is_active).length,
-                videoAccesses: db.video_access.length
+                totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0)
             };
             
             const statsText = `📊 Статистика бота:
@@ -2907,17 +2908,54 @@ if (process.env.BOT_TOKEN) {
 🎯 Активных квизов: ${stats.activeQuizzes}
 🏃‍♂️ Активных марафонов: ${stats.activeMarathons}
 🛒 Товаров в магазине: ${stats.shopItems}
-🎬 Приватных видео: ${stats.privateVideos}
-🔗 Активных доступов: ${stats.videoAccesses}
 ✨ Всего искр: ${stats.totalSparks.toFixed(1)}`;
             
-            bot.sendMessage(chatId, statsText);
-        });
+            await botInstance.sendMessage(chatId, statsText);
+            
+        } catch (error) {
+            console.error('❌ Ошибка обработки /stats:', error);
+        }
+    });
 
-    } catch (error) {
-        console.error('❌ Ошибка инициализации бота:', error);
-    }
-}
+    // Обработчик ошибок бота
+    botInstance.on('error', (error) => {
+        console.error('❌ Ошибка Telegram бота:', error);
+    });
+
+    botInstance.on('polling_error', (error) => {
+        console.error('❌ Ошибка polling бота:', error.message);
+    });
+};
+
+const startBotPolling = (botInstance) => {
+    let pollingAttempts = 0;
+    const maxPollingAttempts = 3;
+
+    const startPolling = async () => {
+        try {
+            console.log('🔄 Запуск polling бота...');
+            await botInstance.startPolling({
+                timeout: 10,
+                limit: 100,
+                allowed_updates: ['message', 'callback_query']
+            });
+            console.log('✅ Polling бота успешно запущен');
+            pollingAttempts = 0;
+        } catch (error) {
+            pollingAttempts++;
+            console.error(`❌ Ошибка запуска polling (попытка ${pollingAttempts}/${maxPollingAttempts}):`, error.message);
+            
+            if (pollingAttempts < maxPollingAttempts) {
+                console.log(`🔄 Повторная попытка через 5 секунд...`);
+                setTimeout(startPolling, 5000);
+            } else {
+                console.error('❌ Не удалось запустить polling после нескольких попыток');
+            }
+        }
+    };
+
+    startPolling();
+};
 
 // ==================== ЭКСПОРТ ОТЧЕТОВ ====================
 
@@ -3110,15 +3148,66 @@ app.get('/api/mobile/health', (req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Сервер запущен на порту ${PORT}`);
-    console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
-    console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
-    console.log(`🎯 Квизов: ${db.quizzes.length}`);
-    console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
-    console.log(`🎮 Интерактивов: ${db.interactives.length}`);
-    console.log(`🛒 Товаров: ${db.shop_items.length}`);
-    console.log(`👥 Пользователей: ${db.users.length}`);
-    console.log('✅ Все системы работают!');
-});
+// Запуск сервера с улучшенной обработкой ошибок
+const startServer = async () => {
+    try {
+        // Инициализируем бота (не блокируем запуск сервера при ошибке бота)
+        initializeBot().then(botInstance => {
+            bot = botInstance;
+            if (bot) {
+                console.log('✅ Бот успешно инициализирован');
+            } else {
+                console.log('⚠️ Бот не был инициализирован, но сервер продолжает работу');
+            }
+        }).catch(error => {
+            console.error('❌ Критическая ошибка инициализации бота:', error);
+        });
+
+        // Запускаем HTTP сервер
+        const server = app.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 Сервер запущен на порту ${PORT}`);
+            console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
+            console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
+            console.log(`🎯 Квизов: ${db.quizzes.length}`);
+            console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
+            console.log(`🎮 Интерактивов: ${db.interactives.length}`);
+            console.log(`🛒 Товаров: ${db.shop_items.length}`);
+            console.log(`👥 Пользователей: ${db.users.length}`);
+            console.log('✅ Все системы работают!');
+        });
+
+        // Обработка graceful shutdown
+        process.on('SIGTERM', () => {
+            console.log('🛑 Получен SIGTERM, останавливаем сервер...');
+            server.close(() => {
+                console.log('✅ Сервер остановлен');
+                process.exit(0);
+            });
+        });
+
+        process.on('SIGINT', () => {
+            console.log('🛑 Получен SIGINT, останавливаем сервер...');
+            server.close(() => {
+                console.log('✅ Сервер остановлен');
+                process.exit(0);
+            });
+        });
+
+        // Обработка необработанных исключений
+        process.on('uncaughtException', (error) => {
+            console.error('💥 Необработанное исключение:', error);
+            process.exit(1);
+        });
+
+        process.on('unhandledRejection', (reason, promise) => {
+            console.error('💥 Необработанный промис:', reason);
+        });
+
+    } catch (error) {
+        console.error('💥 Критическая ошибка запуска сервера:', error);
+        process.exit(1);
+    }
+};
+
+// Запускаем сервер
+startServer();
