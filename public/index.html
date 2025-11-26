@@ -1891,6 +1891,48 @@
         let uploadedImage = null;
         let marathonUploadedImage = null;
 
+// Глобальный детектор мобильных устройств
+const isMobileDevice = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+console.log(`📱 Мобильное устройство: ${isMobileDevice}`);
+
+// Оптимизация для мобильных - уменьшаем таймауты и ограничиваем данные
+if (isMobileDevice) {
+    // Уменьшаем таймауты для мобильных
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд для мобильных
+        
+        return originalFetch(...args, { signal: controller.signal })
+            .finally(() => clearTimeout(timeoutId));
+    };
+    
+    // Оптимизация рендеринга для мобильных
+    document.addEventListener('DOMContentLoaded', function() {
+        // Уменьшаем анимации для мобильных
+        const style = document.createElement('style');
+        style.textContent = `
+            @media (max-width: 768px) {
+                .card, .btn, .feature-card {
+                    transition: none !important;
+                    transform: none !important;
+                }
+                
+                .interactive-image, .media-preview, .work-image {
+                    max-height: 150px !important;
+                    object-fit: cover;
+                }
+                
+                .content-preview {
+                    max-height: 100px !important;
+                    font-size: 12px !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    });
+}
+
 // ==================== МОБИЛЬНАЯ ОПТИМИЗАЦИЯ ====================
 
 // Детектор мобильных устройств
@@ -2160,12 +2202,13 @@ function hideMobileMenu() {
     }
 }
         
-// УПРОЩЕННАЯ ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
+// Инициализация приложения - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ ДЛЯ МОБИЛЬНЫХ
 async function initApp() {
     try {
         console.log('🚀 Инициализация приложения...');
+        console.log('📱 Мобильное устройство:', isMobileDevice);
         
-        // Проверяем доступность Telegram WebApp
+        // Добавьте эту проверку
         if (typeof Telegram === 'undefined') {
             console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
             tg = {
@@ -2182,27 +2225,45 @@ async function initApp() {
             tg.enableClosingConfirmation();
         }
         
-        // Получаем ID пользователя
-        currentUserId = tg.initDataUnsafe.user?.id || 
-                       tg.initDataUnsafe.start_param?.replace('ref_', '') || 
-                       898508164;
+        currentUserId = tg.initDataUnsafe.user?.id || tg.initDataUnsafe.start_param?.replace('ref_', '') || 898508164;
         
         console.log('👤 User ID:', currentUserId);
-        console.log('📱 Platform:', tg?.platform || 'web');
+        console.log('📱 Platform:', tg.platform);
         
-        // ПРОСТАЯ ЗАГРУЗКА ДАННЫХ - убираем сложную логику
-        await loadUserData();
+        // Используем универсальную загрузку данных с оптимизацией для мобильных
+        await loadUniversalData();
         
         // Инициализация рисовального холста
         initDrawingCanvas();
         
-        console.log('✅ Приложение инициализировано');
+        // Обработчики для интерактивных вкладок
+        document.querySelectorAll('.interactive-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                currentInteractiveCategory = this.dataset.category;
+                loadInteractives();
+            });
+        });
+        
+        // Обработчики для выбора цвета
+        document.querySelectorAll('.color-picker').forEach(picker => {
+            picker.addEventListener('click', function() {
+                document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                currentColor = this.dataset.color;
+                updateDrawingTool();
+            });
+        });
+        
+        // Мобильная оптимизация интерфейса
+        if (isMobileDevice) {
+            optimizeMobileInterface();
+        }
         
     } catch (error) {
         console.error('💥 Критическая ошибка инициализации:', error);
-        showMessage('❌ Ошибка загрузки приложения', 'error');
-        // Всегда показываем главный экран даже при ошибке
-        showScreen('mainScreen');
+        showMessage('❌ Ошибка загрузки приложения: ' + error.message, 'error');
     }
 }
 
@@ -2228,90 +2289,89 @@ function optimizeMobileInterface() {
     document.addEventListener('touchstart', function() {}, { passive: true });
 }
 
-// УПРОЩЕННАЯ ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ
+// Загрузка данных пользователя - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ ДЛЯ МОБИЛЬНЫХ
 async function loadUserData() {
     try {
-        console.log('🔄 Загрузка данных пользователя:', currentUserId);
-        
         const userDataElement = document.getElementById('userData');
         userDataElement.innerHTML = '<div class="loading"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div>Загрузка данных...</div>';
         
-        // ПРОСТОЙ ЗАПРОС БЕЗ СЛОЖНОЙ ЛОГИКИ
-        const response = await fetch(`/api/users/${currentUserId}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
+        // Используем оптимизированный API для мобильных
+        const apiUrl = isMobileDevice ? 
+            `/api/mobile/universal-data?userId=${currentUserId}` :
+            `/api/users/${currentUserId}`;
+            
+        const response = await fetch(apiUrl);
         const data = await response.json();
-        console.log('✅ Данные пользователя получены:', data);
         
-        if (data.exists) {
+        if (isMobileDevice && data.optimized) {
+            // Используем оптимизированные данные
+            displayMobileOptimizedData(data);
+        } else if (data.exists) {
             currentUser = data.user;
             showUserData();
             loadAvailableButtons();
         } else {
             showWelcomeScreen();
         }
-        
     } catch (error) {
-        console.error('❌ Ошибка загрузки пользователя:', error);
-        
-        // ПОКАЗЫВАЕМ ТЕСТОВЫЕ ДАННЫЕ ДЛЯ ДЕМОНСТРАЦИИ
-        const userDataElement = document.getElementById('userData');
-        userDataElement.innerHTML = `
-            <div id="userContent">
-                <div class="user-info-grid">
-                    <div class="user-info-item">
-                        <span class="user-info-label">Имя:</span>
-                        <span class="user-info-value">Тестовый пользователь</span>
-                    </div>
-                    <div class="user-info-item">
-                        <span class="user-info-label">Уровень:</span>
-                        <span class="user-info-value">Ученик</span>
-                    </div>
-                    <div class="user-info-item">
-                        <span class="user-info-label">Роль:</span>
-                        <span class="user-info-value">Художники</span>
-                    </div>
-                    <div class="user-info-item">
-                        <span class="user-info-label">Персонаж:</span>
-                        <span class="user-info-value">Лука Цветной</span>
-                    </div>
-                </div>
-                
-                <div class="sparks pulse">✨ 45.5</div>
-                
-                <div id="userStats">
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-number">2</div>
-                            <div class="stat-label">Квизов</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">1</div>
-                            <div class="stat-label">Работ</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">0</div>
-                            <div class="stat-label">Марафонов</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">3</div>
-                            <div class="stat-label">Интерактивов</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.getElementById('welcomeBlock').style.display = 'none';
-        document.getElementById('actionsBlock').style.display = 'block';
-        loadAvailableButtons();
-        
-        showMessage('⚠️ Используются демо-данные. Сервер временно недоступен.', 'info');
+        console.error('Ошибка загрузки пользователя:', error);
+        showMessage('❌ Ошибка загрузки данных', 'error');
+        // Показываем экран приветствия в случае ошибки
+        showWelcomeScreen();
     }
 }
+        // Показать данные пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        function showUserData() {
+            const userDataElement = document.getElementById('userData');
+            
+            userDataElement.innerHTML = `
+                <div id="userContent">
+                    <div class="user-info-grid">
+                        <div class="user-info-item">
+                            <span class="user-info-label">Имя:</span>
+                            <span id="userName" class="user-info-value">${currentUser.tg_first_name}</span>
+                        </div>
+                        <div class="user-info-item">
+                            <span class="user-info-label">Уровень:</span>
+                            <span id="userLevel" class="user-info-value">${currentUser.level}</span>
+                        </div>
+                        <div class="user-info-item">
+                            <span class="user-info-label">Роль:</span>
+                            <span id="userRole" class="user-info-value">${currentUser.class || 'Не выбрана'}</span>
+                        </div>
+                        <div class="user-info-item">
+                            <span class="user-info-label">Персонаж:</span>
+                            <span id="userCharacter" class="user-info-value">${currentUser.character_name || 'Не выбран'}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="sparks pulse">✨ ${currentUser.sparks.toFixed(1)}</div>
+                    
+                    <div id="userStats">
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-number">${currentUser.stats?.totalQuizzesCompleted || 0}</div>
+                                <div class="stat-label">Квизов</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${currentUser.stats?.totalWorks || 0}</div>
+                                <div class="stat-label">Работ</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${currentUser.stats?.totalMarathonsCompleted || 0}</div>
+                                <div class="stat-label">Марафонов</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${currentUser.stats?.totalInteractivesCompleted || 0}</div>
+                                <div class="stat-label">Интерактивов</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('welcomeBlock').style.display = 'none';
+            document.getElementById('actionsBlock').style.display = 'block';
             
             // Заполняем имя в форме регистрации
             document.getElementById('userFirstName').value = currentUser.tg_first_name;
@@ -3453,30 +3513,6 @@ function formatFileSize(bytes) {
             }
         }
 
-// УНИВЕРСАЛЬНЫЙ ОБРАБОТЧИК API С ОШИБКАМИ
-async function safeApiCall(url, options = {}) {
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
-        
-        const response = await fetch(url, {
-            ...options,
-            signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        
-        return await response.json();
-    } catch (error) {
-        console.error(`❌ API ошибка (${url}):`, error);
-        throw error;
-    }
-}
-        
         // ==================== КВИЗЫ ====================
 
         // Загрузка квизов
