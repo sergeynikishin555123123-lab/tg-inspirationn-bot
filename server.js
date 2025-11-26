@@ -572,8 +572,38 @@ let db = {
     ],
     interactive_completions: [],
     interactive_submissions: [],
-    marathon_submissions: []
+    marathon_submissions: [],
+    private_channel_videos: [],      // <-- ДОБАВЛЯЕМ
+    video_access: []                 // <-- ДОБАВЛЯЕМ
 };
+
+// ==================== СИСТЕМА ПРИВАТНОГО КАНАЛА ====================
+
+// Конфигурация приватного канала
+const PRIVATE_CHANNEL_CONFIG = {
+    CHANNEL_ID: process.env.PRIVATE_CHANNEL_ID || '-1001234567890',
+    CHANNEL_USERNAME: process.env.PRIVATE_CHANNEL_USERNAME || '@private_videos_channel',
+    BOT_TOKEN: process.env.BOT_TOKEN
+};
+
+// Новая коллекция для видео из приватного канала
+db.private_channel_videos = [
+    {
+        id: 1,
+        message_id: 123,
+        title: "🎬 Профессиональный урок по акварели",
+        description: "Полный урок по технике акварельной живописи от профессионального художника",
+        duration: "45 минут",
+        file_size: "1.2 GB",
+        price: 25,
+        tags: ["акварель", "урок", "профессиональный"],
+        is_active: true,
+        created_at: new Date().toISOString()
+    }
+];
+
+// Коллекция для доступа пользователей к видео
+db.video_access = [];
 
 // Увеличены лимиты для больших файлов (3GB)
 app.use(express.json({ limit: '3gb' }));
@@ -751,6 +781,243 @@ app.get('/health', (req, res) => {
         shop_items: db.shop_items.length,
         interactives: db.interactives.length
     });
+});
+
+// ==================== API ДЛЯ ПРИВАТНОГО КАНАЛА ====================
+
+// Получить список видео из приватного канала
+app.get('/api/webapp/private-videos', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const videos = db.private_channel_videos.filter(video => video.is_active);
+    
+    const videosWithAccess = videos.map(video => {
+        const hasAccess = db.video_access.some(
+            access => access.user_id === userId && access.video_id === video.id
+        );
+        
+        return {
+            ...video,
+            has_access: hasAccess,
+            can_purchase: !hasAccess
+        };
+    });
+    
+    res.json({ videos: videosWithAccess });
+});
+
+// Покупка доступа к видео из приватного канала
+app.post('/api/webapp/private-videos/purchase', async (req, res) => {
+    const { userId, videoId } = req.body;
+    
+    if (!userId || !videoId) {
+        return res.status(400).json({ error: 'User ID and video ID are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
+    
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!video) return res.status(404).json({ error: 'Video not found' });
+    
+    // Проверяем, не куплен ли уже доступ
+    const existingAccess = db.video_access.find(
+        access => access.user_id === userId && access.video_id === videoId
+    );
+    
+    if (existingAccess) {
+        return res.status(400).json({ error: 'У вас уже есть доступ к этому видео' });
+    }
+    
+    if (user.sparks < video.price) {
+        return res.status(400).json({ error: 'Недостаточно искр' });
+    }
+    
+    try {
+        // 1. Списание искр
+        user.sparks -= video.price;
+        
+        // 2. Создаем запись о доступе
+        const accessRecord = {
+            id: Date.now(),
+            user_id: userId,
+            video_id: videoId,
+            purchased_at: new Date().toISOString(),
+            access_expires: null,
+            telegram_message_id: null
+        };
+        
+        db.video_access.push(accessRecord);
+        
+        // 3. Логируем покупку
+        addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
+        
+        // 4. Предоставляем доступ через Telegram бота
+        if (bot && PRIVATE_CHANNEL_CONFIG.BOT_TOKEN) {
+            await grantVideoAccess(userId, videoId);
+        }
+        
+        res.json({
+            success: true,
+            message: `Доступ к видео "${video.title}" предоставлен!`,
+            remainingSparks: user.sparks,
+            access: accessRecord
+        });
+        
+    } catch (error) {
+        console.error('Ошибка при покупке доступа к видео:', error);
+        // Откатываем списание искр в случае ошибки
+        user.sparks += video.price;
+        res.status(500).json({ error: 'Ошибка предоставления доступа' });
+    }
+});
+
+// Получить информацию о конкретном видео
+app.get('/api/webapp/private-videos/:videoId', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const videoId = parseInt(req.params.videoId);
+    
+    const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+    if (!video) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    const hasAccess = db.video_access.some(
+        access => access.user_id === userId && access.video_id === videoId
+    );
+    
+    res.json({
+        ...video,
+        has_access: hasAccess,
+        can_purchase: !hasAccess
+    });
+});
+
+// Функция предоставления доступа через Telegram бота
+async function grantVideoAccess(userId, videoId) {
+    try {
+        const user = db.users.find(u => u.user_id == userId);
+        const video = db.private_channel_videos.find(v => v.id == videoId);
+        const accessRecord = db.video_access.find(a => a.user_id === userId && a.video_id === videoId);
+        
+        if (!user || !video || !accessRecord) {
+            throw new Error('Данные для предоставления доступа не найдены');
+        }
+        
+        // Создаем уникальную ссылку-приглашение в канал
+        const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
+            member_limit: 1,
+            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
+        });
+        
+        // Отправляем пользователю сообщение с доступом
+        const message = await bot.sendMessage(userId, 
+            `🎬 Вам предоставлен доступ к видео!\n\n` +
+            `📹 ${video.title}\n` +
+            `⏱️ Длительность: ${video.duration}\n` +
+            `💾 Размер: ${video.file_size}\n\n` +
+            `🔗 Ссылка для просмотра: ${chatInviteLink.invite_link}\n\n` +
+            `⚠️ Ссылка действительна 24 часа. Для повторного доступа напишите "доступ" в этот чат.`,
+            { parse_mode: 'HTML' }
+        );
+        
+        // Сохраняем ID сообщения
+        accessRecord.telegram_message_id = message.message_id;
+        
+        console.log(`✅ Доступ к видео ${videoId} предоставлен пользователю ${userId}`);
+        
+    } catch (error) {
+        console.error('❌ Ошибка предоставления доступа:', error);
+        throw error;
+    }
+}
+
+// Админ API для управления видео в приватном канале
+app.get('/api/admin/private-videos', requireAdmin, (req, res) => {
+    const videos = db.private_channel_videos.map(video => {
+        const accessCount = db.video_access.filter(access => access.video_id === video.id).length;
+        const totalRevenue = accessCount * video.price;
+        
+        return {
+            ...video,
+            access_count: accessCount,
+            total_revenue: totalRevenue
+        };
+    });
+    
+    res.json(videos);
+});
+
+app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
+    const { message_id, title, description, duration, file_size, price, tags } = req.body;
+    
+    if (!message_id || !title || !price) {
+        return res.status(400).json({ error: 'Message ID, title and price are required' });
+    }
+    
+    const newVideo = {
+        id: Date.now(),
+        message_id: parseInt(message_id),
+        title,
+        description: description || '',
+        duration: duration || '',
+        file_size: file_size || '',
+        price: parseFloat(price),
+        tags: tags || [],
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.private_channel_videos.push(newVideo);
+    
+    res.json({ 
+        success: true, 
+        message: 'Видео успешно добавлено', 
+        video: newVideo 
+    });
+});
+
+app.put('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
+    const videoId = parseInt(req.params.videoId);
+    const { title, description, duration, file_size, price, tags, is_active } = req.body;
+    
+    const video = db.private_channel_videos.find(v => v.id === videoId);
+    if (!video) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    if (title) video.title = title;
+    if (description) video.description = description;
+    if (duration) video.duration = duration;
+    if (file_size) video.file_size = file_size;
+    if (price) video.price = parseFloat(price);
+    if (tags) video.tags = tags;
+    if (is_active !== undefined) video.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Видео успешно обновлено',
+        video: video
+    });
+});
+
+app.delete('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
+    const videoId = parseInt(req.params.videoId);
+    const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
+    
+    if (videoIndex === -1) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    // Проверяем, есть ли пользователи с доступом
+    const usersWithAccess = db.video_access.filter(access => access.video_id === videoId);
+    if (usersWithAccess.length > 0) {
+        return res.status(400).json({ 
+            error: 'Нельзя удалить видео, у которого есть пользователи с доступом' 
+        });
+    }
+    
+    db.private_channel_videos.splice(videoIndex, 1);
+    res.json({ success: true, message: 'Видео удалено' });
 });
 
 // WebApp API
@@ -2317,15 +2584,57 @@ if (process.env.BOT_TOKEN) {
         bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
         
         console.log('✅ Telegram Bot инициализирован');
-        console.log('=== НАСТРОЙКИ БОТА ===');
-        console.log('CHANNEL_ID:', process.env.CHANNEL_ID);
-        console.log('GROUP_ID:', process.env.GROUP_ID);
-        console.log('====================');
+        console.log('=== НАСТРОЙКИ ПРИВАТНОГО КАНАЛА ===');
+        console.log('CHANNEL_ID:', PRIVATE_CHANNEL_CONFIG.CHANNEL_ID);
+        console.log('CHANNEL_USERNAME:', PRIVATE_CHANNEL_CONFIG.CHANNEL_USERNAME);
+        console.log('==================================');
         
-        bot.onText(/\/start/, (msg) => {
+        });
+
+        // Обработчик для запроса доступа к видео
+        bot.onText(/\/доступ|доступ/i, async (msg) => {
             const chatId = msg.chat.id;
-            const name = msg.from.first_name || 'Друг';
             const userId = msg.from.id;
+            
+            try {
+                const userAccess = db.video_access.filter(access => access.user_id === userId);
+                
+                if (userAccess.length === 0) {
+                    bot.sendMessage(chatId, 
+                        'У вас нет активного доступа к видео.\n\n' +
+                        '📹 Приобрести доступ можно в разделе "Приватные видео" в вашем личном кабинете.'
+                    );
+                    return;
+                }
+                
+                let message = '🎬 Ваши активные доступы к видео:\n\n';
+                
+                for (const access of userAccess) {
+                    const video = db.private_channel_videos.find(v => v.id === access.video_id);
+                    if (video && video.is_active) {
+                        // Создаем новую временную ссылку
+                        const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
+                            member_limit: 1,
+                            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
+                        });
+                        
+                        message += `📹 ${video.title}\n`;
+                        message += `🔗 ${chatInviteLink.invite_link}\n`;
+                        message += `⏰ Ссылка действительна 24 часа\n\n`;
+                    }
+                }
+                
+                message += '⚠️ Для повторного доступа используйте команду /доступ';
+                
+                bot.sendMessage(chatId, message);
+                
+            } catch (error) {
+                console.error('Ошибка при запросе доступа:', error);
+                bot.sendMessage(chatId, '❌ Произошла ошибка при получении доступа. Попробуйте позже.');
+            }
+        });
+
+        bot.onText(/\/admin/, (msg) => {
             
             let user = db.users.find(u => u.user_id === userId);
             if (!user) {
