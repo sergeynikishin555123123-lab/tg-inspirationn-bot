@@ -4304,97 +4304,96 @@ function generatePurchasePreview(purchase) {
     const fileUrl = purchase.file_data || purchase.file_url;
     const previewUrl = purchase.preview_data || purchase.preview_url;
     
-    switch(purchase.type) {
-        case 'video':
-            return `
-                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">🎥</div>
-                    <div style="color: #718096; font-size: 12px;">Видео контент</div>
-                    ${previewUrl ? `
-                        <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
-                    ` : ''}
-                </div>
-            `;
+switch(purchase.type) {
+    case 'video':
+        return `
+            <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🎥</div>
+                <div style="color: #718096; font-size: 12px;">Видео контент</div>
+                ${previewUrl ? `
+                    <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
+                ` : ''}
+            </div>
+        `;
 
-case 'telegram_video':
-            return `
-                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">📱</div>
-                    <div style="color: #718096; font-size: 12px;">Видео в Telegram</div>
-                    ${previewUrl ? `
-                        <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
-                    ` : ''}
-                </div>
-            `;
-            
-        case 'image':
-            const images = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
-            return `
-                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">🖼️</div>
-                    <div style="color: #718096; font-size: 12px;">${images.length} изображение${images.length > 1 ? 'я' : ''}</div>
-                    ${previewUrl ? `
-                        <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
-                    ` : ''}
-                </div>
-            `;
-            
-        case 'audio':
-            return `
-                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">🎧</div>
-                    <div style="color: #718096; font-size: 12px;">Аудио контент</div>
-                </div>
-            `;
-            
-        case 'pdf':
-            return `
-                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">📚</div>
-                    <div style="color: #718096; font-size: 12px;">PDF документ</div>
-                    ${purchase.pages_count ? `
-                        <div style="color: #667eea; font-size: 11px; margin-top: 4px;">
-                            ${purchase.pages_count} страниц
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-            
-        case 'text':
-            return `
-                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">📝</div>
-                    <div style="color: #718096; font-size: 12px;">Текстовый контент</div>
-                </div>
-            `;
+    case 'telegram_video':
+        return `
+            <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">📱</div>
+                <div style="color: #718096; font-size: 12px;">Видео в Telegram</div>
+                ${previewUrl ? `
+                    <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
+                ` : ''}
+            </div>
+        `;
+        
+    case 'image':
+        const images = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
+        return `
+            <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🖼️</div>
+                <div style="color: #718096; font-size: 12px;">${images.length} изображение${images.length > 1 ? 'я' : ''}</div>
+                ${previewUrl ? `
+                    <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
+                ` : ''}
+            </div>
+        `;
+        
+    case 'audio':
+        return `
+            <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🎧</div>
+                <div style="color: #718096; font-size: 12px;">Аудио контент</div>
+            </div>
+        `;
+        
+    case 'pdf':
+        return `
+            <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">📚</div>
+                <div style="color: #718096; font-size: 12px;">PDF документ</div>
+                ${purchase.pages_count ? `
+                    <div style="color: #667eea; font-size: 11px; margin-top: 4px;">
+                        ${purchase.pages_count} страниц
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+    case 'text':
+        return `
+            <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">📝</div>
+                <div style="color: #718096; font-size: 12px;">Текстовый контент</div>
+            </div>
+        `;
 
-        case 'embed':
-            return `
-                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">🎬</div>
-                    <div style="color: #718096; font-size: 12px;">Встроенное видео</div>
-                    ${previewUrl ? `
-                        <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
-                    ` : ''}
-                </div>
-            `;
-            
-        case 'link':
-            return `
-                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">🔗</div>
-                    <div style="color: #718096; font-size: 12px;">Ссылка на ресурс</div>
-                </div>
-            `;
-            
-        default:
-            return `
-                <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
-                    <div style="color: #718096; font-size: 12px;">Товар</div>
-                </div>
-            `;
-    }
+    case 'embed':
+        return `
+            <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🎬</div>
+                <div style="color: #718096; font-size: 12px;">Встроенное видео</div>
+                ${previewUrl ? `
+                    <img src="${previewUrl}" style="max-width: 100px; border-radius: 8px; margin-top: 8px;">
+                ` : ''}
+            </div>
+        `;
+        
+    case 'link':
+        return `
+            <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🔗</div>
+                <div style="color: #718096; font-size: 12px;">Ссылка на ресурс</div>
+            </div>
+        `;
+        
+    default:
+        return `
+            <div style="background: #f7fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
+                <div style="color: #718096; font-size: 12px;">Товар</div>
+            </div>
+        `;
 }
 
 // Функции для фильтрации покупок
