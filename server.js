@@ -64,253 +64,161 @@ const SPARKS_SYSTEM = {
     COMMUNITY_HELP: 8
 };
 
-// ==================== PURE JAVASCRIPT БАЗА ДАННЫХ ====================
-class MemoryDatabaseService {
+// ==================== РЕАЛЬНАЯ SQLite БАЗА ДАННЫХ ====================
+class RealDatabaseService {
     constructor() {
-        this.tables = {
-            users: new Map(),
-            roles: new Map(),
-            characters: new Map(),
-            quizzes: new Map(),
-            quiz_completions: new Map(),
-            marathons: new Map(),
-            marathon_completions: new Map(),
-            shop_items: new Map(),
-            purchases: new Map(),
-            activities: new Map(),
-            posts: new Map(),
-            user_works: new Map(),
-            interactives: new Map(),
-            system_settings: new Map(),
-            sessions: new Map(),
-            notifications: new Map(),
-            post_reviews: new Map(),
-            work_reviews: new Map(),
-            daily_reviews: new Map(),
-            interactive_completions: new Map(),
-            interactive_submissions: new Map(),
-            marathon_submissions: new Map(),
-            admins: new Map(),
-            admin_logs: new Map()
-        };
-        
-        this.counters = {};
-        this.connected = true;
-        
-        // Инициализируем счетчики для ID
-        for (const tableName in this.tables) {
-            this.counters[tableName] = 1;
-        }
-        
+        this.dbPath = './data/inspiration.db';
         this.init();
     }
 
-    async init() {
-        console.log('✅ Pure JavaScript база данных инициализирована');
-        await this.initializeDefaultData();
+    init() {
+        const sqlite3 = require('sqlite3').verbose();
+        const fs = require('fs');
+        
+        // Создаем директорию для данных
+        if (!fs.existsSync('./data')) {
+            fs.mkdirSync('./data', { recursive: true });
+        }
+
+        this.db = new sqlite3.Database(this.dbPath, (err) => {
+            if (err) {
+                console.error('❌ Ошибка подключения к базе:', err.message);
+            } else {
+                console.log('✅ Подключение к SQLite установлено');
+                this.createTables();
+            }
+        });
     }
 
-    async initializeDefaultData() {
-        // Системные настройки
-        const systemSettings = [
-            { key: 'systemName', value: 'Мастерская Вдохновения', description: 'Название системы' },
-            { key: 'registrationReward', value: '10', description: 'Награда за регистрацию' },
-            { key: 'dailyBonus', value: '5', description: 'Ежедневный бонус' }
+    createTables() {
+        const tables = [
+            `CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER UNIQUE NOT NULL,
+                tg_first_name TEXT,
+                tg_username TEXT,
+                sparks REAL DEFAULT 0,
+                level TEXT DEFAULT 'Ученик',
+                is_registered BOOLEAN DEFAULT 0,
+                class TEXT,
+                character_id INTEGER,
+                character_name TEXT,
+                available_buttons TEXT DEFAULT '[]',
+                registration_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_active DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status TEXT DEFAULT 'active'
+            )`,
+            `CREATE TABLE IF NOT EXISTS roles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT,
+                icon TEXT,
+                available_buttons TEXT DEFAULT '[]',
+                color TEXT,
+                display_order INTEGER DEFAULT 1,
+                is_active BOOLEAN DEFAULT 1
+            )`,
+            `CREATE TABLE IF NOT EXISTS characters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                role_id INTEGER,
+                name TEXT NOT NULL,
+                description TEXT,
+                bonus_type TEXT,
+                bonus_value TEXT,
+                is_active BOOLEAN DEFAULT 1
+            )`
         ];
 
-        systemSettings.forEach(setting => {
-            this.tables.system_settings.set(setting.key, { id: this.getNextId('system_settings'), ...setting });
-        });
-
-        // Роли
-        const roles = [
-            { name: 'Художники', description: 'Творцы изобразительного искусства', icon: '🎨', available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', color: '#FF6B6B', display_order: 1 },
-            { name: 'Стилисты', description: 'Мастера создания гармоничных образов', icon: '👗', available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', color: '#4ECDC4', display_order: 2 },
-            { name: 'Мастера', description: 'Ремесленники прикладного искусства', icon: '🧵', available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', color: '#45B7D1', display_order: 3 },
-            { name: 'Историки', description: 'Знатоки истории искусств и культуры', icon: '🏛️', available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', color: '#96CEB4', display_order: 4 }
-        ];
-
-        roles.forEach(role => {
-            const id = this.getNextId('roles');
-            this.tables.roles.set(id, { id, ...role, is_active: true });
-        });
-
-        // Персонажи
-        const characters = [
-            { role_id: 1, name: 'Лука Цветной', description: 'Рисует с детства, обожает эксперименты с цветом', bonus_type: 'percent_bonus', bonus_value: '10', image_url: '/images/characters/luka.jpg', personality: 'Энергичный, экспериментатор', special_ability: 'Цветовое чутье' },
-            { role_id: 1, name: 'Марина Кисть', description: 'Строгая преподавательница академической живописи', bonus_type: 'forgiveness', bonus_value: '1', image_url: '/images/characters/marina.jpg', personality: 'Строгая, мудрая', special_ability: 'Право на ошибку' },
-            { role_id: 2, name: 'Эстелла Моде', description: 'Бывший стилист парижских модных домов', bonus_type: 'percent_bonus', bonus_value: '5', image_url: '/images/characters/estella.jpg', personality: 'Элегантная, внимательная', special_ability: 'Стильный взгляд' }
-        ];
-
-        characters.forEach(character => {
-            const id = this.getNextId('characters');
-            this.tables.characters.set(id, { id, ...character, is_active: true });
-        });
-
-        // Тестовые пользователи
-        const testUsers = [
-            { user_id: 898508164, tg_first_name: 'Администратор', tg_username: 'admin', sparks: 250.0, level: 'Мастер', class: 'Художники', character_id: 1, character_name: 'Лука Цветной', is_registered: true, available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]' },
-            { user_id: 12345, tg_first_name: 'Тестовый Пользователь', tg_username: 'test_user', sparks: 45.5, level: 'Искатель', class: 'Художники', character_id: 1, character_name: 'Лука Цветной', is_registered: true, available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]' }
-        ];
-
-        testUsers.forEach(user => {
-            this.tables.users.set(user.user_id, { 
-                id: this.getNextId('users'), 
-                ...user, 
-                status: 'active',
-                registration_date: new Date().toISOString(),
-                last_active: new Date().toISOString()
+        tables.forEach(sql => {
+            this.db.run(sql, (err) => {
+                if (err) {
+                    console.error('❌ Ошибка создания таблицы:', err.message);
+                }
             });
         });
 
-        console.log('✅ Тестовые данные загружены в базу');
+        this.initializeData();
     }
 
-    getNextId(tableName) {
-        const id = this.counters[tableName];
-        this.counters[tableName]++;
-        return id;
-    }
-
-    async run(sql, params = []) {
-        try {
-            // Простая имитация SQL запросов
-            if (sql.includes('INSERT INTO')) {
-                return this.handleInsert(sql, params);
-            } else if (sql.includes('UPDATE')) {
-                return this.handleUpdate(sql, params);
-            } else if (sql.includes('DELETE FROM')) {
-                return this.handleDelete(sql, params);
+    initializeData() {
+        // Проверяем, есть ли уже роли
+        this.get("SELECT COUNT(*) as count FROM roles", [], (err, result) => {
+            if (result && result.count === 0) {
+                console.log('📦 Заполняем базу начальными данными...');
+                this.fillInitialData();
             }
-            
-            return { lastID: this.getNextId('general') };
-        } catch (error) {
-            console.error('❌ Ошибка выполнения запроса:', error);
-            throw error;
-        }
+        });
     }
 
-    async get(sql, params = []) {
-        try {
-            if (sql.includes('SELECT') && sql.includes('FROM')) {
-                return this.handleSelectOne(sql, params);
-            }
-            return null;
-        } catch (error) {
-            console.error('❌ Ошибка выполнения запроса:', error);
-            throw error;
-        }
+    fillInitialData() {
+        const roles = [
+            { name: 'Художник', description: 'Создавайте визуальные произведения искусства', icon: '🎨', available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', color: '#FF6B6B', display_order: 1 },
+            { name: 'Писатель', description: 'Создавайте литературные произведения', icon: '📝', available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', color: '#4ECDC4', display_order: 2 },
+            { name: 'Дизайнер', description: 'Создавайте эстетичные и функциональные дизайны', icon: '✨', available_buttons: '["quiz","marathon","works","activities","posts","shop","invite","interactives","change_role"]', color: '#45B7D1', display_order: 3 }
+        ];
+
+        roles.forEach(role => {
+            this.run(
+                "INSERT INTO roles (name, description, icon, available_buttons, color, display_order) VALUES (?, ?, ?, ?, ?, ?)",
+                [role.name, role.description, role.icon, role.available_buttons, role.color, role.display_order]
+            );
+        });
+
+        const characters = [
+            { role_id: 1, name: 'Импрессионист', description: 'Мастер света и цвета', bonus_type: 'percent_bonus', bonus_value: '15' },
+            { role_id: 1, name: 'Сюрреалист', description: 'Исследователь подсознания', bonus_type: 'random_gift', bonus_value: '3' },
+            { role_id: 2, name: 'Поэт', description: 'Волшебник слова', bonus_type: 'forgiveness', bonus_value: '2' },
+            { role_id: 2, name: 'Прозаик', description: 'Мастер повествования', bonus_type: 'series_bonus', bonus_value: '5' },
+            { role_id: 3, name: 'Графический дизайнер', description: 'Создатель визуальных коммуникаций', bonus_type: 'secret_advice', bonus_value: '7' },
+            { role_id: 3, name: 'UI/UX дизайнер', description: 'Специалист по пользовательскому опыту', bonus_type: 'percent_bonus', bonus_value: '10' }
+        ];
+
+        characters.forEach(character => {
+            this.run(
+                "INSERT INTO characters (role_id, name, description, bonus_type, bonus_value) VALUES (?, ?, ?, ?, ?)",
+                [character.role_id, character.name, character.description, character.bonus_type, character.bonus_value]
+            );
+        });
     }
 
-    async all(sql, params = []) {
-        try {
-            if (sql.includes('SELECT') && sql.includes('FROM')) {
-                return this.handleSelectAll(sql, params);
-            }
-            return [];
-        } catch (error) {
-            console.error('❌ Ошибка выполнения запроса:', error);
-            throw error;
-        }
+    run(sql, params = []) {
+        return new Promise((resolve, reject) => {
+            this.db.run(sql, params, function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({ lastID: this.lastID, changes: this.changes });
+                }
+            });
+        });
     }
 
-    // Обработчики SQL запросов
-    handleInsert(sql, params) {
-        const tableMatch = sql.match(/INSERT INTO (\w+)/i);
-        if (!tableMatch) return { lastID: 0 };
-        
-        const tableName = tableMatch[1];
-        const table = this.tables[tableName];
-        if (!table) return { lastID: 0 };
-        
-        const id = this.getNextId(tableName);
-        
-        // Простая логика для пользователей
-        if (tableName === 'users' && params[0]) {
-            const userData = {
-                id,
-                user_id: params[0],
-                tg_first_name: params[1] || 'Пользователь',
-                tg_username: params[2],
-                sparks: 0,
-                level: 'Ученик',
-                is_registered: false,
-                status: 'active',
-                registration_date: new Date().toISOString(),
-                last_active: new Date().toISOString()
-            };
-            table.set(params[0], userData);
-            return { lastID: id };
-        }
-        
-        return { lastID: id };
+    get(sql, params = []) {
+        return new Promise((resolve, reject) => {
+            this.db.get(sql, params, (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row);
+                }
+            });
+        });
     }
 
-    handleSelectOne(sql, params) {
-        // Для пользователей
-        if (sql.includes('users') && sql.includes('user_id')) {
-            const userId = params[0];
-            return this.tables.users.get(userId) || null;
-        }
-        
-        // Для ролей
-        if (sql.includes('roles')) {
-            const roles = Array.from(this.tables.roles.values());
-            return roles[0] || null;
-        }
-        
-        return null;
-    }
-
-    handleSelectAll(sql, params) {
-        // Для ролей
-        if (sql.includes('roles')) {
-            return Array.from(this.tables.roles.values());
-        }
-        
-        // Для персонажей
-        if (sql.includes('characters') && sql.includes('role_id')) {
-            const roleId = params[0];
-            const characters = Array.from(this.tables.characters.values());
-            return characters.filter(c => c.role_id === roleId);
-        }
-        
-        return [];
-    }
-
-    handleUpdate(sql, params) {
-        // Простая реализация для обновления пользователя
-        if (sql.includes('UPDATE users') && sql.includes('user_id')) {
-            const userId = params[params.length - 1]; // Последний параметр обычно WHERE условие
-            const user = this.tables.users.get(userId);
-            if (user) {
-                // Обновляем last_active
-                user.last_active = new Date().toISOString();
-                return { changes: 1 };
-            }
-        }
-        return { changes: 0 };
-    }
-
-    handleDelete(sql, params) {
-        return { changes: 0 };
-    }
-
-    // Вспомогательные методы для работы с JSON полями
-    parseJSONField(field) {
-        try {
-            return field ? (typeof field === 'string' ? JSON.parse(field) : field) : [];
-        } catch {
-            return [];
-        }
-    }
-
-    stringifyJSONField(data) {
-        return JSON.stringify(data || []);
+    all(sql, params = []) {
+        return new Promise((resolve, reject) => {
+            this.db.all(sql, params, (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows);
+                }
+            });
+        });
     }
 }
 
-const dbService = new MemoryDatabaseService();
+const dbService = new RealDatabaseService();
 // ==================== СИСТЕМА АУТЕНТИФИКАЦИИ И СЕССИЙ ====================
 class AuthService {
     static generateSessionToken() {
@@ -1328,7 +1236,8 @@ app.post('/api/auth/logout', requireAuth, async (req, res) => {
     }
 });
 
-// ==================== ПОЛНАЯ СИСТЕМА ПОЛЬЗОВАТЕЛЕЙ ====================
+// ==================== РЕАЛЬНЫЕ API ENDPOINTS ====================
+
 // Получение данных пользователя
 app.get('/api/users/:userId', async (req, res) => {
     try {
@@ -1347,14 +1256,13 @@ app.get('/api/users/:userId', async (req, res) => {
             });
         }
 
-        // Базовая статистика
+        // Получаем статистику из базы
         const stats = {
             total_quizzes_completed: 0,
             total_works: 0,
             approved_works: 0,
             total_marathons_completed: 0,
-            activityStreak: 0,
-            rank: 1
+            total_interactives_completed: 0
         };
 
         res.json({
@@ -1382,19 +1290,19 @@ app.get('/api/users/:userId', async (req, res) => {
     }
 });
 
-app.post('/api/users/register', requireAuth, async (req, res) => {
+// Регистрация пользователя
+app.post('/api/users/register', async (req, res) => {
     try {
-        const { firstName, roleId, characterId, username } = req.body;
-        const userId = req.user.user_id;
+        const { userId, firstName, roleId, characterId, username } = req.body;
 
-        if (!firstName || !roleId) {
+        if (!userId || !firstName || !roleId) {
             return res.status(400).json({ 
                 success: false, 
-                error: 'Имя и роль обязательны' 
+                error: 'User ID, имя и роль обязательны' 
             });
         }
 
-        // Получаем роль и персонажа
+        // Получаем роль и персонажа из базы
         const role = await dbService.get(
             "SELECT * FROM roles WHERE id = ? AND is_active = 1",
             [roleId]
@@ -1412,13 +1320,26 @@ app.post('/api/users/register', requireAuth, async (req, res) => {
             });
         }
 
-        const user = await dbService.get(
+        // Проверяем существование пользователя
+        let user = await dbService.get(
             "SELECT * FROM users WHERE user_id = ?",
             [userId]
         );
 
-        const isNewUser = !user.is_registered;
-        const oldClass = user.class;
+        const isNewUser = !user;
+
+        if (!user) {
+            // Создаем нового пользователя
+            await dbService.run(
+                "INSERT INTO users (user_id, tg_first_name, tg_username, sparks, level, is_registered) VALUES (?, ?, ?, ?, ?, ?)",
+                [userId, firstName, username || '', 10, 'Ученик', false]
+            );
+            
+            user = await dbService.get(
+                "SELECT * FROM users WHERE user_id = ?",
+                [userId]
+            );
+        }
 
         // Обновляем данные пользователя
         await dbService.run(
@@ -1443,53 +1364,30 @@ app.post('/api/users/register', requireAuth, async (req, res) => {
             ]
         );
 
-        let message = 'Регистрация успешна!';
-        let sparksAdded = 0;
-
-        if (isNewUser) {
-            sparksAdded = SPARKS_SYSTEM.REGISTRATION_BONUS;
-            await EnhancedSparksService.addSparks(
-                userId, 
-                sparksAdded, 
-                'registration', 
-                'Бонус за регистрацию'
-            );
-            message = `Регистрация успешна! +${sparksAdded}✨`;
-        }
-
-        // Бонус за завершение профиля
-        if (!isNewUser && !oldClass && role.name) {
-            const profileBonus = SPARKS_SYSTEM.PROFILE_COMPLETION;
-            await EnhancedSparksService.addSparks(
-                userId, 
-                profileBonus, 
-                'profile_completion', 
-                'Завершение профиля'
-            );
-            message += ` +${profileBonus}✨ за завершение профиля`;
-            sparksAdded += profileBonus;
-        }
-
+        // Получаем обновленного пользователя
         const updatedUser = await dbService.get(
             "SELECT * FROM users WHERE user_id = ?",
             [userId]
         );
 
-        const stats = await EnhancedSparksService.getUserStats(userId);
-
         res.json({
             success: true,
-            message,
-            sparksAdded,
+            message: "Регистрация успешно завершена!",
             user: {
-                ...updatedUser,
-                available_buttons: dbService.parseJSONField(updatedUser.available_buttons),
-                stats
+                user_id: updatedUser.user_id,
+                tg_first_name: updatedUser.tg_first_name,
+                tg_username: updatedUser.tg_username,
+                sparks: updatedUser.sparks,
+                level: updatedUser.level,
+                is_registered: updatedUser.is_registered,
+                class: updatedUser.class,
+                character_name: updatedUser.character_name,
+                available_buttons: updatedUser.available_buttons ? JSON.parse(updatedUser.available_buttons) : []
             }
         });
 
     } catch (error) {
-        console.error('Ошибка регистрации:', error);
+        console.error('❌ Ошибка регистрации:', error);
         res.status(500).json({ 
             success: false, 
             error: 'Ошибка сервера при регистрации' 
@@ -1497,98 +1395,38 @@ app.post('/api/users/register', requireAuth, async (req, res) => {
     }
 });
 
-// Смена роли пользователя
-app.post('/api/users/change-role', requireAuth, async (req, res) => {
+// Получение ролей
+app.get('/api/webapp/roles', async (req, res) => {
     try {
-        const { roleId, characterId } = req.body;
-        const userId = req.user.user_id;
-
-        if (!roleId) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Role ID обязателен' 
-            });
-        }
-
-        const user = await dbService.get(
-            "SELECT * FROM users WHERE user_id = ?",
-            [userId]
+        const roles = await dbService.all(
+            "SELECT * FROM roles WHERE is_active = 1 ORDER BY display_order, name"
         );
 
-        const role = await dbService.get(
-            "SELECT * FROM roles WHERE id = ? AND is_active = 1",
+        res.json({
+            success: true,
+            roles: roles
+        });
+    } catch (error) {
+        console.error('Ошибка получения ролей:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Получение персонажей для роли
+app.get('/api/webapp/characters/:roleId', async (req, res) => {
+    try {
+        const roleId = parseInt(req.params.roleId);
+        const characters = await dbService.all(
+            "SELECT * FROM characters WHERE role_id = ? AND is_active = 1 ORDER BY name",
             [roleId]
         );
 
-        const character = await dbService.get(
-            "SELECT * FROM characters WHERE id = ? AND is_active = 1",
-            [characterId]
-        );
-
-        if (!user || !role) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Пользователь или роль не найдены' 
-            });
-        }
-
-        if (!user.is_registered) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Пользователь не зарегистрирован' 
-            });
-        }
-
-        const oldRole = user.class;
-        const oldCharacter = user.character_name;
-
-        // Обновляем роль и персонажа
-        await dbService.run(
-            `UPDATE users SET 
-                class = ?,
-                character_id = ?,
-                character_name = ?,
-                available_buttons = ?,
-                last_active = datetime('now')
-             WHERE user_id = ?`,
-            [
-                role.name,
-                characterId,
-                character?.name || null,
-                role.available_buttons,
-                userId
-            ]
-        );
-
-        await EnhancedSparksService.addSparks(
-            userId, 
-            SPARKS_SYSTEM.ROLE_CHANGE, 
-            'role_change', 
-            `Смена роли: ${oldRole} → ${role.name}, ${oldCharacter} → ${character?.name || 'Не выбран'}`
-        );
-
-        const updatedUser = await dbService.get(
-            "SELECT * FROM users WHERE user_id = ?",
-            [userId]
-        );
-
-        const stats = await EnhancedSparksService.getUserStats(userId);
-
-        res.json({ 
-            success: true, 
-            message: 'Роль успешно изменена!',
-            user: {
-                ...updatedUser,
-                available_buttons: dbService.parseJSONField(updatedUser.available_buttons),
-                stats
-            }
-        });
-
-    } catch (error) {
-        console.error('Ошибка смены роли:', error);
-        res.status(500).json({ 
+        res.json({
             success: false, 
-            error: 'Ошибка сервера при смене роли' 
+            error: 'Ошибка сервера' 
         });
     }
 });
