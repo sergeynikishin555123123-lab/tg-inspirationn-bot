@@ -4142,7 +4142,13 @@ function showPurchaseDetail(purchase) {
     console.log('📋 Все поля покупки:', Object.keys(purchase));
     console.log('🎯 Тип покупки:', purchase.type);
     
-// ОСОБЫЙ СЛУЧАЙ ДЛЯ TELEGRAM ВИДЕО
+    const detailContent = document.getElementById('purchaseDetailContent');
+    if (!detailContent) {
+        console.error('❌ Элемент purchaseDetailContent не найден');
+        return;
+    }
+
+    // ОСОБЫЙ СЛУЧАЙ ДЛЯ TELEGRAM ВИДЕО
     if (purchase.type === 'telegram_video') {
         detailContent.innerHTML = `
             <div style="text-align: center; margin-bottom: 24px;">
@@ -4212,38 +4218,8 @@ function showPurchaseDetail(purchase) {
         return;
     }
     
-    // ОСТАЛЬНОЙ КОД ФУНКЦИИ ДЛЯ ОБЫЧНЫХ ТОВАРОВ (не меняется)
+    // ОСТАЛЬНОЙ КОД ФУНКЦИИ ДЛЯ ОБЫЧНЫХ ТОВАРОВ
     const fullContent = generatePurchaseContent(purchase);
-    
-    detailContent.innerHTML = `
-        <div style="text-align: center; margin-bottom: 24px;">
-            <h2 style="margin-bottom: 8px; color: #2d3748;">${purchase.title}</h2>
-            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;">
-                <span class="badge badge-info">
-                    ${getPurchaseTypeIcon(purchase.type)} ${getPurchaseTypeName(purchase.type)}
-                </span>
-                <span class="badge badge-success">
-                    💰 Куплено за ${purchase.price_paid || purchase.price}✨
-                </span>
-            </div>
-        </div>
-        
-        ${purchase.description ? `
-            <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
-                <h4 style="margin-bottom: 12px; color: #4a5568;">📝 Описание</h4>
-                <p style="color: #718096; line-height: 1.6; margin: 0;">${purchase.description}</p>
-            </div>
-        ` : ''}
-        
-        <!-- Основное содержимое покупки -->
-        <div style="margin-bottom: 24px;">
-            <h4 style="margin-bottom: 16px; color: #4a5568; text-align: center;">🎁 Содержимое товара</h4>
-            ${fullContent}
-        </div>
-    `;
-    
-    showScreen('purchaseDetailScreen');
-}
     
     detailContent.innerHTML = `
         <div style="text-align: center; margin-bottom: 24px;">
