@@ -2865,6 +2865,84 @@ app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
     }
 });
 
+// ==================== МОБИЛЬНАЯ ОПТИМИЗАЦИЯ ====================
+
+// Middleware для мобильных устройств
+app.use((req, res, next) => {
+    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(req.headers['user-agent']);
+    req.isMobile = isMobile;
+    
+    // Оптимизация для мобильных - ограничиваем размер данных
+    if (isMobile) {
+        console.log('📱 Мобильное устройство обнаружено, применяем оптимизацию');
+    }
+    next();
+});
+
+// Оптимизированные API для мобильных устройств
+app.get('/api/webapp/mobile/shop/items', async (req, res) => {
+    try {
+        const items = db.shop_items.filter(item => item.is_active);
+        
+        // Для мобильных - ограничиваем данные и убираем тяжелый контент
+        const mobileItems = items.map(item => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            type: item.type,
+            preview_url: item.preview_url,
+            price: item.price,
+            // Исключаем большие поля для мобильных
+            content_text: req.isMobile ? (item.content_text?.substring(0, 100) + '...') : item.content_text,
+            embed_html: null, // Не отправляем embed на мобильные
+            is_active: item.is_active
+        }));
+        
+        res.json(mobileItems);
+    } catch (error) {
+        console.error('❌ Ошибка загрузки магазина для мобильных:', error);
+        res.status(500).json({ error: 'Ошибка загрузки товаров' });
+    }
+});
+
+// Оптимизированные интерактивы для мобильных
+app.get('/api/webapp/mobile/interactives', async (req, res) => {
+    try {
+        const interactives = db.interactives.filter(i => i.is_active);
+        
+        const mobileInteractives = interactives.map(interactive => ({
+            id: interactive.id,
+            title: interactive.title,
+            description: interactive.description,
+            type: interactive.type,
+            category: interactive.category,
+            image_url: interactive.image_url,
+            question: interactive.question,
+            sparks_reward: interactive.sparks_reward,
+            allow_retake: interactive.allow_retake,
+            // Упрощаем для мобильных
+            options: interactive.options || [],
+            correct_answer: interactive.correct_answer,
+            is_active: interactive.is_active
+        }));
+        
+        res.json(mobileInteractives);
+    } catch (error) {
+        console.error('❌ Ошибка загрузки интерактивов для мобильных:', error);
+        res.status(500).json({ error: 'Ошибка загрузки интерактивов' });
+    }
+});
+
+// Health check для мобильных
+app.get('/api/mobile/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        mobile: true,
+        timestamp: new Date().toISOString(),
+        optimized: true
+    });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
