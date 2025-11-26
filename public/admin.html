@@ -1361,10 +1361,9 @@
         <div class="card">
             <h2 style="margin-bottom: 20px;">🛍️ Управление товарами</h2>
             
-<div class="action-buttons">
-    <button class="btn btn-success" onclick="showShopItemForm()">➕ Добавить товар</button>
-    <button class="btn btn-info" onclick="showTelegramVideoForm()">🎬 Загрузить в Telegram</button>
-</div>
+            <div class="action-buttons">
+                <button class="btn btn-success" onclick="showShopItemForm()">➕ Добавить товар</button>
+            </div>
 
             <div id="shopItemsList" class="loading">
                 Загрузка товаров...
@@ -1397,64 +1396,6 @@
         </select>
     </div>
 
-<!-- Форма загрузки видео в Telegram -->
-<div id="telegramVideoForm" class="card" style="display: none;">
-    <h3 style="margin-bottom: 20px;">🎬 Загрузка видео в Telegram-канал</h3>
-    
-    <div class="form-group">
-        <label class="form-label">Название видео:</label>
-        <input type="text" id="telegramVideoTitle" class="form-control" placeholder="Название видео">
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Описание:</label>
-        <textarea id="telegramVideoDescription" class="form-control" rows="3" placeholder="Описание видео..."></textarea>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Видео файл:</label>
-        <div class="image-upload-area" id="telegramVideoUploadArea" onclick="document.getElementById('telegramVideoFileInput').click()">
-            <div style="font-size: 48px; margin-bottom: 12px;">🎬</div>
-            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки видео</div>
-            <div style="color: #718096; font-size: 14px;">MP4, AVI, MOV (макс. 2GB)</div>
-        </div>
-        <input type="file" id="telegramVideoFileInput" accept="video/*" style="display: none;" onchange="handleTelegramVideoUpload(this.files[0])">
-        
-        <div id="telegramVideoPreview" style="display: none;">
-            <video id="telegramPreviewVideo" controls class="upload-preview"></video>
-            <button class="btn btn-danger" onclick="clearTelegramVideo()" style="margin-top: 12px;">
-                🗑️ Удалить видео
-            </button>
-        </div>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">URL превью (опционально):</label>
-        <input type="text" id="telegramVideoPreviewUrl" class="form-control" placeholder="https://example.com/preview.jpg">
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Цена (искры):</label>
-        <input type="number" id="telegramVideoPrice" class="form-control" value="0" min="0" step="0.5">
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Описание содержимого:</label>
-        <textarea id="telegramVideoContent" class="form-control" rows="4" placeholder="Подробное описание видео..."></textarea>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">
-            <input type="checkbox" id="telegramVideoActive" checked> Активный товар
-        </label>
-    </div>
-    
-    <div class="action-buttons">
-        <button class="btn btn-success" onclick="uploadTelegramVideo()">🎬 Загрузить в Telegram</button>
-        <button class="btn btn-danger" onclick="hideTelegramVideoForm()">❌ Отмена</button>
-    </div>
-</div>
-    
     <!-- СЕКЦИЯ ДЛЯ ФАЙЛА ТОВАРА -->
     <div class="form-group" id="shopItemFileSection">
         <label class="form-label">Файл товара:</label>
@@ -5109,114 +5050,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 setupDragAndDrop(previewUploadArea, handleShopItemPreviewUpload);
             }
         });
-
-        // ==================== TELEGRAM VIDEO ADMIN FUNCTIONS ====================
-
-let telegramVideoData = null;
-
-// Показать форму загрузки в Telegram
-function showTelegramVideoForm() {
-    document.getElementById('telegramVideoForm').style.display = 'block';
-    telegramVideoData = null;
-    
-    // Сбросить форму
-    document.getElementById('telegramVideoTitle').value = '';
-    document.getElementById('telegramVideoDescription').value = '';
-    document.getElementById('telegramVideoPreviewUrl').value = '';
-    document.getElementById('telegramVideoPrice').value = '0';
-    document.getElementById('telegramVideoContent').value = '';
-    document.getElementById('telegramVideoActive').checked = true;
-    
-    clearTelegramVideo();
-}
-
-// Скрыть форму Telegram видео
-function hideTelegramVideoForm() {
-    document.getElementById('telegramVideoForm').style.display = 'none';
-    telegramVideoData = null;
-}
-
-// Обработка загрузки видео
-function handleTelegramVideoUpload(file) {
-    if (!file) return;
-    
-    if (!file.type.startsWith('video/')) {
-        alert('❌ Пожалуйста, выберите видео файл');
-        return;
-    }
-    
-    if (file.size > 2 * 1024 * 1024 * 1024) {
-        alert('❌ Размер файла не должен превышать 2GB');
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        telegramVideoData = e.target.result;
-        document.getElementById('telegramPreviewVideo').src = telegramVideoData;
-        document.getElementById('telegramVideoPreview').style.display = 'block';
-        document.getElementById('telegramVideoUploadArea').style.display = 'none';
-    };
-    reader.readAsDataURL(file);
-}
-
-// Очистить видео
-function clearTelegramVideo() {
-    telegramVideoData = null;
-    document.getElementById('telegramVideoPreview').style.display = 'none';
-    document.getElementById('telegramVideoUploadArea').style.display = 'block';
-    document.getElementById('telegramVideoFileInput').value = '';
-}
-
-// Загрузка видео в Telegram
-async function uploadTelegramVideo() {
-    const title = document.getElementById('telegramVideoTitle').value.trim();
-    const description = document.getElementById('telegramVideoDescription').value.trim();
-    const preview_url = document.getElementById('telegramVideoPreviewUrl').value.trim();
-    const price = parseFloat(document.getElementById('telegramVideoPrice').value);
-    const content_text = document.getElementById('telegramVideoContent').value.trim();
-    const is_active = document.getElementById('telegramVideoActive').checked;
-    
-    if (!title || !telegramVideoData) {
-        alert('Заполните название и загрузите видео');
-        return;
-    }
-    
-    try {
-        // Конвертируем base64 в blob для отправки
-        const response = await fetch(telegramVideoData);
-        const blob = await response.blob();
-        
-        // Создаем FormData для отправки файла
-        const formData = new FormData();
-        formData.append('video', blob, 'video.mp4');
-        formData.append('title', title);
-        formData.append('description', description);
-        formData.append('preview_url', preview_url);
-        formData.append('price', price);
-        formData.append('content_text', content_text);
-        formData.append('is_active', is_active);
-        
-        const uploadResponse = await fetch(`/api/admin/telegram-video/upload?userId=${currentUserId}`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        const result = await uploadResponse.json();
-        
-        if (result.success) {
-            showMessage('✅ Видео успешно загружено в Telegram-канал!', 'success');
-            hideTelegramVideoForm();
-            loadShopItems();
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
-        }
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки видео:', error);
-        showMessage('❌ Ошибка загрузки видео', 'error');
-    }
-}
     </script>
 </body>
 </html>
