@@ -3805,17 +3805,29 @@ function showShopTab(tab) {
     }
 }
 
-// Загрузка товаров
+// Загрузка товаров - ОПТИМИЗИРОВАННАЯ ДЛЯ МОБИЛЬНЫХ
 async function loadShopItems() {
     try {
-        const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`);
-        const items = await response.json();
+        const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
+        console.log(`📱 Админка: ${isMobile ? 'Мобильная' : 'Десктопная'} загрузка товаров`);
+        
+        const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const items = await response.json();
         displayShopItems(items);
-        populatePurchaseItemFilter(items);
         
     } catch (error) {
-        document.getElementById('shopItemsList').innerHTML = '<div class="message error">Ошибка загрузки товаров</div>';
+        console.error('❌ Ошибка загрузки товаров в админке:', error);
+        document.getElementById('shopItemsList').innerHTML = `
+            <div class="message error">
+                Ошибка загрузки товаров: ${error.message}
+                <button class="btn" onclick="loadShopItems()" style="margin-top: 10px;">
+                    🔄 Повторить
+                </button>
+            </div>
+        `;
     }
 }
 
