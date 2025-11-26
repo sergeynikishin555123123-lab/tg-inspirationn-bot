@@ -744,26 +744,51 @@ function calculateLevel(sparks) {
     return 'Ученик';
 }
 
+// УЛУЧШЕННАЯ функция добавления/списания искр
 function addSparks(userId, sparks, activityType, description) {
+    console.log(`✨ Изменение баланса пользователя ${userId}: ${sparks} искр. Тип: ${activityType}`);
+    
     const user = db.users.find(u => u.user_id == userId);
-    if (user) {
-        user.sparks = Math.max(0, user.sparks + sparks); // Защита от отрицательных значений
+    if (!user) {
+        console.error('❌ Пользователь не найден для изменения баланса');
+        return null;
+    }
+    
+    const oldBalance = user.sparks;
+    
+    // Для списания используем безопасную функцию
+    if (sparks < 0) {
+        try {
+            const amount = Math.abs(sparks);
+            const result = safeDeductSparks(userId, amount, description);
+            user.sparks = result.newBalance; // Убедимся, что баланс обновлен
+        } catch (error) {
+            console.error('❌ Ошибка при списании через addSparks:', error);
+            return null;
+        }
+    } else {
+        // Для начисления просто добавляем
+        user.sparks = Math.round((user.sparks + sparks) * 10) / 10;
         user.level = calculateLevel(user.sparks);
         user.last_active = new Date().toISOString();
-        
-        const activity = {
-            id: Date.now(),
-            user_id: userId,
-            activity_type: activityType,
-            sparks_earned: sparks,
-            description: description,
-            created_at: new Date().toISOString()
-        };
-        
-        db.activities.push(activity);
-        return activity;
     }
-    return null;
+    
+    const activity = {
+        id: Date.now(),
+        user_id: userId,
+        activity_type: activityType,
+        sparks_earned: sparks, // Может быть отрицательным для списаний
+        description: description,
+        created_at: new Date().toISOString(),
+        balance_before: oldBalance,
+        balance_after: user.sparks
+    };
+    
+    db.activities.push(activity);
+    
+    console.log(`✅ Баланс изменен. Было: ${oldBalance}, стало: ${user.sparks}, изменение: ${sparks}`);
+    
+    return activity;
 }
 
 function getUserStats(userId) {
@@ -949,6 +974,63 @@ app.get('/api/mobile/lazy-load', (req, res) => {
     }
 });
 
+// API для проверки баланса и истории операций
+app.get('/api/users/:userId/balance', (req, res) => {
+    const userId = parseInt(req.params.userId);
+    
+    const user = db.users.find(u => u.user_id === userId);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Получаем последние операции пользователя
+    const recentActivities = db.activities
+        .filter(a => a.user_id === userId)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 20)
+        .map(activity => ({
+            type: activity.activity_type,
+            description: activity.description,
+            amount: activity.sparks_earned,
+            date: activity.created_at,
+            balance_before: activity.balance_before,
+            balance_after: activity.balance_after
+        }));
+    
+    // Получаем покупки пользователя
+    const purchases = db.purchases
+        .filter(p => p.user_id === userId)
+        .map(purchase => {
+            const item = db.shop_items.find(i => i.id === purchase.item_id);
+            return {
+                id: purchase.id,
+                item_title: item?.title,
+                price: purchase.price_paid,
+                date: purchase.purchased_at
+            };
+        });
+    
+    res.json({
+        user: {
+            id: user.user_id,
+            name: user.tg_first_name,
+            current_balance: user.sparks,
+            level: user.level
+        },
+        recent_activities: recentActivities,
+        purchases: purchases,
+        stats: {
+            total_earned: db.activities
+                .filter(a => a.user_id === userId && a.sparks_earned > 0)
+                .reduce((sum, a) => sum + a.sparks_earned, 0),
+            total_spent: db.activities
+                .filter(a => a.user_id === userId && a.sparks_earned < 0)
+                .reduce((sum, a) => sum + Math.abs(a.sparks_earned), 0),
+            total_purchases: purchases.length
+        }
+    });
+});
+
 // ==================== API ДЛЯ ПРИВАТНОГО КАНАЛА ====================
 
 // Получить список видео из приватного канала
@@ -978,7 +1060,6 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     const { userId, videoId } = req.body;
     
     if (!userId || !videoId) {
-        console.log('❌ Отсутствуют обязательные поля:', { userId, videoId });
         return res.status(400).json({ error: 'User ID and video ID are required' });
     }
     
@@ -986,14 +1067,8 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         const user = db.users.find(u => u.user_id == userId);
         const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
         
-        if (!user) {
-            console.log('❌ Пользователь не найден:', userId);
-            return res.status(404).json({ error: 'User not found' });
-        }
-        if (!video) {
-            console.log('❌ Видео не найдено:', videoId);
-            return res.status(404).json({ error: 'Video not found' });
-        }
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!video) return res.status(404).json({ error: 'Video not found' });
         
         // Проверяем, не куплен ли уже доступ
         const existingAccess = db.video_access.find(
@@ -1001,22 +1076,15 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         );
         
         if (existingAccess) {
-            console.log('❌ Доступ уже существует:', { userId, videoId });
             return res.status(400).json({ error: 'У вас уже есть доступ к этому видео' });
-        }
-        
-        if (user.sparks < video.price) {
-            console.log('❌ Недостаточно искр:', { sparks: user.sparks, price: video.price });
-            return res.status(400).json({ error: 'Недостаточно искр' });
         }
         
         console.log('✅ Проверки пройдены, начинаем покупку...');
         
-        // 1. Списание искр
-        user.sparks -= video.price;
-        console.log('💰 Искры списаны. Новый баланс:', user.sparks);
+        // БЕЗОПАСНОЕ списание искр
+        const deductionResult = safeDeductSparks(userId, video.price, `Покупка доступа к видео: ${video.title}`);
         
-        // 2. Создаем запись о доступе
+        // Создаем запись о доступе
         const accessRecord = {
             id: Date.now(),
             user_id: parseInt(userId),
@@ -1029,14 +1097,13 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         db.video_access.push(accessRecord);
         console.log('📝 Запись о доступе создана:', accessRecord);
         
-        // 3. Логируем покупку
+        // Логируем покупку
         addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
         
-        // 4. Предоставляем доступ через Telegram бота (асинхронно, без ожидания)
+        // Предоставляем доступ через Telegram бота (асинхронно)
         if (bot && PRIVATE_CHANNEL_CONFIG.BOT_TOKEN) {
             grantVideoAccess(userId, videoId).catch(error => {
                 console.error('⚠️ Ошибка при предоставлении доступа через бота:', error);
-                // Не прерываем выполнение, просто логируем ошибку
             });
         }
         
@@ -1045,24 +1112,20 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         res.json({
             success: true,
             message: `Доступ к видео "${video.title}" предоставлен!`,
-            remainingSparks: user.sparks,
-            access: accessRecord
+            remainingSparks: deductionResult.newBalance,
+            access: accessRecord,
+            balanceChange: {
+                old: deductionResult.oldBalance,
+                new: deductionResult.newBalance,
+                deducted: deductionResult.amountDeducted
+            }
         });
         
     } catch (error) {
-        console.error('💥 Критическая ошибка при покупке доступа к видео:', error);
-        
-        // Откатываем списание искр в случае ошибки
-        const user = db.users.find(u => u.user_id == userId);
-        const video = db.private_channel_videos.find(v => v.id == videoId);
-        if (user && video) {
-            user.sparks += video.price;
-            console.log('🔄 Искры возвращены из-за ошибки');
-        }
-        
-        res.status(500).json({ 
-            error: 'Внутренняя ошибка сервера при обработке покупки',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        console.error('💥 Ошибка при покупке доступа к видео:', error);
+        res.status(400).json({ 
+            error: error.message,
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 });
@@ -1652,9 +1715,11 @@ app.get('/api/webapp/shop/items', (req, res) => {
     res.json(items);
 });
 
-// ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА
+// ИСПРАВЛЕННАЯ покупка товара с безопасным списанием
 app.post('/api/webapp/shop/purchase', (req, res) => {
     const { userId, itemId } = req.body;
+    
+    console.log('🛒 Запрос на покупку товара:', { userId, itemId });
     
     if (!userId || !itemId) {
         return res.status(400).json({ error: 'User ID and item ID are required' });
@@ -1675,31 +1740,45 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
         return res.status(400).json({ error: 'Вы уже купили этот товар' });
     }
     
-    if (user.sparks < item.price) {
-        return res.status(400).json({ error: 'Недостаточно искр' });
+    try {
+        // БЕЗОПАСНОЕ списание искр
+        const deductionResult = safeDeductSparks(userId, item.price, `Покупка товара: ${item.title}`);
+        
+        const purchase = {
+            id: Date.now(),
+            user_id: userId,
+            item_id: itemId,
+            price_paid: item.price,
+            purchased_at: new Date().toISOString()
+        };
+        
+        db.purchases.push(purchase);
+        
+        // Логируем покупку (отрицательное значение для списания)
+        addSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
+        
+        console.log('✅ Покупка завершена успешно:', purchase);
+        
+        res.json({
+            success: true,
+            message: `Покупка успешна! Куплено: ${item.title}`,
+            remainingSparks: deductionResult.newBalance,
+            purchase: purchase,
+            balanceChange: {
+                old: deductionResult.oldBalance,
+                new: deductionResult.newBalance,
+                deducted: deductionResult.amountDeducted
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка при списании искр:', error);
+        res.status(400).json({ 
+            error: error.message,
+            userBalance: user.sparks,
+            itemPrice: item.price
+        });
     }
-    
-    // Списание искр
-    user.sparks -= item.price;
-    
-    const purchase = {
-        id: Date.now(),
-        user_id: userId,
-        item_id: itemId,
-        price_paid: item.price,
-        purchased_at: new Date().toISOString()
-    };
-    
-    db.purchases.push(purchase);
-    
-    addSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
-    
-    res.json({
-        success: true,
-        message: `Покупка успешна! Куплено: ${item.title}`,
-        remainingSparks: user.sparks,
-        purchase: purchase
-    });
 });
 
 app.get('/api/webapp/users/:userId/purchases', (req, res) => {
