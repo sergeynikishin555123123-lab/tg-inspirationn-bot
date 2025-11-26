@@ -1758,6 +1758,48 @@
         let uploadedImage = null;
         let marathonUploadedImage = null;
 
+// Глобальный детектор мобильных устройств
+const isMobileDevice = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+console.log(`📱 Мобильное устройство: ${isMobileDevice}`);
+
+// Оптимизация для мобильных - уменьшаем таймауты и ограничиваем данные
+if (isMobileDevice) {
+    // Уменьшаем таймауты для мобильных
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд для мобильных
+        
+        return originalFetch(...args, { signal: controller.signal })
+            .finally(() => clearTimeout(timeoutId));
+    };
+    
+    // Оптимизация рендеринга для мобильных
+    document.addEventListener('DOMContentLoaded', function() {
+        // Уменьшаем анимации для мобильных
+        const style = document.createElement('style');
+        style.textContent = `
+            @media (max-width: 768px) {
+                .card, .btn, .feature-card {
+                    transition: none !important;
+                    transform: none !important;
+                }
+                
+                .interactive-image, .media-preview, .work-image {
+                    max-height: 150px !important;
+                    object-fit: cover;
+                }
+                
+                .content-preview {
+                    max-height: 100px !important;
+                    font-size: 12px !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    });
+}
+        
         // Инициализация приложения - ИСПРАВЛЕННАЯ ВЕРСИЯ
         async function initApp() {
             try {
@@ -3437,78 +3479,116 @@ function formatFileSize(bytes) {
 
         // ==================== ИНТЕРАКТИВЫ ====================
 
-        // Загрузка интерактивов
-        async function loadInteractives() {
-            try {
-                const response = await fetch(`/api/webapp/interactives?userId=${currentUserId}`);
-                const interactives = await response.json();
-                
-                const interactivesList = document.getElementById('interactivesList');
-                interactivesList.innerHTML = '';
-                
-                const filteredInteractives = currentInteractiveCategory === 'all' 
-                    ? interactives 
-                    : interactives.filter(i => i.category === currentInteractiveCategory);
-                
-                if (filteredInteractives.length === 0) {
-                    interactivesList.innerHTML = '<div class="info">Нет доступных интерактивов в этой категории</div>';
-                    return;
-                }
-                
-                filteredInteractives.forEach(interactive => {
-                    const interactiveCard = document.createElement('div');
-                    interactiveCard.className = 'interactive-card';
-                    
-                    const categoryClass = `category-${interactive.category}`;
-                    const categoryNames = {
-                        'history': '🏛️ История',
-                        'style': '👗 Стиль',
-                        'art': '🎨 Искусство',
-                        'craft': '🧵 Ремесло'
-                    };
-                    
-                    const typeIcons = {
-                        'guess_era': '🎨',
-                        'style_match': '👗',
-                        'drawing_challenge': '✏️',
-                        'find_difference': '🔍',
-                        'puzzle': '🧩'
-                    };
-                    
-                    interactiveCard.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">${typeIcons[interactive.type]} ${interactive.title}</h3>
-                                <div class="interactive-description">
-                                    ${interactive.description}
-                                </div>
-                                <div style="margin: 12px 0;">
-                                    <span class="category-badge ${categoryClass}">
-                                        ${categoryNames[interactive.category] || interactive.category}
-                                    </span>
-                                    <span class="spark-badge">+${interactive.sparks_reward}✨</span>
-                                </div>
-                            </div>
-                            ${interactive.completed ? 
-                                '<span class="status-badge status-approved">✅ Пройден</span>' : 
-                                '<span class="status-badge status-pending">🎯 Доступен</span>'
-                            }
-                        </div>
-                        <button class="btn ${interactive.completed && !interactive.can_retake ? 'btn-secondary' : 'btn-primary'}" 
-                                onclick="startInteractive(${interactive.id})"
-                                ${interactive.completed && !interactive.can_retake ? 'disabled' : ''}>
-                            ${interactive.completed ? 
-                                (interactive.can_retake ? '🔄 Пройти снова' : '✅ Пройден') : 
-                                '🎮 Начать'}
-                        </button>
-                    `;
-                    
-                    interactivesList.appendChild(interactiveCard);
-                });
-            } catch (error) {
-                document.getElementById('interactivesList').innerHTML = '<div class="error">Ошибка загрузки интерактивов</div>';
-            }
+// Загрузка интерактивов - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ ДЛЯ МОБИЛЬНЫХ
+async function loadInteractives() {
+    try {
+        // Определяем мобильное устройство
+        const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        const apiUrl = isMobile ? '/api/webapp/mobile/interactives' : `/api/webapp/interactives?userId=${currentUserId}`;
+        console.log(`📱 ${isMobile ? 'Мобильная' : 'Десктопная'} загрузка интерактивов: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        const interactives = await response.json();
+        
+        const interactivesList = document.getElementById('interactivesList');
+        
+        // Очищаем контейнер
+        interactivesList.innerHTML = '';
+        
+        const filteredInteractives = currentInteractiveCategory === 'all' 
+            ? interactives 
+            : interactives.filter(i => i.category === currentInteractiveCategory);
+        
+        if (filteredInteractives.length === 0) {
+            interactivesList.innerHTML = '<div class="info">Нет доступных интерактивов в этой категории</div>';
+            return;
+        }
+        
+        // Для мобильных - ограничиваем количество
+        const interactivesToShow = isMobile ? filteredInteractives.slice(0, 8) : filteredInteractives;
+        
+        if (isMobile && filteredInteractives.length > 8) {
+            interactivesList.innerHTML += `
+                <div class="info" style="margin-bottom: 16px;">
+                    Показано 8 из ${filteredInteractives.length} интерактивов. Используйте фильтры для просмотра всех.
+                </div>
+            `;
+        }
+        
+        interactivesToShow.forEach(interactive => {
+            const interactiveCard = document.createElement('div');
+            interactiveCard.className = 'interactive-card';
+            
+            const categoryClass = `category-${interactive.category}`;
+            const categoryNames = {
+                'history': '🏛️ История',
+                'style': '👗 Стиль',
+                'art': '🎨 Искусство',
+                'craft': '🧵 Ремесло'
+            };
+            
+            const typeIcons = {
+                'guess_era': '🎨',
+                'style_match': '👗',
+                'drawing_challenge': '✏️',
+                'find_difference': '🔍',
+                'puzzle': '🧩'
+            };
+
+            // ОПТИМИЗИРОВАННЫЙ РЕНДЕРИНГ ДЛЯ МОБИЛЬНЫХ
+            interactiveCard.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: ${isMobile ? '8px' : '12px'};">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 6px 0; font-size: ${isMobile ? '15px' : '16px'};">${typeIcons[interactive.type]} ${interactive.title}</h3>
+                        <div class="interactive-description" style="font-size: ${isMobile ? '12px' : '14px'}; margin: 4px 0;">
+                            ${interactive.description}
+                        </div>
+                        <div style="margin: 8px 0;">
+                            <span class="category-badge ${categoryClass}" style="font-size: ${isMobile ? '10px' : '12px'};">
+                                ${categoryNames[interactive.category] || interactive.category}
+                            </span>
+                            <span class="spark-badge" style="font-size: ${isMobile ? '10px' : '12px'};">+${interactive.sparks_reward}✨</span>
+                        </div>
+                        ${interactive.image_url && !isMobile ? `
+                            <img src="${interactive.image_url}" class="interactive-image" 
+                                 style="max-height: 120px; object-fit: cover;">
+                        ` : ''}
+                    </div>
+                    ${interactive.completed ? 
+                        '<span class="status-badge status-approved" style="font-size: 10px;">✅ Пройден</span>' : 
+                        '<span class="status-badge status-pending" style="font-size: 10px;">🎯 Доступен</span>'
+                    }
+                </div>
+                <button class="btn ${interactive.completed && !interactive.can_retake ? 'btn-secondary' : 'btn-primary'}" 
+                        onclick="startInteractive(${interactive.id})"
+                        ${interactive.completed && !interactive.can_retake ? 'disabled' : ''}
+                        style="padding: ${isMobile ? '10px 14px' : '12px 20px'}; font-size: ${isMobile ? '13px' : '14px'}; width: 100%;">
+                    ${interactive.completed ? 
+                        (interactive.can_retake ? '🔄 Пройти снова' : '✅ Пройден') : 
+                        '🎮 Начать интерактив'}
+                </button>
+            `;
+            
+            interactivesList.appendChild(interactiveCard);
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки интерактивов:', error);
+        const interactivesList = document.getElementById('interactivesList');
+        interactivesList.innerHTML = `
+            <div class="error">
+                Ошибка загрузки интерактивов: ${error.message}
+                <button class="btn" onclick="loadInteractives()" style="margin-top: 10px;">
+                    🔄 Повторить попытку
+                </button>
+            </div>
+        `;
+    }
+}
 
         // Начать интерактив
         async function startInteractive(interactiveId) {
@@ -4028,57 +4108,101 @@ function formatFileSize(bytes) {
             loadShopItems();
         }
 
-        // Загрузка товаров магазина
-        async function loadShopItems() {
-            try {
-                const response = await fetch('/api/webapp/shop/items');
-                const data = await response.json();
-                
-                const shopItemsList = document.getElementById('shopItemsList');
-                shopItemsList.innerHTML = '';
-                
-                if (data.length === 0) {
-                    shopItemsList.innerHTML = '<div class="info">Пока нет доступных товаров</div>';
-                    return;
-                }
-                
-                data.forEach(item => {
-                    const itemCard = document.createElement('div');
-                    itemCard.className = 'shop-item';
-                    
-                    const canAfford = currentUser.sparks >= item.price;
-                    const hasPurchased = false; // Можно добавить проверку покупки
-                    
-                    itemCard.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <h3 style="margin: 0;">${item.title}</h3>
-                            <div style="text-align: right;">
-                                <div class="spark-badge">${item.price}✨</div>
-                                ${!canAfford ? '<div style="color: #f56565; font-size: 12px; margin-top: 5px;">Недостаточно искр</div>' : ''}
-                                ${hasPurchased ? '<div style="color: #48bb78; font-size: 12px; margin-top: 5px;">✅ Куплено</div>' : ''}
-                            </div>
-                        </div>
-                        <p style="color: #718096; margin-bottom: 12px;">${item.description}</p>
-                        ${item.preview_url ? `
-                            <img src="${item.preview_url}" class="media-preview">
-                        ` : ''}
-                        <div class="content-preview">
-                            ${item.content_text || 'Описание содержимого...'}
-                        </div>
-                        
-                        <button class="btn ${canAfford && !hasPurchased ? 'btn-success' : 'btn-secondary'}" 
-                                onclick="purchaseItem(${item.id})" 
-                                ${!canAfford || hasPurchased ? 'disabled' : ''}>
-                            ${hasPurchased ? '✅ Куплено' : canAfford ? '🛒 Купить' : '🔒 Недоступно'}
-                        </button>
-                    `;
-                    
-                    shopItemsList.appendChild(itemCard);
-                });
-            } catch (error) {
-                document.getElementById('shopItemsList').innerHTML = '<div class="error">Ошибка загрузки товаров</div>';
-            }
+// Загрузка товаров магазина - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ ДЛЯ МОБИЛЬНЫХ
+async function loadShopItems() {
+    try {
+        // Определяем мобильное устройство
+        const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        const apiUrl = isMobile ? '/api/webapp/mobile/shop/items' : '/api/webapp/shop/items';
+        console.log(`📱 ${isMobile ? 'Мобильная' : 'Десктопная'} загрузка магазина: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        const data = await response.json();
+        
+        const shopItemsList = document.getElementById('shopItemsList');
+        
+        // Очищаем контейнер
+        shopItemsList.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+            shopItemsList.innerHTML = '<div class="info">Пока нет доступных товаров</div>';
+            return;
+        }
+        
+        // Для мобильных - ограничиваем количество одновременно отображаемых товаров
+        const itemsToShow = isMobile ? data.slice(0, 10) : data;
+        
+        if (isMobile && data.length > 10) {
+            shopItemsList.innerHTML += `
+                <div class="info" style="margin-bottom: 16px;">
+                    Показано 10 из ${data.length} товаров. Используйте поиск для просмотра всех товаров.
+                </div>
+            `;
+        }
+        
+        itemsToShow.forEach(item => {
+            const itemCard = document.createElement('div');
+            itemCard.className = 'shop-item';
+            
+            const canAfford = currentUser && currentUser.sparks >= item.price;
+            const hasPurchased = false;
+
+            // ОПТИМИЗИРОВАННЫЙ РЕНДЕРИНГ ДЛЯ МОБИЛЬНЫХ
+            itemCard.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0; font-size: ${isMobile ? '16px' : '18px'};">${item.title}</h3>
+                        <p style="color: #718096; margin-bottom: 8px; font-size: ${isMobile ? '13px' : '14px'};">${item.description}</p>
+                        <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
+                            <span class="badge badge-info" style="font-size: ${isMobile ? '10px' : '12px'};">${getPurchaseTypeIcon(item.type)} ${getPurchaseTypeName(item.type)}</span>
+                            <span class="badge badge-success" style="font-size: ${isMobile ? '10px' : '12px'};">${item.price}✨</span>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        ${!canAfford ? '<div style="color: #f56565; font-size: 11px;">Недостаточно искр</div>' : ''}
+                        ${hasPurchased ? '<div style="color: #48bb78; font-size: 11px;">✅ Куплено</div>' : ''}
+                    </div>
+                </div>
+                
+                ${item.preview_url ? `
+                    <img src="${item.preview_url}" class="media-preview" 
+                         style="max-height: ${isMobile ? '120px' : '150px'}; object-fit: cover;">
+                ` : ''}
+                
+                ${item.content_text && !isMobile ? `
+                    <div class="content-preview" style="font-size: ${isMobile ? '12px' : '14px'}; max-height: ${isMobile ? '80px' : '120px'};">
+                        ${item.content_text}
+                    </div>
+                ` : ''}
+                
+                <button class="btn ${canAfford && !hasPurchased ? 'btn-success' : 'btn-secondary'}" 
+                        onclick="purchaseItem(${item.id})" 
+                        ${!canAfford || hasPurchased ? 'disabled' : ''}
+                        style="margin-top: 12px; padding: ${isMobile ? '12px 16px' : '16px 24px'}; font-size: ${isMobile ? '14px' : '16px'};">
+                    ${hasPurchased ? '✅ Куплено' : canAfford ? '🛒 Купить' : '🔒 Недоступно'}
+                </button>
+            `;
+            
+            shopItemsList.appendChild(itemCard);
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки товаров:', error);
+        const shopItemsList = document.getElementById('shopItemsList');
+        shopItemsList.innerHTML = `
+            <div class="error">
+                Ошибка загрузки товаров: ${error.message}
+                <button class="btn" onclick="loadShopItems()" style="margin-top: 10px;">
+                    🔄 Повторить попытку
+                </button>
+            </div>
+        `;
+    }
+}
 
         // Покупка товара
         async function purchaseItem(itemId) {
