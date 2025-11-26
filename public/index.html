@@ -1190,6 +1190,139 @@
                 grid-template-columns: 1fr;
             }
         }
+
+/* ==================== МОБИЛЬНАЯ ОПТИМИЗАЦИЯ ==================== */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 8px;
+    }
+    
+    .card {
+        padding: 16px;
+        margin-bottom: 12px;
+        border-radius: 16px;
+    }
+    
+    .shop-item, .interactive-card, .quiz-card, .marathon-card {
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .btn {
+        padding: 14px 16px;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+    
+    .media-preview, .interactive-image, .work-image {
+        max-height: 150px;
+        object-fit: cover;
+    }
+    
+    .content-preview {
+        max-height: 100px;
+        font-size: 12px;
+        padding: 12px;
+    }
+    
+    .sparks {
+        font-size: 32px;
+        padding: 12px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    
+    .stat-item {
+        padding: 12px;
+    }
+    
+    .user-info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Оптимизация магазина для мобильных */
+    .shop-item h3 {
+        font-size: 16px;
+        line-height: 1.3;
+    }
+    
+    .shop-item p {
+        font-size: 13px;
+        line-height: 1.3;
+    }
+    
+    /* Оптимизация интерактивов для мобильных */
+    .interactive-card h3 {
+        font-size: 15px;
+        line-height: 1.3;
+    }
+    
+    .interactive-description {
+        font-size: 12px;
+        line-height: 1.3;
+    }
+    
+    /* Улучшаем скролл для мобильных */
+    .tab-content {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Оптимизация навигации */
+    .works-tabs, .shop-tabs, .interactive-tabs {
+        padding: 4px;
+    }
+    
+    .works-tab, .shop-tab, .interactive-tab {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+}
+
+/* Особые стили для очень маленьких экранов */
+@media (max-width: 480px) {
+    .container {
+        padding: 0 4px;
+    }
+    
+    .card {
+        padding: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .btn {
+        padding: 12px 14px;
+        font-size: 13px;
+    }
+    
+    .sparks {
+        font-size: 28px;
+        padding: 8px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+    
+    .shop-item, .interactive-card {
+        padding: 12px;
+    }
+}
+
+/* Исправление для мобильного ввода */
+@media (max-width: 768px) {
+    input, textarea, select {
+        font-size: 16px !important; /* Предотвращает масштабирование в iOS */
+    }
+    
+    .form-control {
+        padding: 14px 12px;
+        font-size: 16px;
+    }
+}
         
         /* Специальные стили для кнопки смены роли */
         .change-role-btn {
