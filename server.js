@@ -1183,18 +1183,18 @@ app.delete('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
 // WebApp API
 app.get('/api/users/:userId', (req, res) => {
     const userId = parseInt(req.params.userId);
+    console.log('👤 Запрос пользователя:', userId);
+    
     const user = db.users.find(u => u.user_id === userId);
     
     if (user) {
-        const stats = getUserStats(userId);
+        console.log('✅ Пользователь найден:', user.tg_first_name);
         res.json({ 
             exists: true, 
-            user: {
-                ...user,
-                stats: stats
-            }
+            user: user
         });
     } else {
+        console.log('❌ Пользователь не найден, создаем нового');
         const newUser = {
             id: Date.now(),
             user_id: userId,
