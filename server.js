@@ -1238,62 +1238,12 @@ app.post('/api/auth/logout', requireAuth, async (req, res) => {
 
 // ==================== РЕАЛЬНЫЕ API ENDPOINTS ====================
 
-// Получение данных пользователя
-app.get('/api/users/:userId', async (req, res) => {
-    try {
-        const userId = parseInt(req.params.userId);
-        console.log('👤 API Запрос пользователя:', userId);
-        
-        const user = await dbService.get(
-            "SELECT * FROM users WHERE user_id = ?",
-            [userId]
-        );
-
-        if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Пользователь не найден' 
-            });
-        }
-
-        // Получаем статистику из базы
-        const stats = {
-            total_quizzes_completed: 0,
-            total_works: 0,
-            approved_works: 0,
-            total_marathons_completed: 0,
-            total_interactives_completed: 0
-        };
-
-        res.json({
-            success: true,
-            user: {
-                user_id: user.user_id,
-                tg_first_name: user.tg_first_name || 'Пользователь',
-                tg_username: user.tg_username,
-                sparks: user.sparks || 0,
-                level: user.level || 'Ученик',
-                is_registered: user.is_registered || false,
-                class: user.class,
-                character_name: user.character_name,
-                available_buttons: user.available_buttons ? JSON.parse(user.available_buttons) : [],
-                stats: stats
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка получения пользователя:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Ошибка сервера' 
-        });
-    }
-});
-
 // Регистрация пользователя
 app.post('/api/users/register', async (req, res) => {
     try {
         const { userId, firstName, roleId, characterId, username } = req.body;
+
+        console.log('📝 Регистрация пользователя:', { userId, firstName, roleId, characterId });
 
         if (!userId || !firstName || !roleId) {
             return res.status(400).json({ 
@@ -1395,7 +1345,69 @@ app.post('/api/users/register', async (req, res) => {
     }
 });
 
-// Получение ролей
+// Получение пользователя
+app.get('/api/users/:userId', async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        console.log('👤 Запрос пользователя:', userId);
+        
+        const user = await dbService.get(
+            "SELECT * FROM users WHERE user_id = ?",
+            [userId]
+        );
+
+        if (!user) {
+            return res.json({
+                success: true,
+                user: {
+                    user_id: userId,
+                    tg_first_name: 'Новый пользователь',
+                    tg_username: '',
+                    sparks: 0,
+                    level: 'Ученик',
+                    is_registered: false,
+                    class: null,
+                    character_name: null,
+                    available_buttons: []
+                }
+            });
+        }
+
+        // Базовая статистика
+        const stats = {
+            total_quizzes_completed: 0,
+            total_works: 0,
+            approved_works: 0,
+            total_marathons_completed: 0,
+            total_interactives_completed: 0
+        };
+
+        res.json({
+            success: true,
+            user: {
+                user_id: user.user_id,
+                tg_first_name: user.tg_first_name || 'Пользователь',
+                tg_username: user.tg_username,
+                sparks: user.sparks || 0,
+                level: user.level || 'Ученик',
+                is_registered: user.is_registered || false,
+                class: user.class,
+                character_name: user.character_name,
+                available_buttons: user.available_buttons ? JSON.parse(user.available_buttons) : [],
+                stats: stats
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения пользователя:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Получение всех ролей
 app.get('/api/webapp/roles', async (req, res) => {
     try {
         const roles = await dbService.all(
@@ -1433,6 +1445,78 @@ app.get('/api/webapp/characters/:roleId', async (req, res) => {
         res.status(500).json({ 
             success: false, 
             error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Смена роли пользователя
+app.post('/api/users/change-role', async (req, res) => {
+    try {
+        const { userId, roleId, characterId } = req.body;
+
+        if (!userId || !roleId) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'User ID и Role ID обязательны' 
+            });
+        }
+
+        const role = await dbService.get(
+            "SELECT * FROM roles WHERE id = ? AND is_active = 1",
+            [roleId]
+        );
+
+        const character = await dbService.get(
+            "SELECT * FROM characters WHERE id = ? AND is_active = 1",
+            [characterId]
+        );
+
+        if (!role) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Роль не найдена' 
+            });
+        }
+
+        await dbService.run(
+            `UPDATE users SET 
+                class = ?,
+                character_id = ?,
+                character_name = ?,
+                available_buttons = ?,
+                last_active = datetime('now')
+             WHERE user_id = ?`,
+            [
+                role.name,
+                characterId,
+                character?.name || null,
+                role.available_buttons,
+                userId
+            ]
+        );
+
+        const updatedUser = await dbService.get(
+            "SELECT * FROM users WHERE user_id = ?",
+            [userId]
+        );
+
+        res.json({ 
+            success: true, 
+            message: 'Роль успешно изменена!',
+            user: {
+                user_id: updatedUser.user_id,
+                tg_first_name: updatedUser.tg_first_name,
+                class: updatedUser.class,
+                character_name: updatedUser.character_name,
+                available_buttons: updatedUser.available_buttons ? JSON.parse(updatedUser.available_buttons) : []
+            }
+        });
+
+    } catch (error) {
+        console.error('Ошибка смены роли:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера при смене роли' 
         });
     }
 });
@@ -1546,6 +1630,85 @@ app.post('/api/users/daily-bonus', requireAuth, async (req, res) => {
         res.status(500).json({ 
             success: false, 
             error: 'Ошибка сервера при получении бонуса' 
+        });
+    }
+});
+
+// Получение квизов
+app.get('/api/webapp/quizzes', async (req, res) => {
+    try {
+        const quizzes = await dbService.all(
+            "SELECT * FROM quizzes WHERE is_active = 1 ORDER BY created_at DESC"
+        );
+
+        // Форматируем вопросы
+        const formattedQuizzes = quizzes.map(quiz => ({
+            ...quiz,
+            questions: quiz.questions ? JSON.parse(quiz.questions) : [],
+            tags: quiz.tags ? JSON.parse(quiz.tags) : []
+        }));
+
+        res.json({
+            success: true,
+            quizzes: formattedQuizzes
+        });
+    } catch (error) {
+        console.error('Ошибка получения квизов:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Получение магазина
+app.get('/api/webapp/shop/items', async (req, res) => {
+    try {
+        const items = await dbService.all(
+            "SELECT * FROM shop_items WHERE is_active = 1 ORDER BY created_at DESC"
+        );
+
+        const formattedItems = items.map(item => ({
+            ...item,
+            tags: item.tags ? JSON.parse(item.tags) : []
+        }));
+
+        res.json({
+            success: true,
+            items: formattedItems
+        });
+    } catch (error) {
+        console.error('Ошибка получения товаров:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Получение постов
+app.get('/api/webapp/posts', async (req, res) => {
+    try {
+        const posts = await dbService.all(
+            "SELECT * FROM posts WHERE is_published = 1 ORDER BY created_at DESC"
+        );
+
+        const formattedPosts = posts.map(post => ({
+            ...post,
+            media_urls: post.media_urls ? JSON.parse(post.media_urls) : [],
+            tags: post.tags ? JSON.parse(post.tags) : [],
+            allowed_actions: post.allowed_actions ? JSON.parse(post.allowed_actions) : []
+        }));
+
+        res.json({
+            success: true,
+            posts: formattedPosts
+        });
+    } catch (error) {
+        console.error('Ошибка получения постов:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
         });
     }
 });
