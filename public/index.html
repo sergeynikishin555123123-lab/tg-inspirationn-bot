@@ -5,12 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Мастерская Вдохновения</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- Безопасные мета-теги для Telegram WebApp -->
     <meta name="format-detection" content="telephone=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta http-equiv="Content-Security-Policy" content="frame-src https: http:; child-src 'self' https: http:">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    
+    <!-- CSP для безопасности -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self' https: http:;
+        script-src 'self' 'unsafe-inline' https: http:;
+        style-src 'self' 'unsafe-inline' https:;
+        img-src 'self' data: https: http:;
+        media-src 'self' https: http:;
+        connect-src 'self' https: http:;
+        frame-src 'self' https:;
+        child-src 'self' https:;
+    ">
     
     <style>
         * { 
@@ -1284,6 +1296,68 @@
     height: 100%;
     border: none;
 }
+
+        /* Безопасные стили для видео */
+        .video-fallback {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            border-radius: 12px;
+            text-align: center;
+            min-height: 200px;
+            margin: 10px 0;
+        }
+
+        .video-fallback-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .video-fallback-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .video-fallback-description {
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        /* Мобильная адаптация */
+        @media (max-width: 768px) {
+            .video-fallback {
+                min-height: 180px;
+                padding: 30px 15px;
+                margin: 10px;
+            }
+            
+            .video-fallback-icon {
+                font-size: 40px;
+            }
+            
+            .video-fallback-title {
+                font-size: 16px;
+            }
+            
+            .video-fallback-description {
+                font-size: 13px;
+            }
+        }
+
+        /* Кнопки для видео */
+        .video-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
         
 /* Анимации */
 @keyframes fadeIn {
@@ -1870,60 +1944,82 @@
         let marathonUploadedImage = null;
 
         async function initApp() {
-    try {
-        console.log('🚀 Инициализация приложения...');
-        
-        // Безопасная инициализация Telegram WebApp
-        if (typeof Telegram !== 'undefined' && window.Telegram.WebApp) {
-            tg = window.Telegram.WebApp;
-            
-            // Безопасные методы
             try {
-                if (tg.expand) tg.expand();
-            } catch (e) { console.log('⚠️ expand не доступен'); }
-            
-            try {
-                if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
-            } catch (e) { console.log('⚠️ enableClosingConfirmation не доступен'); }
-            
-            currentUserId = tg.initDataUnsafe?.user?.id || 898508164;
-        } else {
-            console.log('⚠️ Telegram WebApp не доступен, используем тестовый режим');
-            tg = {
-                initDataUnsafe: {
-                    user: { id: 898508164, first_name: 'Тестовый' }
+                console.log('🚀 Безопасная инициализация приложения...');
+                
+                // Минимальная инициализация Telegram WebApp
+                if (typeof Telegram !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+                    tg = window.Telegram.WebApp;
+                    console.log('✅ Telegram WebApp обнаружен');
+                    
+                    // Только безопасные методы
+                    try {
+                        tg.ready();
+                        console.log('✅ WebApp ready');
+                    } catch (e) {
+                        console.log('⚠️ WebApp.ready не доступен');
+                    }
+                    
+                    // Получаем user_id безопасно
+                    currentUserId = tg.initDataUnsafe?.user?.id || 
+                                   tg.initData?.user?.id || 
+                                   (tg.initDataUnsafe?.start_param ? parseInt(tg.initDataUnsafe.start_param.replace('ref_', '')) : null) || 
+                                   898508164;
+                    
+                } else {
+                    console.log('🔧 Режим тестирования (без Telegram WebApp)');
+                    tg = {
+                        initDataUnsafe: {
+                            user: { id: 898508164, first_name: 'Тестовый' }
+                        }
+                    };
+                    currentUserId = 898508164;
                 }
-            };
-            currentUserId = 898508164;
+                
+                console.log('👤 User ID:', currentUserId);
+                
+                // Загружаем данные пользователя
+                await loadUserData();
+                
+                // Безопасная инициализация остальных компонентов
+                initDrawingCanvas();
+                
+                // Простые обработчики событий
+                initEventHandlers();
+                
+            } catch (error) {
+                console.error('💥 Ошибка инициализации:', error);
+                
+                // Аварийный режим
+                currentUserId = 898508164;
+                await loadUserData();
+            }
         }
-        
-        console.log('👤 User ID:', currentUserId);
-        
-        // Загружаем данные пользователя
-        await loadUserData();
-        
-        // Инициализация рисовального холста
-        initDrawingCanvas();
-        
-        // Обработчики для интерактивных вкладок
-        document.querySelectorAll('.interactive-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                currentInteractiveCategory = this.dataset.category;
-                loadInteractives();
+
+        // Безопасные обработчики событий
+        function initEventHandlers() {
+            // Обработчики для вкладок
+            document.querySelectorAll('.interactive-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.interactive-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentInteractiveCategory = this.dataset.category;
+                    loadInteractives();
+                });
             });
-        });
-        
-        // Обработчики для выбора цвета
-        document.querySelectorAll('.color-picker').forEach(picker => {
-            picker.addEventListener('click', function() {
-                document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
-                this.classList.add('active');
-                currentColor = this.dataset.color;
-                updateDrawingTool();
+            
+            // Обработчики для цвета
+            document.querySelectorAll('.color-picker').forEach(picker => {
+                picker.addEventListener('click', function() {
+                    document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
+                    this.classList.add('active');
+                    currentColor = this.dataset.color;
+                    if (drawingContext) {
+                        drawingContext.strokeStyle = currentColor;
+                    }
+                });
             });
-        });
+        }
         
     } catch (error) {
         console.error('💥 Критическая ошибка инициализации:', error);
@@ -2545,85 +2641,132 @@ function generatePurchaseContent(purchase) {
                 </div>
             `;
 
-case 'embed':
-    const embedHtml = purchase.embed_html || purchase.html_content || purchase.content_html || purchase.content;
-    const videoUrl = purchase.video_url || purchase.file_url || '';
-    
-    console.log('🎬 Найденный embed HTML:', {
-        fromEmbedHtml: !!purchase.embed_html,
-        fromHtmlContent: !!purchase.html_content,
-        hasVideoUrl: !!videoUrl
-    });
-    
-    // Если есть прямая ссылка на видео - используем простой iframe
-    if (videoUrl && (videoUrl.includes('.mp4') || videoUrl.includes('youtube') || videoUrl.includes('vimeo'))) {
-        return `
-            <div style="margin: 20px 0;">
-                <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                    🎬 Видео контент
-                </h4>
+        case 'embed':
+            const videoUrl = purchase.video_url || purchase.file_url || '';
+            const embedHtml = purchase.embed_html || '';
+            
+            console.log('🎬 Видео данные:', {
+                hasVideoUrl: !!videoUrl,
+                hasEmbedHtml: !!embedHtml,
+                videoUrl: videoUrl
+            });
+            
+            // Если есть прямая ссылка на видео файл
+            if (videoUrl && (videoUrl.includes('.mp4') || videoUrl.includes('.webm') || videoUrl.includes('.ogg'))) {
+                return `
+                    <div style="margin: 20px 0;">
+                        <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                            🎬 Видео контент
+                        </h4>
+                        
+                        <div style="background: #f7fafc; padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+                            <div style="color: #718096; font-size: 14px; line-height: 1.5;">
+                                💡 <strong>Инструкция:</strong> Нажмите на видео для запуска. На мобильных устройствах может потребоваться нажать кнопку воспроизведения.
+                            </div>
+                        </div>
+                        
+                        <!-- Простой HTML5 video -->
+                        <div style="
+                            background: #000;
+                            border-radius: 12px;
+                            overflow: hidden;
+                            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+                        ">
+                            <video 
+                                controls 
+                                style="width: 100%; max-height: 400px; display: block;"
+                                preload="metadata"
+                                playsinline
+                                webkit-playsinline
+                            >
+                                <source src="${videoUrl}" type="video/mp4">
+                                Ваш браузер не поддерживает видео тег.
+                            </video>
+                        </div>
+                        
+                        <div style="margin-top: 16px; text-align: center;">
+                            <a href="${videoUrl}" target="_blank" class="btn" style="margin: 5px;">
+                                🔗 Скачать видео
+                            </a>
+                            <button class="btn btn-secondary" onclick="openInExternalPlayer('${videoUrl}')" style="margin: 5px;">
+                                📱 Открыть в плеере
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            // Если есть embed код от Vimeo/YouTube
+            else if (embedHtml && embedHtml.includes('iframe')) {
+                // Извлекаем src из iframe
+                const srcMatch = embedHtml.match(/src="([^"]*)"/);
+                const iframeSrc = srcMatch ? srcMatch[1] : '';
                 
-                <div class="secure-iframe-wrapper">
-                    <iframe 
-                        src="${videoUrl}"
-                        allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
-                        loading="lazy"
-                    ></iframe>
-                </div>
-                
-                <div style="margin-top: 16px; text-align: center;">
-                    <a href="${videoUrl}" target="_blank" class="btn" style="margin: 5px;">
-                        🔗 Открыть в новом окне
-                    </a>
-                    <button class="btn btn-secondary" onclick="showVideoFallback()" style="margin: 5px;">
-                        📱 Мобильная версия
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-    // Если есть embed HTML - используем с очисткой
-    else if (embedHtml && embedHtml.trim()) {
-        const cleanHtml = embedHtml
-            .replace(/allow=["'](autoplay|encrypted-media|clipboard-write|web-share|presentation)["']/gi, '')
-            .replace(/allowfullscreen/gi, '')
-            .replace(/frameborder=["']0["']/gi, '');
-        
-        return `
-            <div style="margin: 20px 0;">
-                <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                    🎬 Встроенное видео
-                </h4>
-                
-                <div class="video-container-safe">
-                    ${cleanHtml}
-                </div>
-                
-                <div style="margin-top: 12px; color: #718096; font-size: 14px; text-align: center;">
-                    💡 Нажмите на видео для запуска воспроизведения
-                </div>
-            </div>
-        `;
-    } 
-    // Fallback если ничего не работает
-    else {
-        return `
-            <div style="margin: 20px 0;">
-                <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                    🎬 Видео контент
-                </h4>
-                
-                <div class="video-fallback">
-                    <div class="video-fallback-icon">📺</div>
-                    <div class="video-fallback-title">Видео недоступно</div>
-                    <div class="video-fallback-description">
-                        Для просмотра видео обратитесь к администратору<br>
-                        или попробуйте обновить страницу
+                if (iframeSrc) {
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🎬 Видео контент
+                            </h4>
+                            
+                            <div style="background: #f7fafc; padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+                                <div style="color: #718096; font-size: 14px; line-height: 1.5;">
+                                    💡 Это видео размещено на внешней платформе. Для просмотра откройте его в браузере.
+                                </div>
+                            </div>
+                            
+                            <div style="text-align: center; padding: 40px 20px; background: #f8f9fa; border-radius: 12px; margin-bottom: 16px;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">🎥</div>
+                                <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #2d3748;">
+                                    Видео на внешней платформе
+                                </div>
+                                <div style="color: #718096; margin-bottom: 20px; line-height: 1.5;">
+                                    Это видео размещено на YouTube, Vimeo или другой платформе.<br>
+                                    Для просмотра откройте его в браузере.
+                                </div>
+                                <a href="${iframeSrc}" target="_blank" class="btn btn-success" style="margin: 5px;">
+                                    🌐 Открыть в браузере
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Fallback
+            return `
+                <div style="margin: 20px 0;">
+                    <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                        🎬 Видео контент
+                    </h4>
+                    
+                    <div class="video-fallback">
+                        <div class="video-fallback-icon">📺</div>
+                        <div class="video-fallback-title">Видео недоступно в приложении</div>
+                        <div class="video-fallback-description">
+                            Этот видео контент нельзя воспроизвести внутри Telegram.<br>
+                            Обратитесь к администратору для получения альтернативной ссылки.
+                        </div>
                     </div>
                 </div>
+            `;
+    
+    // Fallback
+    return `
+        <div style="margin: 20px 0;">
+            <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                🎬 Видео контент
+            </h4>
+            
+            <div class="video-fallback">
+                <div class="video-fallback-icon">📺</div>
+                <div class="video-fallback-title">Видео недоступно в приложении</div>
+                <div class="video-fallback-description">
+                    Этот видео контент нельзя воспроизвести внутри Telegram.<br>
+                    Обратитесь к администратору для получения альтернативной ссылки.
+                </div>
             </div>
-        `;
-    }
+        </div>
+    `;
             
         case 'link':
             return `
@@ -4684,6 +4827,18 @@ function filterPurchasesByType(type) {
             }, 5000);
         }
 
+        // Функция для открытия в внешнем плеере
+        function openInExternalPlayer(videoUrl) {
+            if (videoUrl) {
+                // Пытаемся открыть в новом окне
+                window.open(videoUrl, '_blank');
+                
+                showMessage('📱 Открываю видео в браузере...', 'info');
+            } else {
+                showMessage('❌ Ссылка на видео не найдена', 'error');
+            }
+        }
+        
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', initApp);
 
