@@ -2529,250 +2529,227 @@
 
         // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПОКУПОК ====================
 
-// Генерация полного содержимого покупки для детального просмотра
-function generatePurchaseContent(purchase) {
-    const fileUrl = purchase.file_data || purchase.file_url;
-    const previewUrl = purchase.preview_data || purchase.preview_url;
-    
-    switch(purchase.type) {
-        case 'video':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🎥 Видео содержание
-                    </h4>
-                    ${previewUrl ? `
-                        <img src="${previewUrl}" class="media-preview" style="margin-bottom: 12px; cursor: pointer; max-height: 200px; object-fit: cover;" 
-                             onclick="openMediaModal('${fileUrl}', 'video')"
-                             title="Нажмите для просмотра в полном размере">
-                    ` : ''}
-                    <div style="background: #000; border-radius: 12px; overflow: hidden;">
-                        <video controls class="media-preview" style="max-height: 400px; width: 100%;">
-                            <source src="${fileUrl}" type="video/mp4">
-                            Ваш браузер не поддерживает видео.
-                        </video>
-                    </div>
-                    <div style="display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;">
-                        <button class="btn" onclick="openMediaModal('${fileUrl}', 'video')">
-                            🔍 Полный экран
-                        </button>
-                    </div>
-                </div>
-            `;
+        // Генерация полного содержимого покупки для детального просмотра
+        function generatePurchaseContent(purchase) {
+            const fileUrl = purchase.file_data || purchase.file_url;
+            const previewUrl = purchase.preview_data || purchase.preview_url;
             
-        case 'image':
-            const images = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🖼️ Изображение${images.length > 1 ? ` (${images.length} фото)` : ''}
-                    </h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                        ${images.map((imgUrl, index) => `
-                            <img src="${imgUrl}" class="media-preview" 
-                                 style="cursor: pointer; height: 200px; object-fit: cover;"
-                                 onclick="openMediaModal('${imgUrl}', 'image')"
-                                 title="Нажмите для просмотра в полном размере">
-                        `).join('')}
-                    </div>
-                    <div style="margin-top: 12px;">
-                        <button class="btn" onclick="openMediaModal('${images[0]}', 'image')">
-                            🔍 Открыть в полном размере
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-        case 'audio':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🎧 Аудио содержание
-                    </h4>
-                    <div style="background: #f7fafc; padding: 24px; border-radius: 16px; text-align: center;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">🎵</div>
-                        <audio controls style="width: 100%; max-width: 400px;">
-                            <source src="${fileUrl}" type="audio/mpeg">
-                            Ваш браузер не поддерживает аудио.
-                        </audio>
-                        <div style="margin-top: 16px; color: #718096; font-size: 14px;">
-                            Используйте элементы управления для воспроизведения
+            switch(purchase.type) {
+                case 'video':
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🎥 Видео содержание
+                            </h4>
+                            ${previewUrl ? `
+                                <img src="${previewUrl}" class="media-preview" style="margin-bottom: 12px; cursor: pointer; max-height: 200px; object-fit: cover;" 
+                                     onclick="openMediaModal('${fileUrl}', 'video')"
+                                     title="Нажмите для просмотра в полном размере">
+                            ` : ''}
+                            <div style="background: #000; border-radius: 12px; overflow: hidden;">
+                                <video controls class="media-preview" style="max-height: 400px; width: 100%;">
+                                    <source src="${fileUrl}" type="video/mp4">
+                                    Ваш браузер не поддерживает видео.
+                                </video>
+                            </div>
+                            <div style="display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;">
+                                <button class="btn" onclick="openMediaModal('${fileUrl}', 'video')">
+                                    🔍 Полный экран
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            `;
-            
-        case 'pdf':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        📚 PDF документ
-                    </h4>
-                    <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 16px; margin: 16px 0;">
-                        <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
-                        <div style="font-weight: 600; margin-bottom: 8px; font-size: 18px;">${purchase.title}</div>
-                        <div style="color: #718096; margin-bottom: 20px;">
-                            ${purchase.pages_count ? `Документ на ${purchase.pages_count} страниц` : 'PDF документ готов к просмотру'}
+                    `;
+                    
+                case 'image':
+                    const images = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🖼️ Изображение${images.length > 1 ? ` (${images.length} фото)` : ''}
+                            </h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                                ${images.map((imgUrl, index) => `
+                                    <img src="${imgUrl}" class="media-preview" 
+                                         style="cursor: pointer; height: 200px; object-fit: cover;"
+                                         onclick="openMediaModal('${imgUrl}', 'image')"
+                                         title="Нажмите для просмотра в полном размере">
+                                `).join('')}
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <button class="btn" onclick="openMediaModal('${images[0]}', 'image')">
+                                    🔍 Открыть в полном размере
+                                </button>
+                            </div>
                         </div>
-                        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                            <a href="${fileUrl}" target="_blank" class="btn btn-success">
-                                👀 Открыть в браузере
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-        case 'text':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        📝 Текстовое содержание
-                    </h4>
-                    <div class="content-preview" style="max-height: none; background: white; padding: 24px; border-radius: 12px; white-space: pre-line; line-height: 1.6; font-size: 14px;">
-                        ${purchase.content_text || 'Содержимое временно недоступно'}
-                    </div>
-                </div>
-            `;
-
-        case 'embed':
-            const videoUrl = purchase.video_url || purchase.file_url || '';
-            const embedHtml = purchase.embed_html || '';
-            
-            console.log('🎬 Видео данные:', {
-                hasVideoUrl: !!videoUrl,
-                hasEmbedHtml: !!embedHtml
-            });
-            
-            // Для ВСЕХ видео - безопасный подход
-            if (videoUrl || embedHtml) {
-                let externalUrl = videoUrl;
-                
-                // Если есть embed код, извлекаем ссылку
-                if (embedHtml && embedHtml.includes('iframe')) {
-                    const srcMatch = embedHtml.match(/src="([^"]*)"/);
-                    externalUrl = srcMatch ? srcMatch[1] : videoUrl;
-                }
-                
-                return `
-                    <div style="margin: 20px 0;">
-                        <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                            🎬 Видео контент
-                        </h4>
-                        
-                        <!-- Безопасный видео контейнер -->
-                        <div id="video-container-${purchase.id}" style="text-align: center;">
-                            <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
-                                <div style="color: #718096; font-size: 14px; line-height: 1.5;">
-                                    💡 Пытаемся загрузить видео... Если не работает, используйте кнопки ниже.
+                    `;
+                    
+                case 'audio':
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🎧 Аудио содержание
+                            </h4>
+                            <div style="background: #f7fafc; padding: 24px; border-radius: 16px; text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">🎵</div>
+                                <audio controls style="width: 100%; max-width: 400px;">
+                                    <source src="${fileUrl}" type="audio/mpeg">
+                                    Ваш браузер не поддерживает аудио.
+                                </audio>
+                                <div style="margin-top: 16px; color: #718096; font-size: 14px;">
+                                    Используйте элементы управления для воспроизведения
                                 </div>
                             </div>
-                            
-                            <!-- Простой video элемент -->
-                            <video id="video-${purchase.id}" 
-                                   controls 
-                                   style="max-width: 100%; max-height: 300px; background: #000; border-radius: 8px;"
-                                   onloadeddata="console.log('✅ Видео загружено')"
-                                   onerror="console.log('❌ Ошибка видео')">
-                                Ваш браузер не поддерживает видео.
-                            </video>
-                            
-                            <script>
-                                // Безопасная загрузка после отрисовки
-                                setTimeout(() => {
-                                    const videoEl = document.getElementById('video-${purchase.id}');
-                                    if (videoEl) {
-                                        safeLoadVideo(videoEl, '${videoUrl}');
-                                    }
-                                }, 100);
-                            </script>
                         </div>
-                        
-                        <!-- Кнопки действий -->
-                        <div style="text-align: center; margin-top: 20px;">
-                            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                                ${externalUrl ? `
-                                    <a href="${externalUrl}" target="_blank" class="btn btn-success" style="text-decoration: none;">
-                                        🌐 Открыть в браузере
+                    `;
+                    
+                case 'pdf':
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                📚 PDF документ
+                            </h4>
+                            <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 16px; margin: 16px 0;">
+                                <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
+                                <div style="font-weight: 600; margin-bottom: 8px; font-size: 18px;">${purchase.title}</div>
+                                <div style="color: #718096; margin-bottom: 20px;">
+                                    ${purchase.pages_count ? `Документ на ${purchase.pages_count} страниц` : 'PDF документ готов к просмотру'}
+                                </div>
+                                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                                    <a href="${fileUrl}" target="_blank" class="btn btn-success">
+                                        👀 Открыть в браузере
                                     </a>
-                                ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                case 'text':
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                📝 Текстовое содержание
+                            </h4>
+                            <div class="content-preview" style="max-height: none; background: white; padding: 24px; border-radius: 12px; white-space: pre-line; line-height: 1.6; font-size: 14px;">
+                                ${purchase.content_text || 'Содержимое временно недоступно'}
+                            </div>
+                        </div>
+                    `;
+
+                case 'embed':
+                    const videoUrl = purchase.video_url || purchase.file_url || '';
+                    const embedHtml = purchase.embed_html || '';
+                    
+                    console.log('🎬 Видео данные:', {
+                        hasVideoUrl: !!videoUrl,
+                        hasEmbedHtml: !!embedHtml,
+                        videoUrl: videoUrl
+                    });
+                    
+                    // Упрощенный подход для Telegram WebApp
+                    if (videoUrl || embedHtml) {
+                        let externalUrl = videoUrl;
+                        
+                        // Если есть embed код, извлекаем ссылку
+                        if (embedHtml && embedHtml.includes('iframe')) {
+                            const srcMatch = embedHtml.match(/src="([^"]*)"/);
+                            externalUrl = srcMatch ? srcMatch[1] : videoUrl;
+                        }
+                        
+                        return `
+                            <div style="margin: 20px 0;">
+                                <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                    🎬 Видео контент
+                                </h4>
                                 
-                                ${videoUrl ? `
-                                    <a href="${videoUrl}" download class="btn" style="text-decoration: none;">
-                                        📥 Скачать видео
+                                <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
+                                    <div style="font-size: 64px; margin-bottom: 16px;">📺</div>
+                                    <h4 style="margin-bottom: 12px; color: #2d3748;">Видео доступно для просмотра</h4>
+                                    <p style="color: #718096; margin-bottom: 20px; line-height: 1.5;">
+                                        Для просмотра видео откройте его в браузере
+                                    </p>
+                                    
+                                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                                        ${externalUrl ? `
+                                            <a href="${externalUrl}" target="_blank" class="btn btn-success" style="text-decoration: none;">
+                                                🌐 Открыть в браузере
+                                            </a>
+                                        ` : ''}
+                                        
+                                        ${videoUrl ? `
+                                            <a href="${videoUrl}" download class="btn" style="text-decoration: none;">
+                                                📥 Скачать видео
+                                            </a>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                                
+                                ${purchase.preview_url ? `
+                                    <div style="text-align: center; margin: 20px 0;">
+                                        <div style="color: #718096; font-size: 14px; margin-bottom: 8px;">Превью:</div>
+                                        <img src="${purchase.preview_url}" style="max-width: 200px; border-radius: 8px; border: 2px solid #e2e8f0;">
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }
+                    
+                    // Fallback
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🎬 Видео контент
+                            </h4>
+                            
+                            <div class="video-fallback">
+                                <div class="video-fallback-icon">📺</div>
+                                <div class="video-fallback-title">Видео недоступно</div>
+                                <div class="video-fallback-description">
+                                    Ссылка на видео не найдена
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                case 'link':
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
+                                🔗 Ссылка на ресурс
+                            </h4>
+                            <div style="background: #f0fff4; padding: 20px; border-radius: 12px; border: 1px solid #9ae6b4;">
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                    <span style="font-size: 24px;">🌐</span>
+                                    <div>
+                                        <div style="font-weight: 600;">Внешний ресурс</div>
+                                        <div style="color: #718096; font-size: 14px;">Нажмите для перехода</div>
+                                    </div>
+                                </div>
+                                <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; word-break: break-all; font-size: 14px;">
+                                    ${purchase.external_url}
+                                </div>
+                                <a href="${purchase.external_url}" target="_blank" class="btn btn-success" style="width: 100%;">
+                                    🔗 Перейти по ссылке
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    
+                default:
+                    return `
+                        <div style="margin: 20px 0;">
+                            <h4 style="margin-bottom: 12px;">📦 Содержимое товара</h4>
+                            <div class="info">
+                                <p>Тип содержимого: ${purchase.type}</p>
+                                ${fileUrl ? `
+                                    <a href="${fileUrl}" target="_blank" class="btn btn-success">
+                                        👀 Открыть содержимое
                                     </a>
                                 ` : ''}
                             </div>
                         </div>
-                        
-                        <!-- Превью -->
-                        ${purchase.preview_url ? `
-                            <div style="text-align: center; margin: 20px 0;">
-                                <div style="color: #718096; font-size: 14px; margin-bottom: 8px;">Превью:</div>
-                                <img src="${purchase.preview_url}" 
-                                     style="max-width: 200px; border-radius: 8px; border: 2px solid #e2e8f0;">
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
+                    `;
             }
-            
-            // Fallback
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🎬 Видео контент
-                    </h4>
-                    <div class="video-fallback">
-                        <div class="video-fallback-icon">📺</div>
-                        <div class="video-fallback-title">Видео недоступно</div>
-                        <div class="video-fallback-description">
-                            Ссылка на видео не найдена
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-        case 'link':
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #2d3748;">
-                        🔗 Ссылка на ресурс
-                    </h4>
-                    <div style="background: #f0fff4; padding: 20px; border-radius: 12px; border: 1px solid #9ae6b4;">
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                            <span style="font-size: 24px;">🌐</span>
-                            <div>
-                                <div style="font-weight: 600;">Внешний ресурс</div>
-                                <div style="color: #718096; font-size: 14px;">Нажмите для перехода</div>
-                            </div>
-                        </div>
-                        <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; word-break: break-all; font-size: 14px;">
-                            ${purchase.external_url}
-                        </div>
-                        <a href="${purchase.external_url}" target="_blank" class="btn btn-success" style="width: 100%;">
-                            🔗 Перейти по ссылке
-                        </a>
-                    </div>
-                </div>
-            `;
-            
-        default:
-            return `
-                <div style="margin: 20px 0;">
-                    <h4 style="margin-bottom: 12px;">📦 Содержимое товара</h4>
-                    <div class="info">
-                        <p>Тип содержимого: ${purchase.type}</p>
-                        ${fileUrl ? `
-                            <a href="${fileUrl}" target="_blank" class="btn btn-success">
-                                👀 Открыть содержимое
-                            </a>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-    }
-}
+        }
 
         // Скачать base64 файл
         function downloadBase64File(base64Data, filename) {
@@ -4784,6 +4761,9 @@ function filterPurchasesByType(type) {
             
             document.body.removeChild(tempInput);
         }
+            
+            document.body.removeChild(tempInput);
+        }
 
         // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 
@@ -4812,33 +4792,19 @@ function filterPurchasesByType(type) {
             }
         }
 
-        // Безопасная загрузка видео для Telegram WebApp
+                // Безопасная загрузка видео для Telegram WebApp
         function safeLoadVideo(videoElement, videoUrl) {
             if (!videoElement || !videoUrl) return;
             
             console.log('🎬 Загружаем видео безопасно:', videoUrl);
             
             try {
-                // Проверяем, доступно ли видео
+                // Простая загрузка видео
                 videoElement.src = videoUrl;
                 videoElement.load();
                 
-                // Обработчик ошибок видео
-                videoElement.addEventListener('error', function(e) {
-                    console.error('❌ Ошибка загрузки видео:', e);
-                    showVideoFallback(videoElement, videoUrl);
-                });
-                
-                // Проверяем через 3 секунды, загрузилось ли видео
-                setTimeout(() => {
-                    if (videoElement.readyState < 2) { // HAVE_CURRENT_DATA или больше
-                        console.log('⚠️ Видео не загружается, показываем fallback');
-                        showVideoFallback(videoElement, videoUrl);
-                    }
-                }, 3000);
-                
             } catch (error) {
-                console.error('💥 Критическая ошибка видео:', error);
+                console.error('💥 Ошибка загрузки видео:', error);
                 showVideoFallback(videoElement, videoUrl);
             }
         }
@@ -4870,6 +4836,16 @@ function filterPurchasesByType(type) {
                 
             } catch (error) {
                 console.error('Ошибка создания fallback:', error);
+            }
+        }
+
+        // Функция для открытия в внешнем плеере
+        function openInExternalPlayer(videoUrl) {
+            if (videoUrl) {
+                // Просто открываем ссылку
+                window.open(videoUrl, '_blank');
+            } else {
+                showMessage('❌ Ссылка на видео не найдена', 'error');
             }
         }
         
