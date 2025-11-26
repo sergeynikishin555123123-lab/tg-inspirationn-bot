@@ -369,36 +369,36 @@ let db = {
             is_active: true,
             created_at: new Date().toISOString()
         },
-{
-    id: 5,
-    title: "🎬 Видео-урок по композиции",
-    description: "Эксклюзивный видео-урок по основам композиции от профессионального художника",
-    type: "embed",
-    embed_html: `<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1139315921?h=93d70dfee4&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="ТИХОНОВА"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>`,
-    preview_url: "https://images.unsplash.com/photo-1492684223066-81332ee5ff30?w=300&h=200&fit=crop",
-    price: 20,
-    content_text: "Профессиональный видео-урок по основам композиции в живописи. Вы научитесь правильно располагать элементы на холсте, создавать гармоничные композиции и направлять взгляд зрителя.\n\nТемы урока:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с акцентами",
-    is_active: true,
-    created_at: new Date().toISOString()
-},
-      {
-    id: 6,
-    title: "📺 Тестовое видео",
-    description: "Простой тест embed-видео",
-    type: "embed",
-    embed_html: `<div style="width: 100%; height: 400px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
-        <div style="text-align: center;">
-            <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
-            <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Тестовое видео</div>
-            <div style="color: #666;">Здесь будет встроенное видео</div>
-        </div>
-    </div>`,
-    preview_url: "",
-    price: 5,
-    content_text: "Это тестовый embed-контент для проверки отображения",
-    is_active: true,
-    created_at: new Date().toISOString()
-}  
+        {
+            id: 5,
+            title: "🎬 Видео-урок по композиции",
+            description: "Эксклюзивный видео-урок по основам композиции от профессионального художника",
+            type: "embed",
+            embed_html: `<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1139315921?h=93d70dfee4&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="ТИХОНОВА"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>`,
+            preview_url: "https://images.unsplash.com/photo-1492684223066-81332ee5ff30?w=300&h=200&fit=crop",
+            price: 20,
+            content_text: "Профессиональный видео-урок по основам композиции в живописи. Вы научитесь правильно располагать элементы на холсте, создавать гармоничные композиции и направлять взгляд зрителя.\n\nТемы урока:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с акцентами",
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 6,
+            title: "📺 Тестовое видео",
+            description: "Простой тест embed-видео",
+            type: "embed",
+            embed_html: `<div style="width: 100%; height: 400px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
+                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Тестовое видео</div>
+                    <div style="color: #666;">Здесь будет встроенное видео</div>
+                </div>
+            </div>`,
+            preview_url: "",
+            price: 5,
+            content_text: "Это тестовый embed-контент для проверки отображения",
+            is_active: true,
+            created_at: new Date().toISOString()
+        }  
     ],
     activities: [],
     admins: [
@@ -573,8 +573,21 @@ let db = {
     interactive_completions: [],
     interactive_submissions: [],
     marathon_submissions: [],
-    private_channel_videos: [],      // <-- ДОБАВЛЯЕМ
-    video_access: []                 // <-- ДОБАВЛЯЕМ
+    private_channel_videos: [
+        {
+            id: 1,
+            message_id: 123,
+            title: "🎬 Профессиональный урок по акварели",
+            description: "Полный урок по технике акварельной живописи от профессионального художника",
+            duration: "45 минут",
+            file_size: "1.2 GB",
+            price: 25,
+            tags: ["акварель", "урок", "профессиональный"],
+            is_active: true,
+            created_at: new Date().toISOString()
+        }
+    ],
+    video_access: []
 };
 
 // ==================== СИСТЕМА ПРИВАТНОГО КАНАЛА ====================
@@ -585,25 +598,6 @@ const PRIVATE_CHANNEL_CONFIG = {
     CHANNEL_USERNAME: process.env.PRIVATE_CHANNEL_USERNAME || '@private_videos_channel',
     BOT_TOKEN: process.env.BOT_TOKEN
 };
-
-// Новая коллекция для видео из приватного канала
-db.private_channel_videos = [
-    {
-        id: 1,
-        message_id: 123,
-        title: "🎬 Профессиональный урок по акварели",
-        description: "Полный урок по технике акварельной живописи от профессионального художника",
-        duration: "45 минут",
-        file_size: "1.2 GB",
-        price: 25,
-        tags: ["акварель", "урок", "профессиональный"],
-        is_active: true,
-        created_at: new Date().toISOString()
-    }
-];
-
-// Коллекция для доступа пользователей к видео
-db.video_access = [];
 
 // Увеличены лимиты для больших файлов (3GB)
 app.use(express.json({ limit: '3gb' }));
@@ -791,6 +785,20 @@ app.get('/health', (req, res) => {
 });
 
 // ==================== ОПТИМИЗИРОВАННЫЕ API ДЛЯ МОБИЛЬНЫХ ====================
+
+// Middleware для определения мобильных устройств
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    req.isMobile = isMobile;
+    
+    if (isMobile) {
+        console.log('📱 Мобильное устройство обнаружено:', userAgent.substring(0, 50));
+        // Устанавливаем специальные заголовки для мобильных
+        res.set('X-Mobile-Optimized', 'true');
+    }
+    next();
+});
 
 // Оптимизированный API для мобильных с увеличенными таймаутами
 app.get('/api/mobile/optimized-data', (req, res) => {
@@ -2706,6 +2714,176 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     res.json(stats);
 });
 
+// ==================== ЭКСПОРТ ОТЧЕТОВ ====================
+
+// Экспорт пользователей в CSV
+app.get('/api/admin/export/users', requireAdmin, (req, res) => {
+    try {
+        console.log('📊 Экспорт пользователей в CSV');
+        
+        const users = db.users.filter(u => u.is_registered);
+        
+        // Заголовки CSV
+        let csv = 'ID;Имя;Username;Роль;Персонаж;Уровень;Искры;Зарегистрирован;Последняя активность\n';
+        
+        // Данные пользователей
+        users.forEach(user => {
+            const row = [
+                user.user_id,
+                user.tg_first_name || '',
+                user.tg_username || '',
+                user.class || '',
+                user.character_name || '',
+                user.level || '',
+                user.sparks.toFixed(1),
+                new Date(user.registration_date).toLocaleDateString('ru-RU'),
+                new Date(user.last_active).toLocaleDateString('ru-RU')
+            ].map(field => `"${field}"`).join(';');
+            
+            csv += row + '\n';
+        });
+        
+        // Устанавливаем заголовки для скачивания
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="users_export.csv"');
+        res.send(csv);
+        
+        console.log('✅ CSV экспортирован, пользователей:', users.length);
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта:', error);
+        res.status(500).json({ error: 'Ошибка экспорта данных' });
+    }
+});
+
+// Экспорт статистики в CSV
+app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
+    try {
+        console.log('📈 Экспорт полной статистики в CSV');
+        
+        const users = db.users.filter(u => u.is_registered);
+        const purchases = db.purchases;
+        const activities = db.activities;
+        const works = db.user_works;
+        const quizCompletions = db.quiz_completions;
+        const marathonCompletions = db.marathon_completions.filter(m => m.completed);
+        
+        // Статистика по ролям
+        const roleStats = {};
+        db.roles.forEach(role => {
+            roleStats[role.name] = users.filter(u => u.class === role.name).length;
+        });
+        
+        let csv = 'Раздел;Показатель;Значение\n';
+        
+        // Основная статистика
+        csv += `Пользователи;Всего пользователей;${users.length}\n`;
+        csv += `Пользователи;Зарегистрировано;${users.filter(u => u.is_registered).length}\n`;
+        csv += `Пользователи;Активных сегодня;${users.filter(u => {
+            const today = new Date();
+            const lastActive = new Date(u.last_active);
+            return lastActive.toDateString() === today.toDateString();
+        }).length}\n`;
+        
+        // Статистика по ролям
+        Object.keys(roleStats).forEach(role => {
+            csv += `Роли;${role};${roleStats[role]}\n`;
+        });
+        
+        // Активности
+        csv += `Активности;Всего активностей;${activities.length}\n`;
+        csv += `Активности;Всего искр в системе;${users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)}\n`;
+        csv += `Активности;Всего покупок;${purchases.length}\n`;
+        csv += `Активности;Всего работ;${works.length}\n`;
+        csv += `Активности;Одобренных работ;${works.filter(w => w.status === 'approved').length}\n`;
+        
+        // Завершения
+        csv += `Завершения;Пройдено квизов;${quizCompletions.length}\n`;
+        csv += `Завершения;Завершено марафонов;${marathonCompletions.length}\n`;
+        
+        // Контент
+        csv += `Контент;Активных квизов;${db.quizzes.filter(q => q.is_active).length}\n`;
+        csv += `Контент;Активных марафонов;${db.marathons.filter(m => m.is_active).length}\n`;
+        csv += `Контент;Товаров в магазине;${db.shop_items.filter(i => i.is_active).length}\n`;
+        csv += `Контент;Постов в канале;${db.channel_posts.filter(p => p.is_active).length}\n`;
+        csv += `Контент;Интерактивов;${db.interactives.filter(i => i.is_active).length}\n`;
+        
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="full_stats_export.csv"');
+        res.send(csv);
+        
+        console.log('✅ Статистика экспортирована');
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта статистики:', error);
+        res.status(500).json({ error: 'Ошибка экспорта статистики' });
+    }
+});
+
+// Оптимизированные API для мобильных устройств
+app.get('/api/webapp/mobile/shop/items', async (req, res) => {
+    try {
+        const items = db.shop_items.filter(item => item.is_active);
+        
+        // Для мобильных - ограничиваем данные и убираем тяжелый контент
+        const mobileItems = items.map(item => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            type: item.type,
+            preview_url: item.preview_url,
+            price: item.price,
+            // Исключаем большие поля для мобильных
+            content_text: req.isMobile ? (item.content_text?.substring(0, 100) + '...') : item.content_text,
+            embed_html: null, // Не отправляем embed на мобильные
+            is_active: item.is_active
+        }));
+        
+        res.json(mobileItems);
+    } catch (error) {
+        console.error('❌ Ошибка загрузки магазина для мобильных:', error);
+        res.status(500).json({ error: 'Ошибка загрузки товаров' });
+    }
+});
+
+// Оптимизированные интерактивы для мобильных
+app.get('/api/webapp/mobile/interactives', async (req, res) => {
+    try {
+        const interactives = db.interactives.filter(i => i.is_active);
+        
+        const mobileInteractives = interactives.map(interactive => ({
+            id: interactive.id,
+            title: interactive.title,
+            description: interactive.description,
+            type: interactive.type,
+            category: interactive.category,
+            image_url: interactive.image_url,
+            question: interactive.question,
+            sparks_reward: interactive.sparks_reward,
+            allow_retake: interactive.allow_retake,
+            // Упрощаем для мобильных
+            options: interactive.options || [],
+            correct_answer: interactive.correct_answer,
+            is_active: interactive.is_active
+        }));
+        
+        res.json(mobileInteractives);
+    } catch (error) {
+        console.error('❌ Ошибка загрузки интерактивов для мобильных:', error);
+        res.status(500).json({ error: 'Ошибка загрузки интерактивов' });
+    }
+});
+
+// Health check для мобильных
+app.get('/api/mobile/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        mobile: true,
+        timestamp: new Date().toISOString(),
+        optimized: true
+    });
+});
+
 // Telegram Bot
 let bot;
 if (process.env.BOT_TOKEN) {
@@ -2887,197 +3065,6 @@ if (process.env.BOT_TOKEN) {
         console.error('❌ Ошибка инициализации бота:', error);
     }
 }
-
-// ==================== ЭКСПОРТ ОТЧЕТОВ ====================
-
-// Экспорт пользователей в CSV
-app.get('/api/admin/export/users', requireAdmin, (req, res) => {
-    try {
-        console.log('📊 Экспорт пользователей в CSV');
-        
-        const users = db.users.filter(u => u.is_registered);
-        
-        // Заголовки CSV
-        let csv = 'ID;Имя;Username;Роль;Персонаж;Уровень;Искры;Зарегистрирован;Последняя активность\n';
-        
-        // Данные пользователей
-        users.forEach(user => {
-            const row = [
-                user.user_id,
-                user.tg_first_name || '',
-                user.tg_username || '',
-                user.class || '',
-                user.character_name || '',
-                user.level || '',
-                user.sparks.toFixed(1),
-                new Date(user.registration_date).toLocaleDateString('ru-RU'),
-                new Date(user.last_active).toLocaleDateString('ru-RU')
-            ].map(field => `"${field}"`).join(';');
-            
-            csv += row + '\n';
-        });
-        
-        // Устанавливаем заголовки для скачивания
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename="users_export.csv"');
-        res.send(csv);
-        
-        console.log('✅ CSV экспортирован, пользователей:', users.length);
-        
-    } catch (error) {
-        console.error('❌ Ошибка экспорта:', error);
-        res.status(500).json({ error: 'Ошибка экспорта данных' });
-    }
-});
-
-// Экспорт статистики в CSV
-app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
-    try {
-        console.log('📈 Экспорт полной статистики в CSV');
-        
-        const users = db.users.filter(u => u.is_registered);
-        const purchases = db.purchases;
-        const activities = db.activities;
-        const works = db.user_works;
-        const quizCompletions = db.quiz_completions;
-        const marathonCompletions = db.marathon_completions.filter(m => m.completed);
-        
-        // Статистика по ролям
-        const roleStats = {};
-        db.roles.forEach(role => {
-            roleStats[role.name] = users.filter(u => u.class === role.name).length;
-        });
-        
-        let csv = 'Раздел;Показатель;Значение\n';
-        
-        // Основная статистика
-        csv += `Пользователи;Всего пользователей;${users.length}\n`;
-        csv += `Пользователи;Зарегистрировано;${users.filter(u => u.is_registered).length}\n`;
-        csv += `Пользователи;Активных сегодня;${users.filter(u => {
-            const today = new Date();
-            const lastActive = new Date(u.last_active);
-            return lastActive.toDateString() === today.toDateString();
-        }).length}\n`;
-        
-        // Статистика по ролям
-        Object.keys(roleStats).forEach(role => {
-            csv += `Роли;${role};${roleStats[role]}\n`;
-        });
-        
-        // Активности
-        csv += `Активности;Всего активностей;${activities.length}\n`;
-        csv += `Активности;Всего искр в системе;${users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)}\n`;
-        csv += `Активности;Всего покупок;${purchases.length}\n`;
-        csv += `Активности;Всего работ;${works.length}\n`;
-        csv += `Активности;Одобренных работ;${works.filter(w => w.status === 'approved').length}\n`;
-        
-        // Завершения
-        csv += `Завершения;Пройдено квизов;${quizCompletions.length}\n`;
-        csv += `Завершения;Завершено марафонов;${marathonCompletions.length}\n`;
-        
-        // Контент
-        csv += `Контент;Активных квизов;${db.quizzes.filter(q => q.is_active).length}\n`;
-        csv += `Контент;Активных марафонов;${db.marathons.filter(m => m.is_active).length}\n`;
-        csv += `Контент;Товаров в магазине;${db.shop_items.filter(i => i.is_active).length}\n`;
-        csv += `Контент;Постов в канале;${db.channel_posts.filter(p => p.is_active).length}\n`;
-        csv += `Контент;Интерактивов;${db.interactives.filter(i => i.is_active).length}\n`;
-        
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename="full_stats_export.csv"');
-        res.send(csv);
-        
-        console.log('✅ Статистика экспортирована');
-        
-    } catch (error) {
-        console.error('❌ Ошибка экспорта статистики:', error);
-        res.status(500).json({ error: 'Ошибка экспорта статистики' });
-    }
-});
-
-// ==================== МОБИЛЬНАЯ ОПТИМИЗАЦИЯ ====================
-
-// Middleware для определения мобильных устройств
-app.use((req, res, next) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    req.isMobile = isMobile;
-    
-    if (isMobile) {
-        console.log('📱 Мобильное устройство обнаружено:', userAgent.substring(0, 50));
-        // Устанавливаем специальные заголовки для мобильных
-        res.set('X-Mobile-Optimized', 'true');
-    }
-    next();
-});
-
-// Глобальный детектор мобильных для использования в других модулях
-global.isMobileDevice = (userAgent) => {
-    return /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-};
-
-// Оптимизированные API для мобильных устройств
-app.get('/api/webapp/mobile/shop/items', async (req, res) => {
-    try {
-        const items = db.shop_items.filter(item => item.is_active);
-        
-        // Для мобильных - ограничиваем данные и убираем тяжелый контент
-        const mobileItems = items.map(item => ({
-            id: item.id,
-            title: item.title,
-            description: item.description,
-            type: item.type,
-            preview_url: item.preview_url,
-            price: item.price,
-            // Исключаем большие поля для мобильных
-            content_text: req.isMobile ? (item.content_text?.substring(0, 100) + '...') : item.content_text,
-            embed_html: null, // Не отправляем embed на мобильные
-            is_active: item.is_active
-        }));
-        
-        res.json(mobileItems);
-    } catch (error) {
-        console.error('❌ Ошибка загрузки магазина для мобильных:', error);
-        res.status(500).json({ error: 'Ошибка загрузки товаров' });
-    }
-});
-
-// Оптимизированные интерактивы для мобильных
-app.get('/api/webapp/mobile/interactives', async (req, res) => {
-    try {
-        const interactives = db.interactives.filter(i => i.is_active);
-        
-        const mobileInteractives = interactives.map(interactive => ({
-            id: interactive.id,
-            title: interactive.title,
-            description: interactive.description,
-            type: interactive.type,
-            category: interactive.category,
-            image_url: interactive.image_url,
-            question: interactive.question,
-            sparks_reward: interactive.sparks_reward,
-            allow_retake: interactive.allow_retake,
-            // Упрощаем для мобильных
-            options: interactive.options || [],
-            correct_answer: interactive.correct_answer,
-            is_active: interactive.is_active
-        }));
-        
-        res.json(mobileInteractives);
-    } catch (error) {
-        console.error('❌ Ошибка загрузки интерактивов для мобильных:', error);
-        res.status(500).json({ error: 'Ошибка загрузки интерактивов' });
-    }
-});
-
-// Health check для мобильных
-app.get('/api/mobile/health', (req, res) => {
-    res.json({ 
-        status: 'OK', 
-        mobile: true,
-        timestamp: new Date().toISOString(),
-        optimized: true
-    });
-});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
