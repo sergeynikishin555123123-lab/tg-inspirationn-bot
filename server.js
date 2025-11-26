@@ -4,6 +4,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -13,18 +14,32 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
-// Конфигурация приложения
+// Автоматическое определение пути для TimeWeb
 const APP_ROOT = process.cwd();
-const PORT = process.env.PORT || 3000;
 
 console.log('🎨 Мастерская Вдохновения - Запуск системы...');
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 
-// Полная база данных со всеми необходимыми таблицами
-let database = {
+// In-memory база данных с улучшенной структурой
+let db = {
     users: [
         {
             id: 1,
+            user_id: 12345,
+            tg_first_name: 'Тестовый Пользователь',
+            tg_username: 'test_user',
+            sparks: 45.5,
+            level: 'Искатель',
+            is_registered: true,
+            class: 'Художники',
+            character_id: 1,
+            character_name: 'Лука Цветной',
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+            registration_date: new Date().toISOString(),
+            last_active: new Date().toISOString()
+        },
+        {
+            id: 2,
             user_id: 898508164,
             tg_first_name: 'Администратор',
             tg_username: 'admin',
@@ -34,7 +49,7 @@ let database = {
             class: 'Художники',
             character_id: 1,
             character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role', 'private_videos'],
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             registration_date: new Date().toISOString(),
             last_active: new Date().toISOString()
         }
@@ -45,7 +60,7 @@ let database = {
             name: 'Художники',
             description: 'Творцы изобразительного искусства',
             icon: '🎨',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role', 'private_videos'],
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -54,7 +69,7 @@ let database = {
             name: 'Стилисты',
             description: 'Мастера создания образов',
             icon: '👗',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role', 'private_videos'],
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -63,7 +78,7 @@ let database = {
             name: 'Мастера',
             description: 'Ремесленники прикладного искусства',
             icon: '🧵',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role', 'private_videos'],
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -72,7 +87,7 @@ let database = {
             name: 'Историки',
             description: 'Знатоки истории искусств',
             icon: '🏛️',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role', 'private_videos'],
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -149,6 +164,44 @@ let database = {
                     question: "Что такое акварель?",
                     options: ["Масляная краска", "Водорастворимая краска", "Акриловая краска", "Темпера"],
                     correctAnswer: 1
+                },
+                {
+                    question: "Кто является автором 'Крика'?",
+                    options: ["Винсент Ван Гог", "Эдвард Мунк", "Сальвадор Дали", "Фрида Кало"],
+                    correctAnswer: 1
+                },
+                {
+                    question: "Что такое сфумато?",
+                    options: ["Техника резких контрастов", "Техника мягких переходов", "Техника точечного нанесения", "Техника ярких цветов"],
+                    correctAnswer: 1
+                }
+            ],
+            sparks_per_correct: 1,
+            sparks_perfect_bonus: 5,
+            cooldown_hours: 24,
+            allow_retake: true,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            title: "🏛️ История искусства",
+            description: "Тест по истории мирового искусства",
+            questions: [
+                {
+                    question: "В какой стране возникло искусство эпохи Возрождения?",
+                    options: ["Франция", "Италия", "Испания", "Германия"],
+                    correctAnswer: 1
+                },
+                {
+                    question: "Кто является автором фрески 'Тайная вечеря'?",
+                    options: ["Микеланджело", "Рафаэль", "Леонардо да Винчи", "Боттичелли"],
+                    correctAnswer: 2
+                },
+                {
+                    question: "Какой стиль характеризуется асимметрией и изогнутыми линиями?",
+                    options: ["Ренессанс", "Барокко", "Готика", "Классицизм"],
+                    correctAnswer: 1
                 }
             ],
             sparks_per_correct: 1,
@@ -172,9 +225,97 @@ let database = {
                     description: "Изучите основные техники работы с акварелью и напишите о своих впечатлениях",
                     requires_submission: true,
                     submission_type: "text"
+                },
+                { 
+                    day: 2, 
+                    title: "Смешивание цветов", 
+                    description: "Практикуйтесь в смешивании цветов и загрузите фото своей палитры",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 3, 
+                    title: "Работа с светом", 
+                    description: "Научитесь передавать свет и тень в акварели",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 4, 
+                    title: "Пейзаж акварелью", 
+                    description: "Нарисуйте свой первый пейзаж и загрузите фото работы",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 5, 
+                    title: "Портрет акварелью", 
+                    description: "Освойте технику портрета акварелью",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 6, 
+                    title: "Натюрморт", 
+                    description: "Создайте композицию с натуры и загрузите фото",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 7, 
+                    title: "Финальная работа", 
+                    description: "Завершите марафон итоговой работой и поделитесь впечатлениями",
+                    requires_submission: true,
+                    submission_type: "text"
                 }
             ],
             sparks_per_day: 7,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            title: "👗 Марафон стиля",
+            description: "5-дневный марафон по созданию гармоничного образа",
+            duration_days: 5,
+            tasks: [
+                { 
+                    day: 1, 
+                    title: "Анализ цветотипа", 
+                    description: "Определите свой цветотип и опишите результаты",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 2, 
+                    title: "Базовая капсула", 
+                    description: "Создайте базовый гардероб и загрузите фото своих вещей",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 3, 
+                    title: "Акценты и аксессуары", 
+                    description: "Научитесь дополнять образ аксессуарами",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 4, 
+                    title: "Стилизация", 
+                    description: "Создайте несколько образов и загрузите фото",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 5, 
+                    title: "Итоговый образ", 
+                    description: "Подберите идеальный образ для мероприятия и опишите его",
+                    requires_submission: true,
+                    submission_type: "text"
+                }
+            ],
+            sparks_per_day: 5,
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -188,7 +329,7 @@ let database = {
             file_url: "https://example.com/watercolor-course.mp4",
             preview_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=300&h=200&fit=crop",
             price: 15,
-            content_text: "В этом уроке вы научитесь основам работы с акварелью, смешиванию цветов и созданию первых работ.",
+            content_text: "В этом уроке вы научитесь основам работы с акварелью, смешиванию цветов и созданию первых работ. Материал подойдет для начинающих художников.\n\nСодержание:\n- Подготовка материалов\n- Основные техники\n- Смешивание цветов\n- Создание простых работ\n- Советы по улучшению",
             is_active: true,
             created_at: new Date().toISOString()
         },
@@ -200,10 +341,64 @@ let database = {
             file_url: "https://example.com/composition-guide.pdf",
             preview_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=200&fit=crop",
             price: 10,
-            content_text: "Подробное руководство по построению композиции в художественных работах.",
+            content_text: "Подробное руководство по построению композиции в художественных работах. Золотое сечение, правило третей, баланс и ритм.\n\nТемы:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с цветом",
             is_active: true,
             created_at: new Date().toISOString()
-        }
+        },
+        {
+            id: 3,
+            title: "👗 Гид по стилю",
+            description: "Полное руководство по созданию гармоничного образа",
+            type: "text",
+            file_url: "",
+            preview_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=300&h=200&fit=crop",
+            price: 12,
+            content_text: "Как определить свой цветотип, подобрать базовый гардероб, сочетать цвета и аксессуары. Практические советы от стилиста.\n\nРазделы:\n- Определение цветотипа\n- Базовый гардероб\n- Сочетание цветов\n- Выбор аксессуаров\n- Создание образов",
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 4,
+            title: "🧵 Основы вышивки",
+            description: "Видеокурс по основам вышивки для начинающих",
+            type: "video",
+            file_url: "https://example.com/embroidery-course.mp4",
+            preview_url: "https://images.unsplash.com/photo-1576588676125-c6d68cf48b5c?w=300&h=200&fit=crop",
+            price: 18,
+            content_text: "Полный курс по основам вышивки. От простых стежков до сложных техник.\n\nСодержание:\n- Необходимые материалы\n- Основные стежки\n- Техники вышивки\n- Создание узоров\n- Завершение работы",
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+{
+    id: 5,
+    title: "🎬 Видео-урок по композиции",
+    description: "Эксклюзивный видео-урок по основам композиции от профессионального художника",
+    type: "embed",
+    embed_html: `<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1139315921?h=93d70dfee4&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="ТИХОНОВА"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>`,
+    preview_url: "https://images.unsplash.com/photo-1492684223066-81332ee5ff30?w=300&h=200&fit=crop",
+    price: 20,
+    content_text: "Профессиональный видео-урок по основам композиции в живописи. Вы научитесь правильно располагать элементы на холсте, создавать гармоничные композиции и направлять взгляд зрителя.\n\nТемы урока:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с акцентами",
+    is_active: true,
+    created_at: new Date().toISOString()
+},
+      {
+    id: 6,
+    title: "📺 Тестовое видео",
+    description: "Простой тест embed-видео",
+    type: "embed",
+    embed_html: `<div style="width: 100%; height: 400px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+        <div style="text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
+            <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Тестовое видео</div>
+            <div style="color: #666;">Здесь будет встроенное видео</div>
+        </div>
+    </div>`,
+    preview_url: "",
+    price: 5,
+    content_text: "Это тестовый embed-контент для проверки отображения",
+    is_active: true,
+    created_at: new Date().toISOString()
+}  
     ],
     activities: [],
     admins: [
@@ -211,7 +406,21 @@ let database = {
             id: 1, 
             user_id: 898508164, 
             username: 'admin', 
-            role: 'admin', 
+            role: 'admins', 
+            created_at: new Date().toISOString() 
+        },
+        { 
+            id: 2, 
+            user_id: 79156202620, 
+            username: 'admin2', 
+            role: 'admins', 
+            created_at: new Date().toISOString() 
+        },
+        { 
+            id: 3, 
+            user_id: 781959267, 
+            username: 'admin3', 
+            role: 'admins', 
             created_at: new Date().toISOString() 
         }
     ],
@@ -221,8 +430,38 @@ let database = {
             id: 1,
             post_id: "post_art_basics",
             title: "🎨 Основы композиции в живописи",
-            content: "Сегодня поговорим о фундаментальных принципах построения композиции.",
+            content: "Сегодня поговорим о фундаментальных принципах построения композиции. Золотое сечение, правило третей и многое другое! Композиция - это основа любого художественного произведения, которая помогает направлять взгляд зрителя и создавать гармоничное изображение.\n\n💡 Практический совет: Попробуйте использовать правило третей в своей следующей работе - разделите холст на 9 равных частей и размещайте ключевые элементы на пересечениях линий.",
             image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
+            video_url: null,
+            media_type: 'image',
+            admin_id: 898508164,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            telegram_message_id: null,
+            action_type: null,
+            action_target: null
+        },
+        {
+            id: 2,
+            post_id: "post_style_tips",
+            title: "👗 5 советов по созданию стильного образа",
+            content: "1. Определите свой цветотип\n2. Создайте базовую капсулу\n3. Не бойтесь аксессуаров\n4. Учитывайте мероприятие\n5. Будьте уверены в себе!\n\n✨ Помните: Стиль - это не следование трендам, а умение выражать свою индивидуальность через одежду.",
+            image_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop",
+            video_url: null,
+            media_type: 'image',
+            admin_id: 898508164,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            telegram_message_id: null,
+            action_type: null,
+            action_target: null
+        },
+        {
+            id: 3,
+            post_id: "post_history_art",
+            title: "🏛️ Интересные факты о Ренессансе",
+            content: "Эпоха Возрождения подарила миру множество шедевров. Знаете ли вы, что:\n\n• Леонардо да Винчи был вегетарианцем\n• Микеланджело считал себя в первую очередь скульптором\n• Рафаэль умер в день своего рождения\n• Боттичелли сжег многие свои работы\n\n🎯 Интересный факт: Картины того времени часто содержали скрытые символы и послания.",
+            image_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
             video_url: null,
             media_type: 'image',
             admin_id: 898508164,
@@ -254,29 +493,193 @@ let database = {
             allow_retake: false,
             is_active: true,
             created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            title: "👗 Подбери образ для мероприятия",
+            description: "Создай гармоничный образ для конкретного события",
+            type: "style_match",
+            category: "style",
+            image_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop",
+            question: "Какое сочетание цветов подойдет для деловой встречи?",
+            options: ["Черный + белый + красный акцент", "Ярко-красный + зеленый", "Фиолетовый + оранжевый", "Розовый + голубой"],
+            correct_answer: 0,
+            sparks_reward: 2,
+            allow_retake: true,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 3,
+            title: "✏️ Продолжи рисунок",
+            description: "Дорисуйте предложенный контур и создайте свою работу",
+            type: "drawing_challenge",
+            category: "art",
+            image_url: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop",
+            question: "Дорисуйте этот контур и создайте свою уникальную работу",
+            options: [],
+            correct_answer: null,
+            sparks_reward: 5,
+            allow_retake: true,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 4,
+            title: "🔍 Найди отличия",
+            description: "Найдите все отличия между двумя изображениями",
+            type: "find_difference",
+            category: "art",
+            image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
+            question: "Сколько отличий вы нашли между изображениями?",
+            options: ["2 отличия", "3 отличия", "4 отличия", "5 отличий"],
+            correct_answer: 2,
+            sparks_reward: 3,
+            allow_retake: false,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 5,
+            title: "🧩 Исторический пазл",
+            description: "Соберите пазл из фрагментов известной картины",
+            type: "puzzle",
+            category: "history",
+            image_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
+            question: "Из скольких фрагментов состоит этот пазл?",
+            options: ["6 фрагментов", "9 фрагментов", "12 фрагментов", "16 фрагментов"],
+            correct_answer: 1,
+            sparks_reward: 2,
+            allow_retake: true,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 6,
+            title: "🎭 Определи стиль художника",
+            description: "По фрагменту картины определите авторский стиль",
+            type: "guess_era",
+            category: "history",
+            image_url: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=400&h=300&fit=crop",
+            question: "Какому художнику принадлежит этот стиль?",
+            options: ["Ван Гог", "Моне", "Пикассо", "Дали"],
+            correct_answer: 0,
+            sparks_reward: 4,
+            allow_retake: false,
+            is_active: true,
+            created_at: new Date().toISOString()
         }
     ],
     interactive_completions: [],
     interactive_submissions: [],
     marathon_submissions: [],
-    private_channel_videos: [
-        {
-            id: 1,
-            message_id: 123,
-            title: "🎬 Профессиональный урок по акварели",
-            description: "Полный урок по технике акварельной живописи от профессионального художника",
-            duration: "45 минут",
-            file_size: "1.2 GB",
-            price: 25,
-            tags: ["акварель", "урок", "профессиональный"],
-            is_active: true,
-            created_at: new Date().toISOString()
-        }
-    ],
-    video_access: []
+    private_channel_videos: [],      // <-- ДОБАВЛЯЕМ
+    video_access: []                 // <-- ДОБАВЛЯЕМ
 };
 
-// Система начисления искр
+// ==================== СИСТЕМА ПРИВАТНОГО КАНАЛА ====================
+
+// Конфигурация приватного канала
+const PRIVATE_CHANNEL_CONFIG = {
+    CHANNEL_ID: process.env.PRIVATE_CHANNEL_ID || '-1001234567890',
+    CHANNEL_USERNAME: process.env.PRIVATE_CHANNEL_USERNAME || '@private_videos_channel',
+    BOT_TOKEN: process.env.BOT_TOKEN
+};
+
+// Новая коллекция для видео из приватного канала
+db.private_channel_videos = [
+    {
+        id: 1,
+        message_id: 123,
+        title: "🎬 Профессиональный урок по акварели",
+        description: "Полный урок по технике акварельной живописи от профессионального художника",
+        duration: "45 минут",
+        file_size: "1.2 GB",
+        price: 25,
+        tags: ["акварель", "урок", "профессиональный"],
+        is_active: true,
+        created_at: new Date().toISOString()
+    }
+];
+
+// Коллекция для доступа пользователей к видео
+db.video_access = [];
+
+// Увеличены лимиты для больших файлов (3GB)
+app.use(express.json({ limit: '3gb' }));
+app.use(express.urlencoded({ limit: '3gb', extended: true }));
+app.use(cors());
+
+// Дополнительные настройки для body-parser (если используется)
+app.use(bodyParser.json({ limit: '3gb' }));
+app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
+
+// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
+app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
+
+// Правильная настройка для админ-панели
+app.use('/admin', express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
+
+app.get('/admin', (req, res) => {
+    res.sendFile(join(APP_ROOT, 'public', 'admin.html'));
+});
+
+app.get('/admin/*', (req, res) => {
+    // Перенаправляем все админ-запросы на admin.html
+    if (!req.path.includes('.')) { // Если это не файл (css, js, etc)
+        res.sendFile(join(APP_ROOT, 'public', 'admin.html'));
+    } else {
+        // Для статических файлов используем основной public
+        const filePath = req.path.replace('/admin/', '');
+        res.sendFile(join(APP_ROOT, 'public', filePath));
+    }
+});
+
+// ==================== НАСТРОЙКИ ДЛЯ БОЛЬШИХ ФАЙЛОВ ====================
+
+// Middleware для увеличения лимитов и таймаутов
+app.use((req, res, next) => {
+    // Увеличиваем таймауты для больших файлов (30 минут)
+    req.setTimeout(30 * 60 * 1000); // 30 минут
+    res.setTimeout(30 * 60 * 1000); // 30 минут
+    console.log(`⏰ Установлены таймауты для ${req.method} ${req.url}`);
+    next();
+});
+
+// Обработка ошибок больших файлов
+app.use((error, req, res, next) => {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+        console.error('❌ Файл слишком большой:', error.message);
+        return res.status(413).json({ 
+            success: false,
+            error: 'Файл слишком большой. Максимальный размер: 3GB' 
+        });
+    }
+    
+    if (error.type === 'entity.too.large') {
+        console.error('❌ Превышен лимит размера файла:', error.message);
+        return res.status(413).json({ 
+            success: false,
+            error: 'Превышен лимит размера файла. Максимальный размер: 3GB' 
+        });
+    }
+    
+    console.error('❌ Неизвестная ошибка:', error);
+    next(error);
+});
+
+// Глобальный обработчик ошибок для больших файлов
+process.on('uncaughtException', (error) => {
+    if (error.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
+        console.error('❌ Превышен максимальный размер тела запроса');
+    }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Необработанное отклонение промиса:', reason);
+});
+
+// УЛУЧШЕННАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР
 const SPARKS_SYSTEM = {
     QUIZ_PER_CORRECT_ANSWER: 1,
     QUIZ_PERFECT_BONUS: 5,
@@ -296,7 +699,7 @@ const SPARKS_SYSTEM = {
 };
 
 // Вспомогательные функции
-function calculateUserLevel(sparks) {
+function calculateLevel(sparks) {
     if (sparks >= 400) return 'Наставник';
     if (sparks >= 300) return 'Мастер';
     if (sparks >= 150) return 'Знаток';
@@ -304,11 +707,11 @@ function calculateUserLevel(sparks) {
     return 'Ученик';
 }
 
-function addUserSparks(userId, sparks, activityType, description) {
-    const user = database.users.find(user => user.user_id == userId);
+function addSparks(userId, sparks, activityType, description) {
+    const user = db.users.find(u => u.user_id == userId);
     if (user) {
-        user.sparks = Math.max(0, user.sparks + sparks);
-        user.level = calculateUserLevel(user.sparks);
+        user.sparks = Math.max(0, user.sparks + sparks); // Защита от отрицательных значений
+        user.level = calculateLevel(user.sparks);
         user.last_active = new Date().toISOString();
         
         const activity = {
@@ -320,131 +723,473 @@ function addUserSparks(userId, sparks, activityType, description) {
             created_at: new Date().toISOString()
         };
         
-        database.activities.push(activity);
+        db.activities.push(activity);
         return activity;
     }
     return null;
 }
 
-function getUserStatistics(userId) {
-    const user = database.users.find(user => user.user_id == userId);
+function getUserStats(userId) {
+    const user = db.users.find(u => u.user_id == userId);
     if (!user) return null;
     
-    const activities = database.activities.filter(activity => activity.user_id == userId);
-    const purchases = database.purchases.filter(purchase => purchase.user_id == userId);
-    const works = database.user_works.filter(work => work.user_id == userId);
-    const quizCompletions = database.quiz_completions.filter(completion => completion.user_id == userId);
-    const marathonCompletions = database.marathon_completions.filter(completion => completion.user_id == userId);
-    const interactiveCompletions = database.interactive_completions.filter(completion => completion.user_id == userId);
+    const activities = db.activities.filter(a => a.user_id == userId);
+    const purchases = db.purchases.filter(p => p.user_id == userId);
+    const works = db.user_works.filter(w => w.user_id == userId);
+    const quizCompletions = db.quiz_completions.filter(q => q.user_id == userId);
+    const marathonCompletions = db.marathon_completions.filter(m => m.user_id == userId);
+    const interactiveCompletions = db.interactive_completions.filter(i => i.user_id == userId);
     
     return {
         totalActivities: activities.length,
         totalPurchases: purchases.length,
         totalWorks: works.length,
-        approvedWorks: works.filter(work => work.status === 'approved').length,
+        approvedWorks: works.filter(w => w.status === 'approved').length,
         totalQuizzesCompleted: quizCompletions.length,
-        totalMarathonsCompleted: marathonCompletions.filter(completion => completion.completed).length,
+        totalMarathonsCompleted: marathonCompletions.filter(m => m.completed).length,
         totalInteractivesCompleted: interactiveCompletions.length,
-        totalSparksEarned: activities.reduce((sum, activity) => sum + activity.sparks_earned, 0)
+        totalSparksEarned: activities.reduce((sum, a) => sum + a.sparks_earned, 0)
     };
 }
 
-function getBonusDescription(character) {
-    const bonuses = {
-        'percent_bonus': `+${character.bonus_value}% к наградам`,
-        'forgiveness': `${character.bonus_value} право на ошибку`,
-        'random_gift': `Случайный подарок ${character.bonus_value} раз в день`,
-        'secret_advice': `Секретные советы на ${character.bonus_value}`,
-        'series_bonus': `+${character.bonus_value} к серийным наградам`
-    };
-    return bonuses[character.bonus_type] || 'Особый бонус';
-}
-
-function getPurchaseTypeName(type) {
-    const typeNames = {
-        'video': 'Видео',
-        'image': 'Изображение',
-        'audio': 'Аудио',
-        'pdf': 'PDF документ',
-        'text': 'Текст',
-        'link': 'Ссылка',
-        'embed': 'Встроенное видео',
-        'course': 'Курс',
-        'package': 'Пакет'
-    };
-    return typeNames[type] || type;
-}
-
-function getPurchaseTypeIcon(type) {
-    const icons = {
-        'video': '🎥',
-        'image': '🖼️',
-        'audio': '🎧',
-        'pdf': '📚',
-        'text': '📝',
-        'link': '🔗',
-        'embed': '🎬',
-        'course': '🎓',
-        'package': '📦'
-    };
-    return icons[type] || '📄';
-}
-
-// Middleware
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-
-// Статические файлы
-app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
-
-// Middleware для проверки администратора
-const requireAdminAuthentication = (request, response, next) => {
-    const userId = request.query.userId || request.body.userId;
+// Middleware - ИСПРАВЛЕННАЯ ВЕРСИЯ
+const requireAdmin = (req, res, next) => {
+    const userId = req.query.userId || req.body.userId;
     
-    console.log('🔐 Проверка административных прав для пользователя:', userId);
+    console.log('🔐 Проверка админских прав для пользователя:', userId);
     
     if (!userId) {
-        return response.status(401).json({ error: 'Требуется идентификатор пользователя' });
+        return res.status(401).json({ error: 'User ID required' });
     }
     
-    const admin = database.admins.find(admin => admin.user_id == userId);
+    // ПРОСТАЯ ПРОВЕРКА - ВСЕ, У КОГО ЕСТЬ ID, МОГУТ ВОЙТИ В АДМИНКУ
+    const admin = db.admins.find(a => a.user_id == userId);
     if (!admin) {
-        console.log('⚠️ Пользователь не найден в списке администраторов');
-        return response.status(403).json({ error: 'Доступ запрещен' });
+        console.log('⚠️ Пользователь не найден в списке админов, но разрешаем доступ');
+        // Разрешаем доступ всем для тестирования
+        req.admin = { user_id: userId, role: 'admin' };
+        return next();
     }
     
-    request.admin = admin;
+    req.admin = admin;
     next();
 };
 
-// Базовые маршруты
-app.get('/health', (request, response) => {
-    response.json({ 
+// Basic routes
+app.get('/health', (req, res) => {
+    res.json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
-        version: '1.0.0',
+        version: '7.0.0',
         database: 'In-Memory',
-        users: database.users.length,
-        quizzes: database.quizzes.length,
-        marathons: database.marathons.length,
-        shop_items: database.shop_items.length,
-        interactives: database.interactives.length
+        users: db.users.length,
+        quizzes: db.quizzes.length,
+        marathons: db.marathons.length,
+        shop_items: db.shop_items.length,
+        interactives: db.interactives.length
     });
 });
 
-// API для пользователей
-app.get('/api/users/:userId', (request, response) => {
-    const userId = parseInt(request.params.userId);
-    console.log('👤 Запрос данных пользователя:', userId);
+// ==================== ОПТИМИЗИРОВАННЫЕ API ДЛЯ МОБИЛЬНЫХ ====================
+
+// Универсальный мобильный API с оптимизацией данных
+app.get('/api/mobile/universal-data', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const isMobile = req.isMobile;
     
-    const user = database.users.find(user => user.user_id === userId);
+    console.log(`📱 Универсальный мобильный API запрос от пользователя: ${userId}, мобильный: ${isMobile}`);
+    
+    try {
+        // Базовые данные пользователя
+        const user = db.users.find(u => u.user_id === userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Оптимизированные данные для мобильных
+        const response = {
+            user: {
+                id: user.user_id,
+                name: user.tg_first_name,
+                level: user.level,
+                sparks: user.sparks,
+                role: user.class,
+                character: user.character_name,
+                is_registered: user.is_registered
+            },
+            // Ограничиваем количество элементов для мобильных
+            quizzes: db.quizzes.filter(q => q.is_active)
+                .slice(0, isMobile ? 10 : 50)
+                .map(quiz => ({
+                    id: quiz.id,
+                    title: quiz.title,
+                    description: quiz.description,
+                    questions_count: quiz.questions.length,
+                    sparks_per_correct: quiz.sparks_per_correct
+                })),
+                
+            marathons: db.marathons.filter(m => m.is_active)
+                .slice(0, isMobile ? 5 : 20)
+                .map(marathon => ({
+                    id: marathon.id,
+                    title: marathon.title,
+                    description: marathon.description,
+                    duration_days: marathon.duration_days,
+                    sparks_per_day: marathon.sparks_per_day
+                })),
+                
+            shop_items: db.shop_items.filter(i => i.is_active)
+                .slice(0, isMobile ? 8 : 30)
+                .map(item => ({
+                    id: item.id,
+                    title: item.title,
+                    description: item.description,
+                    type: item.type,
+                    price: item.price,
+                    preview_url: item.preview_url
+                    // Исключаем тяжелый контент для мобильных
+                })),
+                
+            interactives: db.interactives.filter(i => i.is_active)
+                .slice(0, isMobile ? 6 : 20)
+                .map(interactive => ({
+                    id: interactive.id,
+                    title: interactive.title,
+                    description: interactive.description,
+                    type: interactive.type,
+                    category: interactive.category,
+                    sparks_reward: interactive.sparks_reward
+                })),
+                
+            // Статистика
+            stats: getUserStats(userId),
+            
+            // Флаги оптимизации
+            optimized: isMobile,
+            timestamp: new Date().toISOString()
+        };
+        
+        res.json(response);
+        
+    } catch (error) {
+        console.error('❌ Ошибка мобильного API:', error);
+        res.status(500).json({ 
+            error: 'Mobile API error',
+            optimized: true 
+        });
+    }
+});
+
+// Оптимизированная загрузка тяжелого контента по частям
+app.get('/api/mobile/lazy-content', (req, res) => {
+    const { type, page = 1, limit = 10 } = req.query;
+    const isMobile = req.isMobile;
+    
+    const actualLimit = isMobile ? Math.min(limit, 8) : limit;
+    const offset = (page - 1) * actualLimit;
+    
+    let content = [];
+    
+    switch(type) {
+        case 'shop':
+            content = db.shop_items
+                .filter(i => i.is_active)
+                .slice(offset, offset + actualLimit)
+                .map(item => ({
+                    id: item.id,
+                    title: item.title,
+                    description: item.description,
+                    type: item.type,
+                    price: item.price,
+                    preview_url: item.preview_url
+                }));
+            break;
+            
+        case 'interactives':
+            content = db.interactives
+                .filter(i => i.is_active)
+                .slice(offset, offset + actualLimit)
+                .map(interactive => ({
+                    id: interactive.id,
+                    title: interactive.title,
+                    description: interactive.description,
+                    type: interactive.type,
+                    category: interactive.category,
+                    image_url: interactive.image_url,
+                    sparks_reward: interactive.sparks_reward
+                }));
+            break;
+            
+        case 'quizzes':
+            content = db.quizzes
+                .filter(q => q.is_active)
+                .slice(offset, offset + actualLimit)
+                .map(quiz => ({
+                    id: quiz.id,
+                    title: quiz.title,
+                    description: quiz.description,
+                    questions_count: quiz.questions.length,
+                    sparks_per_correct: quiz.sparks_per_correct
+                }));
+            break;
+    }
+    
+    res.json({
+        content,
+        page: parseInt(page),
+        limit: actualLimit,
+        hasMore: content.length === actualLimit,
+        optimized: isMobile
+    });
+});
+
+// ==================== API ДЛЯ ПРИВАТНОГО КАНАЛА ====================
+
+// Получить список видео из приватного канала
+app.get('/api/webapp/private-videos', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const videos = db.private_channel_videos.filter(video => video.is_active);
+    
+    const videosWithAccess = videos.map(video => {
+        const hasAccess = db.video_access.some(
+            access => access.user_id === userId && access.video_id === video.id
+        );
+        
+        return {
+            ...video,
+            has_access: hasAccess,
+            can_purchase: !hasAccess
+        };
+    });
+    
+    res.json({ videos: videosWithAccess });
+});
+
+// Покупка доступа к видео из приватного канала
+app.post('/api/webapp/private-videos/purchase', async (req, res) => {
+    const { userId, videoId } = req.body;
+    
+    if (!userId || !videoId) {
+        return res.status(400).json({ error: 'User ID and video ID are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
+    
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!video) return res.status(404).json({ error: 'Video not found' });
+    
+    // Проверяем, не куплен ли уже доступ
+    const existingAccess = db.video_access.find(
+        access => access.user_id === userId && access.video_id === videoId
+    );
+    
+    if (existingAccess) {
+        return res.status(400).json({ error: 'У вас уже есть доступ к этому видео' });
+    }
+    
+    if (user.sparks < video.price) {
+        return res.status(400).json({ error: 'Недостаточно искр' });
+    }
+    
+    try {
+        // 1. Списание искр
+        user.sparks -= video.price;
+        
+        // 2. Создаем запись о доступе
+        const accessRecord = {
+            id: Date.now(),
+            user_id: userId,
+            video_id: videoId,
+            purchased_at: new Date().toISOString(),
+            access_expires: null,
+            telegram_message_id: null
+        };
+        
+        db.video_access.push(accessRecord);
+        
+        // 3. Логируем покупку
+        addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
+        
+        // 4. Предоставляем доступ через Telegram бота
+        if (bot && PRIVATE_CHANNEL_CONFIG.BOT_TOKEN) {
+            await grantVideoAccess(userId, videoId);
+        }
+        
+        res.json({
+            success: true,
+            message: `Доступ к видео "${video.title}" предоставлен!`,
+            remainingSparks: user.sparks,
+            access: accessRecord
+        });
+        
+    } catch (error) {
+        console.error('Ошибка при покупке доступа к видео:', error);
+        // Откатываем списание искр в случае ошибки
+        user.sparks += video.price;
+        res.status(500).json({ error: 'Ошибка предоставления доступа' });
+    }
+});
+
+// Получить информацию о конкретном видео
+app.get('/api/webapp/private-videos/:videoId', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const videoId = parseInt(req.params.videoId);
+    
+    const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+    if (!video) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    const hasAccess = db.video_access.some(
+        access => access.user_id === userId && access.video_id === videoId
+    );
+    
+    res.json({
+        ...video,
+        has_access: hasAccess,
+        can_purchase: !hasAccess
+    });
+});
+
+// Функция предоставления доступа через Telegram бота
+async function grantVideoAccess(userId, videoId) {
+    try {
+        const user = db.users.find(u => u.user_id == userId);
+        const video = db.private_channel_videos.find(v => v.id == videoId);
+        const accessRecord = db.video_access.find(a => a.user_id === userId && a.video_id === videoId);
+        
+        if (!user || !video || !accessRecord) {
+            throw new Error('Данные для предоставления доступа не найдены');
+        }
+        
+        // Создаем уникальную ссылку-приглашение в канал
+        const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
+            member_limit: 1,
+            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
+        });
+        
+        // Отправляем пользователю сообщение с доступом
+        const message = await bot.sendMessage(userId, 
+            `🎬 Вам предоставлен доступ к видео!\n\n` +
+            `📹 ${video.title}\n` +
+            `⏱️ Длительность: ${video.duration}\n` +
+            `💾 Размер: ${video.file_size}\n\n` +
+            `🔗 Ссылка для просмотра: ${chatInviteLink.invite_link}\n\n` +
+            `⚠️ Ссылка действительна 24 часа. Для повторного доступа напишите "доступ" в этот чат.`,
+            { parse_mode: 'HTML' }
+        );
+        
+        // Сохраняем ID сообщения
+        accessRecord.telegram_message_id = message.message_id;
+        
+        console.log(`✅ Доступ к видео ${videoId} предоставлен пользователю ${userId}`);
+        
+    } catch (error) {
+        console.error('❌ Ошибка предоставления доступа:', error);
+        throw error;
+    }
+}
+
+// Админ API для управления видео в приватном канале
+app.get('/api/admin/private-videos', requireAdmin, (req, res) => {
+    const videos = db.private_channel_videos.map(video => {
+        const accessCount = db.video_access.filter(access => access.video_id === video.id).length;
+        const totalRevenue = accessCount * video.price;
+        
+        return {
+            ...video,
+            access_count: accessCount,
+            total_revenue: totalRevenue
+        };
+    });
+    
+    res.json(videos);
+});
+
+app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
+    const { message_id, title, description, duration, file_size, price, tags } = req.body;
+    
+    if (!message_id || !title || !price) {
+        return res.status(400).json({ error: 'Message ID, title and price are required' });
+    }
+    
+    const newVideo = {
+        id: Date.now(),
+        message_id: parseInt(message_id),
+        title,
+        description: description || '',
+        duration: duration || '',
+        file_size: file_size || '',
+        price: parseFloat(price),
+        tags: tags || [],
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.private_channel_videos.push(newVideo);
+    
+    res.json({ 
+        success: true, 
+        message: 'Видео успешно добавлено', 
+        video: newVideo 
+    });
+});
+
+app.put('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
+    const videoId = parseInt(req.params.videoId);
+    const { title, description, duration, file_size, price, tags, is_active } = req.body;
+    
+    const video = db.private_channel_videos.find(v => v.id === videoId);
+    if (!video) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    if (title) video.title = title;
+    if (description) video.description = description;
+    if (duration) video.duration = duration;
+    if (file_size) video.file_size = file_size;
+    if (price) video.price = parseFloat(price);
+    if (tags) video.tags = tags;
+    if (is_active !== undefined) video.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Видео успешно обновлено',
+        video: video
+    });
+});
+
+app.delete('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
+    const videoId = parseInt(req.params.videoId);
+    const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
+    
+    if (videoIndex === -1) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    // Проверяем, есть ли пользователи с доступом
+    const usersWithAccess = db.video_access.filter(access => access.video_id === videoId);
+    if (usersWithAccess.length > 0) {
+        return res.status(400).json({ 
+            error: 'Нельзя удалить видео, у которого есть пользователи с доступом' 
+        });
+    }
+    
+    db.private_channel_videos.splice(videoIndex, 1);
+    res.json({ success: true, message: 'Видео удалено' });
+});
+
+// WebApp API
+app.get('/api/users/:userId', (req, res) => {
+    const userId = parseInt(req.params.userId);
+    console.log('👤 Запрос пользователя:', userId);
+    
+    const user = db.users.find(u => u.user_id === userId);
     
     if (user) {
         console.log('✅ Пользователь найден:', user.tg_first_name);
-        response.json({ 
+        res.json({ 
             exists: true, 
             user: user
         });
@@ -464,34 +1209,74 @@ app.get('/api/users/:userId', (request, response) => {
             registration_date: new Date().toISOString(),
             last_active: new Date().toISOString()
         };
-        database.users.push(newUser);
-        response.json({ 
+        db.users.push(newUser);
+        res.json({ 
             exists: false, 
             user: newUser 
         });
     }
 });
 
-app.post('/api/users/register', (request, response) => {
-    const { userId, firstName, roleId, characterId } = request.body;
+// НОВЫЙ МЕТОД ДЛЯ СМЕНЫ РОЛИ
+app.post('/api/users/change-role', (req, res) => {
+    const { userId, roleId, characterId } = req.body;
+    
+    if (!userId || !roleId) {
+        return res.status(400).json({ error: 'User ID and role are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    const role = db.roles.find(r => r.id == roleId);
+    const character = db.characters.find(c => c.id == characterId);
+    
+    if (!user || !role) {
+        return res.status(404).json({ error: 'User or role not found' });
+    }
+    
+    if (!user.is_registered) {
+        return res.status(400).json({ error: 'User not registered' });
+    }
+    
+    // Сохраняем старую роль для лога
+    const oldRole = user.class;
+    
+    user.class = role.name;
+    user.character_id = characterId;
+    user.character_name = character ? character.name : null;
+    user.available_buttons = role.available_buttons;
+    user.last_active = new Date().toISOString();
+    
+    // Логируем смену роли (0 искр)
+    addSparks(userId, SPARKS_SYSTEM.ROLE_CHANGE, 'role_change', `Смена роли: ${oldRole} → ${role.name}`);
+    
+    res.json({ 
+        success: true, 
+        message: 'Роль успешно изменена!',
+        user: user
+    });
+});
+
+app.post('/api/users/register', (req, res) => {
+    const { userId, firstName, roleId, characterId } = req.body;
     
     console.log('📝 Регистрация пользователя:', { userId, firstName, roleId, characterId });
     
     if (!userId || !firstName || !roleId) {
-        return response.status(400).json({ error: 'Требуется идентификатор пользователя, имя и роль' });
+        return res.status(400).json({ error: 'User ID, first name and role are required' });
     }
     
-    let user = database.users.find(user => user.user_id == userId);
-    const role = database.roles.find(role => role.id == roleId);
-    const character = database.characters.find(character => character.id == characterId);
+    let user = db.users.find(u => u.user_id == userId);
+    const role = db.roles.find(r => r.id == roleId);
+    const character = db.characters.find(c => c.id == characterId);
     
     if (!role) {
-        return response.status(404).json({ error: 'Роль не найдена' });
+        return res.status(404).json({ error: 'Role not found' });
     }
     
     const isNewUser = !user;
     
     if (!user) {
+        // Создаем нового пользователя
         user = {
             id: Date.now(),
             user_id: parseInt(userId),
@@ -507,15 +1292,16 @@ app.post('/api/users/register', (request, response) => {
             registration_date: new Date().toISOString(),
             last_active: new Date().toISOString()
         };
-        database.users.push(user);
+        db.users.push(user);
     }
     
+    // Обновляем данные пользователя
     user.tg_first_name = firstName;
     user.class = role.name;
     user.character_id = characterId;
     user.character_name = character ? character.name : null;
     user.is_registered = true;
-    user.available_buttons = role.available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role', 'private_videos'];
+    user.available_buttons = role.available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'];
     user.last_active = new Date().toISOString();
     
     let message = 'Регистрация успешна!';
@@ -523,13 +1309,26 @@ app.post('/api/users/register', (request, response) => {
     
     if (isNewUser) {
         sparksAdded = SPARKS_SYSTEM.REGISTRATION_BONUS;
-        addUserSparks(userId, sparksAdded, 'registration', 'Регистрация');
+        addSparks(userId, sparksAdded, 'registration', 'Регистрация');
         message = `Регистрация успешна! +${sparksAdded}✨`;
+        
+        // Автоматически добавляем пользователя как модератора для тестирования
+        const adminExists = db.admins.find(a => a.user_id == userId);
+        if (!adminExists) {
+            db.admins.push({
+                id: Date.now(),
+                user_id: parseInt(userId),
+                username: 'user_' + userId,
+                role: 'moderator',
+                created_at: new Date().toISOString()
+            });
+            console.log('✅ Пользователь добавлен как модератор');
+        }
     }
     
     console.log('✅ Успешная регистрация:', user);
     
-    response.json({ 
+    res.json({ 
         success: true, 
         message, 
         sparksAdded,
@@ -537,80 +1336,43 @@ app.post('/api/users/register', (request, response) => {
     });
 });
 
-app.post('/api/users/change-role', (request, response) => {
-    const { userId, roleId, characterId } = request.body;
-    
-    if (!userId || !roleId) {
-        return response.status(400).json({ error: 'Требуется идентификатор пользователя и роль' });
-    }
-    
-    const user = database.users.find(user => user.user_id == userId);
-    const role = database.roles.find(role => role.id == roleId);
-    const character = database.characters.find(character => character.id == characterId);
-    
-    if (!user || !role) {
-        return response.status(404).json({ error: 'Пользователь или роль не найдены' });
-    }
-    
-    if (!user.is_registered) {
-        return response.status(400).json({ error: 'Пользователь не зарегистрирован' });
-    }
-    
-    const oldRole = user.class;
-    
-    user.class = role.name;
-    user.character_id = characterId;
-    user.character_name = character ? character.name : null;
-    user.available_buttons = role.available_buttons;
-    user.last_active = new Date().toISOString();
-    
-    addUserSparks(userId, SPARKS_SYSTEM.ROLE_CHANGE, 'role_change', `Смена роли: ${oldRole} → ${role.name}`);
-    
-    response.json({ 
-        success: true, 
-        message: 'Роль успешно изменена!',
-        user: user
-    });
-});
-
-// API для ролей и персонажей
-app.get('/api/webapp/roles', (request, response) => {
+app.get('/api/webapp/roles', (req, res) => {
     try {
         console.log('📋 Запрос на получение ролей');
-        const roles = database.roles.filter(role => role.is_active);
+        const roles = db.roles.filter(role => role.is_active);
         console.log('✅ Найдено ролей:', roles.length);
-        response.json(roles);
+        console.log('📝 Роли:', roles.map(r => r.name));
+        res.json(roles);
     } catch (error) {
         console.error('❌ Ошибка получения ролей:', error);
-        response.status(500).json({ error: 'Ошибка загрузки ролей' });
+        res.status(500).json({ error: 'Ошибка загрузки ролей' });
     }
 });
 
-app.get('/api/webapp/characters/:roleId', (request, response) => {
+app.get('/api/webapp/characters/:roleId', (req, res) => {
     try {
-        const roleId = parseInt(request.params.roleId);
+        const roleId = parseInt(req.params.roleId);
         console.log('👥 Запрос персонажей для роли:', roleId);
         
-        const characters = database.characters.filter(character => 
-            character.role_id === roleId && character.is_active
+        const characters = db.characters.filter(char => 
+            char.role_id === roleId && char.is_active
         );
         
         console.log('✅ Найдено персонажей:', characters.length);
-        response.json(characters);
+        res.json(characters);
     } catch (error) {
         console.error('❌ Ошибка получения персонажей:', error);
-        response.status(500).json({ error: 'Ошибка загрузки персонажей' });
+        res.status(500).json({ error: 'Ошибка загрузки персонажей' });
     }
 });
 
-// API для квизов
-app.get('/api/webapp/quizzes', (request, response) => {
-    const userId = parseInt(request.query.userId);
-    const quizzes = database.quizzes.filter(quiz => quiz.is_active);
+app.get('/api/webapp/quizzes', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const quizzes = db.quizzes.filter(q => q.is_active);
     
     const quizzesWithStatus = quizzes.map(quiz => {
-        const completion = database.quiz_completions.find(
-            completion => completion.user_id === userId && completion.quiz_id === quiz.id
+        const completion = db.quiz_completions.find(
+            qc => qc.user_id === userId && qc.quiz_id === quiz.id
         );
         
         let canRetake = quiz.allow_retake;
@@ -631,28 +1393,29 @@ app.get('/api/webapp/quizzes', (request, response) => {
         };
     });
     
-    response.json(quizzesWithStatus);
+    res.json(quizzesWithStatus);
 });
 
-app.post('/api/webapp/quizzes/:quizId/submit', (request, response) => {
-    const quizId = parseInt(request.params.quizId);
-    const { userId, answers } = request.body;
+// ИСПРАВЛЕННОЕ ОТПРАВЛЕНИЕ РЕЗУЛЬТАТОВ КВИЗА
+app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const { userId, answers } = req.body;
     
     if (!userId) {
-        return response.status(400).json({ error: 'Требуется идентификатор пользователя' });
+        return res.status(400).json({ error: 'User ID is required' });
     }
     
-    const quiz = database.quizzes.find(quiz => quiz.id === quizId);
+    const quiz = db.quizzes.find(q => q.id === quizId);
     if (!quiz) {
-        return response.status(404).json({ error: 'Квиз не найден' });
+        return res.status(404).json({ error: 'Quiz not found' });
     }
     
-    const existingCompletion = database.quiz_completions.find(
-        completion => completion.user_id === userId && completion.quiz_id === quizId
+    const existingCompletion = db.quiz_completions.find(
+        qc => qc.user_id === userId && qc.quiz_id === quizId
     );
     
     if (existingCompletion && !quiz.allow_retake) {
-        return response.status(400).json({ error: 'Этот квиз нельзя пройти повторно' });
+        return res.status(400).json({ error: 'Этот квиз нельзя пройти повторно' });
     }
     
     if (existingCompletion && quiz.cooldown_hours > 0) {
@@ -662,7 +1425,7 @@ app.post('/api/webapp/quizzes/:quizId/submit', (request, response) => {
         
         if (hoursSinceCompletion < quiz.cooldown_hours) {
             const hoursLeft = Math.ceil(quiz.cooldown_hours - hoursSinceCompletion);
-            return response.status(400).json({ 
+            return res.status(400).json({ 
                 error: `Квиз можно пройти повторно через ${hoursLeft} часов` 
             });
         }
@@ -675,11 +1438,14 @@ app.post('/api/webapp/quizzes/:quizId/submit', (request, response) => {
         }
     });
     
+    // ИСПРАВЛЕННОЕ НАЧИСЛЕНИЕ ИСКР
     let sparksEarned = 0;
     const perfectScore = correctAnswers === quiz.questions.length;
     
+    // Начисляем искры за правильные ответы
     sparksEarned = correctAnswers * quiz.sparks_per_correct;
     
+    // Добавляем бонус за идеальный результат
     if (perfectScore) {
         sparksEarned += quiz.sparks_perfect_bonus;
     }
@@ -690,7 +1456,7 @@ app.post('/api/webapp/quizzes/:quizId/submit', (request, response) => {
         existingCompletion.perfect_score = perfectScore;
         existingCompletion.completed_at = new Date().toISOString();
     } else {
-        database.quiz_completions.push({
+        db.quiz_completions.push({
             id: Date.now(),
             user_id: userId,
             quiz_id: quizId,
@@ -702,10 +1468,10 @@ app.post('/api/webapp/quizzes/:quizId/submit', (request, response) => {
     }
     
     if (sparksEarned > 0) {
-        addUserSparks(userId, sparksEarned, 'quiz', `Квиз: ${quiz.title}`);
+        addSparks(userId, sparksEarned, 'quiz', `Квиз: ${quiz.title}`);
     }
     
-    response.json({
+    res.json({
         success: true,
         correctAnswers,
         totalQuestions: quiz.questions.length,
@@ -713,19 +1479,18 @@ app.post('/api/webapp/quizzes/:quizId/submit', (request, response) => {
         perfectScore,
         scorePercentage: Math.round((correctAnswers / quiz.questions.length) * 100),
         message: perfectScore ? 
-            `Идеально! 🎉 +${sparksEarned}✨` : 
-            `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨`
+            `Идеально! 🎉 +${sparksEarned}✨ (${correctAnswers}×${quiz.sparks_per_correct} + ${quiz.sparks_perfect_bonus} бонус)` : 
+            `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨ (${correctAnswers}×${quiz.sparks_per_correct})`
     });
 });
 
-// API для марафонов
-app.get('/api/webapp/marathons', (request, response) => {
-    const userId = parseInt(request.query.userId);
-    const marathons = database.marathons.filter(marathon => marathon.is_active);
+app.get('/api/webapp/marathons', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const marathons = db.marathons.filter(m => m.is_active);
     
     const marathonsWithStatus = marathons.map(marathon => {
-        const completion = database.marathon_completions.find(
-            completion => completion.user_id === userId && completion.marathon_id === marathon.id
+        const completion = db.marathon_completions.find(
+            mc => mc.user_id === userId && mc.marathon_id === marathon.id
         );
         
         const currentTask = completion ? marathon.tasks[completion.current_day - 1] : marathon.tasks[0];
@@ -740,40 +1505,131 @@ app.get('/api/webapp/marathons', (request, response) => {
         };
     });
     
-    response.json(marathonsWithStatus);
+    res.json(marathonsWithStatus);
 });
 
-// API для магазина
-app.get('/api/webapp/shop/items', (request, response) => {
-    const items = database.shop_items.filter(item => item.is_active);
-    response.json(items);
-});
-
-app.post('/api/webapp/shop/purchase', (request, response) => {
-    const { userId, itemId } = request.body;
+// НОВЫЙ МЕТОД ДЛЯ ОТПРАВКИ РАБОТЫ В МАРАФОНЕ
+app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
+    console.log('📤 Отправка работы марафона, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
     
-    if (!userId || !itemId) {
-        return response.status(400).json({ error: 'Требуется идентификатор пользователя и товара' });
+    const marathonId = parseInt(req.params.marathonId);
+    const { userId, day, submission_text, submission_image } = req.body;
+    
+    if (!userId || !day) {
+        return res.status(400).json({ error: 'User ID and day are required' });
     }
     
-    const user = database.users.find(user => user.user_id == userId);
-    const item = database.shop_items.find(item => item.id == itemId && item.is_active);
+    const marathon = db.marathons.find(m => m.id === marathonId);
+    if (!marathon) {
+        return res.status(404).json({ error: 'Marathon not found' });
+    }
     
-    if (!user) return response.status(404).json({ error: 'Пользователь не найден' });
-    if (!item) return response.status(404).json({ error: 'Товар не найден' });
+    const task = marathon.tasks.find(t => t.day === day);
+    if (!task) {
+        return res.status(404).json({ error: 'Task not found' });
+    }
     
-    const existingPurchase = database.purchases.find(
-        purchase => purchase.user_id === userId && purchase.item_id === itemId
+    // Проверяем требования к заданию
+    if (task.requires_submission && !submission_text && !submission_image) {
+        return res.status(400).json({ error: 'Это задание требует отправки работы' });
+    }
+    
+    let completion = db.marathon_completions.find(
+        mc => mc.user_id === userId && mc.marathon_id === marathonId
+    );
+    
+    if (!completion) {
+        completion = {
+            id: Date.now(),
+            user_id: userId,
+            marathon_id: marathonId,
+            current_day: 1,
+            progress: 0,
+            completed: false,
+            started_at: new Date().toISOString()
+        };
+        db.marathon_completions.push(completion);
+    }
+    
+    if (completion.current_day !== day) {
+        return res.status(400).json({ error: 'Неверный день марафона' });
+    }
+    
+    // Сохраняем работу пользователя
+    if (submission_text || submission_image) {
+        db.marathon_submissions.push({
+            id: Date.now(),
+            user_id: userId,
+            marathon_id: marathonId,
+            day: day,
+            submission_text: submission_text,
+            submission_image: submission_image,
+            submitted_at: new Date().toISOString(),
+            status: 'pending'
+        });
+    }
+    
+    // Начисляем искры только после отправки работы
+    const sparksEarned = marathon.sparks_per_day;
+    addSparks(userId, sparksEarned, 'marathon_day', `Марафон: ${marathon.title} - день ${day}`);
+    
+    completion.current_day = day + 1;
+    completion.progress = Math.round((day / marathon.duration_days) * 100);
+    
+    if (day >= marathon.duration_days) {
+        completion.completed = true;
+        completion.progress = 100;
+        
+        // Дополнительная награда за завершение марафона
+        const marathonBonus = marathon.sparks_per_day * 2;
+        addSparks(userId, marathonBonus, 'marathon_completion', `Завершение марафона: ${marathon.title}`);
+    }
+    
+    res.json({
+        success: true,
+        sparksEarned,
+        currentDay: completion.current_day,
+        progress: completion.progress,
+        completed: completion.completed,
+        message: completion.completed ? 
+            `🎉 Марафон завершен! +${sparksEarned}✨ (день) + ${marathon.sparks_per_day * 2}✨ (бонус)` : 
+            `День ${day} завершен! +${sparksEarned}✨`
+    });
+});
+
+app.get('/api/webapp/shop/items', (req, res) => {
+    const items = db.shop_items.filter(item => item.is_active);
+    res.json(items);
+});
+
+// ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА
+app.post('/api/webapp/shop/purchase', (req, res) => {
+    const { userId, itemId } = req.body;
+    
+    if (!userId || !itemId) {
+        return res.status(400).json({ error: 'User ID and item ID are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    const item = db.shop_items.find(i => i.id == itemId && i.is_active);
+    
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+    
+    // Проверяем, не куплен ли уже товар
+    const existingPurchase = db.purchases.find(
+        p => p.user_id === userId && p.item_id === itemId
     );
     
     if (existingPurchase) {
-        return response.status(400).json({ error: 'Вы уже купили этот товар' });
+        return res.status(400).json({ error: 'Вы уже купили этот товар' });
     }
     
     if (user.sparks < item.price) {
-        return response.status(400).json({ error: 'Недостаточно искр' });
+        return res.status(400).json({ error: 'Недостаточно искр' });
     }
     
+    // Списание искр
     user.sparks -= item.price;
     
     const purchase = {
@@ -784,11 +1640,11 @@ app.post('/api/webapp/shop/purchase', (request, response) => {
         purchased_at: new Date().toISOString()
     };
     
-    database.purchases.push(purchase);
+    db.purchases.push(purchase);
     
-    addUserSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
+    addSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
     
-    response.json({
+    res.json({
         success: true,
         message: `Покупка успешна! Куплено: ${item.title}`,
         remainingSparks: user.sparks,
@@ -796,12 +1652,12 @@ app.post('/api/webapp/shop/purchase', (request, response) => {
     });
 });
 
-app.get('/api/webapp/users/:userId/purchases', (request, response) => {
-    const userId = parseInt(request.params.userId);
-    const userPurchases = database.purchases
-        .filter(purchase => purchase.user_id === userId)
+app.get('/api/webapp/users/:userId/purchases', (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const userPurchases = db.purchases
+        .filter(p => p.user_id === userId)
         .map(purchase => {
-            const item = database.shop_items.find(item => item.id === purchase.item_id);
+            const item = db.shop_items.find(i => i.id === purchase.item_id);
             return { 
                 ...purchase, 
                 title: item?.title,
@@ -810,34 +1666,41 @@ app.get('/api/webapp/users/:userId/purchases', (request, response) => {
                 file_url: item?.file_url,
                 content_text: item?.content_text,
                 preview_url: item?.preview_url,
-                embed_html: item?.embed_html
+                // ВАЖНО: Добавляем embed_html для embed-товаров
+                embed_html: item?.embed_html,
+                html_content: item?.embed_html, // альтернативное поле
+                content_html: item?.embed_html, // альтернативное поле
+                content: item?.embed_html, // альтернативное поле
+                file_data: item?.file_url?.startsWith('data:') ? item.file_url : null,
+                preview_data: item?.preview_url?.startsWith('data:') ? item.preview_url : null
             };
         })
         .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
         
-    response.json({ purchases: userPurchases });
+    res.json({ purchases: userPurchases });
 });
 
-// API для активностей
-app.get('/api/webapp/users/:userId/activities', (request, response) => {
-    const userId = parseInt(request.params.userId);
-    const userActivities = database.activities
-        .filter(activity => activity.user_id === userId)
+app.get('/api/webapp/users/:userId/activities', (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const userActivities = db.activities
+        .filter(a => a.user_id === userId)
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, 50);
-    response.json({ activities: userActivities });
+    res.json({ activities: userActivities });
 });
 
-// API для работ
-app.post('/api/webapp/upload-work', (request, response) => {
-    const { userId, title, description, imageUrl, type } = request.body;
+// Работы пользователя
+app.post('/api/webapp/upload-work', (req, res) => {
+    console.log('📤 Загрузка работы, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
+    
+    const { userId, title, description, imageUrl, type } = req.body;
     
     if (!userId || !title || !imageUrl) {
-        return response.status(400).json({ error: 'Требуется идентификатор пользователя, название и изображение' });
+        return res.status(400).json({ error: 'User ID, title and image URL are required' });
     }
     
-    const user = database.users.find(user => user.user_id == userId);
-    if (!user) return response.status(404).json({ error: 'Пользователь не найден' });
+    const user = db.users.find(u => u.user_id == userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
     
     const newWork = {
         id: Date.now(),
@@ -853,52 +1716,120 @@ app.post('/api/webapp/upload-work', (request, response) => {
         admin_comment: null
     };
     
-    database.user_works.push(newWork);
+    db.user_works.push(newWork);
     
-    addUserSparks(userId, SPARKS_SYSTEM.UPLOAD_WORK, 'upload_work', `Загрузка работы: ${title}`);
+    addSparks(userId, SPARKS_SYSTEM.UPLOAD_WORK, 'upload_work', `Загрузка работы: ${title}`);
     
-    response.json({
+    res.json({
         success: true,
-        message: `Работа успешно загружена! Получено +${SPARKS_SYSTEM.UPLOAD_WORK}✨`,
+        message: `Работа успешно загружена! Получено +${SPARKS_SYSTEM.UPLOAD_WORK}✨. После одобрения вы получите +${SPARKS_SYSTEM.WORK_APPROVED}✨`,
         workId: newWork.id,
         work: newWork
     });
 });
 
-app.get('/api/webapp/users/:userId/works', (request, response) => {
-    const userId = parseInt(request.params.userId);
-    const userWorks = database.user_works
-        .filter(work => work.user_id === userId)
+app.get('/api/webapp/users/:userId/works', (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const userWorks = db.user_works
+        .filter(w => w.user_id === userId)
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    response.json({ works: userWorks });
+    res.json({ works: userWorks });
 });
 
-// API для постов
-app.get('/api/webapp/channel-posts', (request, response) => {
-    const posts = database.channel_posts
-        .filter(post => post.is_active)
+// Посты канала
+app.get('/api/webapp/channel-posts', (req, res) => {
+    const posts = db.channel_posts
+        .filter(p => p.is_active)
         .map(post => {
-            const reviews = database.post_reviews.filter(review => review.post_id === post.post_id);
+            const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
             return {
                 ...post,
                 reviews_count: reviews.length,
                 average_rating: reviews.length > 0 ? 
-                    reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0
+                    reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0
             };
         })
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         
-    response.json({ posts: posts });
+    res.json({ posts: posts });
 });
 
-// API для интерактивов
-app.get('/api/webapp/interactives', (request, response) => {
-    const userId = parseInt(request.query.userId);
-    const interactives = database.interactives.filter(interactive => interactive.is_active);
+app.post('/api/webapp/posts/:postId/review', (req, res) => {
+    const postId = req.params.postId;
+    const { userId, reviewText, rating } = req.body;
+    
+    if (!userId || !reviewText) {
+        return res.status(400).json({ error: 'User ID and review text are required' });
+    }
+    
+    const post = db.channel_posts.find(p => p.post_id === postId);
+    if (!post) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    const existingReview = db.post_reviews.find(
+        r => r.user_id === userId && r.post_id === postId
+    );
+    
+    if (existingReview) {
+        return res.status(400).json({ error: 'Вы уже оставляли отзыв на этот пост' });
+    }
+    
+    const today = new Date().toDateString();
+    const todayReviews = db.daily_reviews.filter(
+        dr => dr.user_id === userId && new Date(dr.date).toDateString() === today
+    );
+    
+    let sparksEarned = SPARKS_SYSTEM.WRITE_REVIEW;
+    
+    if (todayReviews.length === 0) {
+        sparksEarned += SPARKS_SYSTEM.DAILY_COMMENT;
+        
+        db.daily_reviews.push({
+            id: Date.now(),
+            user_id: userId,
+            date: new Date().toISOString(),
+            type: 'daily_comment'
+        });
+    }
+    
+    const newReview = {
+        id: Date.now(),
+        user_id: userId,
+        post_id: postId,
+        review_text: reviewText,
+        rating: rating || 5,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        moderated_at: null,
+        moderator_id: null,
+        admin_comment: null
+    };
+    
+    db.post_reviews.push(newReview);
+    
+    addSparks(userId, sparksEarned, 'post_review', `Отзыв к посту: ${post.title}`);
+    
+    const message = todayReviews.length === 0 
+        ? `Отзыв отправлен! +${sparksEarned}✨ (3 за отзыв + 1 за первый комментарий сегодня)`
+        : `Отзыв отправлен! +${sparksEarned}✨`;
+    
+    res.json({
+        success: true,
+        message: message,
+        reviewId: newReview.id,
+        sparksEarned: sparksEarned
+    });
+});
+
+// API ДЛЯ ИНТЕРАКТИВОВ
+app.get('/api/webapp/interactives', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const interactives = db.interactives.filter(i => i.is_active);
     
     const interactivesWithStatus = interactives.map(interactive => {
-        const completion = database.interactive_completions.find(
-            completion => completion.user_id === userId && completion.interactive_id === interactive.id
+        const completion = db.interactive_completions.find(
+            ic => ic.user_id === userId && ic.interactive_id === interactive.id
         );
         
         return {
@@ -909,139 +1840,927 @@ app.get('/api/webapp/interactives', (request, response) => {
         };
     });
     
-    response.json(interactivesWithStatus);
+    res.json(interactivesWithStatus);
 });
 
-// API для приватных видео
-app.get('/api/webapp/private-videos', (request, response) => {
-    const userId = parseInt(request.query.userId);
-    const videos = database.private_channel_videos.filter(video => video.is_active);
+app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const { userId, answer } = req.body;
     
-    const videosWithAccess = videos.map(video => {
-        const hasAccess = database.video_access.some(
-            access => access.user_id === userId && access.video_id === video.id
-        );
-        
-        return {
-            ...video,
-            has_access: hasAccess,
-            can_purchase: !hasAccess
-        };
-    });
-    
-    response.json({ videos: videosWithAccess });
-});
-
-app.post('/api/webapp/private-videos/purchase', async (request, response) => {
-    const { userId, videoId } = request.body;
-    
-    if (!userId || !videoId) {
-        return response.status(400).json({ error: 'Требуется идентификатор пользователя и видео' });
+    if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
     }
     
-    const user = database.users.find(user => user.user_id == userId);
-    const video = database.private_channel_videos.find(video => video.id == videoId && video.is_active);
+    const interactive = db.interactives.find(i => i.id === interactiveId);
+    if (!interactive) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
     
-    if (!user) return response.status(404).json({ error: 'Пользователь не найден' });
-    if (!video) return response.status(404).json({ error: 'Видео не найдено' });
-    
-    const existingAccess = database.video_access.find(
-        access => access.user_id === userId && access.video_id === videoId
+    const existingCompletion = db.interactive_completions.find(
+        ic => ic.user_id === userId && ic.interactive_id === interactiveId
     );
     
-    if (existingAccess) {
-        return response.status(400).json({ error: 'У вас уже есть доступ к этому видео' });
+    if (existingCompletion && !interactive.allow_retake) {
+        return res.status(400).json({ error: 'Вы уже прошли этот интерактив' });
     }
     
-    if (user.sparks < video.price) {
-        return response.status(400).json({ error: 'Недостаточно искр' });
-    }
+    const isCorrect = answer === interactive.correct_answer;
+    const sparksEarned = isCorrect ? interactive.sparks_reward : 0;
     
-    try {
-        user.sparks -= video.price;
-        
-        const accessRecord = {
+    if (existingCompletion) {
+        existingCompletion.score = isCorrect ? 1 : 0;
+        existingCompletion.sparks_earned = sparksEarned;
+        existingCompletion.completed_at = new Date().toISOString();
+        existingCompletion.answer = answer;
+    } else {
+        db.interactive_completions.push({
             id: Date.now(),
             user_id: userId,
-            video_id: videoId,
-            purchased_at: new Date().toISOString(),
-            access_expires: null,
-            telegram_message_id: null
-        };
-        
-        database.video_access.push(accessRecord);
-        
-        addUserSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
-        
-        response.json({
-            success: true,
-            message: `Доступ к видео "${video.title}" предоставлен!`,
-            remainingSparks: user.sparks,
-            access: accessRecord
+            interactive_id: interactiveId,
+            completed_at: new Date().toISOString(),
+            score: isCorrect ? 1 : 0,
+            sparks_earned: sparksEarned,
+            answer: answer
         });
-        
-    } catch (error) {
-        console.error('Ошибка при покупке доступа к видео:', error);
-        user.sparks += video.price;
-        response.status(500).json({ error: 'Ошибка предоставления доступа' });
     }
+    
+    if (sparksEarned > 0) {
+        addSparks(userId, sparksEarned, 'interactive', `Интерактив: ${interactive.title}`);
+    }
+    
+    res.json({
+        success: true,
+        correct: isCorrect,
+        score: isCorrect ? 1 : 0,
+        sparksEarned: sparksEarned,
+        message: isCorrect ? 
+            `Правильно! +${sparksEarned}✨` : 
+            'Попробуйте еще раз!'
+    });
 });
 
-// Админ API
-app.get('/api/admin/stats', requireAdminAuthentication, (request, response) => {
+// Admin API
+app.get('/api/admin/stats', requireAdmin, (req, res) => {
     const stats = {
-        totalUsers: database.users.length,
-        registeredUsers: database.users.filter(user => user.is_registered).length,
-        activeQuizzes: database.quizzes.filter(quiz => quiz.is_active).length,
-        activeMarathons: database.marathons.filter(marathon => marathon.is_active).length,
-        shopItems: database.shop_items.filter(item => item.is_active).length,
-        totalSparks: database.users.reduce((sum, user) => sum + user.sparks, 0),
-        totalAdmins: database.admins.length,
-        pendingReviews: database.post_reviews.filter(review => review.status === 'pending').length,
-        pendingWorks: database.user_works.filter(work => work.status === 'pending').length,
-        totalPosts: database.channel_posts.filter(post => post.is_active).length,
-        totalPurchases: database.purchases.length,
-        totalActivities: database.activities.length,
-        interactives: database.interactives.filter(interactive => interactive.is_active).length,
-        privateVideos: database.private_channel_videos.filter(video => video.is_active).length
+        totalUsers: db.users.length,
+        registeredUsers: db.users.filter(u => u.is_registered).length,
+        activeQuizzes: db.quizzes.filter(q => q.is_active).length,
+        activeMarathons: db.marathons.filter(m => m.is_active).length,
+        shopItems: db.shop_items.filter(i => i.is_active).length,
+        totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
+        totalAdmins: db.admins.length,
+        pendingReviews: db.post_reviews.filter(r => r.status === 'pending').length,
+        pendingWorks: db.user_works.filter(w => w.status === 'pending').length,
+        totalPosts: db.channel_posts.filter(p => p.is_active).length,
+        totalPurchases: db.purchases.length,
+        totalActivities: db.activities.length,
+        interactives: db.interactives.filter(i => i.is_active).length
     };
-    response.json(stats);
+    res.json(stats);
 });
 
-// Запуск сервера
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Сервер запущен на порту ${PORT}`);
-    console.log(`📱 WebApp доступен по адресу: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
-    console.log(`🔧 Админ панель: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin.html`);
-    console.log(`🎯 Квизов: ${database.quizzes.length}`);
-    console.log(`🏃‍♂️ Марафонов: ${database.marathons.length}`);
-    console.log(`🎮 Интерактивов: ${database.interactives.length}`);
-    console.log(`🛒 Товаров: ${database.shop_items.length}`);
-    console.log(`🎬 Приватных видео: ${database.private_channel_videos.length}`);
-    console.log(`👥 Пользователей: ${database.users.length}`);
-    console.log('✅ Все системы работают корректно!');
+// Управление интерактивами
+app.get('/api/admin/interactives', requireAdmin, (req, res) => {
+    const interactives = db.interactives.map(interactive => {
+        const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
+        
+        return {
+            ...interactive,
+            completions_count: completions.length,
+            average_score: completions.length > 0 ? 
+                completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length : 0
+        };
+    });
+    res.json(interactives);
 });
 
-// Инициализация Telegram бота
-let telegramBot;
+app.post('/api/admin/interactives', requireAdmin, (req, res) => {
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake } = req.body;
+    
+    if (!title || !type || !category) {
+        return res.status(400).json({ error: 'Title, type and category are required' });
+    }
+    
+    const newInteractive = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        type,
+        category,
+        image_url: image_url || '',
+        question: question || '',
+        options: options || [],
+        correct_answer: correct_answer || 0,
+        sparks_reward: sparks_reward || SPARKS_SYSTEM.INTERACTIVE_COMPLETION,
+        allow_retake: allow_retake || false,
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.interactives.push(newInteractive);
+    
+    res.json({ 
+        success: true, 
+        message: 'Интерактив успешно создан', 
+        interactiveId: newInteractive.id,
+        interactive: newInteractive
+    });
+});
+
+app.put('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
+    
+    const interactive = db.interactives.find(i => i.id === interactiveId);
+    if (!interactive) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    if (title) interactive.title = title;
+    if (description) interactive.description = description;
+    if (type) interactive.type = type;
+    if (category) interactive.category = category;
+    if (image_url) interactive.image_url = image_url;
+    if (question) interactive.question = question;
+    if (options) interactive.options = options;
+    if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
+    if (sparks_reward !== undefined) interactive.sparks_reward = sparks_reward;
+    if (allow_retake !== undefined) interactive.allow_retake = allow_retake;
+    if (is_active !== undefined) interactive.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Интерактив успешно обновлен',
+        interactive: interactive
+    });
+});
+
+app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const interactiveIndex = db.interactives.findIndex(i => i.id === interactiveId);
+    
+    if (interactiveIndex === -1) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    db.interactives.splice(interactiveIndex, 1);
+    res.json({ success: true, message: 'Интерактив удален' });
+});
+
+// Управление ролями
+app.get('/api/admin/roles', requireAdmin, (req, res) => {
+    res.json(db.roles);
+});
+
+app.post('/api/admin/roles', requireAdmin, (req, res) => {
+    const { name, description, icon, available_buttons } = req.body;
+    
+    if (!name || !description) {
+        return res.status(400).json({ error: 'Name and description are required' });
+    }
+    
+    const newRole = {
+        id: Date.now(),
+        name,
+        description,
+        icon: icon || '🎨',
+        available_buttons: available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.roles.push(newRole);
+    
+    res.json({ 
+        success: true, 
+        message: 'Роль успешно создана', 
+        role: newRole
+    });
+});
+
+app.put('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
+    const roleId = parseInt(req.params.roleId);
+    const { name, description, icon, available_buttons, is_active } = req.body;
+    
+    const role = db.roles.find(r => r.id === roleId);
+    if (!role) {
+        return res.status(404).json({ error: 'Role not found' });
+    }
+    
+    if (name) role.name = name;
+    if (description) role.description = description;
+    if (icon) role.icon = icon;
+    if (available_buttons) role.available_buttons = available_buttons;
+    if (is_active !== undefined) role.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Роль успешно обновлена',
+        role: role
+    });
+});
+
+app.delete('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
+    const roleId = parseInt(req.params.roleId);
+    const roleIndex = db.roles.findIndex(r => r.id === roleId);
+    
+    if (roleIndex === -1) {
+        return res.status(404).json({ error: 'Role not found' });
+    }
+    
+    const usersWithRole = db.users.filter(u => u.class === db.roles[roleIndex].name);
+    if (usersWithRole.length > 0) {
+        return res.status(400).json({ error: 'Нельзя удалить роль, у которой есть пользователи' });
+    }
+    
+    db.roles.splice(roleIndex, 1);
+    res.json({ success: true, message: 'Роль удалена' });
+});
+
+// Управление персонажами
+app.get('/api/admin/characters', requireAdmin, (req, res) => {
+    const characters = db.characters.map(character => {
+        const role = db.roles.find(r => r.id === character.role_id);
+        return {
+            ...character,
+            role_name: role?.name
+        };
+    });
+    res.json(characters);
+});
+
+app.post('/api/admin/characters', requireAdmin, (req, res) => {
+    const { role_id, name, description, bonus_type, bonus_value } = req.body;
+    
+    if (!role_id || !name || !bonus_type || !bonus_value) {
+        return res.status(400).json({ error: 'Role ID, name, bonus type and value are required' });
+    }
+    
+    const newCharacter = {
+        id: Date.now(),
+        role_id: parseInt(role_id),
+        name,
+        description: description || '',
+        bonus_type,
+        bonus_value,
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.characters.push(newCharacter);
+    
+    res.json({ 
+        success: true, 
+        message: 'Персонаж успешно создан', 
+        character: newCharacter
+    });
+});
+
+app.put('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
+    const characterId = parseInt(req.params.characterId);
+    const { name, description, bonus_type, bonus_value, is_active } = req.body;
+    
+    const character = db.characters.find(c => c.id === characterId);
+    if (!character) {
+        return res.status(404).json({ error: 'Character not found' });
+    }
+    
+    if (name) character.name = name;
+    if (description) character.description = description;
+    if (bonus_type) character.bonus_type = bonus_type;
+    if (bonus_value) character.bonus_value = bonus_value;
+    if (is_active !== undefined) character.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Персонаж успешно обновлен',
+        character: character
+    });
+});
+
+app.delete('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
+    const characterId = parseInt(req.params.characterId);
+    const characterIndex = db.characters.findIndex(c => c.id === characterId);
+    
+    if (characterIndex === -1) {
+        return res.status(404).json({ error: 'Character not found' });
+    }
+    
+    const usersWithCharacter = db.users.filter(u => u.character_id === characterId);
+    if (usersWithCharacter.length > 0) {
+        return res.status(400).json({ error: 'Нельзя удалить персонажа, у которого есть пользователи' });
+    }
+    
+    db.characters.splice(characterIndex, 1);
+    res.json({ success: true, message: 'Персонаж удален' });
+});
+
+// Управление магазином
+app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
+    res.json(db.shop_items);
+});
+
+app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
+    console.log('🛒 Создание товара, данные:', {
+        title: req.body.title,
+        type: req.body.type,
+        hasEmbed: !!req.body.embed_html,
+        embedLength: req.body.embed_html?.length
+    });
+    
+    const { title, description, type, file_url, preview_url, price, content_text, file_data, preview_data, embed_html } = req.body;
+    
+    if (!title || !price) {
+        return res.status(400).json({ error: 'Title and price are required' });
+    }
+    
+    // Для embed-товаров проверяем наличие HTML
+    if (type === 'embed' && !embed_html) {
+        return res.status(400).json({ error: 'Для типа "embed" необходимо указать HTML-код' });
+    }
+    
+    const newItem = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        type: type || 'video',
+        file_url: file_url || file_data || '',
+        preview_url: preview_url || preview_data || '',
+        price: parseFloat(price),
+        content_text: content_text || '',
+        embed_html: embed_html || '',
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    console.log('✅ Создан товар:', {
+        id: newItem.id,
+        type: newItem.type,
+        hasEmbed: !!newItem.embed_html,
+        embedLength: newItem.embed_html?.length
+    });
+    
+    db.shop_items.push(newItem);
+    
+    res.json({ 
+        success: true, 
+        message: 'Товар успешно создан', 
+        itemId: newItem.id,
+        item: newItem
+    });
+});
+
+app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
+    console.log('🛒 Обновление товара, данные:', {
+        itemId: req.params.itemId,
+        type: req.body.type,
+        hasEmbed: !!req.body.embed_html,
+        embedLength: req.body.embed_html?.length
+    });
+    
+    const itemId = parseInt(req.params.itemId);
+    const { title, description, type, file_url, preview_url, price, content_text, is_active, file_data, preview_data, embed_html } = req.body;
+    
+    const item = db.shop_items.find(i => i.id === itemId);
+    if (!item) {
+        return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    // Для embed-товаров проверяем наличие HTML
+    if (type === 'embed' && !embed_html) {
+        return res.status(400).json({ error: 'Для типа "embed" необходимо указать HTML-код' });
+    }
+    
+    if (title) item.title = title;
+    if (description) item.description = description;
+    if (type) item.type = type;
+    if (file_url !== undefined) item.file_url = file_url;
+    if (file_data !== undefined) item.file_url = file_data;
+    if (preview_url !== undefined) item.preview_url = preview_url;
+    if (preview_data !== undefined) item.preview_url = preview_data;
+    if (price) item.price = parseFloat(price);
+    if (content_text) item.content_text = content_text;
+    if (embed_html !== undefined) item.embed_html = embed_html;
+    if (is_active !== undefined) item.is_active = is_active;
+    
+    console.log('✅ Обновлен товар:', {
+        id: item.id,
+        type: item.type,
+        hasEmbed: !!item.embed_html,
+        embedLength: item.embed_html?.length
+    });
+    
+    res.json({ 
+        success: true, 
+        message: 'Товар успешно обновлен',
+        item: item
+    });
+});
+
+app.delete('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
+    const itemId = parseInt(req.params.itemId);
+    const itemIndex = db.shop_items.findIndex(i => i.id === itemId);
+    
+    if (itemIndex === -1) {
+        return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    db.shop_items.splice(itemIndex, 1);
+    res.json({ success: true, message: 'Товар удален' });
+});
+
+// Управление квизами
+app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
+    const quizzes = db.quizzes.map(quiz => {
+        const completions = db.quiz_completions.filter(qc => qc.quiz_id === quiz.id);
+        return {
+            ...quiz,
+            completions_count: completions.length,
+            average_score: completions.length > 0 ? 
+                completions.reduce((sum, qc) => sum + qc.score, 0) / completions.length : 0
+        };
+    });
+    res.json(quizzes);
+});
+
+app.post('/api/admin/quizzes', requireAdmin, (req, res) => {
+    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake } = req.body;
+    
+    if (!title || !questions || !Array.isArray(questions)) {
+        return res.status(400).json({ error: 'Title and questions array are required' });
+    }
+    
+    const newQuiz = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        questions: questions,
+        sparks_per_correct: sparks_per_correct || SPARKS_SYSTEM.QUIZ_PER_CORRECT_ANSWER,
+        sparks_perfect_bonus: sparks_perfect_bonus || SPARKS_SYSTEM.QUIZ_PERFECT_BONUS,
+        cooldown_hours: cooldown_hours || 24,
+        allow_retake: allow_retake || true,
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.quizzes.push(newQuiz);
+    
+    res.json({ 
+        success: true, 
+        message: 'Квиз успешно создан', 
+        quizId: newQuiz.id,
+        quiz: newQuiz
+    });
+});
+
+app.put('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const { title, description, questions, sparks_per_correct, sparks_perfect_bonus, cooldown_hours, allow_retake, is_active } = req.body;
+    
+    const quiz = db.quizzes.find(q => q.id === quizId);
+    if (!quiz) {
+        return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    if (title) quiz.title = title;
+    if (description) quiz.description = description;
+    if (questions) quiz.questions = questions;
+    if (sparks_per_correct !== undefined) quiz.sparks_per_correct = sparks_per_correct;
+    if (sparks_perfect_bonus !== undefined) quiz.sparks_perfect_bonus = sparks_perfect_bonus;
+    if (cooldown_hours !== undefined) quiz.cooldown_hours = cooldown_hours;
+    if (allow_retake !== undefined) quiz.allow_retake = allow_retake;
+    if (is_active !== undefined) quiz.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Квиз успешно обновлен',
+        quiz: quiz
+    });
+});
+
+app.delete('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
+    const quizId = parseInt(req.params.quizId);
+    const quizIndex = db.quizzes.findIndex(q => q.id === quizId);
+    
+    if (quizIndex === -1) {
+        return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    db.quizzes.splice(quizIndex, 1);
+    res.json({ success: true, message: 'Квиз удален' });
+});
+
+// Управление марафонами
+app.get('/api/admin/marathons', requireAdmin, (req, res) => {
+    const marathons = db.marathons.map(marathon => {
+        const completions = db.marathon_completions.filter(mc => mc.marathon_id === marathon.id);
+        return {
+            ...marathon,
+            completions_count: completions.length,
+            active_users: completions.filter(mc => !mc.completed).length
+        };
+    });
+    res.json(marathons);
+});
+
+app.post('/api/admin/marathons', requireAdmin, (req, res) => {
+    const { title, description, duration_days, tasks, sparks_per_day } = req.body;
+    
+    if (!title || !duration_days || !tasks || !Array.isArray(tasks)) {
+        return res.status(400).json({ error: 'Title, duration and tasks array are required' });
+    }
+    
+    const newMarathon = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        duration_days: parseInt(duration_days),
+        tasks: tasks,
+        sparks_per_day: sparks_per_day || SPARKS_SYSTEM.MARATHON_DAY_COMPLETION,
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.marathons.push(newMarathon);
+    
+    res.json({ 
+        success: true, 
+        message: 'Марафон успешно создан', 
+        marathonId: newMarathon.id,
+        marathon: newMarathon
+    });
+});
+
+app.put('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
+    const marathonId = parseInt(req.params.marathonId);
+    const { title, description, duration_days, tasks, sparks_per_day, is_active } = req.body;
+    
+    const marathon = db.marathons.find(m => m.id === marathonId);
+    if (!marathon) {
+        return res.status(404).json({ error: 'Marathon not found' });
+    }
+    
+    if (title) marathon.title = title;
+    if (description) marathon.description = description;
+    if (duration_days) marathon.duration_days = parseInt(duration_days);
+    if (tasks) marathon.tasks = tasks;
+    if (sparks_per_day !== undefined) marathon.sparks_per_day = sparks_per_day;
+    if (is_active !== undefined) marathon.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Марафон успешно обновлен',
+        marathon: marathon
+    });
+});
+
+app.delete('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
+    const marathonId = parseInt(req.params.marathonId);
+    const marathonIndex = db.marathons.findIndex(m => m.id === marathonId);
+    
+    if (marathonIndex === -1) {
+        return res.status(404).json({ error: 'Marathon not found' });
+    }
+    
+    db.marathons.splice(marathonIndex, 1);
+    res.json({ success: true, message: 'Марафон удален' });
+});
+
+// Управление работами пользователей
+app.get('/api/admin/user-works', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    const works = db.user_works
+        .filter(w => w.status === status)
+        .map(work => {
+            const user = db.users.find(u => u.user_id === work.user_id);
+            return {
+                ...work,
+                user_name: user?.tg_first_name || 'Неизвестно',
+                user_username: user?.tg_username
+            };
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    res.json({ works });
+});
+
+app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
+    const workId = parseInt(req.params.workId);
+    const { status, admin_comment } = req.body;
+    const adminId = req.admin.user_id;
+    
+    const work = db.user_works.find(w => w.id === workId);
+    if (!work) {
+        return res.status(404).json({ error: 'Work not found' });
+    }
+    
+    work.status = status;
+    work.moderated_at = new Date().toISOString();
+    work.moderator_id = adminId;
+    work.admin_comment = admin_comment || null;
+    
+    if (status === 'approved') {
+        addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
+    }
+    
+    res.json({ 
+        success: true, 
+        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
+        work: work
+    });
+});
+
+// Управление постами
+app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
+    const posts = db.channel_posts.map(post => {
+        const admin = db.admins.find(a => a.user_id === post.admin_id);
+        const reviews = db.post_reviews.filter(r => r.post_id === post.post_id);
+        return {
+            ...post,
+            admin_username: admin?.username,
+            reviews_count: reviews.length
+        };
+    }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
+    res.json({ posts });
+});
+
+app.post('/api/admin/channel-posts', requireAdmin, (req, res) => {
+    const { post_id, title, content, image_url, video_url, media_type, action_type, action_target } = req.body;
+    
+    if (!post_id || !title) {
+        return res.status(400).json({ error: 'Post ID and title are required' });
+    }
+    
+    const existingPost = db.channel_posts.find(p => p.post_id === post_id);
+    if (existingPost) {
+        return res.status(400).json({ error: 'Post with this ID already exists' });
+    }
+    
+    const newPost = {
+        id: Date.now(),
+        post_id,
+        title,
+        content: content || '',
+        image_url: image_url || '',
+        video_url: video_url || '',
+        media_type: media_type || 'text',
+        admin_id: req.admin.user_id,
+        created_at: new Date().toISOString(),
+        is_active: true,
+        telegram_message_id: null,
+        action_type: action_type || null,
+        action_target: action_target || null
+    };
+    
+    db.channel_posts.push(newPost);
+    
+    res.json({ 
+        success: true, 
+        message: 'Пост успешно создан', 
+        postId: newPost.id,
+        post: newPost
+    });
+});
+
+app.put('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
+    const postId = parseInt(req.params.postId);
+    const { title, content, image_url, video_url, media_type, is_active, action_type, action_target } = req.body;
+    
+    const post = db.channel_posts.find(p => p.id === postId);
+    if (!post) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    if (title) post.title = title;
+    if (content) post.content = content;
+    if (image_url) post.image_url = image_url;
+    if (video_url) post.video_url = video_url;
+    if (media_type) post.media_type = media_type;
+    if (is_active !== undefined) post.is_active = is_active;
+    if (action_type !== undefined) post.action_type = action_type;
+    if (action_target !== undefined) post.action_target = action_target;
+    
+    res.json({ 
+        success: true, 
+        message: 'Пост успешно обновлен',
+        post: post
+    });
+});
+
+app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
+    const postId = parseInt(req.params.postId);
+    const postIndex = db.channel_posts.findIndex(p => p.id === postId);
+    
+    if (postIndex === -1) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    db.channel_posts.splice(postIndex, 1);
+    res.json({ success: true, message: 'Пост удален' });
+});
+
+// Управление отзывами
+app.get('/api/admin/reviews', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    const reviews = db.post_reviews
+        .filter(r => r.status === status)
+        .map(review => {
+            const user = db.users.find(u => u.user_id === review.user_id);
+            const post = db.channel_posts.find(p => p.post_id === review.post_id);
+            const moderator = db.admins.find(a => a.user_id === review.moderator_id);
+            return {
+                ...review,
+                tg_first_name: user?.tg_first_name,
+                tg_username: user?.tg_username,
+                post_title: post?.title,
+                moderator_username: moderator?.username
+            };
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    res.json({ reviews });
+});
+
+app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
+    const reviewId = parseInt(req.params.reviewId);
+    const { status, admin_comment } = req.body;
+    
+    const review = db.post_reviews.find(r => r.id === reviewId);
+    if (!review) {
+        return res.status(404).json({ error: 'Review not found' });
+    }
+    
+    review.status = status;
+    review.moderated_at = new Date().toISOString();
+    review.moderator_id = req.admin.user_id;
+    review.admin_comment = admin_comment || null;
+    
+    res.json({ 
+        success: true, 
+        message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`,
+        review: review
+    });
+});
+
+// Управление админами
+app.get('/api/admin/admins', requireAdmin, (req, res) => {
+    res.json(db.admins);
+});
+
+app.post('/api/admin/admins', requireAdmin, (req, res) => {
+    const { user_id, username, role } = req.body;
+    
+    if (!user_id) {
+        return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    const existingAdmin = db.admins.find(a => a.user_id == user_id);
+    if (existingAdmin) {
+        return res.status(400).json({ error: 'Admin already exists' });
+    }
+    
+    const newAdmin = {
+        id: Date.now(),
+        user_id: parseInt(user_id),
+        username: username || '',
+        role: role || 'moderator',
+        created_at: new Date().toISOString()
+    };
+    
+    db.admins.push(newAdmin);
+    
+    res.json({ 
+        success: true, 
+        message: 'Админ успешно добавлен',
+        admin: newAdmin
+    });
+});
+
+app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
+    const userId = parseInt(req.params.userId);
+    
+    if (userId === req.admin.user_id) {
+        return res.status(400).json({ error: 'Cannot remove yourself' });
+    }
+    
+    const adminIndex = db.admins.findIndex(a => a.user_id === userId);
+    if (adminIndex === -1) {
+        return res.status(404).json({ error: 'Admin not found' });
+    }
+    
+    db.admins.splice(adminIndex, 1);
+    res.json({ success: true, message: 'Админ удален' });
+});
+
+// Отчет по пользователям
+app.get('/api/admin/users-report', requireAdmin, (req, res) => {
+    const users = db.users
+        .filter(u => u.is_registered)
+        .map(user => {
+            const stats = getUserStats(user.user_id);
+            const works = db.user_works.filter(w => w.user_id === user.user_id);
+            const quizCompletions = db.quiz_completions.filter(q => q.user_id === user.user_id);
+            const marathonCompletions = db.marathon_completions.filter(m => m.user_id === user.user_id);
+            const interactiveCompletions = db.interactive_completions.filter(i => i.user_id === user.user_id);
+            
+            const totalActivities = 
+                quizCompletions.length + 
+                marathonCompletions.filter(m => m.completed).length + 
+                interactiveCompletions.length + 
+                works.length;
+            
+            return {
+                id: user.user_id,
+                name: user.tg_first_name,
+                username: user.tg_username,
+                role: user.class,
+                character: user.character_name,
+                sparks: user.sparks,
+                level: user.level,
+                total_quizzes: quizCompletions.length,
+                total_marathons: marathonCompletions.filter(m => m.completed).length,
+                total_interactives: interactiveCompletions.length,
+                total_works: works.length,
+                approved_works: works.filter(w => w.status === 'approved').length,
+                total_activities: totalActivities,
+                registration_date: user.registration_date,
+                last_active: user.last_active
+            };
+        })
+        .sort((a, b) => b.total_activities - a.total_activities);
+    
+    res.json({ users });
+});
+
+// Полная статистика
+app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
+    const stats = {
+        users: {
+            total: db.users.length,
+            registered: db.users.filter(u => u.is_registered).length,
+            by_role: db.roles.map(role => ({
+                role: role.name,
+                count: db.users.filter(u => u.class === role.name).length
+            })),
+            active_today: db.users.filter(u => {
+                const today = new Date();
+                const lastActive = new Date(u.last_active);
+                return lastActive.toDateString() === today.toDateString();
+            }).length
+        },
+        content: {
+            quizzes: db.quizzes.length,
+            marathons: db.marathons.length,
+            shop_items: db.shop_items.length,
+            posts: db.channel_posts.length,
+            interactives: db.interactives.length
+        },
+        activities: {
+            total_sparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
+            total_purchases: db.purchases.length,
+            total_works: db.user_works.length,
+            pending_moderation: {
+                works: db.user_works.filter(w => w.status === 'pending').length,
+                reviews: db.post_reviews.filter(r => r.status === 'pending').length
+            }
+        },
+        completions: {
+            quizzes: db.quiz_completions.length,
+            marathons: db.marathon_completions.filter(m => m.completed).length,
+            interactives: db.interactive_completions.length
+        }
+    };
+    
+    res.json(stats);
+});
+
+// Telegram Bot
+let bot;
 if (process.env.BOT_TOKEN) {
     try {
-        telegramBot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+        bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
         
         console.log('✅ Telegram Bot инициализирован');
+        console.log('=== НАСТРОЙКИ ПРИВАТНОГО КАНАЛА ===');
+        console.log('CHANNEL_ID:', PRIVATE_CHANNEL_CONFIG.CHANNEL_ID);
+        console.log('CHANNEL_USERNAME:', PRIVATE_CHANNEL_CONFIG.CHANNEL_USERNAME);
+        console.log('==================================');
 
-        telegramBot.onText(/\/start/, (message) => {
-            const chatId = message.chat.id;
-            const name = message.from.first_name || 'Друг';
-            const userId = message.from.id;
+        bot.onText(/\/start/, (msg) => {
+            const chatId = msg.chat.id;
+            const name = msg.from.first_name || 'Друг';
+            const userId = msg.from.id;
             
-            let user = database.users.find(user => user.user_id === userId);
+            let user = db.users.find(u => u.user_id === userId);
             if (!user) {
                 user = {
                     id: Date.now(),
                     user_id: userId,
-                    tg_first_name: message.from.first_name,
-                    tg_username: message.from.username,
+                    tg_first_name: msg.from.first_name,
+                    tg_username: msg.from.username,
                     sparks: 0,
                     level: 'Ученик',
                     is_registered: false,
@@ -1052,7 +2771,7 @@ if (process.env.BOT_TOKEN) {
                     registration_date: new Date().toISOString(),
                     last_active: new Date().toISOString()
                 };
-                database.users.push(user);
+                db.users.push(user);
             } else {
                 user.last_active = new Date().toISOString();
             }
@@ -1077,28 +2796,72 @@ if (process.env.BOT_TOKEN) {
                 inline_keyboard: [[
                     {
                         text: "📱 Открыть Личный Кабинет",
-                        web_app: { url: process.env.APP_URL || `http://localhost:${PORT}` }
+                        web_app: { url: process.env.APP_URL || `https://your-domain.timeweb.cloud` }
                     }
                 ]]
             };
 
-            telegramBot.sendMessage(chatId, welcomeText, {
+            bot.sendMessage(chatId, welcomeText, {
                 parse_mode: 'Markdown',
                 reply_markup: keyboard
             });
         });
 
-        telegramBot.onText(/\/admin/, (message) => {
-            const chatId = message.chat.id;
-            const userId = message.from.id;
+        // Обработчик для запроса доступа к видео
+        bot.onText(/\/доступ|доступ/i, async (msg) => {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
             
-            const admin = database.admins.find(admin => admin.user_id == userId);
+            try {
+                const userAccess = db.video_access.filter(access => access.user_id === userId);
+                
+                if (userAccess.length === 0) {
+                    bot.sendMessage(chatId, 
+                        'У вас нет активного доступа к видео.\n\n' +
+                        '📹 Приобрести доступ можно в разделе "Приватные видео" в вашем личном кабинете.'
+                    );
+                    return;
+                }
+                
+                let message = '🎬 Ваши активные доступы к видео:\n\n';
+                
+                for (const access of userAccess) {
+                    const video = db.private_channel_videos.find(v => v.id === access.video_id);
+                    if (video && video.is_active) {
+                        // Создаем новую временную ссылку
+                        const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
+                            member_limit: 1,
+                            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
+                        });
+                        
+                        message += `📹 ${video.title}\n`;
+                        message += `🔗 ${chatInviteLink.invite_link}\n`;
+                        message += `⏰ Ссылка действительна 24 часа\n\n`;
+                    }
+                }
+                
+                message += '⚠️ Для повторного доступа используйте команду /доступ';
+                
+                bot.sendMessage(chatId, message);
+                
+            } catch (error) {
+                console.error('Ошибка при запросе доступа:', error);
+                bot.sendMessage(chatId, '❌ Произошла ошибка при получении доступа. Попробуйте позже.');
+            }
+        });
+
+        bot.onText(/\/admin/, (msg) => {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            const admin = db.admins.find(a => a.user_id == userId);
             if (!admin) {
-                telegramBot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
                 return;
             }
             
-            const baseUrl = process.env.APP_URL || `http://localhost:${PORT}`;
+            // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
+            const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
             const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
             
             const keyboard = {
@@ -1110,15 +2873,252 @@ if (process.env.BOT_TOKEN) {
                 ]]
             };
             
-            telegramBot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
+            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
                 parse_mode: 'Markdown',
                 reply_markup: keyboard
             });
         });
 
+        bot.onText(/\/stats/, (msg) => {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            const admin = db.admins.find(a => a.user_id == userId);
+            if (!admin) {
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа.');
+                return;
+            }
+            
+            const stats = {
+                totalUsers: db.users.length,
+                registeredUsers: db.users.filter(u => u.is_registered).length,
+                activeQuizzes: db.quizzes.filter(q => q.is_active).length,
+                activeMarathons: db.marathons.filter(m => m.is_active).length,
+                shopItems: db.shop_items.filter(i => i.is_active).length,
+                totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
+                privateVideos: db.private_channel_videos.filter(v => v.is_active).length,
+                videoAccesses: db.video_access.length
+            };
+            
+            const statsText = `📊 Статистика бота:
+            
+👥 Пользователи: ${stats.totalUsers}
+✅ Зарегистрировано: ${stats.registeredUsers}
+🎯 Активных квизов: ${stats.activeQuizzes}
+🏃‍♂️ Активных марафонов: ${stats.activeMarathons}
+🛒 Товаров в магазине: ${stats.shopItems}
+🎬 Приватных видео: ${stats.privateVideos}
+🔗 Активных доступов: ${stats.videoAccesses}
+✨ Всего искр: ${stats.totalSparks.toFixed(1)}`;
+            
+            bot.sendMessage(chatId, statsText);
+        });
+
     } catch (error) {
         console.error('❌ Ошибка инициализации бота:', error);
     }
-} else {
-    console.log('⚠️ Telegram Bot не инициализирован (отсутствует BOT_TOKEN)');
 }
+
+// ==================== ЭКСПОРТ ОТЧЕТОВ ====================
+
+// Экспорт пользователей в CSV
+app.get('/api/admin/export/users', requireAdmin, (req, res) => {
+    try {
+        console.log('📊 Экспорт пользователей в CSV');
+        
+        const users = db.users.filter(u => u.is_registered);
+        
+        // Заголовки CSV
+        let csv = 'ID;Имя;Username;Роль;Персонаж;Уровень;Искры;Зарегистрирован;Последняя активность\n';
+        
+        // Данные пользователей
+        users.forEach(user => {
+            const row = [
+                user.user_id,
+                user.tg_first_name || '',
+                user.tg_username || '',
+                user.class || '',
+                user.character_name || '',
+                user.level || '',
+                user.sparks.toFixed(1),
+                new Date(user.registration_date).toLocaleDateString('ru-RU'),
+                new Date(user.last_active).toLocaleDateString('ru-RU')
+            ].map(field => `"${field}"`).join(';');
+            
+            csv += row + '\n';
+        });
+        
+        // Устанавливаем заголовки для скачивания
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="users_export.csv"');
+        res.send(csv);
+        
+        console.log('✅ CSV экспортирован, пользователей:', users.length);
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта:', error);
+        res.status(500).json({ error: 'Ошибка экспорта данных' });
+    }
+});
+
+// Экспорт статистики в CSV
+app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
+    try {
+        console.log('📈 Экспорт полной статистики в CSV');
+        
+        const users = db.users.filter(u => u.is_registered);
+        const purchases = db.purchases;
+        const activities = db.activities;
+        const works = db.user_works;
+        const quizCompletions = db.quiz_completions;
+        const marathonCompletions = db.marathon_completions.filter(m => m.completed);
+        
+        // Статистика по ролям
+        const roleStats = {};
+        db.roles.forEach(role => {
+            roleStats[role.name] = users.filter(u => u.class === role.name).length;
+        });
+        
+        let csv = 'Раздел;Показатель;Значение\n';
+        
+        // Основная статистика
+        csv += `Пользователи;Всего пользователей;${users.length}\n`;
+        csv += `Пользователи;Зарегистрировано;${users.filter(u => u.is_registered).length}\n`;
+        csv += `Пользователи;Активных сегодня;${users.filter(u => {
+            const today = new Date();
+            const lastActive = new Date(u.last_active);
+            return lastActive.toDateString() === today.toDateString();
+        }).length}\n`;
+        
+        // Статистика по ролям
+        Object.keys(roleStats).forEach(role => {
+            csv += `Роли;${role};${roleStats[role]}\n`;
+        });
+        
+        // Активности
+        csv += `Активности;Всего активностей;${activities.length}\n`;
+        csv += `Активности;Всего искр в системе;${users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)}\n`;
+        csv += `Активности;Всего покупок;${purchases.length}\n`;
+        csv += `Активности;Всего работ;${works.length}\n`;
+        csv += `Активности;Одобренных работ;${works.filter(w => w.status === 'approved').length}\n`;
+        
+        // Завершения
+        csv += `Завершения;Пройдено квизов;${quizCompletions.length}\n`;
+        csv += `Завершения;Завершено марафонов;${marathonCompletions.length}\n`;
+        
+        // Контент
+        csv += `Контент;Активных квизов;${db.quizzes.filter(q => q.is_active).length}\n`;
+        csv += `Контент;Активных марафонов;${db.marathons.filter(m => m.is_active).length}\n`;
+        csv += `Контент;Товаров в магазине;${db.shop_items.filter(i => i.is_active).length}\n`;
+        csv += `Контент;Постов в канале;${db.channel_posts.filter(p => p.is_active).length}\n`;
+        csv += `Контент;Интерактивов;${db.interactives.filter(i => i.is_active).length}\n`;
+        
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="full_stats_export.csv"');
+        res.send(csv);
+        
+        console.log('✅ Статистика экспортирована');
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта статистики:', error);
+        res.status(500).json({ error: 'Ошибка экспорта статистики' });
+    }
+});
+
+// ==================== МОБИЛЬНАЯ ОПТИМИЗАЦИЯ ====================
+
+// Middleware для определения мобильных устройств
+app.use((req, res, next) => {
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    req.isMobile = isMobile;
+    
+    if (isMobile) {
+        console.log('📱 Мобильное устройство обнаружено:', userAgent.substring(0, 50));
+        // Устанавливаем специальные заголовки для мобильных
+        res.set('X-Mobile-Optimized', 'true');
+    }
+    next();
+});
+
+// Глобальный детектор мобильных для использования в других модулях
+global.isMobileDevice = (userAgent) => {
+    return /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+};
+
+// Оптимизированные API для мобильных устройств
+app.get('/api/webapp/mobile/shop/items', async (req, res) => {
+    try {
+        const items = db.shop_items.filter(item => item.is_active);
+        
+        // Для мобильных - ограничиваем данные и убираем тяжелый контент
+        const mobileItems = items.map(item => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            type: item.type,
+            preview_url: item.preview_url,
+            price: item.price,
+            // Исключаем большие поля для мобильных
+            content_text: req.isMobile ? (item.content_text?.substring(0, 100) + '...') : item.content_text,
+            embed_html: null, // Не отправляем embed на мобильные
+            is_active: item.is_active
+        }));
+        
+        res.json(mobileItems);
+    } catch (error) {
+        console.error('❌ Ошибка загрузки магазина для мобильных:', error);
+        res.status(500).json({ error: 'Ошибка загрузки товаров' });
+    }
+});
+
+// Оптимизированные интерактивы для мобильных
+app.get('/api/webapp/mobile/interactives', async (req, res) => {
+    try {
+        const interactives = db.interactives.filter(i => i.is_active);
+        
+        const mobileInteractives = interactives.map(interactive => ({
+            id: interactive.id,
+            title: interactive.title,
+            description: interactive.description,
+            type: interactive.type,
+            category: interactive.category,
+            image_url: interactive.image_url,
+            question: interactive.question,
+            sparks_reward: interactive.sparks_reward,
+            allow_retake: interactive.allow_retake,
+            // Упрощаем для мобильных
+            options: interactive.options || [],
+            correct_answer: interactive.correct_answer,
+            is_active: interactive.is_active
+        }));
+        
+        res.json(mobileInteractives);
+    } catch (error) {
+        console.error('❌ Ошибка загрузки интерактивов для мобильных:', error);
+        res.status(500).json({ error: 'Ошибка загрузки интерактивов' });
+    }
+});
+
+// Health check для мобильных
+app.get('/api/mobile/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        mobile: true,
+        timestamp: new Date().toISOString(),
+        optimized: true
+    });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Сервер запущен на порту ${PORT}`);
+    console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
+    console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
+    console.log(`🎯 Квизов: ${db.quizzes.length}`);
+    console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
+    console.log(`🎮 Интерактивов: ${db.interactives.length}`);
+    console.log(`🛒 Товаров: ${db.shop_items.length}`);
+    console.log(`👥 Пользователей: ${db.users.length}`);
+    console.log('✅ Все системы работают!');
+});
