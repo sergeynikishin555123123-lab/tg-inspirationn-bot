@@ -1865,11 +1865,12 @@
     
     <div id="messageArea"></div>
 
-    <script>
-        // Глобальные переменные
-        let tg = null;
-        let currentUser = null;
-        let currentUserId = null;
+<script>
+    // Глобальные переменные
+    const isMobileDevice = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    let tg = null;
+    let currentUser = null;
+    let currentUserId = null;
         let selectedRole = null;
         let selectedCharacter = null;
         let currentQuiz = null;
@@ -2202,48 +2203,8 @@ function hideMobileMenu() {
     }
 }
         
-// Глобальный детектор мобильных устройств
-const isMobileDevice = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+// Детектор мобильных устройств (уже объявлен выше, просто используем)
 console.log(`📱 Мобильное устройство: ${isMobileDevice}`);
-
-// Оптимизация для мобильных - уменьшаем таймауты и ограничиваем данные
-if (isMobileDevice) {
-    // Уменьшаем таймауты для мобильных
-    const originalFetch = window.fetch;
-    window.fetch = function(...args) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд для мобильных
-        
-        return originalFetch(...args, { signal: controller.signal })
-            .finally(() => clearTimeout(timeoutId));
-    };
-    
-    // Оптимизация рендеринга для мобильных
-    document.addEventListener('DOMContentLoaded', function() {
-        // Уменьшаем анимации для мобильных
-        const style = document.createElement('style');
-        style.textContent = `
-            @media (max-width: 768px) {
-                .card, .btn, .feature-card {
-                    transition: none !important;
-                    transform: none !important;
-                }
-                
-                .interactive-image, .media-preview, .work-image {
-                    max-height: 150px !important;
-                    object-fit: cover;
-                }
-                
-                .content-preview {
-                    max-height: 100px !important;
-                    font-size: 12px !important;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    });
-}
-
 // Универсальная загрузка данных с оптимизацией для мобильных
 async function loadUniversalData() {
     try {
