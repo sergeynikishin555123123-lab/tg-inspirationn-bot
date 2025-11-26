@@ -12,6 +12,7 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
 import os from 'os';
+import sqlite3 from 'sqlite3';
 
 dotenv.config();
 
@@ -1425,12 +1426,17 @@ app.get('/api/webapp/characters/:roleId', async (req, res) => {
         );
 
         res.json({
+            success: true,
+            characters: characters
+        });
+    } catch (error) {
+        console.error('Ошибка получения персонажей:', error);
+        res.status(500).json({ 
             success: false, 
             error: 'Ошибка сервера' 
         });
     }
 });
-
 // Система приглашений
 app.post('/api/users/invite', requireAuth, async (req, res) => {
     try {
