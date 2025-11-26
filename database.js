@@ -65,7 +65,61 @@ export class DatabaseService {
                 bonus_value TEXT,
                 is_active BOOLEAN DEFAULT 1
             )`
-        ];
+       CREATE TABLE IF NOT EXISTS quizzes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            description TEXT,
+            questions TEXT,
+            total_questions INTEGER DEFAULT 0,
+            sparks_per_correct INTEGER DEFAULT 1,
+            sparks_perfect_bonus INTEGER DEFAULT 5,
+            difficulty TEXT DEFAULT 'easy',
+            category TEXT,
+            tags TEXT DEFAULT '[]',
+            estimated_time INTEGER,
+            is_active BOOLEAN DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`,
+        
+        `CREATE TABLE IF NOT EXISTS shop_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            description TEXT,
+            type TEXT,
+            file_url TEXT,
+            preview_url TEXT,
+            price INTEGER,
+            content_text TEXT,
+            embed_html TEXT,
+            is_active BOOLEAN DEFAULT 1,
+            category TEXT,
+            difficulty TEXT,
+            estimated_duration INTEGER,
+            instructor TEXT,
+            rating REAL DEFAULT 0,
+            students_count INTEGER DEFAULT 0,
+            tags TEXT DEFAULT '[]',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`,
+        
+        `CREATE TABLE IF NOT EXISTS posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT,
+            media_urls TEXT DEFAULT '[]',
+            allowed_actions TEXT DEFAULT '[]',
+            reward INTEGER DEFAULT 0,
+            is_published BOOLEAN DEFAULT 1,
+            views_count INTEGER DEFAULT 0,
+            likes_count INTEGER DEFAULT 0,
+            comments_count INTEGER DEFAULT 0,
+            shares_count INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            tags TEXT DEFAULT '[]',
+            category TEXT
+        )`
+    ];
 
         tables.forEach(sql => {
             this.db.run(sql, (err) => {
