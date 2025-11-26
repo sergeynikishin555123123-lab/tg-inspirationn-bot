@@ -20,155 +20,6 @@ const APP_ROOT = process.cwd();
 console.log('🎨 Мастерская Вдохновения - Запуск системы...');
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 
-// Глобальный мониторинг изменений баланса
-const balanceMonitor = {
-    changes: [],
-    
-    logChange: function(userId, oldBalance, newBalance, operation, details = {}) {
-        const change = {
-            id: Date.now(),
-            userId,
-            timestamp: new Date().toISOString(),
-            oldBalance,
-            newBalance,
-            difference: newBalance - oldBalance,
-            operation,
-            details
-        };
-        
-        this.changes.push(change);
-        console.log('💰 Монитор баланса:', change);
-        
-        // Храним только последние 1000 изменений
-        if (this.changes.length > 1000) {
-            this.changes = this.changes.slice(-1000);
-        }
-    },
-    
-    getUserHistory: function(userId) {
-        return this.changes.filter(change => change.userId === userId);
-    },
-    
-    findDiscrepancies: function() {
-        const discrepancies = [];
-        const users = db.users;
-        
-        users.forEach(user => {
-            const userActivities = db.activities.filter(a => a.user_id === user.user_id);
-            const calculatedBalance = userActivities.reduce((sum, activity) => sum + activity.sparks_earned, 0);
-            
-            if (Math.abs(user.sparks - calculatedBalance) > 0.1) {
-                discrepancies.push({
-                    userId: user.user_id,
-                    storedBalance: user.sparks,
-                    calculatedBalance: calculatedBalance,
-                    difference: user.sparks - calculatedBalance
-                });
-            }
-        });
-        
-        return discrepancies;
-    },
-    
-    // Метод для получения статистики по монитору
-    getStats: function() {
-        return {
-            totalChanges: this.changes.length,
-            uniqueUsers: [...new Set(this.changes.map(change => change.userId))].length,
-            discrepancies: this.findDiscrepancies().length,
-            lastChange: this.changes[this.changes.length - 1]
-        };
-    }
-};
-
-// API для отладки баланса (только для админов)
-app.get('/api/debug/balance-monitor', requireAdmin, (req, res) => {
-    const stats = balanceMonitor.getStats();
-    const discrepancies = balanceMonitor.findDiscrepancies();
-    
-    res.json({
-        monitor_stats: stats,
-        discrepancies: discrepancies,
-        recent_changes: balanceMonitor.changes.slice(-50).reverse(),
-        total_users: db.users.length,
-        users_with_issues: discrepancies.length
-    });
-});
-
-// API для проверки конкретного пользователя
-app.get('/api/debug/user-balance/:userId', requireAdmin, (req, res) => {
-    const userId = parseInt(req.params.userId);
-    
-    const user = db.users.find(u => u.user_id === userId);
-    if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-    }
-    
-    const userActivities = db.activities.filter(a => a.user_id === userId);
-    const calculatedBalance = userActivities.reduce((sum, activity) => sum + activity.sparks_earned, 0);
-    
-    const userChanges = balanceMonitor.getUserHistory(userId);
-    const purchases = db.purchases.filter(p => p.user_id === userId);
-    
-    res.json({
-        user: {
-            id: user.user_id,
-            name: user.tg_first_name,
-            stored_balance: user.sparks,
-            level: user.level
-        },
-        balance_analysis: {
-            calculated_from_activities: calculatedBalance,
-            difference: user.sparks - calculatedBalance,
-            is_correct: Math.abs(user.sparks - calculatedBalance) < 0.1
-        },
-        activities: {
-            total: userActivities.length,
-            earnings: userActivities.filter(a => a.sparks_earned > 0).reduce((sum, a) => sum + a.sparks_earned, 0),
-            spendings: userActivities.filter(a => a.sparks_earned < 0).reduce((sum, a) => sum + Math.abs(a.sparks_earned), 0)
-        },
-        purchases: purchases.length,
-        monitor_changes: userChanges.slice(-20).reverse()
-    });
-});
-
-// ==================== НАСТРОЙКИ ТАЙМАУТОВ ДЛЯ МОБИЛЬНЫХ ====================
-
-// Увеличение таймаутов для мобильных устройств
-const MOBILE_TIMEOUTS = {
-    request: 60000, // 60 секунд для запросов
-    upload: 300000, // 5 минут для загрузки файлов
-    download: 300000 // 5 минут для скачивания
-};
-
-// Middleware для определения мобильных устройств и установки таймаутов
-app.use((req, res, next) => {
-    const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    req.isMobile = isMobile;
-    
-    // Устанавливаем увеличенные таймауты для мобильных
-    if (isMobile) {
-        console.log('📱 Мобильное устройство обнаружено, устанавливаем увеличенные таймауты');
-        req.setTimeout(MOBILE_TIMEOUTS.request);
-        res.setTimeout(MOBILE_TIMEOUTS.request);
-    }
-    
-    next();
-});
-
-// Глобальный обработчик для больших файлов
-app.use((req, res, next) => {
-    // Увеличиваем таймауты для загрузки файлов
-    if (req.path.includes('/upload-work') || req.path.includes('/submit-day')) {
-        console.log('⏰ Установка увеличенных таймаутов для загрузки файлов');
-        req.setTimeout(MOBILE_TIMEOUTS.upload);
-        res.setTimeout(MOBILE_TIMEOUTS.upload);
-    }
-    
-    next();
-});
-
 // In-memory база данных с улучшенной структурой
 let db = {
     users: [
@@ -856,51 +707,26 @@ function calculateLevel(sparks) {
     return 'Ученик';
 }
 
-// УЛУЧШЕННАЯ функция добавления/списания искр
 function addSparks(userId, sparks, activityType, description) {
-    console.log(`✨ Изменение баланса пользователя ${userId}: ${sparks} искр. Тип: ${activityType}`);
-    
     const user = db.users.find(u => u.user_id == userId);
-    if (!user) {
-        console.error('❌ Пользователь не найден для изменения баланса');
-        return null;
-    }
-    
-    const oldBalance = user.sparks;
-    
-    // Для списания используем безопасную функцию
-    if (sparks < 0) {
-        try {
-            const amount = Math.abs(sparks);
-            const result = safeDeductSparks(userId, amount, description);
-            user.sparks = result.newBalance; // Убедимся, что баланс обновлен
-        } catch (error) {
-            console.error('❌ Ошибка при списании через addSparks:', error);
-            return null;
-        }
-    } else {
-        // Для начисления просто добавляем
-        user.sparks = Math.round((user.sparks + sparks) * 10) / 10;
+    if (user) {
+        user.sparks = Math.max(0, user.sparks + sparks); // Защита от отрицательных значений
         user.level = calculateLevel(user.sparks);
         user.last_active = new Date().toISOString();
+        
+        const activity = {
+            id: Date.now(),
+            user_id: userId,
+            activity_type: activityType,
+            sparks_earned: sparks,
+            description: description,
+            created_at: new Date().toISOString()
+        };
+        
+        db.activities.push(activity);
+        return activity;
     }
-    
-    const activity = {
-        id: Date.now(),
-        user_id: userId,
-        activity_type: activityType,
-        sparks_earned: sparks, // Может быть отрицательным для списаний
-        description: description,
-        created_at: new Date().toISOString(),
-        balance_before: oldBalance,
-        balance_after: user.sparks
-    };
-    
-    db.activities.push(activity);
-    
-    console.log(`✅ Баланс изменен. Было: ${oldBalance}, стало: ${user.sparks}, изменение: ${sparks}`);
-    
-    return activity;
+    return null;
 }
 
 function getUserStats(userId) {
@@ -966,26 +792,21 @@ app.get('/health', (req, res) => {
 
 // ==================== ОПТИМИЗИРОВАННЫЕ API ДЛЯ МОБИЛЬНЫХ ====================
 
-// Оптимизированный API для мобильных с увеличенными таймаутами
-app.get('/api/mobile/optimized-data', (req, res) => {
+// Универсальный мобильный API с оптимизацией данных
+app.get('/api/mobile/universal-data', (req, res) => {
     const userId = parseInt(req.query.userId);
     const isMobile = req.isMobile;
     
-    console.log(`📱 Оптимизированный мобильный API запрос от пользователя: ${userId}`);
-    
-    // Устанавливаем увеличенный таймаут для мобильных
-    if (isMobile) {
-        req.setTimeout(45000); // 45 секунд
-        res.setTimeout(45000);
-    }
+    console.log(`📱 Универсальный мобильный API запрос от пользователя: ${userId}, мобильный: ${isMobile}`);
     
     try {
+        // Базовые данные пользователя
         const user = db.users.find(u => u.user_id === userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
         
-        // Упрощенные данные для мобильных
+        // Оптимизированные данные для мобильных
         const response = {
             user: {
                 id: user.user_id,
@@ -993,24 +814,65 @@ app.get('/api/mobile/optimized-data', (req, res) => {
                 level: user.level,
                 sparks: user.sparks,
                 role: user.class,
-                character: user.character_name
+                character: user.character_name,
+                is_registered: user.is_registered
             },
-            // Минимальные данные для быстрой загрузки
-            quick_stats: {
-                quizzes: db.quizzes.filter(q => q.is_active).length,
-                marathons: db.marathons.filter(m => m.is_active).length,
-                shop_items: db.shop_items.filter(i => i.is_active).length,
-                interactives: db.interactives.filter(i => i.is_active).length
-            },
-            optimized: true,
-            timestamp: new Date().toISOString(),
-            timeouts_set: isMobile
+            // Ограничиваем количество элементов для мобильных
+            quizzes: db.quizzes.filter(q => q.is_active)
+                .slice(0, isMobile ? 10 : 50)
+                .map(quiz => ({
+                    id: quiz.id,
+                    title: quiz.title,
+                    description: quiz.description,
+                    questions_count: quiz.questions.length,
+                    sparks_per_correct: quiz.sparks_per_correct
+                })),
+                
+            marathons: db.marathons.filter(m => m.is_active)
+                .slice(0, isMobile ? 5 : 20)
+                .map(marathon => ({
+                    id: marathon.id,
+                    title: marathon.title,
+                    description: marathon.description,
+                    duration_days: marathon.duration_days,
+                    sparks_per_day: marathon.sparks_per_day
+                })),
+                
+            shop_items: db.shop_items.filter(i => i.is_active)
+                .slice(0, isMobile ? 8 : 30)
+                .map(item => ({
+                    id: item.id,
+                    title: item.title,
+                    description: item.description,
+                    type: item.type,
+                    price: item.price,
+                    preview_url: item.preview_url
+                    // Исключаем тяжелый контент для мобильных
+                })),
+                
+            interactives: db.interactives.filter(i => i.is_active)
+                .slice(0, isMobile ? 6 : 20)
+                .map(interactive => ({
+                    id: interactive.id,
+                    title: interactive.title,
+                    description: interactive.description,
+                    type: interactive.type,
+                    category: interactive.category,
+                    sparks_reward: interactive.sparks_reward
+                })),
+                
+            // Статистика
+            stats: getUserStats(userId),
+            
+            // Флаги оптимизации
+            optimized: isMobile,
+            timestamp: new Date().toISOString()
         };
         
         res.json(response);
         
     } catch (error) {
-        console.error('❌ Ошибка оптимизированного API:', error);
+        console.error('❌ Ошибка мобильного API:', error);
         res.status(500).json({ 
             error: 'Mobile API error',
             optimized: true 
@@ -1018,128 +880,66 @@ app.get('/api/mobile/optimized-data', (req, res) => {
     }
 });
 
-// Улучшенный endpoint для загрузки тяжелого контента
-app.get('/api/mobile/lazy-load', (req, res) => {
-    const { type, page = 1, limit = 8 } = req.query;
+// Оптимизированная загрузка тяжелого контента по частям
+app.get('/api/mobile/lazy-content', (req, res) => {
+    const { type, page = 1, limit = 10 } = req.query;
     const isMobile = req.isMobile;
     
-    console.log(`📱 Ленивая загрузка: ${type}, страница ${page}`);
+    const actualLimit = isMobile ? Math.min(limit, 8) : limit;
+    const offset = (page - 1) * actualLimit;
     
-    // Устанавливаем увеличенный таймаут
-    if (isMobile) {
-        req.setTimeout(30000);
-        res.setTimeout(30000);
+    let content = [];
+    
+    switch(type) {
+        case 'shop':
+            content = db.shop_items
+                .filter(i => i.is_active)
+                .slice(offset, offset + actualLimit)
+                .map(item => ({
+                    id: item.id,
+                    title: item.title,
+                    description: item.description,
+                    type: item.type,
+                    price: item.price,
+                    preview_url: item.preview_url
+                }));
+            break;
+            
+        case 'interactives':
+            content = db.interactives
+                .filter(i => i.is_active)
+                .slice(offset, offset + actualLimit)
+                .map(interactive => ({
+                    id: interactive.id,
+                    title: interactive.title,
+                    description: interactive.description,
+                    type: interactive.type,
+                    category: interactive.category,
+                    image_url: interactive.image_url,
+                    sparks_reward: interactive.sparks_reward
+                }));
+            break;
+            
+        case 'quizzes':
+            content = db.quizzes
+                .filter(q => q.is_active)
+                .slice(offset, offset + actualLimit)
+                .map(quiz => ({
+                    id: quiz.id,
+                    title: quiz.title,
+                    description: quiz.description,
+                    questions_count: quiz.questions.length,
+                    sparks_per_correct: quiz.sparks_per_correct
+                }));
+            break;
     }
-    
-    try {
-        let content = [];
-        const actualLimit = isMobile ? Math.min(limit, 6) : limit;
-        const offset = (page - 1) * actualLimit;
-        
-        switch(type) {
-            case 'shop':
-                content = db.shop_items
-                    .filter(i => i.is_active)
-                    .slice(offset, offset + actualLimit)
-                    .map(item => ({
-                        id: item.id,
-                        title: item.title,
-                        description: item.description,
-                        type: item.type,
-                        price: item.price,
-                        preview_url: item.preview_url,
-                        // Для embed-видео добавляем специальную пометку
-                        is_embed: item.type === 'embed'
-                    }));
-                break;
-                
-            case 'interactives':
-                content = db.interactives
-                    .filter(i => i.is_active)
-                    .slice(offset, offset + actualLimit)
-                    .map(interactive => ({
-                        id: interactive.id,
-                        title: interactive.title,
-                        description: interactive.description,
-                        type: interactive.type,
-                        category: interactive.category,
-                        sparks_reward: interactive.sparks_reward
-                    }));
-                break;
-        }
-        
-        res.json({
-            content,
-            page: parseInt(page),
-            limit: actualLimit,
-            hasMore: content.length === actualLimit,
-            optimized: isMobile,
-            load_time: new Date().toISOString()
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка ленивой загрузки:', error);
-        res.status(500).json({ 
-            error: 'Lazy load error',
-            optimized: true 
-        });
-    }
-});
-
-// API для проверки баланса и истории операций
-app.get('/api/users/:userId/balance', (req, res) => {
-    const userId = parseInt(req.params.userId);
-    
-    const user = db.users.find(u => u.user_id === userId);
-    if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-    }
-    
-    // Получаем последние операции пользователя
-    const recentActivities = db.activities
-        .filter(a => a.user_id === userId)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        .slice(0, 20)
-        .map(activity => ({
-            type: activity.activity_type,
-            description: activity.description,
-            amount: activity.sparks_earned,
-            date: activity.created_at,
-            balance_before: activity.balance_before,
-            balance_after: activity.balance_after
-        }));
-    
-    // Получаем покупки пользователя
-    const purchases = db.purchases
-        .filter(p => p.user_id === userId)
-        .map(purchase => {
-            const item = db.shop_items.find(i => i.id === purchase.item_id);
-            return {
-                id: purchase.id,
-                item_title: item?.title,
-                price: purchase.price_paid,
-                date: purchase.purchased_at
-            };
-        });
     
     res.json({
-        user: {
-            id: user.user_id,
-            name: user.tg_first_name,
-            current_balance: user.sparks,
-            level: user.level
-        },
-        recent_activities: recentActivities,
-        purchases: purchases,
-        stats: {
-            total_earned: db.activities
-                .filter(a => a.user_id === userId && a.sparks_earned > 0)
-                .reduce((sum, a) => sum + a.sparks_earned, 0),
-            total_spent: db.activities
-                .filter(a => a.user_id === userId && a.sparks_earned < 0)
-                .reduce((sum, a) => sum + Math.abs(a.sparks_earned), 0),
-            total_purchases: purchases.length
-        }
+        content,
+        page: parseInt(page),
+        limit: actualLimit,
+        hasMore: content.length === actualLimit,
+        optimized: isMobile
     });
 });
 
@@ -1165,82 +965,72 @@ app.get('/api/webapp/private-videos', (req, res) => {
     res.json({ videos: videosWithAccess });
 });
 
-// ИСПРАВЛЕННАЯ покупка доступа к приватному видео
+// Покупка доступа к видео из приватного канала
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
-    console.log('🎬 Запрос на покупку приватного видео:', req.body);
-    
     const { userId, videoId } = req.body;
     
     if (!userId || !videoId) {
         return res.status(400).json({ error: 'User ID and video ID are required' });
     }
     
+    const user = db.users.find(u => u.user_id == userId);
+    const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
+    
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!video) return res.status(404).json({ error: 'Video not found' });
+    
+    // Проверяем, не куплен ли уже доступ
+    const existingAccess = db.video_access.find(
+        access => access.user_id === userId && access.video_id === videoId
+    );
+    
+    if (existingAccess) {
+        return res.status(400).json({ error: 'У вас уже есть доступ к этому видео' });
+    }
+    
+    if (user.sparks < video.price) {
+        return res.status(400).json({ error: 'Недостаточно искр' });
+    }
+    
     try {
-        const user = db.users.find(u => u.user_id == userId);
-        const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
+        // 1. Списание искр
+        user.sparks -= video.price;
         
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        if (!video) return res.status(404).json({ error: 'Video not found' });
-        
-        // Проверяем, не куплен ли уже доступ
-        const existingAccess = db.video_access.find(
-            access => access.user_id === userId && access.video_id === videoId
-        );
-        
-        if (existingAccess) {
-            return res.status(400).json({ error: 'У вас уже есть доступ к этому видео' });
-        }
-        
-        console.log('✅ Проверки пройдены, начинаем покупку...');
-        
-        // БЕЗОПАСНОЕ списание искр
-        const deductionResult = safeDeductSparks(userId, video.price, `Покупка доступа к видео: ${video.title}`);
-        
-        // Создаем запись о доступе
+        // 2. Создаем запись о доступе
         const accessRecord = {
             id: Date.now(),
-            user_id: parseInt(userId),
-            video_id: parseInt(videoId),
+            user_id: userId,
+            video_id: videoId,
             purchased_at: new Date().toISOString(),
             access_expires: null,
             telegram_message_id: null
         };
         
         db.video_access.push(accessRecord);
-        console.log('📝 Запись о доступе создана:', accessRecord);
         
-        // Логируем покупку
+        // 3. Логируем покупку
         addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
         
-        // Предоставляем доступ через Telegram бота (асинхронно)
+        // 4. Предоставляем доступ через Telegram бота
         if (bot && PRIVATE_CHANNEL_CONFIG.BOT_TOKEN) {
-            grantVideoAccess(userId, videoId).catch(error => {
-                console.error('⚠️ Ошибка при предоставлении доступа через бота:', error);
-            });
+            await grantVideoAccess(userId, videoId);
         }
-        
-        console.log('✅ Покупка завершена успешно');
         
         res.json({
             success: true,
             message: `Доступ к видео "${video.title}" предоставлен!`,
-            remainingSparks: deductionResult.newBalance,
-            access: accessRecord,
-            balanceChange: {
-                old: deductionResult.oldBalance,
-                new: deductionResult.newBalance,
-                deducted: deductionResult.amountDeducted
-            }
+            remainingSparks: user.sparks,
+            access: accessRecord
         });
         
     } catch (error) {
-        console.error('💥 Ошибка при покупке доступа к видео:', error);
-        res.status(400).json({ 
-            error: error.message,
-            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        });
+        console.error('Ошибка при покупке доступа к видео:', error);
+        // Откатываем списание искр в случае ошибки
+        user.sparks += video.price;
+        res.status(500).json({ error: 'Ошибка предоставления доступа' });
     }
 });
+
 // Получить информацию о конкретном видео
 app.get('/api/webapp/private-videos/:videoId', (req, res) => {
     const userId = parseInt(req.query.userId);
@@ -1262,11 +1052,9 @@ app.get('/api/webapp/private-videos/:videoId', (req, res) => {
     });
 });
 
-// УЛУЧШЕННАЯ функция предоставления доступа через Telegram бота
+// Функция предоставления доступа через Telegram бота
 async function grantVideoAccess(userId, videoId) {
     try {
-        console.log('🔗 Начинаем предоставление доступа:', { userId, videoId });
-        
         const user = db.users.find(u => u.user_id == userId);
         const video = db.private_channel_videos.find(v => v.id == videoId);
         const accessRecord = db.video_access.find(a => a.user_id === userId && a.video_id === videoId);
@@ -1275,15 +1063,11 @@ async function grantVideoAccess(userId, videoId) {
             throw new Error('Данные для предоставления доступа не найдены');
         }
         
-        console.log('✅ Данные найдены, создаем ссылку...');
-        
         // Создаем уникальную ссылку-приглашение в канал
         const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
             member_limit: 1,
             expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
         });
-        
-        console.log('🔗 Ссылка создана:', chatInviteLink.invite_link);
         
         // Отправляем пользователю сообщение с доступом
         const message = await bot.sendMessage(userId, 
@@ -1298,21 +1082,12 @@ async function grantVideoAccess(userId, videoId) {
         
         // Сохраняем ID сообщения
         accessRecord.telegram_message_id = message.message_id;
-        accessRecord.invite_link = chatInviteLink.invite_link;
         
         console.log(`✅ Доступ к видео ${videoId} предоставлен пользователю ${userId}`);
         
     } catch (error) {
         console.error('❌ Ошибка предоставления доступа:', error);
-        
-        // Логируем ошибку, но не прерываем выполнение
-        const accessRecord = db.video_access.find(a => a.user_id === userId && a.video_id === videoId);
-        if (accessRecord) {
-            accessRecord.error = error.message;
-            accessRecord.error_time = new Date().toISOString();
-        }
-        
-        throw error; // Пробрасываем ошибку дальше
+        throw error;
     }
 }
 
@@ -1827,11 +1602,9 @@ app.get('/api/webapp/shop/items', (req, res) => {
     res.json(items);
 });
 
-// ИСПРАВЛЕННАЯ покупка товара с безопасным списанием
+// ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА
 app.post('/api/webapp/shop/purchase', (req, res) => {
     const { userId, itemId } = req.body;
-    
-    console.log('🛒 Запрос на покупку товара:', { userId, itemId });
     
     if (!userId || !itemId) {
         return res.status(400).json({ error: 'User ID and item ID are required' });
@@ -1852,45 +1625,31 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
         return res.status(400).json({ error: 'Вы уже купили этот товар' });
     }
     
-    try {
-        // БЕЗОПАСНОЕ списание искр
-        const deductionResult = safeDeductSparks(userId, item.price, `Покупка товара: ${item.title}`);
-        
-        const purchase = {
-            id: Date.now(),
-            user_id: userId,
-            item_id: itemId,
-            price_paid: item.price,
-            purchased_at: new Date().toISOString()
-        };
-        
-        db.purchases.push(purchase);
-        
-        // Логируем покупку (отрицательное значение для списания)
-        addSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
-        
-        console.log('✅ Покупка завершена успешно:', purchase);
-        
-        res.json({
-            success: true,
-            message: `Покупка успешна! Куплено: ${item.title}`,
-            remainingSparks: deductionResult.newBalance,
-            purchase: purchase,
-            balanceChange: {
-                old: deductionResult.oldBalance,
-                new: deductionResult.newBalance,
-                deducted: deductionResult.amountDeducted
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка при списании искр:', error);
-        res.status(400).json({ 
-            error: error.message,
-            userBalance: user.sparks,
-            itemPrice: item.price
-        });
+    if (user.sparks < item.price) {
+        return res.status(400).json({ error: 'Недостаточно искр' });
     }
+    
+    // Списание искр
+    user.sparks -= item.price;
+    
+    const purchase = {
+        id: Date.now(),
+        user_id: userId,
+        item_id: itemId,
+        price_paid: item.price,
+        purchased_at: new Date().toISOString()
+    };
+    
+    db.purchases.push(purchase);
+    
+    addSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
+    
+    res.json({
+        success: true,
+        message: `Покупка успешна! Куплено: ${item.title}`,
+        remainingSparks: user.sparks,
+        purchase: purchase
+    });
 });
 
 app.get('/api/webapp/users/:userId/purchases', (req, res) => {
