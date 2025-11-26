@@ -45,17 +45,20 @@
             flex-wrap: wrap;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            gap: 8px;
         }
         
         .nav-tab { 
             padding: 12px 20px; 
             cursor: pointer; 
             border-radius: 12px; 
-            margin-right: 8px;
-            margin-bottom: 4px; 
             transition: all 0.3s ease; 
             white-space: nowrap;
             font-weight: 500;
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+            font-size: 14px;
         }
         
         .nav-tab.active { 
@@ -99,6 +102,7 @@
             transition: all 0.3s ease;
             font-weight: 500;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            font-size: 14px;
         }
         
         .btn:hover { 
@@ -368,6 +372,7 @@
             display: flex; 
             gap: 12px; 
             margin-top: 12px;
+            flex-wrap: wrap;
         }
         
         .file-preview {
@@ -387,16 +392,19 @@
             margin-bottom: 20px; 
             flex-wrap: wrap;
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            gap: 8px;
         }
         
         .tab-subnav-item {
             padding: 10px 16px; 
             cursor: pointer; 
             border-radius: 8px;
-            margin-right: 8px; 
-            margin-bottom: 4px; 
             transition: all 0.3s ease;
             font-weight: 500;
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+            font-size: 14px;
         }
         
         .tab-subnav-item.active { 
@@ -537,8 +545,8 @@
         }
         
         .search-input {
-            width: 300px; 
-            max-width: 100%; 
+            width: 100%; 
+            max-width: 300px;
             padding: 12px 20px;
             border: 2px solid #e2e8f0; 
             border-radius: 25px;
@@ -569,6 +577,8 @@
             font-size: 14px; 
             min-width: 160px;
             transition: border-color 0.3s ease;
+            flex: 1;
+            min-width: 140px;
         }
         
         .filter-select:focus {
@@ -652,10 +662,10 @@
         }
         
         .upload-preview {
-            max-width: 200px; 
-            max-height: 150px; 
-            border-radius: 8px;
-            margin: 12px 0; 
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            margin: 12px 0;
             border: 2px solid #e2e8f0;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
@@ -675,15 +685,6 @@
             padding: 10px;
             width: 100%;
             margin: 16px 0;
-        }
-
-        .upload-preview {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 12px;
-            margin: 12px 0;
-            border: 2px solid #e2e8f0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
         .task-item {
@@ -714,12 +715,15 @@
             justify-content: space-between; 
             align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 16px;
         }
         
         .admin-actions {
             display: flex; 
             gap: 12px; 
             align-items: center;
+            flex-wrap: wrap;
         }
         
         .refresh-btn {
@@ -745,6 +749,7 @@
             justify-content: center; 
             margin-top: 20px;
             gap: 8px;
+            flex-wrap: wrap;
         }
         
         .page-btn {
@@ -754,6 +759,7 @@
             border-radius: 6px; 
             cursor: pointer; 
             transition: all 0.3s ease;
+            min-width: 40px;
         }
         
         .page-btn.active {
@@ -860,6 +866,53 @@
             gap: 20px;
         }
         
+        .mobile-optimized {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .responsive-table {
+            min-width: 600px;
+        }
+        
+        .marathon-submission-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .marathon-submission-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+        }
+        
+        .submission-image {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            margin: 8px 0;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .tg-video-preview {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .tg-video-preview iframe {
+            width: 100%;
+            height: 200px;
+            border-radius: 8px;
+            border: none;
+        }
+        
         @media (max-width: 1200px) {
             .analytics-grid {
                 grid-template-columns: 1fr;
@@ -868,12 +921,15 @@
         
         @media (max-width: 768px) {
             .nav-tabs {
-                flex-direction: column;
+                flex-direction: row;
+                overflow-x: auto;
+                padding-bottom: 8px;
             }
             
             .nav-tab {
-                margin-right: 0;
-                margin-bottom: 8px;
+                min-width: 140px;
+                font-size: 13px;
+                padding: 10px 16px;
             }
             
             .users-table {
@@ -891,6 +947,75 @@
             .btn {
                 width: 100%; 
                 margin-right: 0;
+            }
+            
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-select {
+                min-width: 100%;
+            }
+            
+            .search-input {
+                width: 100%;
+            }
+            
+            .admin-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .admin-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .completion-stats {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .completion-stat {
+                justify-content: space-between;
+            }
+            
+            .moderation-actions {
+                flex-direction: column;
+            }
+            
+            .stat-card {
+                padding: 16px;
+            }
+            
+            .stat-number {
+                font-size: 2em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .card {
+                padding: 16px;
+            }
+            
+            .nav-tab {
+                min-width: 120px;
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+            
+            .btn {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+            
+            .form-control {
+                padding: 12px;
             }
         }
     </style>
@@ -993,8 +1118,10 @@
                     </button>
                 </div>
 
-                <div id="usersList" class="loading">
-                    Загрузка пользователей...
+                <div class="mobile-optimized">
+                    <div id="usersList" class="loading">
+                        Загрузка пользователей...
+                    </div>
                 </div>
             </div>
         </div>
@@ -1351,156 +1478,168 @@
             </div>
         </div>
 
-<!-- Магазин -->
-<div id="shop" class="tab-content">
-    <div class="tab-subnav">
-        <div class="tab-subnav-item active" onclick="showShopTab('items')">🛍️ Товары</div>
-        <div class="tab-subnav-item" onclick="showShopTab('purchases')">📦 Покупки</div>
-    </div>
-
-    <div id="shopItemsTab">
-        <div class="card">
-            <h2 style="margin-bottom: 20px;">🛍️ Управление товарами</h2>
-            
-            <div class="action-buttons">
-                <button class="btn btn-success" onclick="showShopItemForm()">➕ Добавить товар</button>
+        <!-- Магазин -->
+        <div id="shop" class="tab-content">
+            <div class="tab-subnav">
+                <div class="tab-subnav-item active" onclick="showShopTab('items')">🛍️ Товары</div>
+                <div class="tab-subnav-item" onclick="showShopTab('purchases')">📦 Покупки</div>
             </div>
 
-            <div id="shopItemsList" class="loading">
-                Загрузка товаров...
-            </div>
-        </div>
+            <div id="shopItemsTab">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px;">🛍️ Управление товарами</h2>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="showShopItemForm()">➕ Добавить товар</button>
+                    </div>
 
-       <!-- Форма создания/редактирования товара -->
-<div id="shopItemForm" class="card" style="display: none;">
-    <h3 id="shopItemFormTitle" style="margin-bottom: 20px;">Добавление нового товара</h3>
-    
-    <div class="form-group">
-        <label class="form-label">Название товара:</label>
-        <input type="text" id="shopItemTitle" class="form-control" placeholder="Например: Урок акварели">
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Описание:</label>
-        <textarea id="shopItemDescription" class="form-control" rows="3" placeholder="Описание товара..."></textarea>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Тип:</label>
-        <select id="shopItemType" class="form-control" onchange="updateShopItemForm()">
-            <option value="video">🎥 Видео</option>
-            <option value="pdf">📚 PDF</option>
-            <option value="text">📝 Текст</option>
-            <option value="audio">🎧 Аудио</option>
-            <option value="image">🖼️ Изображение</option>
-            <option value="embed">🎬 Встроенное видео (Vimeo)</option>
-        </select>
-    </div>
-
-    <!-- СЕКЦИЯ ДЛЯ ФАЙЛА ТОВАРА -->
-    <div class="form-group" id="shopItemFileSection">
-        <label class="form-label">Файл товара:</label>
-        
-        <div class="image-upload-area" id="shopItemFileUploadArea" onclick="document.getElementById('shopItemFileInput').click()">
-            <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
-            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки файла</div>
-            <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
-            <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
-                Поддерживаются: MP4, PDF, JPG, PNG, MP3 (макс. 3GB)
-            </div>
-        </div>
-        <input type="file" id="shopItemFileInput" accept=".mp4,.pdf,.jpg,.jpeg,.png,.mp3" style="display: none;" onchange="handleShopItemFileUpload(this.files[0])">
-        
-        <div id="shopItemFilePreview" style="display: none;">
-            <div id="shopItemFilePreviewContent"></div>
-            <button class="btn btn-danger" onclick="clearShopItemFile()" style="margin-top: 12px;">
-                🗑️ Удалить файл
-            </button>
-        </div>
-
-        <!-- Старое поле URL (альтернатива) -->
-        <div style="margin-top: 16px;">
-            <label class="form-label">Или URL файла:</label>
-            <input type="text" id="shopItemFileUrl" class="form-control" placeholder="https://example.com/file.mp4">
-        </div>
-    </div>
-
-    <!-- СЕКЦИЯ ДЛЯ EMBED HTML -->
-    <div class="form-group" id="embedHtmlSection" style="display: none;">
-        <label class="form-label">HTML-код для встраивания:</label>
-        <textarea id="shopItemEmbedHtml" class="form-control" rows="4" placeholder="Вставьте HTML-код для встраивания видео (Vimeo, YouTube и т.д.)..."></textarea>
-        <div style="color: #718096; font-size: 14px; margin-top: 8px;">
-            💡 Вставьте код embed из Vimeo, YouTube или другой платформы
-        </div>
-    </div>
-
-    <!-- СЕКЦИЯ ДЛЯ ПРЕВЬЮ ТОВАРА -->
-    <div class="form-group">
-        <label class="form-label">Превью товара (изображение):</label>
-        
-        <div class="image-upload-area" id="shopItemPreviewUploadArea" onclick="document.getElementById('shopItemPreviewInput').click()">
-            <div style="font-size: 48px; margin-bottom: 12px;">🖼️</div>
-            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки превью</div>
-            <div style="color: #718096; font-size: 14px;">или перетащите изображение сюда</div>
-        </div>
-        <input type="file" id="shopItemPreviewInput" accept="image/*" style="display: none;" onchange="handleShopItemPreviewUpload(this.files[0])">
-        
-        <div id="shopItemPreviewImagePreview" style="display: none;">
-            <img id="shopItemPreviewImage" class="upload-preview">
-            <button class="btn btn-danger" onclick="clearShopItemPreview()" style="margin-top: 12px;">
-                🗑️ Удалить превью
-            </button>
-        </div>
-
-        <!-- Старое поле URL (альтернатива) -->
-        <div style="margin-top: 16px;">
-            <label class="form-label">Или URL превью:</label>
-            <input type="text" id="shopItemPreviewUrl" class="form-control" placeholder="https://example.com/preview.jpg">
-        </div>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Цена (искры):</label>
-        <input type="number" id="shopItemPrice" class="form-control" value="10" min="0" step="0.5">
-    </div>
-
-    <div class="form-group">
-        <label class="form-label">Содержимое (текст):</label>
-        <textarea id="shopItemContent" class="form-control" rows="6" placeholder="Подробное описание содержимого..."></textarea>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">
-            <input type="checkbox" id="shopItemActive" checked> Активный товар
-        </label>
-    </div>
-    
-    <div class="action-buttons">
-        <button class="btn btn-success" onclick="saveShopItem()">💾 Сохранить товар</button>
-        <button class="btn btn-danger" onclick="hideShopItemForm()">❌ Отмена</button>
-    </div>
-</div>
-    </div>
-
-    <div id="shopPurchasesTab" style="display: none;">
-        <div class="card">
-            <h2 style="margin-bottom: 20px;">📦 История покупок</h2>
-            
-            <div class="filters">
-                <div class="search-box">
-                    <input type="text" id="purchaseSearch" class="search-input" placeholder="Поиск покупок..." oninput="filterPurchases()">
+                    <div id="shopItemsList" class="loading">
+                        Загрузка товаров...
+                    </div>
                 </div>
-                <select class="filter-select" id="purchaseItemFilter" onchange="filterPurchases()">
-                    <option value="">Все товары</option>
-                </select>
+
+                <!-- Форма создания/редактирования товара -->
+                <div id="shopItemForm" class="card" style="display: none;">
+                    <h3 id="shopItemFormTitle" style="margin-bottom: 20px;">Добавление нового товара</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Название товара:</label>
+                        <input type="text" id="shopItemTitle" class="form-control" placeholder="Например: Урок акварели">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Описание:</label>
+                        <textarea id="shopItemDescription" class="form-control" rows="3" placeholder="Описание товара..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Тип:</label>
+                        <select id="shopItemType" class="form-control" onchange="updateShopItemForm()">
+                            <option value="video">🎥 Видео</option>
+                            <option value="pdf">📚 PDF</option>
+                            <option value="text">📝 Текст</option>
+                            <option value="audio">🎧 Аудио</option>
+                            <option value="image">🖼️ Изображение</option>
+                            <option value="embed">🎬 Встроенное видео</option>
+                            <option value="tg_video">📹 Видео из Telegram</option>
+                        </select>
+                    </div>
+
+                    <!-- СЕКЦИЯ ДЛЯ ФАЙЛА ТОВАРА -->
+                    <div class="form-group" id="shopItemFileSection">
+                        <label class="form-label">Файл товара:</label>
+                        
+                        <div class="image-upload-area" id="shopItemFileUploadArea" onclick="document.getElementById('shopItemFileInput').click()">
+                            <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
+                            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки файла</div>
+                            <div style="color: #718096; font-size: 14px;">или перетащите файл сюда</div>
+                            <div style="color: #667eea; margin-top: 12px; font-size: 12px;">
+                                Поддерживаются: MP4, PDF, JPG, PNG, MP3 (макс. 3GB)
+                            </div>
+                        </div>
+                        <input type="file" id="shopItemFileInput" accept=".mp4,.pdf,.jpg,.jpeg,.png,.mp3" style="display: none;" onchange="handleShopItemFileUpload(this.files[0])">
+                        
+                        <div id="shopItemFilePreview" style="display: none;">
+                            <div id="shopItemFilePreviewContent"></div>
+                            <button class="btn btn-danger" onclick="clearShopItemFile()" style="margin-top: 12px;">
+                                🗑️ Удалить файл
+                            </button>
+                        </div>
+
+                        <!-- Поле URL -->
+                        <div style="margin-top: 16px;">
+                            <label class="form-label">Или URL файла:</label>
+                            <input type="text" id="shopItemFileUrl" class="form-control" placeholder="https://example.com/file.mp4">
+                        </div>
+                    </div>
+
+                    <!-- СЕКЦИЯ ДЛЯ EMBED HTML -->
+                    <div class="form-group" id="embedHtmlSection" style="display: none;">
+                        <label class="form-label">HTML-код для встраивания:</label>
+                        <textarea id="shopItemEmbedHtml" class="form-control" rows="4" placeholder="Вставьте HTML-код для встраивания видео..."></textarea>
+                        <div style="color: #718096; font-size: 14px; margin-top: 8px;">
+                            💡 Вставьте код embed из Vimeo, YouTube или другой платформы
+                        </div>
+                    </div>
+
+                    <!-- СЕКЦИЯ ДЛЯ TELEGRAM VIDEO -->
+                    <div class="form-group" id="tgVideoSection" style="display: none;">
+                        <label class="form-label">Ссылка на видео в Telegram:</label>
+                        <input type="text" id="shopItemTgVideoUrl" class="form-control" placeholder="https://t.me/channel/123">
+                        <div style="color: #718096; font-size: 14px; margin-top: 8px;">
+                            💡 Ссылка на видео в Telegram канале или чате
+                        </div>
+                    </div>
+
+                    <!-- СЕКЦИЯ ДЛЯ ПРЕВЬЮ ТОВАРА -->
+                    <div class="form-group">
+                        <label class="form-label">Превью товара (изображение):</label>
+                        
+                        <div class="image-upload-area" id="shopItemPreviewUploadArea" onclick="document.getElementById('shopItemPreviewInput').click()">
+                            <div style="font-size: 48px; margin-bottom: 12px;">🖼️</div>
+                            <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки превью</div>
+                            <div style="color: #718096; font-size: 14px;">или перетащите изображение сюда</div>
+                        </div>
+                        <input type="file" id="shopItemPreviewInput" accept="image/*" style="display: none;" onchange="handleShopItemPreviewUpload(this.files[0])">
+                        
+                        <div id="shopItemPreviewImagePreview" style="display: none;">
+                            <img id="shopItemPreviewImage" class="upload-preview">
+                            <button class="btn btn-danger" onclick="clearShopItemPreview()" style="margin-top: 12px;">
+                                🗑️ Удалить превью
+                            </button>
+                        </div>
+
+                        <!-- Поле URL превью -->
+                        <div style="margin-top: 16px;">
+                            <label class="form-label">Или URL превью:</label>
+                            <input type="text" id="shopItemPreviewUrl" class="form-control" placeholder="https://example.com/preview.jpg">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Цена (искры):</label>
+                        <input type="number" id="shopItemPrice" class="form-control" value="10" min="0" step="0.5">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Содержимое (текст):</label>
+                        <textarea id="shopItemContent" class="form-control" rows="6" placeholder="Подробное описание содержимого..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="shopItemActive" checked> Активный товар
+                        </label>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="saveShopItem()">💾 Сохранить товар</button>
+                        <button class="btn btn-danger" onclick="hideShopItemForm()">❌ Отмена</button>
+                    </div>
+                </div>
             </div>
 
-            <div id="purchasesList" class="loading">
-                Загрузка покупок...
+            <div id="shopPurchasesTab" style="display: none;">
+                <div class="card">
+                    <h2 style="margin-bottom: 20px;">📦 История покупок</h2>
+                    
+                    <div class="filters">
+                        <div class="search-box">
+                            <input type="text" id="purchaseSearch" class="search-input" placeholder="Поиск покупок..." oninput="filterPurchases()">
+                        </div>
+                        <select class="filter-select" id="purchaseItemFilter" onchange="filterPurchases()">
+                            <option value="">Все товары</option>
+                        </select>
+                    </div>
+
+                    <div class="mobile-optimized">
+                        <div id="purchasesList" class="loading">
+                            Загрузка покупок...
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
         <!-- Посты -->
         <div id="posts" class="tab-content">
@@ -1637,6 +1776,11 @@
                         </select>
                         <select class="filter-select" id="marathonDayFilter" onchange="loadMarathonSubmissions()">
                             <option value="">Все дни</option>
+                        </select>
+                        <select class="filter-select" id="marathonStatusFilter" onchange="loadMarathonSubmissions()">
+                            <option value="pending">⏳ На модерации</option>
+                            <option value="approved">✅ Одобренные</option>
+                            <option value="rejected">❌ Отклоненные</option>
                         </select>
                     </div>
 
@@ -1894,11 +2038,11 @@
         function loadTabData(tabName) {
             console.log('📥 Загрузка данных для:', tabName);
             
-                       switch(tabName) {
+            switch(tabName) {
                 case 'moderation':
                     loadWorksForModeration();
                     break;
-                case 'privateVideos':  // <-- ДОБАВЛЯЕМ
+                case 'privateVideos':
                     loadPrivateVideosAdmin();
                     break;
                 case 'admins':
@@ -1940,6 +2084,7 @@
             document.getElementById('shopItemForm').style.display = 'none';
             document.getElementById('postForm').style.display = 'none';
             document.getElementById('adminForm').style.display = 'none';
+            document.getElementById('privateVideoForm').style.display = 'none';
             currentEditingId = null;
         }
 
@@ -2142,7 +2287,7 @@
             }
             
             let html = `
-                <div class="users-table-container">
+                <div class="responsive-table">
                     <table class="users-table">
                         <thead>
                             <tr>
@@ -2228,7 +2373,7 @@
             loadUsers();
         }
 
-        // Экспорт пользователей - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        // Экспорт пользователей
         async function exportUsers() {
             try {
                 console.log('📤 Начало экспорта пользователей...');
@@ -3782,592 +3927,593 @@
             interactiveImageData = null;
         }
 
-// ==================== МАГАЗИН ====================
+        // ==================== МАГАЗИН ====================
 
-// Показать вкладку магазина
-function showShopTab(tab) {
-    currentShopTab = tab;
-    
-    document.querySelectorAll('.tab-subnav-item').forEach(item => {
-        item.classList.remove('active');
-    });
-    
-    document.getElementById('shopItemsTab').style.display = 'none';
-    document.getElementById('shopPurchasesTab').style.display = 'none';
-    
-    if (tab === 'items') {
-        document.querySelector('.tab-subnav-item[onclick="showShopTab(\'items\')"]').classList.add('active');
-        document.getElementById('shopItemsTab').style.display = 'block';
-    } else if (tab === 'purchases') {
-        document.querySelector('.tab-subnav-item[onclick="showShopTab(\'purchases\')"]').classList.add('active');
-        document.getElementById('shopPurchasesTab').style.display = 'block';
-        loadPurchases();
-    }
-}
+        // Показать вкладку магазина
+        function showShopTab(tab) {
+            currentShopTab = tab;
+            
+            document.querySelectorAll('.tab-subnav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            document.getElementById('shopItemsTab').style.display = 'none';
+            document.getElementById('shopPurchasesTab').style.display = 'none';
+            
+            if (tab === 'items') {
+                document.querySelector('.tab-subnav-item[onclick="showShopTab(\'items\')"]').classList.add('active');
+                document.getElementById('shopItemsTab').style.display = 'block';
+            } else if (tab === 'purchases') {
+                document.querySelector('.tab-subnav-item[onclick="showShopTab(\'purchases\')"]').classList.add('active');
+                document.getElementById('shopPurchasesTab').style.display = 'block';
+                loadPurchases();
+            }
+        }
 
-// Загрузка товаров - ОПТИМИЗИРОВАННАЯ ДЛЯ МОБИЛЬНЫХ
-async function loadShopItems() {
-    try {
-        const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        console.log(`📱 Админка: ${isMobile ? 'Мобильная' : 'Десктопная'} загрузка товаров`);
-        
-        const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
-        const items = await response.json();
-        displayShopItems(items);
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки товаров в админке:', error);
-        document.getElementById('shopItemsList').innerHTML = `
-            <div class="message error">
-                Ошибка загрузки товаров: ${error.message}
-                <button class="btn" onclick="loadShopItems()" style="margin-top: 10px;">
-                    🔄 Повторить
-                </button>
-            </div>
-        `;
-    }
-}
+        // Загрузка товаров
+        async function loadShopItems() {
+            try {
+                const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const items = await response.json();
+                displayShopItems(items);
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки товаров:', error);
+                document.getElementById('shopItemsList').innerHTML = `
+                    <div class="message error">
+                        Ошибка загрузки товаров: ${error.message}
+                        <button class="btn" onclick="loadShopItems()" style="margin-top: 10px;">
+                            🔄 Повторить
+                        </button>
+                    </div>
+                `;
+            }
+        }
 
-// Отображение товаров
-function displayShopItems(items) {
-    const shopItemsList = document.getElementById('shopItemsList');
-    
-    if (items.length === 0) {
-        shopItemsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛒</div><div>Товаров не найдено</div></div>';
-        return;
-    }
-    
-    let html = '';
-    
-    items.forEach(item => {
-        const typeIcons = {
-            'video': '🎥',
-            'pdf': '📚',
-            'text': '📝',
-            'audio': '🎧',
-            'image': '🖼️',
-            'embed': '🎬'
-        };
-        
-        // Показываем превью если есть (поддерживаем base64)
-        const previewUrl = item.preview_url || '';
-        const hasPreview = previewUrl && (previewUrl.startsWith('http') || previewUrl.startsWith('data:'));
-        
-        html += `
-            <div class="shop-item-card">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                    <div style="flex: 1;">
-                        <h3 style="margin: 0 0 8px 0;">${typeIcons[item.type]} ${item.title}</h3>
-                        <p style="color: #718096; margin-bottom: 12px;">${item.description}</p>
-                        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                            <span class="badge badge-info">${item.type}</span>
-                            <span class="badge badge-success">${item.price}✨</span>
-                            ${item.file_url && item.file_url.startsWith('data:') ? 
-                                '<span class="badge badge-warning">📁 Файл загружен</span>' : ''}
-                            ${item.embed_html ? 
-                                '<span class="badge badge-info">🎬 Встроенное видео</span>' : ''}
-                        </div>
-                        ${hasPreview ? `
-                            <img src="${previewUrl}" class="file-preview" style="max-width: 200px; max-height: 150px;">
-                        ` : ''}
-                        ${item.content_text ? `
-                            <div class="content-preview">
-                                ${item.content_text}
+        // Отображение товаров
+        function displayShopItems(items) {
+            const shopItemsList = document.getElementById('shopItemsList');
+            
+            if (items.length === 0) {
+                shopItemsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛒</div><div>Товаров не найдено</div></div>';
+                return;
+            }
+            
+            let html = '';
+            
+            items.forEach(item => {
+                const typeIcons = {
+                    'video': '🎥',
+                    'pdf': '📚',
+                    'text': '📝',
+                    'audio': '🎧',
+                    'image': '🖼️',
+                    'embed': '🎬',
+                    'tg_video': '📹'
+                };
+                
+                // Показываем превью если есть
+                const previewUrl = item.preview_url || '';
+                const hasPreview = previewUrl && (previewUrl.startsWith('http') || previewUrl.startsWith('data:'));
+                
+                html += `
+                    <div class="shop-item-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <h3 style="margin: 0 0 8px 0;">${typeIcons[item.type]} ${item.title}</h3>
+                                <p style="color: #718096; margin-bottom: 12px;">${item.description}</p>
+                                <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                                    <span class="badge badge-info">${item.type}</span>
+                                    <span class="badge badge-success">${item.price}✨</span>
+                                    ${item.file_url && item.file_url.startsWith('data:') ? 
+                                        '<span class="badge badge-warning">📁 Файл загружен</span>' : ''}
+                                    ${item.embed_html ? 
+                                        '<span class="badge badge-info">🎬 Встроенное видео</span>' : ''}
+                                    ${item.tg_video_url ? 
+                                        '<span class="badge badge-secondary">📹 Telegram видео</span>' : ''}
+                                </div>
+                                ${hasPreview ? `
+                                    <img src="${previewUrl}" class="file-preview" style="max-width: 200px; max-height: 150px;">
+                                ` : ''}
+                                ${item.tg_video_url ? `
+                                    <div class="tg-video-preview">
+                                        <div style="font-weight: 600; margin-bottom: 8px;">📹 Видео из Telegram:</div>
+                                        <div style="color: #718096; font-size: 14px;">${item.tg_video_url}</div>
+                                    </div>
+                                ` : ''}
+                                ${item.content_text ? `
+                                    <div class="content-preview">
+                                        ${item.content_text.substring(0, 200)}${item.content_text.length > 200 ? '...' : ''}
+                                    </div>
+                                ` : ''}
                             </div>
-                        ` : ''}
+                            <div style="text-align: right;">
+                                <span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">
+                                    <span class="status-indicator ${item.is_active ? 'status-active' : 'status-inactive'}"></span>
+                                    ${item.is_active ? 'Активен' : 'Неактивен'}
+                                </span>
+                            </div>
+                        </div>
+                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+                            Покупок: ${item.purchase_count || 0} • 
+                            Создан: ${new Date(item.created_at).toLocaleDateString('ru-RU')}
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-warning" onclick="editShopItem(${item.id})">✏️ Редактировать</button>
+                            <button class="btn btn-danger" onclick="deleteShopItem(${item.id})">🗑️ Удалить</button>
+                        </div>
                     </div>
-                    <div style="text-align: right;">
-                        <span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">
-                            <span class="status-indicator ${item.is_active ? 'status-active' : 'status-inactive'}"></span>
-                            ${item.is_active ? 'Активен' : 'Неактивен'}
-                        </span>
-                    </div>
-                </div>
-                <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                    Создан: ${new Date(item.created_at).toLocaleDateString('ru-RU')}
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-warning" onclick="editShopItem(${item.id})">✏️ Редактировать</button>
-                    <button class="btn btn-danger" onclick="deleteShopItem(${item.id})">🗑️ Удалить</button>
-                </div>
-            </div>
-        `;
-    });
-    
-    shopItemsList.innerHTML = html;
-}
-
-// Показать форму товара
-function showShopItemForm() {
-    document.getElementById('shopItemForm').style.display = 'block';
-    document.getElementById('shopItemFormTitle').textContent = 'Добавление нового товара';
-    currentEditingId = null;
-    
-    // Сбросить форму
-    document.getElementById('shopItemTitle').value = '';
-    document.getElementById('shopItemDescription').value = '';
-    document.getElementById('shopItemType').value = 'video';
-    document.getElementById('shopItemFileUrl').value = '';
-    document.getElementById('shopItemPreviewUrl').value = '';
-    document.getElementById('shopItemPrice').value = '10';
-    document.getElementById('shopItemContent').value = '';
-    document.getElementById('shopItemActive').checked = true;
-    document.getElementById('shopItemEmbedHtml').value = '';
-    
-    // Обновить форму
-    updateShopItemForm();
-}
-
-// Обновить форму товара магазина
-function updateShopItemForm() {
-    const type = document.getElementById('shopItemType').value;
-    const fileSection = document.getElementById('shopItemFileSection');
-    const embedSection = document.getElementById('embedHtmlSection');
-    
-    console.log('🔄 Обновление формы товара, тип:', type);
-    
-    if (!fileSection || !embedSection) {
-        console.error('❌ Секции не найдены!');
-        return;
-    }
-    
-    // Показываем/скрываем секцию файла
-    if (type === 'text' || type === 'embed') {
-        fileSection.style.display = 'none';
-        console.log('📁 Секция файла скрыта');
-    } else {
-        fileSection.style.display = 'block';
-        console.log('📁 Секция файла показана');
-    }
-    
-    // Показываем/скрываем секцию embed HTML
-    if (type === 'embed') {
-        embedSection.style.display = 'block';
-        console.log('🎬 Секция embed показана');
-        
-        // Автоматически заполняем примером если поле пустое
-        const embedField = document.getElementById('shopItemEmbedHtml');
-        if (!embedField.value.trim()) {
-            embedField.value = `<!-- Пример HTML для встраивания видео -->
-<iframe width="100%" height="100%" 
-        src="https://player.vimeo.com/video/VIDEO_ID" 
-        frameborder="0" 
-        allow="autoplay; fullscreen; picture-in-picture" 
-        allowfullscreen
-        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
-</iframe>`;
-        }
-    } else {
-        embedSection.style.display = 'none';
-        console.log('🎬 Секция embed скрыта');
-    }
-}
-
-// Сохранение товара
-async function saveShopItem() {
-    const title = document.getElementById('shopItemTitle').value.trim();
-    const description = document.getElementById('shopItemDescription').value.trim();
-    const type = document.getElementById('shopItemType').value;
-    const file_url = document.getElementById('shopItemFileUrl').value.trim();
-    const preview_url = document.getElementById('shopItemPreviewUrl').value.trim();
-    const price = parseFloat(document.getElementById('shopItemPrice').value);
-    const content_text = document.getElementById('shopItemContent').value.trim();
-    const is_active = document.getElementById('shopItemActive').checked;
-    const embed_html = document.getElementById('shopItemEmbedHtml').value.trim();
-    
-    console.log('💾 Сохранение товара:', {
-        title,
-        type,
-        hasEmbed: !!embed_html,
-        embedLength: embed_html.length
-    });
-    
-    if (!title || !price) {
-        alert('Заполните название и цену');
-        return;
-    }
-    
-    if (type === 'embed' && !embed_html) {
-        alert('Для типа "Встроенное видео" необходимо заполнить HTML-код');
-        return;
-    }
-    
-    try {
-        const itemData = {
-            title,
-            description,
-            type,
-            file_url: shopItemFileData || file_url,
-            preview_url: shopItemPreviewData || preview_url,
-            price,
-            content_text,
-            is_active,
-            embed_html: embed_html // ВСЕГДА отправляем embed_html, даже если пустой
-        };
-        
-        console.log('📤 Отправляемые данные товара:', {
-            ...itemData,
-            file_url: itemData.file_url ? `[data: ${itemData.file_url.length} chars]` : 'empty',
-            preview_url: itemData.preview_url ? `[data: ${itemData.preview_url.length} chars]` : 'empty',
-            embed_html: itemData.embed_html ? `[html: ${itemData.embed_html.length} chars]` : 'empty'
-        });
-        
-        let response;
-        if (currentEditingId) {
-            response = await fetch(`/api/admin/shop/items/${currentEditingId}?userId=${currentUserId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(itemData)
+                `;
             });
-        } else {
-            response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(itemData)
+            
+            shopItemsList.innerHTML = html;
+        }
+
+        // Показать форму товара
+        function showShopItemForm() {
+            document.getElementById('shopItemForm').style.display = 'block';
+            document.getElementById('shopItemFormTitle').textContent = 'Добавление нового товара';
+            currentEditingId = null;
+            
+            // Сбросить форму
+            document.getElementById('shopItemTitle').value = '';
+            document.getElementById('shopItemDescription').value = '';
+            document.getElementById('shopItemType').value = 'video';
+            document.getElementById('shopItemFileUrl').value = '';
+            document.getElementById('shopItemPreviewUrl').value = '';
+            document.getElementById('shopItemPrice').value = '10';
+            document.getElementById('shopItemContent').value = '';
+            document.getElementById('shopItemActive').checked = true;
+            document.getElementById('shopItemEmbedHtml').value = '';
+            document.getElementById('shopItemTgVideoUrl').value = '';
+            
+            // Очистить файлы
+            shopItemFileData = null;
+            shopItemPreviewData = null;
+            clearShopItemFile();
+            clearShopItemPreview();
+            
+            // Обновить форму
+            updateShopItemForm();
+        }
+
+        // Обновить форму товара магазина
+        function updateShopItemForm() {
+            const type = document.getElementById('shopItemType').value;
+            const fileSection = document.getElementById('shopItemFileSection');
+            const embedSection = document.getElementById('embedHtmlSection');
+            const tgVideoSection = document.getElementById('tgVideoSection');
+            
+            console.log('🔄 Обновление формы товара, тип:', type);
+            
+            // Скрыть все секции сначала
+            fileSection.style.display = 'none';
+            embedSection.style.display = 'none';
+            tgVideoSection.style.display = 'none';
+            
+            // Показываем нужные секции в зависимости от типа
+            switch(type) {
+                case 'text':
+                    // Только текст, файлы не нужны
+                    break;
+                case 'embed':
+                    embedSection.style.display = 'block';
+                    break;
+                case 'tg_video':
+                    tgVideoSection.style.display = 'block';
+                    break;
+                default:
+                    // video, pdf, audio, image - показываем секцию файла
+                    fileSection.style.display = 'block';
+                    break;
+            }
+        }
+
+        // Сохранение товара
+        async function saveShopItem() {
+            const title = document.getElementById('shopItemTitle').value.trim();
+            const description = document.getElementById('shopItemDescription').value.trim();
+            const type = document.getElementById('shopItemType').value;
+            const file_url = document.getElementById('shopItemFileUrl').value.trim();
+            const preview_url = document.getElementById('shopItemPreviewUrl').value.trim();
+            const price = parseFloat(document.getElementById('shopItemPrice').value);
+            const content_text = document.getElementById('shopItemContent').value.trim();
+            const is_active = document.getElementById('shopItemActive').checked;
+            const embed_html = document.getElementById('shopItemEmbedHtml').value.trim();
+            const tg_video_url = document.getElementById('shopItemTgVideoUrl').value.trim();
+            
+            console.log('💾 Сохранение товара:', {
+                title,
+                type,
+                hasEmbed: !!embed_html,
+                hasTgVideo: !!tg_video_url
             });
+            
+            if (!title || !price) {
+                alert('Заполните название и цену');
+                return;
+            }
+            
+            if (type === 'embed' && !embed_html) {
+                alert('Для типа "Встроенное видео" необходимо заполнить HTML-код');
+                return;
+            }
+            
+            if (type === 'tg_video' && !tg_video_url) {
+                alert('Для типа "Видео из Telegram" необходимо указать ссылку');
+                return;
+            }
+            
+            try {
+                const itemData = {
+                    title,
+                    description,
+                    type,
+                    file_url: shopItemFileData || file_url,
+                    preview_url: shopItemPreviewData || preview_url,
+                    price,
+                    content_text,
+                    is_active,
+                    embed_html,
+                    tg_video_url
+                };
+                
+                console.log('📤 Отправляемые данные товара:', {
+                    ...itemData,
+                    file_url: itemData.file_url ? `[data: ${itemData.file_url.length} chars]` : 'empty',
+                    preview_url: itemData.preview_url ? `[data: ${itemData.preview_url.length} chars]` : 'empty'
+                });
+                
+                let response;
+                if (currentEditingId) {
+                    response = await fetch(`/api/admin/shop/items/${currentEditingId}?userId=${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(itemData)
+                    });
+                } else {
+                    response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(itemData)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('✅ Товар сохранен:', result.item);
+                    showMessage('✅ Товар успешно сохранен', 'success');
+                    hideShopItemForm();
+                    loadShopItems();
+                } else {
+                    console.error('❌ Ошибка сохранения:', result.error);
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('💥 Ошибка сохранения товара:', error);
+                showMessage('❌ Ошибка сохранения товара: ' + error.message, 'error');
+            }
         }
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            console.log('✅ Товар сохранен:', result.item);
-            showMessage('✅ Товар успешно сохранен', 'success');
-            hideShopItemForm();
-            loadShopItems();
-        } else {
-            console.error('❌ Ошибка сохранения:', result.error);
-            showMessage(`❌ ${result.error}`, 'error');
+
+        // Редактирование товара
+        async function editShopItem(itemId) {
+            try {
+                const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`);
+                const items = await response.json();
+                const item = items.find(i => i.id === itemId);
+                
+                if (!item) {
+                    showMessage('❌ Товар не найден', 'error');
+                    return;
+                }
+                
+                document.getElementById('shopItemForm').style.display = 'block';
+                document.getElementById('shopItemFormTitle').textContent = 'Редактирование товара';
+                currentEditingId = itemId;
+                
+                // Заполнить форму
+                document.getElementById('shopItemTitle').value = item.title;
+                document.getElementById('shopItemDescription').value = item.description;
+                document.getElementById('shopItemType').value = item.type;
+                document.getElementById('shopItemFileUrl').value = item.file_url || '';
+                document.getElementById('shopItemPreviewUrl').value = item.preview_url || '';
+                document.getElementById('shopItemPrice').value = item.price;
+                document.getElementById('shopItemContent').value = item.content_text || '';
+                document.getElementById('shopItemActive').checked = item.is_active;
+                document.getElementById('shopItemEmbedHtml').value = item.embed_html || '';
+                document.getElementById('shopItemTgVideoUrl').value = item.tg_video_url || '';
+                
+                // Заполнить файлы если есть
+                if (item.file_url && item.file_url.startsWith('data:')) {
+                    shopItemFileData = item.file_url;
+                    showShopItemFilePreview(item.file_url, item.type);
+                }
+                
+                if (item.preview_url && item.preview_url.startsWith('data:')) {
+                    shopItemPreviewData = item.preview_url;
+                    document.getElementById('shopItemPreviewImage').src = item.preview_url;
+                    document.getElementById('shopItemPreviewImagePreview').style.display = 'block';
+                    document.getElementById('shopItemPreviewUploadArea').style.display = 'none';
+                }
+                
+                // Обновить форму
+                updateShopItemForm();
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки товара', 'error');
+            }
         }
-        
-    } catch (error) {
-        console.error('💥 Ошибка сохранения товара:', error);
-        showMessage('❌ Ошибка сохранения товара: ' + error.message, 'error');
-    }
-}
 
-// Редактирование товара
-async function editShopItem(itemId) {
-    try {
-        const response = await fetch(`/api/admin/shop/items?userId=${currentUserId}`);
-        const items = await response.json();
-        const item = items.find(i => i.id === itemId);
-        
-        if (!item) {
-            showMessage('❌ Товар не найден', 'error');
-            return;
+        // Удаление товара
+        async function deleteShopItem(itemId) {
+            if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/shop/items/${itemId}?userId=${currentUserId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Товар успешно удален', 'success');
+                    loadShopItems();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка удаления товара', 'error');
+            }
         }
-        
-        document.getElementById('shopItemForm').style.display = 'block';
-        document.getElementById('shopItemFormTitle').textContent = 'Редактирование товара';
-        currentEditingId = itemId;
-        
-        // Заполнить форму
-        document.getElementById('shopItemTitle').value = item.title;
-        document.getElementById('shopItemDescription').value = item.description;
-        document.getElementById('shopItemType').value = item.type;
-        document.getElementById('shopItemFileUrl').value = item.file_url || '';
-        document.getElementById('shopItemPreviewUrl').value = item.preview_url || '';
-        document.getElementById('shopItemPrice').value = item.price;
-        document.getElementById('shopItemContent').value = item.content_text || '';
-        document.getElementById('shopItemActive').checked = item.is_active;
-        document.getElementById('shopItemEmbedHtml').value = item.embed_html || '';
-        
-        // Обновить форму
-        updateShopItemForm();
-        
-    } catch (error) {
-        showMessage('❌ Ошибка загрузки товара', 'error');
-    }
-}
 
-// Удаление товара
-async function deleteShopItem(itemId) {
-    if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
-    
-    try {
-        const response = await fetch(`/api/admin/shop/items/${itemId}?userId=${currentUserId}`, {
-            method: 'DELETE'
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage('✅ Товар успешно удален', 'success');
-            loadShopItems();
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
+        // Скрыть форму товара
+        function hideShopItemForm() {
+            document.getElementById('shopItemForm').style.display = 'none';
+            currentEditingId = null;
+            
+            // Очистить файлы
+            shopItemFileData = null;
+            shopItemPreviewData = null;
+            clearShopItemFile();
+            clearShopItemPreview();
         }
-        
-    } catch (error) {
-        showMessage('❌ Ошибка удаления товара', 'error');
-    }
-}
 
-// Скрыть форму товара
-function hideShopItemForm() {
-    document.getElementById('shopItemForm').style.display = 'none';
-    currentEditingId = null;
-    
-    // Очистить файлы
-    shopItemFileData = null;
-    shopItemPreviewData = null;
-    clearShopItemFile();
-    clearShopItemPreview();
-}
+        // Загрузка покупок
+        async function loadPurchases() {
+            try {
+                const response = await fetch(`/api/webapp/users/${currentUserId}/purchases`);
+                const data = await response.json();
+                
+                displayPurchases(data.purchases);
+                
+            } catch (error) {
+                document.getElementById('purchasesList').innerHTML = '<div class="message error">Ошибка загрузки покупок</div>';
+            }
+        }
 
-// Загрузка покупок
-async function loadPurchases() {
-    try {
-        const response = await fetch(`/api/webapp/users/${currentUserId}/purchases`);
-        const data = await response.json();
-        
-        displayPurchases(data.purchases);
-        
-    } catch (error) {
-        document.getElementById('purchasesList').innerHTML = '<div class="message error">Ошибка загрузки покупок</div>';
-    }
-}
-
-// Отображение покупок
-function displayPurchases(purchases) {
-    const purchasesList = document.getElementById('purchasesList');
-    
-    if (purchases.length === 0) {
-        purchasesList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><div>Покупок не найдено</div></div>';
-        return;
-    }
-    
-    let html = `
-        <div class="users-table-container">
-            <table class="users-table">
-                <thead>
+        // Отображение покупок
+        function displayPurchases(purchases) {
+            const purchasesList = document.getElementById('purchasesList');
+            
+            if (purchases.length === 0) {
+                purchasesList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><div>Покупок не найдено</div></div>';
+                return;
+            }
+            
+            let html = `
+                <div class="responsive-table">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Товар</th>
+                                <th>Пользователь</th>
+                                <th>Цена</th>
+                                <th>Дата</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            purchases.forEach(purchase => {
+                html += `
                     <tr>
-                        <th>ID</th>
-                        <th>Товар</th>
-                        <th>Пользователь</th>
-                        <th>Цена</th>
-                        <th>Дата</th>
+                        <td>${purchase.id}</td>
+                        <td>
+                            <strong>${purchase.title}</strong>
+                            <br><small>${purchase.description}</small>
+                        </td>
+                        <td>ID: ${purchase.user_id}</td>
+                        <td>${purchase.price_paid}✨</td>
+                        <td>${new Date(purchase.purchased_at).toLocaleString('ru-RU')}</td>
                     </tr>
-                </thead>
-                <tbody>
-    `;
-    
-    purchases.forEach(purchase => {
-        html += `
-            <tr>
-                <td>${purchase.id}</td>
-                <td>
-                    <strong>${purchase.title}</strong>
-                    <br><small>${purchase.description}</small>
-                </td>
-                <td>ID: ${purchase.user_id}</td>
-                <td>${purchase.price_paid}✨</td>
-                <td>${new Date(purchase.purchased_at).toLocaleString('ru-RU')}</td>
-            </tr>
-        `;
-    });
-    
-    html += '</tbody></table></div>';
-    purchasesList.innerHTML = html;
-}
-
-// Заполнение фильтра товаров для покупок
-function populatePurchaseItemFilter(items) {
-    const itemFilter = document.getElementById('purchaseItemFilter');
-    itemFilter.innerHTML = '<option value="">Все товары</option>';
-    
-    items.forEach(item => {
-        const option = document.createElement('option');
-        option.value = item.id;
-        option.textContent = item.title;
-        itemFilter.appendChild(option);
-    });
-}
-
-// Фильтрация покупок
-function filterPurchases() {
-    // В реальном приложении здесь был бы запрос к серверу
-    loadPurchases();
-}
-
-       // ==================== МАГАЗИН - ЗАГРУЗКА ФАЙЛОВ ====================
-
-// Обработка загрузки файла товара
-function handleShopItemFileUpload(file) {
-    if (!file) return;
-    
-    console.log('📁 Загружаем файл:', file.name, 'Размер:', (file.size / 1024 / 1024).toFixed(2), 'MB');
-    
-    // ПРОВЕРКА ТИПА ФАЙЛА
-    const allowedTypes = [
-        'video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mkv', 'video/mov',
-        'application/pdf',
-        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
-        'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/aac'
-    ];
-    
-    if (!allowedTypes.includes(file.type)) {
-        alert('❌ Неподдерживаемый тип файла. Разрешенные типы: MP4, AVI, MKV, MOV, PDF, JPG, PNG, MP3, WAV');
-        return;
-    }
-    
-    // Проверка размера файла - увеличен до 3GB
-    if (file.size > 3 * 1024 * 1024 * 1024) {
-        alert('❌ Размер файла не должен превышать 3GB. Ваш файл: ' + 
-              (file.size / 1024 / 1024 / 1024).toFixed(2) + ' GB');
-        return;
-    }
-    
-    // Показываем индикатор загрузки для больших файлов
-    if (file.size > 100 * 1024 * 1024) {
-        showMessage('⏳ Загружаем большой файл... Это может занять несколько минут', 'info');
-    }
-    
-    const reader = new FileReader();
-    
-    reader.onloadstart = function() {
-        console.log('🚀 Начало загрузки файла...');
-    };
-    
-    reader.onprogress = function(e) {
-        if (e.lengthComputable) {
-            const percentLoaded = Math.round((e.loaded / e.total) * 100);
-            console.log(`📊 Загружено: ${percentLoaded}%`);
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            purchasesList.innerHTML = html;
         }
-    };
-    
-    reader.onload = function(e) {
-        shopItemFileData = e.target.result;
-        
-        const previewContent = document.getElementById('shopItemFilePreviewContent');
-        const fileType = file.type.split('/')[0];
-        
-        if (fileType === 'video') {
-            previewContent.innerHTML = `
-                <video controls class="upload-preview">
-                    <source src="${shopItemFileData}" type="${file.type}">
-                    Ваш браузер не поддерживает видео.
-                </video>
-                <div style="text-align: center; margin-top: 8px; color: #718096;">
-                    🎥 Видео файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                </div>
-            `;
-        } else if (fileType === 'image') {
-            previewContent.innerHTML = `
-                <img src="${shopItemFileData}" class="upload-preview">
-                <div style="text-align: center; margin-top: 8px; color: #718096;">
-                    🖼️ Изображение: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                </div>
-            `;
-        } else if (file.type === 'application/pdf') {
-            previewContent.innerHTML = `
-                <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
-                    <div style="font-size: 64px; margin-bottom: 16px;">📚</div>
-                    <div style="font-weight: 600; margin-bottom: 8px;">PDF документ</div>
-                    <div style="color: #718096;">${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
-                </div>
-            `;
-        } else if (fileType === 'audio') {
-            previewContent.innerHTML = `
-                <audio controls style="width: 100%; margin: 16px 0;">
-                    <source src="${shopItemFileData}" type="${file.type}">
-                    Ваш браузер не поддерживает аудио.
-                </audio>
-                <div style="text-align: center; color: #718096;">
-                    🎧 Аудио файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                </div>
-            `;
-        } else {
-            previewContent.innerHTML = `
-                <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
-                    <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
-                    <div style="font-weight: 600; margin-bottom: 8px;">Файл: ${file.name}</div>
-                    <div style="color: #718096;">Тип: ${file.type} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>
-                </div>
-            `;
+
+        // Заполнение фильтра товаров для покупок
+        function populatePurchaseItemFilter(items) {
+            const itemFilter = document.getElementById('purchaseItemFilter');
+            itemFilter.innerHTML = '<option value="">Все товары</option>';
+            
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.title;
+                itemFilter.appendChild(option);
+            });
         }
-        
-        document.getElementById('shopItemFilePreview').style.display = 'block';
-        document.getElementById('shopItemFileUploadArea').style.display = 'none';
-        
-        // Очистить URL поле если загружаем файл
-        document.getElementById('shopItemFileUrl').value = '';
-        
-        console.log('✅ Файл успешно загружен');
-        if (file.size > 100 * 1024 * 1024) {
-            showMessage('✅ Большой файл успешно загружен', 'success');
+
+        // Фильтрация покупок
+        function filterPurchases() {
+            // В реальном приложении здесь был бы запрос к серверу
+            loadPurchases();
         }
-    };
-    
-    reader.onerror = function() {
-        console.error('❌ Ошибка загрузки файла');
-        showMessage('❌ Ошибка загрузки файла', 'error');
-    };
-    
-    reader.readAsDataURL(file);
-}
 
-// Обработка загрузки превью товара
-function handleShopItemPreviewUpload(file) {
-    if (!file) return;
-    
-    if (!file.type.startsWith('image/')) {
-        alert('❌ Пожалуйста, выберите изображение для превью');
-        return;
-    }
-    
-    if (file.size > 5 * 1024 * 1024) {
-        alert('❌ Размер файла не должен превышать 5MB');
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        shopItemPreviewData = e.target.result;
-        document.getElementById('shopItemPreviewImage').src = shopItemPreviewData;
-        document.getElementById('shopItemPreviewImagePreview').style.display = 'block';
-        document.getElementById('shopItemPreviewUploadArea').style.display = 'none';
-        
-        // Очистить URL поле если загружаем файл
-        document.getElementById('shopItemPreviewUrl').value = '';
-    };
-    reader.readAsDataURL(file);
-}
+        // ==================== МАГАЗИН - ЗАГРУЗКА ФАЙЛОВ ====================
 
-// Очистить файл товара
-function clearShopItemFile() {
-    shopItemFileData = null;
-    document.getElementById('shopItemFilePreview').style.display = 'none';
-    document.getElementById('shopItemFileUploadArea').style.display = 'block';
-    document.getElementById('shopItemFileInput').value = '';
-    document.getElementById('shopItemFileUrl').value = '';
-}
+        // Обработка загрузки файла товара
+        function handleShopItemFileUpload(file) {
+            if (!file) return;
+            
+            console.log('📁 Загружаем файл:', file.name, 'Размер:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+            
+            // ПРОВЕРКА ТИПА ФАЙЛА
+            const allowedTypes = [
+                'video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mkv', 'video/mov',
+                'application/pdf',
+                'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+                'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/aac'
+            ];
+            
+            if (!allowedTypes.includes(file.type)) {
+                alert('❌ Неподдерживаемый тип файла. Разрешенные типы: MP4, AVI, MKV, MOV, PDF, JPG, PNG, MP3, WAV');
+                return;
+            }
+            
+            // Проверка размера файла - увеличен до 3GB
+            if (file.size > 3 * 1024 * 1024 * 1024) {
+                alert('❌ Размер файла не должен превышать 3GB. Ваш файл: ' + 
+                      (file.size / 1024 / 1024 / 1024).toFixed(2) + ' GB');
+                return;
+            }
+            
+            // Показываем индикатор загрузки для больших файлов
+            if (file.size > 100 * 1024 * 1024) {
+                showMessage('⏳ Загружаем большой файл... Это может занять несколько минут', 'info');
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onloadstart = function() {
+                console.log('🚀 Начало загрузки файла...');
+            };
+            
+            reader.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percentLoaded = Math.round((e.loaded / e.total) * 100);
+                    console.log(`📊 Загружено: ${percentLoaded}%`);
+                }
+            };
+            
+            reader.onload = function(e) {
+                shopItemFileData = e.target.result;
+                showShopItemFilePreview(shopItemFileData, file.type);
+                
+                // Очистить URL поле если загружаем файл
+                document.getElementById('shopItemFileUrl').value = '';
+                
+                console.log('✅ Файл успешно загружен');
+                if (file.size > 100 * 1024 * 1024) {
+                    showMessage('✅ Большой файл успешно загружен', 'success');
+                }
+            };
+            
+            reader.onerror = function() {
+                console.error('❌ Ошибка загрузки файла');
+                showMessage('❌ Ошибка загрузки файла', 'error');
+            };
+            
+            reader.readAsDataURL(file);
+        }
 
-// Очистить превью товара
-function clearShopItemPreview() {
-    shopItemPreviewData = null;
-    document.getElementById('shopItemPreviewImagePreview').style.display = 'none';
-    document.getElementById('shopItemPreviewUploadArea').style.display = 'block';
-    document.getElementById('shopItemPreviewInput').value = '';
-    document.getElementById('shopItemPreviewUrl').value = '';
-}
+        // Показать превью файла товара
+        function showShopItemFilePreview(fileData, fileType) {
+            const previewContent = document.getElementById('shopItemFilePreviewContent');
+            const fileCategory = fileType.split('/')[0];
+            
+            if (fileCategory === 'video') {
+                previewContent.innerHTML = `
+                    <video controls class="upload-preview">
+                        <source src="${fileData}" type="${fileType}">
+                        Ваш браузер не поддерживает видео.
+                    </video>
+                `;
+            } else if (fileCategory === 'image') {
+                previewContent.innerHTML = `
+                    <img src="${fileData}" class="upload-preview">
+                `;
+            } else if (fileType === 'application/pdf') {
+                previewContent.innerHTML = `
+                    <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
+                        <div style="font-size: 64px; margin-bottom: 16px;">📚</div>
+                        <div style="font-weight: 600; margin-bottom: 8px;">PDF документ</div>
+                        <div style="color: #718096;">Файл готов к загрузке</div>
+                    </div>
+                `;
+            } else if (fileCategory === 'audio') {
+                previewContent.innerHTML = `
+                    <audio controls style="width: 100%; margin: 16px 0;">
+                        <source src="${fileData}" type="${fileType}">
+                        Ваш браузер не поддерживает аудио.
+                    </audio>
+                `;
+            } else {
+                previewContent.innerHTML = `
+                    <div style="text-align: center; padding: 40px; background: #f7fafc; border-radius: 12px;">
+                        <div style="font-size: 64px; margin-bottom: 16px;">📄</div>
+                        <div style="font-weight: 600; margin-bottom: 8px;">Файл загружен</div>
+                        <div style="color: #718096;">Тип: ${fileType}</div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('shopItemFilePreview').style.display = 'block';
+            document.getElementById('shopItemFileUploadArea').style.display = 'none';
+        }
 
-// Добавляем обработчик изменения типа товара при загрузке страницы
-document.addEventListener('DOMContentLoaded', function() {
-    const shopItemTypeSelect = document.getElementById('shopItemType');
-    if (shopItemTypeSelect) {
-        shopItemTypeSelect.addEventListener('change', updateShopItemForm);
-        console.log('✅ Обработчик изменения типа товара добавлен');
-        
-        // Принудительно вызываем обновление формы
-        setTimeout(updateShopItemForm, 100);
-    } else {
-        console.error('❌ Элемент shopItemTypeSelect не найден!');
-    }
-});
+        // Обработка загрузки превью товара
+        function handleShopItemPreviewUpload(file) {
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                alert('❌ Пожалуйста, выберите изображение для превью');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                alert('❌ Размер файла не должен превышать 5MB');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                shopItemPreviewData = e.target.result;
+                document.getElementById('shopItemPreviewImage').src = shopItemPreviewData;
+                document.getElementById('shopItemPreviewImagePreview').style.display = 'block';
+                document.getElementById('shopItemPreviewUploadArea').style.display = 'none';
+                
+                // Очистить URL поле если загружаем файл
+                document.getElementById('shopItemPreviewUrl').value = '';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Очистить файл товара
+        function clearShopItemFile() {
+            shopItemFileData = null;
+            document.getElementById('shopItemFilePreview').style.display = 'none';
+            document.getElementById('shopItemFileUploadArea').style.display = 'block';
+            document.getElementById('shopItemFileInput').value = '';
+            document.getElementById('shopItemFileUrl').value = '';
+        }
+
+        // Очистить превью товара
+        function clearShopItemPreview() {
+            shopItemPreviewData = null;
+            document.getElementById('shopItemPreviewImagePreview').style.display = 'none';
+            document.getElementById('shopItemPreviewUploadArea').style.display = 'block';
+            document.getElementById('shopItemPreviewInput').value = '';
+            document.getElementById('shopItemPreviewUrl').value = '';
+        }
 
         // ==================== ПОСТЫ ====================
 
@@ -4614,27 +4760,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Загрузка работ для модерации
         async function loadWorksForModeration() {
-            console.log('🖼️ Загрузка работ для модерации...');
-            
             try {
-                const status = document.getElementById('workStatusFilter') ? document.getElementById('workStatusFilter').value : 'pending';
+                const status = document.getElementById('workStatusFilter').value;
                 const response = await fetch(`/api/admin/user-works?userId=${currentUserId}&status=${status}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error ${response.status}`);
-                }
-                
                 const data = await response.json();
-                console.log('✅ Работы загружены:', data.works.length);
                 
                 displayWorksForModeration(data.works);
                 
             } catch (error) {
-                console.error('❌ Ошибка загрузки работ:', error);
-                const worksList = document.getElementById('worksModerationList');
-                if (worksList) {
-                    worksList.innerHTML = '<div class="message error">Ошибка загрузки работ: ' + error.message + '</div>';
-                }
+                document.getElementById('worksModerationList').innerHTML = '<div class="message error">Ошибка загрузки работ</div>';
             }
         }
 
@@ -4847,37 +4981,130 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const marathonId = document.getElementById('marathonFilter').value;
                 const day = document.getElementById('marathonDayFilter').value;
+                const status = document.getElementById('marathonStatusFilter').value;
                 
-                // В реальном приложении здесь был бы запрос к API
-                // Для демонстрации покажем заглушку
-                document.getElementById('marathonSubmissionsList').innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🏃‍♂️</div>
-                        <div>Функция модерации работ марафонов</div>
-                        <div style="color: #718096; margin-top: 12px; font-size: 14px;">
-                            Будет реализована в следующей версии
-                        </div>
-                    </div>
-                `;
+                const params = new URLSearchParams();
+                if (marathonId) params.append('marathon_id', marathonId);
+                if (day) params.append('day', day);
+                if (status) params.append('status', status);
+                
+                const response = await fetch(`/api/admin/marathon-submissions?userId=${currentUserId}&${params}`);
+                const data = await response.json();
+                
+                displayMarathonSubmissions(data.submissions);
                 
             } catch (error) {
                 document.getElementById('marathonSubmissionsList').innerHTML = '<div class="message error">Ошибка загрузки работ марафонов</div>';
             }
         }
 
+        // Отображение работ марафонов
+        function displayMarathonSubmissions(submissions) {
+            const submissionsList = document.getElementById('marathonSubmissionsList');
+            
+            if (submissions.length === 0) {
+                submissionsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏃‍♂️</div><div>Работ марафонов не найдено</div></div>';
+                return;
+            }
+            
+            let html = '';
+            
+            submissions.forEach(submission => {
+                const statusBadges = {
+                    'pending': 'badge-warning',
+                    'approved': 'badge-success',
+                    'rejected': 'badge-danger'
+                };
+                
+                const statusTexts = {
+                    'pending': '⏳ На модерации',
+                    'approved': '✅ Одобрено',
+                    'rejected': '❌ Отклонено'
+                };
+                
+                html += `
+                    <div class="marathon-submission-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <h3 style="margin: 0 0 8px 0;">${submission.marathon_title} - День ${submission.day}</h3>
+                                <p style="color: #718096; margin-bottom: 12px;">${submission.task_title}</p>
+                                <div style="margin-bottom: 12px;">
+                                    <span class="badge ${statusBadges[submission.status]}">${statusTexts[submission.status]}</span>
+                                    <span class="badge badge-secondary">Автор: ${submission.user_name}</span>
+                                    <span class="badge badge-info">Марафон: ${submission.marathon_title}</span>
+                                </div>
+                                ${submission.image_url ? `
+                                    <img src="${submission.image_url}" class="submission-image">
+                                ` : ''}
+                                ${submission.text_content ? `
+                                    <div class="content-preview">
+                                        ${submission.text_content}
+                                    </div>
+                                ` : ''}
+                                ${submission.admin_comment ? `
+                                    <div class="review-text">
+                                        <strong>💬 Комментарий модератора:</strong><br>
+                                        ${submission.admin_comment}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+                            Отправлено: ${new Date(submission.submitted_at).toLocaleString('ru-RU')}
+                            ${submission.moderated_at ? ` • Модерировано: ${new Date(submission.moderated_at).toLocaleString('ru-RU')}` : ''}
+                        </div>
+                        ${submission.status === 'pending' ? `
+                            <div class="moderation-actions">
+                                <button class="btn btn-success" onclick="moderateMarathonSubmission(${submission.id}, 'approved')">✅ Одобрить</button>
+                                <button class="btn btn-danger" onclick="showRejectMarathonForm(${submission.id})">❌ Отклонить</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            submissionsList.innerHTML = html;
+        }
+
+        // Модерация работы марафона
+        async function moderateMarathonSubmission(submissionId, status, comment = '') {
+            try {
+                const response = await fetch(`/api/admin/marathon-submissions/${submissionId}/moderate?userId=${currentUserId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status,
+                        admin_comment: comment
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`✅ Работа марафона ${status === 'approved' ? 'одобрена' : 'отклонена'}`, 'success');
+                    loadMarathonSubmissions();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка модерации работы марафона', 'error');
+            }
+        }
+
+        // Показать форму отклонения работы марафона
+        function showRejectMarathonForm(submissionId) {
+            const comment = prompt('Введите причину отклонения работы марафона:');
+            if (comment !== null) {
+                moderateMarathonSubmission(submissionId, 'rejected', comment);
+            }
+        }
+
         // Загрузка данных для модерации
         async function loadModerationData() {
-            console.log('🔄 Загрузка данных для модерации...');
-            
-            try {
-                await loadWorksForModeration();
-                await loadReviewsForModeration();
-                await loadMarathonSubmissions();
-                
-                console.log('✅ Данные модерации загружены');
-            } catch (error) {
-                console.error('❌ Ошибка загрузки данных модерации:', error);
-            }
+            await loadWorksForModeration();
+            await loadReviewsForModeration();
+            await loadMarathonSubmissions();
         }
 
         // ==================== АДМИНЫ ====================
@@ -4954,8 +5181,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const username = document.getElementById('adminUsername').value.trim();
             const role = document.getElementById('adminRole').value;
             
-            console.log('🔄 Попытка добавления админа:', { user_id, username, role });
-            
             if (!user_id) {
                 showMessage('❌ Введите ID пользователя', 'error');
                 return;
@@ -4968,18 +5193,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     role: role
                 };
                 
-                console.log('📤 Отправка данных:', adminData);
-                
                 const response = await fetch(`/api/admin/admins?userId=${currentUserId}`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(adminData)
                 });
                 
                 const result = await response.json();
-                console.log('📋 Результат:', result);
                 
                 if (result.success) {
                     showMessage('✅ Администратор успешно добавлен', 'success');
@@ -4990,7 +5210,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
             } catch (error) {
-                console.error('💥 Ошибка при добавлении админа:', error);
                 showMessage('❌ Ошибка добавления администратора', 'error');
             }
         }
@@ -5026,7 +5245,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('adminRole').value = 'moderator';
         }
 
-        // ==================== ПРИВАТНЫЕ ВИДЕО (АДМИН) ====================
+        // ==================== ПРИВАТНЫЕ ВИДЕО ====================
 
         // Загрузка приватных видео для админки
         async function loadPrivateVideosAdmin() {
@@ -5253,50 +5472,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', initAdminPanel);
 
-        // Обработка перетаскивания файлов для интерактивов
+        // Обработка перетаскивания файлов
         document.addEventListener('DOMContentLoaded', function() {
-            const uploadArea = document.getElementById('interactiveUploadArea');
-            
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                uploadArea.addEventListener(eventName, preventDefaults, false);
-            });
-            
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            
-            ['dragenter', 'dragover'].forEach(eventName => {
-                uploadArea.addEventListener(eventName, highlight, false);
-            });
-            
-            ['dragleave', 'drop'].forEach(eventName => {
-                uploadArea.addEventListener(eventName, unhighlight, false);
-            });
-            
-            function highlight() {
-                uploadArea.classList.add('dragover');
-            }
-            
-            function unhighlight() {
-                uploadArea.classList.remove('dragover');
-            }
-            
-            uploadArea.addEventListener('drop', handleDrop, false);
-            
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                handleInteractiveImageUpload(files[0]);
-            }
-        });
-
-        // Обработка перетаскивания файлов для магазина
-        document.addEventListener('DOMContentLoaded', function() {
-            const fileUploadArea = document.getElementById('shopItemFileUploadArea');
-            const previewUploadArea = document.getElementById('shopItemPreviewUploadArea');
-            
-            // Функции для обработки перетаскивания файлов магазина
+            // Функции для обработки перетаскивания
             function setupDragAndDrop(uploadArea, callback) {
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                     uploadArea.addEventListener(eventName, preventDefaults, false);
@@ -5332,14 +5510,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // Настройка перетаскивания для файла товара
-            if (fileUploadArea) {
-                setupDragAndDrop(fileUploadArea, handleShopItemFileUpload);
-            }
+            // Настройка перетаскивания для всех областей загрузки
+            const uploadAreas = [
+                { id: 'interactiveUploadArea', callback: handleInteractiveImageUpload },
+                { id: 'shopItemFileUploadArea', callback: handleShopItemFileUpload },
+                { id: 'shopItemPreviewUploadArea', callback: handleShopItemPreviewUpload }
+            ];
             
-            // Настройка перетаскивания для превью товара
-            if (previewUploadArea) {
-                setupDragAndDrop(previewUploadArea, handleShopItemPreviewUpload);
+            uploadAreas.forEach(({ id, callback }) => {
+                const area = document.getElementById(id);
+                if (area) {
+                    setupDragAndDrop(area, callback);
+                }
+            });
+        });
+
+        // Добавляем обработчик изменения типа товара при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            const shopItemTypeSelect = document.getElementById('shopItemType');
+            if (shopItemTypeSelect) {
+                shopItemTypeSelect.addEventListener('change', updateShopItemForm);
+                console.log('✅ Обработчик изменения типа товара добавлен');
             }
         });
     </script>
