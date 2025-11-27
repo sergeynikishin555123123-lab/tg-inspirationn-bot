@@ -600,6 +600,32 @@ function addSparks(userId, sparks, activityType, description) {
     return null;
 }
 
+// Функция для получения статистики пользователя
+function getUserStats(userId) {
+    const user = db.users.find(u => u.user_id == userId);
+    if (!user) return null;
+    
+    const activities = db.activities.filter(a => a.user_id == userId);
+    const purchases = db.purchases.filter(p => p.user_id == userId);
+    const works = db.user_works.filter(w => w.user_id == userId);
+    const quizCompletions = db.quiz_completions.filter(q => q.user_id == userId);
+    const marathonCompletions = db.marathon_completions.filter(m => m.user_id == userId);
+    const interactiveCompletions = db.interactive_completions.filter(i => i.user_id == userId);
+    
+    return {
+        totalActivities: activities.length,
+        totalPurchases: purchases.length,
+        totalWorks: works.length,
+        approvedWorks: works.filter(w => w.status === 'approved').length,
+        totalQuizzesCompleted: quizCompletions.length,
+        totalMarathonsCompleted: marathonCompletions.filter(m => m.completed).length,
+        totalInteractivesCompleted: interactiveCompletions.length,
+        totalSparksEarned: activities.reduce((sum, a) => sum + a.sparks_earned, 0),
+        registrationDate: user.registration_date,
+        lastActive: user.last_active
+    };
+}
+
 // Middleware для админов
 const requireAdmin = (req, res, next) => {
     const userId = req.query.userId || req.body.userId;
@@ -1815,32 +1841,203 @@ app.get('/api/webapp/private-videos/:videoId/access', (req, res) => {
 
 
 
-// ==================== API ДЛЯ АДМИНКИ - УПРАВЛЕНИЕ КОНТЕНТОМ ====================
+// ==================== API ДЛЯ АДМИНКИ - ОСНОВНЫЕ ДАННЫЕ ====================
 
-// Получить работы для модерации
-app.get('/api/admin/user-works', requireAdmin, (req, res) => {
+// Получить все данные для админки
+app.get('/api/admin/dashboard', requireAdmin, (req, res) => {
     try {
-        const { status = 'pending' } = req.query;
+        const stats = {
+            totalUsers: db.users.length,
+            registeredUsers: db.users.filter(u => u.is_registered).length,
+            activeQuizzes: db.quizzes.filter(q => q.is_active).length,
+            activeMarathons: db.marathons.filter(m => m.is_active).length,
+            shopItems: db.shop_items.filter(i => i.is_active).length,
+            totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
+            totalAdmins: db.admins.length,
+            pendingReviews: db.post_reviews.filter(r => r.status === 'pending').length,
+            pendingWorks: db.user_works.filter(w => w.status === 'pending').length,
+            totalPosts: db.channel_posts.filter(p => p.is_active).length,
+            totalPurchases: db.purchases.length,
+            totalActivities: db.activities.length,
+            interactives: db.interactives.filter(i => i.is_active).length,
+            privateVideos: db.private_channel_videos.filter(v => v.is_active).length
+        };
         
-        const works = db.user_works
-            .filter(w => w.status === status)
-            .map(work => {
-                const user = db.users.find(u => u.user_id === work.user_id);
-                return {
-                    ...work,
-                    user_name: user?.tg_first_name || 'Неизвестно',
-                    user_username: user?.tg_username
-                };
-            })
-            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        
-        res.json({ works });
+        res.json({
+            success: true,
+            stats: stats,
+            modules: {
+                users: true,
+                content: true,
+                moderation: true,
+                analytics: true,
+                shop: true,
+                private_videos: true
+            }
+        });
     } catch (error) {
-        console.error('❌ Ошибка получения работ:', error);
-        res.status(500).json({ error: 'Ошибка сервера' });
+        console.error('❌ Ошибка загрузки дашборда:', error);
+        res.status(500).json({ error: 'Ошибка загрузки данных' });
     }
 });
 
+// Получить всех пользователей для админки
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+    try {
+        const { page = 1, limit = 20, search = '' } = req.query;
+        const offset = (page - 1) * limit;
+        
+        let users = db.users;
+        
+        // Поиск по имени или username
+        if (search) {
+            users = users.filter(user => 
+                user.tg_first_name?.toLowerCase().includes(search.toLowerCase()) ||
+                user.tg_username?.toLowerCase().includes(search.toLowerCase())
+            );
+        }
+        
+        const total = users.length;
+        const paginatedUsers = users.slice(offset, offset + parseInt(limit));
+        
+        const usersWithStats = paginatedUsers.map(user => {
+            const stats = getUserStats(user.user_id);
+            return {
+                ...user,
+                stats: stats
+            };
+        });
+        
+        res.json({
+            success: true,
+            users: usersWithStats,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total: total,
+                pages: Math.ceil(total / limit)
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения пользователей:', error);
+        res.status(500).json({ error: 'Ошибка загрузки пользователей' });
+    }
+});
+
+// Получить конкретного пользователя
+app.get('/api/admin/users/:userId', requireAdmin, (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const user = db.users.find(u => u.user_id === userId);
+        
+        if (!user) {
+            return res.status(404).json({ error: 'Пользователь не найден' });
+        }
+        
+        const stats = getUserStats(userId);
+        const activities = db.activities
+            .filter(a => a.user_id === userId)
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            .slice(0, 50);
+            
+        const purchases = db.purchases.filter(p => p.user_id === userId);
+        const works = db.user_works.filter(w => w.user_id === userId);
+        
+        res.json({
+            success: true,
+            user: user,
+            stats: stats,
+            activities: activities,
+            purchases: purchases,
+            works: works
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения пользователя:', error);
+        res.status(500).json({ error: 'Ошибка загрузки данных пользователя' });
+    }
+});
+
+// Обновить пользователя
+app.put('/api/admin/users/:userId', requireAdmin, (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const { sparks, level, is_registered, class: userClass, character_id } = req.body;
+        
+        const user = db.users.find(u => u.user_id === userId);
+        if (!user) {
+            return res.status(404).json({ error: 'Пользователь не найден' });
+        }
+        
+        if (sparks !== undefined) user.sparks = parseFloat(sparks);
+        if (level !== undefined) user.level = level;
+        if (is_registered !== undefined) user.is_registered = is_registered;
+        if (userClass !== undefined) user.class = userClass;
+        if (character_id !== undefined) {
+            user.character_id = character_id;
+            const character = db.characters.find(c => c.id === character_id);
+            user.character_name = character ? character.name : null;
+        }
+        
+        user.last_active = new Date().toISOString();
+        
+        res.json({
+            success: true,
+            message: 'Пользователь успешно обновлен',
+            user: user
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка обновления пользователя:', error);
+        res.status(500).json({ error: 'Ошибка обновления пользователя' });
+    }
+});
+
+// ==================== API ДЛЯ СИСТЕМНЫХ НАСТРОЕК ====================
+
+// Получить настройки системы
+app.get('/api/admin/settings', requireAdmin, (req, res) => {
+    try {
+        const settings = {
+            system: {
+                name: "Мастерская Вдохновения",
+                version: "7.0.0",
+                maintenance: false,
+                registration_enabled: true,
+                max_file_size: "3GB",
+                telegram_bot_connected: !!process.env.BOT_TOKEN
+            },
+            sparks: SPARKS_SYSTEM,
+            private_channel: PRIVATE_CHANNEL_CONFIG
+        };
+        
+        res.json({
+            success: true,
+            settings: settings
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки настроек:', error);
+        res.status(500).json({ error: 'Ошибка загрузки настроек' });
+    }
+});
+
+// Проверить доступ к админке
+app.get('/api/admin/check-access', requireAdmin, (req, res) => {
+    res.json({
+        success: true,
+        user: req.admin,
+        permissions: {
+            users: true,
+            content: true,
+            moderation: true,
+            analytics: true,
+            settings: true
+        },
+        timestamp: new Date().toISOString()
+    });
+});
 // Модерация работы
 app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
     try {
