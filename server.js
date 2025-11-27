@@ -1882,127 +1882,6 @@ app.get('/api/webapp/private-videos/:videoId', (req, res) => {
         });
     }
 
-// Функция для обновления статистики видео
-function updateVideoStats(videoId) {
-    const video = db.private_channel_videos.find(v => v.id === videoId);
-    if (!video) return null;
-    
-    const purchaseCount = db.purchases.filter(p => 
-        p.item_id === videoId && p.item_type === 'private_video'
-    ).length;
-    
-    const accessCount = db.video_access.filter(access => 
-        access.video_id === videoId
-    ).length;
-    
-    const totalRevenue = purchaseCount * video.price;
-    
-    return {
-        purchase_count: purchaseCount,
-        access_count: accessCount,
-        total_revenue: totalRevenue
-    };
-}
-
-// Функция предоставления доступа через Telegram бота
-async function grantVideoAccess(userId, videoId) {
-    try {
-        const user = db.users.find(u => u.user_id == userId);
-        const video = db.private_channel_videos.find(v => v.id == videoId);
-        const accessRecord = db.video_access.find(a => a.user_id === userId && a.video_id === videoId);
-        
-        if (!user || !video || !accessRecord) {
-            throw new Error('Данные для предоставления доступа не найдены');
-        }
-        
-        // Создаем уникальную ссылку-приглашение в канал
-        const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
-            member_limit: 1,
-            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
-        });
-        
-        // Отправляем пользователю сообщение с доступом
-        const message = await bot.sendMessage(userId, 
-            `🎬 Вам предоставлен доступ к видео!\n\n` +
-            `📹 ${video.title}\n` +
-            `⏱️ Длительность: ${video.duration}\n` +
-            `💾 Размер: ${video.file_size}\n\n` +
-            `🔗 Ссылка для просмотра: ${chatInviteLink.invite_link}\n\n` +
-            `⚠️ Ссылка действительна 24 часа. Для повторного доступа напишите "доступ" в этот чат.`,
-            { parse_mode: 'HTML' }
-        );
-        
-        // Сохраняем ID сообщения
-        accessRecord.telegram_message_id = message.message_id;
-        
-        console.log(`✅ Доступ к видео ${videoId} предоставлен пользователю ${userId}`);
-        
-    } catch (error) {
-        console.error('❌ Ошибка предоставления доступа:', error);
-        throw error;
-    }
-}
-// Админ API для управления видео в приватном канале
-app.get('/api/admin/private-videos', requireAdmin, (req, res) => {
-    const videos = db.private_channel_videos.map(video => {
-        const accessCount = db.video_access.filter(access => access.video_id === video.id).length;
-        const totalRevenue = accessCount * video.price;
-        
-        return {
-            ...video,
-            access_count: accessCount,
-            total_revenue: totalRevenue
-        };
-    });
-    
-    res.json(videos);
-});
-
-
-app.put('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
-    const videoId = parseInt(req.params.videoId);
-    const { title, description, duration, file_size, price, tags, is_active } = req.body;
-    
-    const video = db.private_channel_videos.find(v => v.id === videoId);
-    if (!video) {
-        return res.status(404).json({ error: 'Video not found' });
-    }
-    
-    if (title) video.title = title;
-    if (description) video.description = description;
-    if (duration) video.duration = duration;
-    if (file_size) video.file_size = file_size;
-    if (price) video.price = parseFloat(price);
-    if (tags) video.tags = tags;
-    if (is_active !== undefined) video.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Видео успешно обновлено',
-        video: video
-    });
-});
-
-app.delete('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
-    const videoId = parseInt(req.params.videoId);
-    const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
-    
-    if (videoIndex === -1) {
-        return res.status(404).json({ error: 'Video not found' });
-    }
-    
-    // Проверяем, есть ли пользователи с доступом
-    const usersWithAccess = db.video_access.filter(access => access.video_id === videoId);
-    if (usersWithAccess.length > 0) {
-        return res.status(400).json({ 
-            error: 'Нельзя удалить видео, у которого есть пользователи с доступом' 
-        });
-    }
-    
-    db.private_channel_videos.splice(videoIndex, 1);
-    res.json({ success: true, message: 'Видео удалено' });
-});
-
 // WebApp API
 app.get('/api/users/:userId', (req, res) => {
     const userId = parseInt(req.params.userId);
@@ -4266,6 +4145,127 @@ if (process.env.BOT_TOKEN) {
 } else {
     console.log('⚠️ BOT_TOKEN не установлен. Telegram бот отключен.');
 }
+
+// Функция для обновления статистики видео
+function updateVideoStats(videoId) {
+    const video = db.private_channel_videos.find(v => v.id === videoId);
+    if (!video) return null;
+    
+    const purchaseCount = db.purchases.filter(p => 
+        p.item_id === videoId && p.item_type === 'private_video'
+    ).length;
+    
+    const accessCount = db.video_access.filter(access => 
+        access.video_id === videoId
+    ).length;
+    
+    const totalRevenue = purchaseCount * video.price;
+    
+    return {
+        purchase_count: purchaseCount,
+        access_count: accessCount,
+        total_revenue: totalRevenue
+    };
+}
+
+// Функция предоставления доступа через Telegram бота
+async function grantVideoAccess(userId, videoId) {
+    try {
+        const user = db.users.find(u => u.user_id == userId);
+        const video = db.private_channel_videos.find(v => v.id == videoId);
+        const accessRecord = db.video_access.find(a => a.user_id === userId && a.video_id === videoId);
+        
+        if (!user || !video || !accessRecord) {
+            throw new Error('Данные для предоставления доступа не найдены');
+        }
+        
+        // Создаем уникальную ссылку-приглашение в канал
+        const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
+            member_limit: 1,
+            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
+        });
+        
+        // Отправляем пользователю сообщение с доступом
+        const message = await bot.sendMessage(userId, 
+            `🎬 Вам предоставлен доступ к видео!\n\n` +
+            `📹 ${video.title}\n` +
+            `⏱️ Длительность: ${video.duration}\n` +
+            `💾 Размер: ${video.file_size}\n\n` +
+            `🔗 Ссылка для просмотра: ${chatInviteLink.invite_link}\n\n` +
+            `⚠️ Ссылка действительна 24 часа. Для повторного доступа напишите "доступ" в этот чат.`,
+            { parse_mode: 'HTML' }
+        );
+        
+        // Сохраняем ID сообщения
+        accessRecord.telegram_message_id = message.message_id;
+        
+        console.log(`✅ Доступ к видео ${videoId} предоставлен пользователю ${userId}`);
+        
+    } catch (error) {
+        console.error('❌ Ошибка предоставления доступа:', error);
+        throw error;
+    }
+}
+
+// Админ API для управления видео в приватном канале
+app.get('/api/admin/private-videos', requireAdmin, (req, res) => {
+    const videos = db.private_channel_videos.map(video => {
+        const accessCount = db.video_access.filter(access => access.video_id === video.id).length;
+        const totalRevenue = accessCount * video.price;
+        
+        return {
+            ...video,
+            access_count: accessCount,
+            total_revenue: totalRevenue
+        };
+    });
+    
+    res.json(videos);
+});
+
+app.put('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
+    const videoId = parseInt(req.params.videoId);
+    const { title, description, duration, file_size, price, tags, is_active } = req.body;
+    
+    const video = db.private_channel_videos.find(v => v.id === videoId);
+    if (!video) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    if (title) video.title = title;
+    if (description) video.description = description;
+    if (duration) video.duration = duration;
+    if (file_size) video.file_size = file_size;
+    if (price) video.price = parseFloat(price);
+    if (tags) video.tags = tags;
+    if (is_active !== undefined) video.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Видео успешно обновлено',
+        video: video
+    });
+});
+
+app.delete('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
+    const videoId = parseInt(req.params.videoId);
+    const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
+    
+    if (videoIndex === -1) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    // Проверяем, есть ли пользователи с доступом
+    const usersWithAccess = db.video_access.filter(access => access.video_id === videoId);
+    if (usersWithAccess.length > 0) {
+        return res.status(400).json({ 
+            error: 'Нельзя удалить видео, у которого есть пользователи с доступом' 
+        });
+    }
+    
+    db.private_channel_videos.splice(videoIndex, 1);
+    res.json({ success: true, message: 'Видео удалено' });
+});
 
 // ==================== ЗАПУСК СЕРВЕРА ====================
 
