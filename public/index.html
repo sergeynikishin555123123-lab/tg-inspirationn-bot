@@ -2450,6 +2450,7 @@ function optimizeMobileInterface() {
 }
 
 // Загрузка данных пользователя - УПРОЩЕННАЯ ВЕРСИЯ
+// Обновленная функция загрузки данных пользователя
 async function loadUserData() {
     try {
         console.log('🔄 Загрузка данных пользователя:', currentUserId);
@@ -2467,8 +2468,12 @@ async function loadUserData() {
             currentUser = data.user;
             showUserData();
             loadAvailableButtons();
+            
+            // Возвращаем обновленного пользователя для использования в других функциях
+            return currentUser;
         } else {
             showWelcomeScreen();
+            return null;
         }
         
     } catch (error) {
@@ -2488,9 +2493,10 @@ async function loadUserData() {
         
         showUserData();
         loadAvailableButtons();
+        return currentUser;
     }
 }
-       // Показать данные пользователя
+// Показать данные пользователя - ОБНОВЛЕННАЯ ВЕРСИЯ С СТАТИСТИКОЙ
 function showUserData() {
     console.log('🎯 Показываем данные пользователя:', currentUser);
     
@@ -2502,51 +2508,101 @@ function showUserData() {
         return;
     }
     
-    userDataElement.innerHTML = `
-        <div id="userContent">
-            <div class="user-info-grid">
-                <div class="user-info-item">
-                    <span class="user-info-label">Имя:</span>
-                    <span id="userName" class="user-info-value">${currentUser.tg_first_name || 'Неизвестно'}</span>
+    // Загружаем статистику пользователя
+    loadUserStats().then(stats => {
+        userDataElement.innerHTML = `
+            <div id="userContent">
+                <div class="user-info-grid">
+                    <div class="user-info-item">
+                        <span class="user-info-label">Имя:</span>
+                        <span id="userName" class="user-info-value">${currentUser.tg_first_name || 'Неизвестно'}</span>
+                    </div>
+                    <div class="user-info-item">
+                        <span class="user-info-label">Уровень:</span>
+                        <span id="userLevel" class="user-info-value">${currentUser.level || 'Ученик'}</span>
+                    </div>
+                    <div class="user-info-item">
+                        <span class="user-info-label">Роль:</span>
+                        <span id="userRole" class="user-info-value">${currentUser.class || 'Не выбрана'}</span>
+                    </div>
+                    <div class="user-info-item">
+                        <span class="user-info-label">Персонаж:</span>
+                        <span id="userCharacter" class="user-info-value">${currentUser.character_name || 'Не выбран'}</span>
+                    </div>
                 </div>
-                <div class="user-info-item">
-                    <span class="user-info-label">Уровень:</span>
-                    <span id="userLevel" class="user-info-value">${currentUser.level || 'Ученик'}</span>
-                </div>
-                <div class="user-info-item">
-                    <span class="user-info-label">Роль:</span>
-                    <span id="userRole" class="user-info-value">${currentUser.class || 'Не выбрана'}</span>
-                </div>
-                <div class="user-info-item">
-                    <span class="user-info-label">Персонаж:</span>
-                    <span id="userCharacter" class="user-info-value">${currentUser.character_name || 'Не выбран'}</span>
+                
+                <div class="sparks pulse">✨ ${(currentUser.sparks || 0).toFixed(1)}</div>
+                
+                <div id="userStats">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="statQuizzes">${stats.totalQuizzesCompleted || 0}</div>
+                            <div class="stat-label">Квизов</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="statWorks">${stats.totalWorks || 0}</div>
+                            <div class="stat-label">Работ</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="statMarathons">${stats.totalMarathonsCompleted || 0}</div>
+                            <div class="stat-label">Марафонов</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="statInteractives">${stats.totalInteractivesCompleted || 0}</div>
+                            <div class="stat-label">Интерактивов</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <div class="sparks pulse">✨ ${(currentUser.sparks || 0).toFixed(1)}</div>
-            
-            <div id="userStats">
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-number">0</div>
-                        <div class="stat-label">Квизов</div>
+        `;
+    }).catch(error => {
+        // Fallback если статистика не загрузилась
+        userDataElement.innerHTML = `
+            <div id="userContent">
+                <div class="user-info-grid">
+                    <div class="user-info-item">
+                        <span class="user-info-label">Имя:</span>
+                        <span id="userName" class="user-info-value">${currentUser.tg_first_name || 'Неизвестно'}</span>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-number">0</div>
-                        <div class="stat-label">Работ</div>
+                    <div class="user-info-item">
+                        <span class="user-info-label">Уровень:</span>
+                        <span id="userLevel" class="user-info-value">${currentUser.level || 'Ученик'}</span>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-number">0</div>
-                        <div class="stat-label">Марафонов</div>
+                    <div class="user-info-item">
+                        <span class="user-info-label">Роль:</span>
+                        <span id="userRole" class="user-info-value">${currentUser.class || 'Не выбрана'}</span>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-number">0</div>
-                        <div class="stat-label">Интерактивов</div>
+                    <div class="user-info-item">
+                        <span class="user-info-label">Персонаж:</span>
+                        <span id="userCharacter" class="user-info-value">${currentUser.character_name || 'Не выбран'}</span>
+                    </div>
+                </div>
+                
+                <div class="sparks pulse">✨ ${(currentUser.sparks || 0).toFixed(1)}</div>
+                
+                <div id="userStats">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number">0</div>
+                            <div class="stat-label">Квизов</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">0</div>
+                            <div class="stat-label">Работ</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">0</div>
+                            <div class="stat-label">Марафонов</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">0</div>
+                            <div class="stat-label">Интерактивов</div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
+    });
     
     document.getElementById('welcomeBlock').style.display = 'none';
     document.getElementById('actionsBlock').style.display = 'block';
@@ -2560,6 +2616,35 @@ function showUserData() {
     console.log('✅ Данные пользователя отображены');
 }
 
+// Загрузка статистики пользователя
+async function loadUserStats() {
+    try {
+        console.log('📊 Загрузка статистики пользователя...');
+        
+        const response = await fetch(`/api/users/${currentUserId}/stats`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const stats = await response.json();
+        console.log('📈 Статистика пользователя:', stats);
+        
+        return stats;
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки статистики:', error);
+        
+        // Возвращаем статистику по умолчанию
+        return {
+            totalQuizzesCompleted: 0,
+            totalWorks: 0,
+            totalMarathonsCompleted: 0,
+            totalInteractivesCompleted: 0
+        };
+    }
+}
+    
         // Показать экран приветствия
         function showWelcomeScreen() {
             document.getElementById('userContent').style.display = 'none';
@@ -3103,43 +3188,41 @@ function showUserData() {
             showScreen('privateVideoDetailScreen');
         }
 
-        // Покупка доступа к приватному видео
-        async function purchasePrivateVideo(videoId) {
-            if (!confirm('Вы уверены, что хотите купить доступ к этому видео?')) return;
+// Покупка приватного видео - ОБНОВЛЕННАЯ ВЕРСИЯ
+async function purchasePrivateVideo(videoId) {
+    if (!confirm('Вы уверены, что хотите купить доступ к этому видео?')) return;
+    
+    try {
+        showMessage('⏳ Обрабатываем покупку доступа...', 'info');
+        
+        const response = await fetch('/api/webapp/shop/private-videos/purchase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentUserId,
+                videoId: videoId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage(`✅ ${result.message}`, 'success');
             
-            try {
-                const response = await fetch('/api/webapp/private-videos/purchase', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        videoId: videoId
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage(`✅ ${result.message}`, 'success');
-                    loadUserData(); // Обновляем баланс
-                    
-                    // Перезагружаем список видео или показываем детали
-                    if (currentScreen === 'privateVideoDetailScreen') {
-                        // Обновляем текущий экран
-                        const video = await getPrivateVideoDetail(videoId);
-                        showPrivateVideoDetail(video);
-                    } else {
-                        loadPrivateVideos();
-                    }
-                    
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка покупки доступа', 'error');
-            }
+            // СИНХРОННО обновляем данные пользователя
+            await loadUserData();
+            
+            // Обновляем магазин
+            await loadShopItems();
+            
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
         }
+        
+    } catch (error) {
+        showMessage('❌ Ошибка покупки доступа к видео', 'error');
+    }
+}
 
         // Получить детальную информацию о видео
         async function getPrivateVideoDetail(videoId) {
@@ -4725,11 +4808,26 @@ async function loadInteractives() {
             }
         }
 
-        // Загрузка магазина
-        async function loadShop() {
+        // Загрузка магазина - ОБНОВЛЕННАЯ ВЕРСИЯ
+async function loadShop() {
+    try {
+        // Сначала обновляем данные пользователя для актуального баланса
+        const updatedUser = await loadUserData();
+        
+        if (updatedUser) {
+            document.getElementById('shopSparks').textContent = `✨ ${updatedUser.sparks.toFixed(1)}`;
+        } else {
             document.getElementById('shopSparks').textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
-            loadShopItems();
         }
+        
+        // Затем загружаем товары
+        await loadShopItems();
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки магазина:', error);
+        document.getElementById('shopSparks').textContent = `✨ ${(currentUser.sparks || 0).toFixed(1)}`;
+    }
+}
 
 // Загрузка товаров магазина - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ ДЛЯ МОБИЛЬНЫХ
 async function loadShopItems() {
@@ -4827,33 +4925,48 @@ async function loadShopItems() {
     }
 }
 
-        // Покупка товара
-        async function purchaseItem(itemId) {
-            if (!confirm('Вы уверены, что хотите купить этот товар?')) return;
+        // Покупка товара - ИСПРАВЛЕННАЯ ВЕРСИЯ
+async function purchaseItem(itemId) {
+    if (!confirm('Вы уверены, что хотите купить этот товар?')) return;
+    
+    try {
+        showMessage('⏳ Обрабатываем покупку...', 'info');
+        
+        const response = await fetch('/api/webapp/shop/purchase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentUserId,
+                itemId: itemId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage(`✅ ${result.message}`, 'success');
             
-            try {
-                const response = await fetch('/api/webapp/shop/purchase', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        itemId: itemId
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage(`✅ ${result.message}`, 'success');
-                    loadShop();
-                    loadUserData();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showMessage('❌ Ошибка покупки', 'error');
+            // СИНХРОННО обновляем данные пользователя
+            await loadUserData();
+            
+            // Обновляем магазин
+            await loadShopItems();
+            
+            // Показываем детали покупки, если это указано в результате
+            if (result.purchase_details) {
+                setTimeout(() => {
+                    showPurchaseDetail(result.purchase_details);
+                }, 1000);
             }
+            
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
         }
+    } catch (error) {
+        console.error('❌ Ошибка покупки:', error);
+        showMessage('❌ Ошибка покупки. Попробуйте позже.', 'error');
+    }
+}
 
         // ==================== СИСТЕМА ПОКУПОК ====================
 
