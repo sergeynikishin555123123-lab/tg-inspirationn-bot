@@ -5336,6 +5336,7 @@ async function extractTelegramData() {
     const statusDiv = document.getElementById('extractionStatus');
     const autoFields = document.getElementById('autoFields');
     const saveButton = document.getElementById('saveButton');
+    const previewContainer = document.getElementById('privateVideoPreviewContainer');
     
     if (!postUrl) {
         statusDiv.innerHTML = '<div class="message warning">⚠️ Введите ссылку на пост Telegram</div>';
@@ -5393,7 +5394,7 @@ async function extractTelegramData() {
         statusDiv.innerHTML = `
             <div class="message error">
                 ❌ Ошибка анализа ссылки<br>
-                <small>Проверьте формат ссылки</small>
+                <small>${error.message}</small>
             </div>
         `;
     }
@@ -5402,6 +5403,8 @@ async function extractTelegramData() {
 // Функция парсинга ссылки Telegram
 function parseTelegramUrl(url) {
     try {
+        console.log('🔗 Начинаем парсинг ссылки:', url);
+        
         // Убираем возможные пробелы
         url = url.trim();
         
@@ -5413,10 +5416,13 @@ function parseTelegramUrl(url) {
         const urlObj = new URL(url);
         const pathParts = urlObj.pathname.split('/').filter(part => part);
         
-        console.log('🔗 Анализ ссылки:', url, 'Части:', pathParts);
+        console.log('📊 Части ссылки:', pathParts);
         
         if (pathParts.length < 2) {
-            return { success: false, error: 'Неверный формат ссылки. Пример: t.me/c/1234567890/123 или t.me/username/123' };
+            return { 
+                success: false, 
+                error: 'Неверный формат ссылки. Пример: t.me/c/1234567890/123 или t.me/username/123' 
+            };
         }
         
         let channelId, postId;
@@ -5427,20 +5433,28 @@ function parseTelegramUrl(url) {
             channelId = pathParts[1];
             postId = pathParts[2];
             isPrivateChannel = true;
+            console.log('🔒 Приватный канал:', channelId, 'Пост:', postId);
         } else {
             // Публичный канал: t.me/username/123
             channelId = pathParts[0];
             postId = pathParts[1];
+            console.log('🔓 Публичный канал:', channelId, 'Пост:', postId);
         }
         
         // Проверяем что postId - число
         postId = parseInt(postId);
         if (isNaN(postId)) {
-            return { success: false, error: 'ID поста должен быть числом' };
+            return { 
+                success: false, 
+                error: 'ID поста должен быть числом. Получено: ' + pathParts[1] 
+            };
         }
         
         if (!channelId || !postId) {
-            return { success: false, error: 'Не удалось извлечь ID канала и поста' };
+            return { 
+                success: false, 
+                error: 'Не удалось извлечь ID канала и поста' 
+            };
         }
         
         return {
@@ -5452,7 +5466,11 @@ function parseTelegramUrl(url) {
         };
         
     } catch (error) {
-        return { success: false, error: 'Ошибка обработки ссылки. Проверьте формат' };
+        console.error('💥 Ошибка парсинга:', error);
+        return { 
+            success: false, 
+            error: 'Ошибка обработки ссылки: ' + error.message 
+        };
     }
 }
 // Проверка подключения к Telegram
