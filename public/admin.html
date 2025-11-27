@@ -5477,39 +5477,49 @@ async function testTelegramConnection() {
     }
 }
 
-// Сохранение приватного материала
+// Сохранение приватного материала - ИСПРАВЛЕННАЯ ВАЛИДАЦИЯ
 async function savePrivateVideo() {
-    const postUrl = document.getElementById('privateVideoPostUrl').value.trim();
-    const channelId = document.getElementById('privateVideoChannelId').value;
-    const messageId = document.getElementById('privateVideoMessageId').value;
-    const title = document.getElementById('privateVideoTitle').value.trim();
-    const description = document.getElementById('privateVideoDescription').value.trim();
-    const duration = document.getElementById('privateVideoDuration').value.trim();
-    const price = parseFloat(document.getElementById('privateVideoPrice').value);
-    const category = document.getElementById('privateVideoCategory').value;
-    const level = document.getElementById('privateVideoLevel').value;
-    const is_active = document.getElementById('privateVideoActive').checked;
-    
-    // Проверка обязательных полей
-    if (!postUrl || !channelId || !messageId || !title || !price) {
-        showMessage('❌ Заполните все обязательные поля', 'error');
-        return;
-    }
+    const saveBtn = document.getElementById('savePrivateVideoBtn');
+    const originalText = saveBtn.innerHTML;
     
     try {
+        saveBtn.innerHTML = '⏳ Сохранение...';
+        saveBtn.disabled = true;
+        
+        const postUrl = document.getElementById('privateVideoPostUrl').value.trim();
+        const title = document.getElementById('privateVideoTitle').value.trim();
+        const description = document.getElementById('privateVideoDescription').value.trim();
+        const duration = document.getElementById('privateVideoDuration').value.trim();
+        const price = parseFloat(document.getElementById('privateVideoPrice').value);
+        const category = document.getElementById('privateVideoCategory').value;
+        const level = document.getElementById('privateVideoLevel').value;
+        const is_active = document.getElementById('privateVideoActive').checked;
+        
+        // ВАЛИДАЦИЯ - ИСПРАВЛЕННАЯ
+        if (!postUrl) {
+            throw new Error('Введите ссылку на пост Telegram');
+        }
+        
+        if (!title) {
+            throw new Error('Введите название материала');
+        }
+        
+        if (isNaN(price) || price < 1) {
+            throw new Error('Цена должна быть числом не менее 1 искры');
+        }
+        
         const videoData = {
             post_url: postUrl,
-            channel_id: channelId,
-            message_id: parseInt(messageId),
             title: title,
             description: description,
             duration: duration,
             price: price,
             category: category,
             level: level,
-            is_active: is_active,
-            type: 'telegram_video' // Тип для идентификации Telegram материалов
+            is_active: is_active
         };
+        
+        console.log('📤 Сохранение материала:', videoData);
         
         let response;
         if (currentEditingId) {
@@ -5533,15 +5543,17 @@ async function savePrivateVideo() {
             hidePrivateVideoForm();
             loadPrivateVideosAdmin();
         } else {
-            showMessage(`❌ ${result.error}`, 'error');
+            throw new Error(result.error || 'Ошибка сохранения');
         }
         
     } catch (error) {
-        console.error('Ошибка сохранения:', error);
-        showMessage('❌ Ошибка сохранения материала', 'error');
+        console.error('❌ Ошибка сохранения:', error);
+        showMessage(`❌ ${error.message}`, 'error');
+    } finally {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
     }
 }
-
 // Генерация защищенной ссылки для пользователя
 function generateProtectedLink(channelId, messageId, userId) {
     // Создаем уникальный токен на основе данных пользователя и времени
@@ -5658,11 +5670,13 @@ function hidePrivateVideoForm() {
 
 // ==================== ПРИВАТНЫЕ МАТЕРИАЛЫ TELEGRAM ====================
 
-// Загрузка приватных материалов
+// Загрузка приватных материалов - ИСПРАВЛЕННАЯ ВЕРСИЯ
 async function loadPrivateVideosAdmin() {
     try {
         console.log('🔄 Загрузка приватных материалов...');
-        showMessage('⏳ Загрузка материалов...', 'info');
+        
+        const videosList = document.getElementById('privateVideosList');
+        videosList.innerHTML = '<div class="loading">Загрузка материалов...</div>';
         
         const response = await fetch(`/api/admin/private-videos?userId=${currentUserId}`);
         
@@ -5673,10 +5687,9 @@ async function loadPrivateVideosAdmin() {
         const result = await response.json();
         
         if (result.success) {
-            displayPrivateVideosAdmin(result.videos);
-            showMessage(`✅ Загружено ${result.videos.length} материалов`, 'success');
+            displayPrivateVideosAdmin(result.videos || []);
         } else {
-            throw new Error(result.error || 'Неизвестная ошибка');
+            throw new Error(result.error || 'Неизвестная ошибка сервера');
         }
         
     } catch (error) {
@@ -6070,6 +6083,30 @@ function hidePrivateVideoForm() {
                 console.log('✅ Обработчик изменения типа товара добавлен');
             }
         });
+
+        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
+
+// Получение названия категории для админки
+function getCategoryName(category) {
+    const categories = {
+        'video': '🎥 Видео',
+        'course': '🎓 Курс', 
+        'lesson': '📖 Урок',
+        'masterclass': '⚡ Мастер-класс',
+        'material': '📚 Материал'
+    };
+    return categories[category] || category;
+}
+
+// Получение названия уровня сложности для админки  
+function getLevelName(level) {
+    const levels = {
+        'beginner': '👶 Начинающий',
+        'intermediate': '🚀 Продвинутый',
+        'advanced': '🔥 Эксперт'
+    };
+    return levels[level] || level;
+}
     </script>
 </body>
 </html>
