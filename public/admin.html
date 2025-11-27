@@ -1857,14 +1857,22 @@
     <div id="privateVideoForm" class="card" style="display: none;">
         <h3 id="privateVideoFormTitle" style="margin-bottom: 20px;">Добавление приватного материала</h3>
         
-        <div class="form-group">
-            <label class="form-label">🔗 Ссылка на пост в Telegram:</label>
-            <input type="text" id="privateVideoPostUrl" class="form-control" 
-                   placeholder="https://t.me/c/1234567890/123 или https://t.me/username/123">
-            <div style="color: #718096; font-size: 14px; margin-top: 8px;">
-                💡 Примеры: t.me/c/1234567890/123 (приватный) или t.me/username/123 (публичный)
-            </div>
-        </div>
+        <!-- Обновите этот раздел в форме -->
+<div class="form-group">
+    <label class="form-label">🔗 Ссылка на пост в Telegram:</label>
+    <div style="display: flex; gap: 12px; align-items: center;">
+        <input type="text" id="privateVideoPostUrl" class="form-control" 
+               placeholder="https://t.me/c/1234567890/123 или https://t.me/username/123"
+               style="flex: 1;">
+        <button type="button" class="btn btn-info" onclick="extractTelegramData()" 
+                style="white-space: nowrap;">
+            🔍 Анализировать
+        </button>
+    </div>
+    <div style="color: #718096; font-size: 14px; margin-top: 8px;">
+        💡 Примеры: t.me/c/1234567890/123 (приватный) или t.me/username/123 (публичный)
+    </div>
+</div>
 
         <div class="form-group">
             <label class="form-label">🎬 Название материала: *</label>
@@ -5319,70 +5327,30 @@ function loadTabData(tabName) {
 // Автоматическое извлечение данных из ссылки Telegram
 async function extractTelegramData() {
     const postUrl = document.getElementById('privateVideoPostUrl').value.trim();
-    const statusDiv = document.getElementById('extractionStatus');
-    const autoFields = document.getElementById('autoFields');
-    const saveButton = document.getElementById('saveButton');
-    const previewContainer = document.getElementById('privateVideoPreviewContainer');
     
     if (!postUrl) {
-        statusDiv.innerHTML = '<div class="message warning">⚠️ Введите ссылку на пост Telegram</div>';
-        autoFields.style.display = 'none';
-        saveButton.disabled = true;
+        showMessage('⚠️ Введите ссылку на пост Telegram', 'warning');
         return;
     }
     
-    // Показываем загрузку
-    statusDiv.innerHTML = '<div class="message info">⏳ Анализируем ссылку...</div>';
-    saveButton.disabled = true;
-    
     try {
-        // Парсим ссылку чтобы получить channel_id и message_id
+        console.log('🔗 Анализируем ссылку:', postUrl);
         const telegramData = parseTelegramUrl(postUrl);
         
         if (!telegramData.success) {
-            statusDiv.innerHTML = `<div class="message error">❌ ${telegramData.error}</div>`;
+            showMessage(`❌ ${telegramData.error}`, 'error');
             return;
         }
         
-        // Заполняем поля на основе парсинга ссылки
-        document.getElementById('privateVideoChannelId').value = telegramData.channelId;
-        document.getElementById('privateVideoMessageId').value = telegramData.postId;
+        // Автоматически заполняем поля на основе парсинга
+        document.getElementById('privateVideoTitle').value = `Материал из канала ${telegramData.channelId}`;
+        document.getElementById('privateVideoDescription').value = `Приватный материал из Telegram. Ссылка: ${postUrl}`;
         
-        // Генерируем автоматические названия
-        const channelName = telegramData.isPrivateChannel ? 'Приватный канал' : telegramData.channelId;
-        document.getElementById('privateVideoTitle').value = `Материал из ${channelName}`;
-        document.getElementById('privateVideoDescription').value = `Приватный материал из Telegram канала. Ссылка: ${postUrl}`;
-        document.getElementById('privateVideoDuration').value = 'Не указано';
-        
-        // Показываем информацию о канале
-        previewContainer.innerHTML = `
-            <div style="text-align: center; padding: 20px; background: #f7fafc; border-radius: 12px;">
-                <div style="font-size: 48px; margin-bottom: 12px;">📺</div>
-                <div style="font-weight: 600; margin-bottom: 8px;">Канал: ${channelName}</div>
-                <div style="color: #718096; margin-bottom: 8px;">ID сообщения: ${telegramData.postId}</div>
-                <a href="${postUrl}" target="_blank" style="color: #667eea; text-decoration: none;">🔗 Открыть пост</a>
-            </div>
-        `;
-        
-        // Показываем поля и активируем кнопку сохранения
-        autoFields.style.display = 'block';
-        saveButton.disabled = false;
-        
-        statusDiv.innerHTML = `
-            <div class="message success">
-                ✅ Ссылка распознана!<br>
-                <small>Канал: ${channelName} | Пост: ${telegramData.postId}</small>
-            </div>
-        `;
+        showMessage(`✅ Ссылка распознана! Канал: ${telegramData.channelId}, Пост: ${telegramData.postId}`, 'success');
         
     } catch (error) {
-        console.error('Ошибка анализа ссылки:', error);
-        statusDiv.innerHTML = `
-            <div class="message error">
-                ❌ Ошибка анализа ссылки<br>
-                <small>${error.message}</small>
-            </div>
-        `;
+        console.error('❌ Ошибка анализа ссылки:', error);
+        showMessage(`❌ Ошибка анализа ссылки: ${error.message}`, 'error');
     }
 }
 
@@ -5451,7 +5419,7 @@ function parseTelegramUrl(url) {
     }
 }
 
-// Сохранение приватного материала - ДОБАВИМ ОТЛАДКУ
+// Сохранение приватного материала - ИСПРАВЛЕННАЯ ВЕРСИЯ
 async function savePrivateVideo() {
     const saveBtn = document.getElementById('savePrivateVideoBtn');
     const originalText = saveBtn.innerHTML;
@@ -5469,7 +5437,11 @@ async function savePrivateVideo() {
         const level = document.getElementById('privateVideoLevel').value;
         const is_active = document.getElementById('privateVideoActive').checked;
         
-        // ВАЛИДАЦИЯ
+        console.log('📝 Данные формы:', {
+            postUrl, title, description, duration, price, category, level, is_active
+        });
+        
+        // ВАЛИДАЦИЯ ОСНОВНЫХ ПОЛЕЙ
         if (!postUrl) {
             throw new Error('Введите ссылку на пост Telegram');
         }
@@ -5482,7 +5454,7 @@ async function savePrivateVideo() {
             throw new Error('Цена должна быть числом не менее 1 искры');
         }
         
-        // ПАРСИНГ ССЫЛКИ TELEGRAM
+        // ПАРСИНГ ССЫЛКИ TELEGRAM ДЛЯ ПОЛУЧЕНИЯ ID
         console.log('🔗 Парсим ссылку:', postUrl);
         const telegramData = parseTelegramUrl(postUrl);
         console.log('📊 Результат парсинга:', telegramData);
@@ -5491,10 +5463,11 @@ async function savePrivateVideo() {
             throw new Error(telegramData.error);
         }
         
+        // ПОДГОТОВКА ДАННЫХ ДЛЯ ОТПРАВКИ
         const videoData = {
             post_url: postUrl,
-            channel_id: telegramData.channelId,
-            message_id: telegramData.postId,
+            channel_id: telegramData.channelId, // ДОБАВЛЯЕМ channel_id
+            message_id: telegramData.postId,    // ДОБАВЛЯЕМ message_id
             title: title,
             description: description,
             duration: duration,
@@ -5504,7 +5477,7 @@ async function savePrivateVideo() {
             is_active: is_active
         };
         
-        console.log('📤 Сохранение материала:', videoData);
+        console.log('📤 Отправка данных на сервер:', videoData);
         
         let response;
         if (currentEditingId) {
@@ -5754,8 +5727,6 @@ function showPrivateVideoForm() {
     
     // Сбросить форму
     document.getElementById('privateVideoPostUrl').value = '';
-    document.getElementById('privateVideoChannelId').value = '';
-    document.getElementById('privateVideoMessageId').value = '';
     document.getElementById('privateVideoTitle').value = '';
     document.getElementById('privateVideoDescription').value = '';
     document.getElementById('privateVideoDuration').value = '';
@@ -5764,11 +5735,9 @@ function showPrivateVideoForm() {
     document.getElementById('privateVideoLevel').value = 'beginner';
     document.getElementById('privateVideoActive').checked = true;
     
-    // Сбросить статус
-    document.getElementById('extractionStatus').innerHTML = '';
-    document.getElementById('autoFields').style.display = 'none';
-    document.getElementById('saveButton').disabled = true;
-    document.getElementById('privateVideoPreviewContainer').innerHTML = '';
+    // Очистить сообщения
+    const messageArea = document.getElementById('messageArea');
+    messageArea.innerHTML = '';
 }
 
 // Редактирование материала
