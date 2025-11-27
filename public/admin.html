@@ -5343,10 +5343,18 @@ async function extractTelegramData() {
         }
         
         // Автоматически заполняем поля на основе парсинга
-        document.getElementById('privateVideoTitle').value = `Материал из канала ${telegramData.channelId}`;
-        document.getElementById('privateVideoDescription').value = `Приватный материал из Telegram. Ссылка: ${postUrl}`;
+        if (!document.getElementById('privateVideoTitle').value) {
+            document.getElementById('privateVideoTitle').value = `Материал из ${telegramData.isPrivateChannel ? 'приватного канала' : 'канала'} ${telegramData.channelId}`;
+        }
         
-        showMessage(`✅ Ссылка распознана! Канал: ${telegramData.channelId}, Пост: ${telegramData.postId}`, 'success');
+        if (!document.getElementById('privateVideoDescription').value) {
+            document.getElementById('privateVideoDescription').value = `Приватный материал из Telegram. Ссылка: ${postUrl}`;
+        }
+        
+        showMessage(`✅ Ссылка распознана! Канал: ${telegramData.channelId}, Пост: ${telegramData.postId}, Тип: ${telegramData.isPrivateChannel ? 'приватный' : 'публичный'}`, 'success');
+        
+        // Показываем дополнительную информацию в консоли для отладки
+        console.log('📋 Извлеченные данные:', telegramData);
         
     } catch (error) {
         console.error('❌ Ошибка анализа ссылки:', error);
@@ -5419,7 +5427,7 @@ function parseTelegramUrl(url) {
     }
 }
 
-// Сохранение приватного материала - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Сохранение приватного материала - ИСПРАВЛЕННАЯ ВЕРСИЯ С ОТЛАДКОЙ
 async function savePrivateVideo() {
     const saveBtn = document.getElementById('savePrivateVideoBtn');
     const originalText = saveBtn.innerHTML;
@@ -5462,12 +5470,17 @@ async function savePrivateVideo() {
         if (!telegramData.success) {
             throw new Error(telegramData.error);
         }
+
+        // ПРОВЕРКА ЧТО ВСЕ ОБЯЗАТЕЛЬНЫЕ ПОЛЯ ЕСТЬ
+        if (!telegramData.channelId || !telegramData.postId) {
+            throw new Error('Не удалось извлечь ID канала и поста из ссылки');
+        }
         
         // ПОДГОТОВКА ДАННЫХ ДЛЯ ОТПРАВКИ
         const videoData = {
             post_url: postUrl,
-            channel_id: telegramData.channelId, // ДОБАВЛЯЕМ channel_id
-            message_id: telegramData.postId,    // ДОБАВЛЯЕМ message_id
+            channel_id: telegramData.channelId.toString(), // Убедимся что строка
+            message_id: parseInt(telegramData.postId),     // Убедимся что число
             title: title,
             description: description,
             duration: duration,
@@ -5478,6 +5491,12 @@ async function savePrivateVideo() {
         };
         
         console.log('📤 Отправка данных на сервер:', videoData);
+        console.log('🔍 Проверка обязательных полей:', {
+            hasChannelId: !!videoData.channel_id,
+            hasMessageId: !!videoData.message_id,
+            channelId: videoData.channel_id,
+            messageId: videoData.message_id
+        });
         
         let response;
         if (currentEditingId) {
@@ -5493,8 +5512,11 @@ async function savePrivateVideo() {
                 body: JSON.stringify(videoData)
             });
         }
+
+        console.log('📨 Статус ответа:', response.status);
         
         const result = await response.json();
+        console.log('📩 Ответ сервера:', result);
         
         if (result.success) {
             showMessage('✅ Материал успешно сохранен!', 'success');
