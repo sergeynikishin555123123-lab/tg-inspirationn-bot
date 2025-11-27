@@ -697,11 +697,10 @@ video_access: [],
 
 // ==================== СИСТЕМА ПРИВАТНОГО КАНАЛА ====================
 
-// Конфигурация приватного канала
-const PRIVATE_CHANNEL_CONFIG = {
-    CHANNEL_ID: process.env.PRIVATE_CHANNEL_ID || '-1001234567890',
-    CHANNEL_USERNAME: process.env.PRIVATE_CHANNEL_USERNAME || '@private_videos_channel',
-    BOT_TOKEN: process.env.BOT_TOKEN
+// Конфигурация бота для доступа к каналам
+const TELEGRAM_BOT_CONFIG = {
+    BOT_TOKEN: process.env.BOT_TOKEN,
+    // Бот должен быть администратором в каналах, откуда берутся материалы
 };
 
 // Увеличены лимиты для больших файлов (3GB)
@@ -1448,13 +1447,13 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     }
 });
 
-// Получить доступ к просмотру видео
-app.get('/api/webapp/private-videos/:videoId/access', async (req, res) => {
+// Встроенный просмотр приватного материала
+app.get('/api/webapp/private-videos/:videoId/view', async (req, res) => {
     try {
         const videoId = parseInt(req.params.videoId);
         const userId = parseInt(req.query.userId);
         
-        console.log('🔗 Запрос доступа к видео:', { videoId, userId });
+        console.log('🎬 Встроенный просмотр материала:', { videoId, userId });
 
         if (!userId) {
             return res.status(401).json({ 
@@ -1467,7 +1466,7 @@ app.get('/api/webapp/private-videos/:videoId/access', async (req, res) => {
         if (!video) {
             return res.status(404).json({ 
                 success: false,
-                error: 'Видео не найдено' 
+                error: 'Материал не найден' 
             });
         }
 
@@ -1481,49 +1480,155 @@ app.get('/api/webapp/private-videos/:videoId/access', async (req, res) => {
         if (!hasAccess) {
             return res.status(403).json({ 
                 success: false,
-                error: 'Нет доступа к этому видео. Срок действия истек или доступ не приобретен.' 
+                error: 'Нет доступа к этому материалу' 
             });
         }
 
-        // Генерируем временную инвайт-ссылку
-        try {
-            const temporaryAccess = await generateTemporaryInvite(video, userId);
-            
-            res.json({
-                success: true,
-                access_url: temporaryAccess.invite_link,
-                video_title: video.title,
-                expires_at: temporaryAccess.expires_at,
-                message: 'Ссылка действительна 24 часа. Для повторного доступа запросите новую ссылку.'
-            });
-
-        } catch (botError) {
-            // Если бот не может создать инвайт, возвращаем прямую ссылку
-            console.warn('⚠️ Бот не смог создать инвайт, возвращаем прямую ссылку');
-            
-            let directUrl;
-            if (video.channel_id.startsWith('-100')) {
-                // Приватный канал
-                const publicChannelId = video.channel_id.replace('-100', '');
-                directUrl = `https://t.me/c/${publicChannelId}/${video.message_id}`;
-            } else {
-                // Публичный канал
-                directUrl = `https://t.me/${video.channel_id}/${video.message_id}`;
-            }
-            
-            res.json({
-                success: true,
-                access_url: directUrl,
-                video_title: video.title,
-                message: 'Перейдите по ссылке для просмотра материала.'
-            });
+        // Генерируем прямую ссылку на пост в Telegram
+        let directUrl;
+        if (video.channel_id.startsWith('-100')) {
+            // Приватный канал
+            const publicChannelId = video.channel_id.replace('-100', '');
+            directUrl = `https://t.me/c/${publicChannelId}/${video.message_id}`;
+        } else {
+            // Публичный канал
+            directUrl = `https://t.me/${video.channel_id}/${video.message_id}`;
         }
+
+        // Создаем HTML страницу для встроенного просмотра
+        const html = `
+            <!DOCTYPE html>
+            <html lang="ru">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${video.title}</title>
+                <style>
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                        background: #000;
+                        height: 100vh;
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    .header {
+                        background: #1a1a1a;
+                        padding: 15px;
+                        color: white;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        border-bottom: 1px solid #333;
+                    }
+                    .back-btn {
+                        background: #333;
+                        border: none;
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    }
+                    .container {
+                        flex: 1;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                    }
+                    .telegram-embed {
+                        width: 100%;
+                        height: 100%;
+                        border: none;
+                        background: white;
+                    }
+                    .info-panel {
+                        background: #1a1a1a;
+                        color: white;
+                        padding: 15px;
+                        border-top: 1px solid #333;
+                    }
+                    .video-title {
+                        font-size: 16px;
+                        font-weight: 600;
+                        margin-bottom: 5px;
+                    }
+                    .video-meta {
+                        font-size: 12px;
+                        color: #888;
+                    }
+                    @media (max-width: 768px) {
+                        .header {
+                            padding: 12px;
+                        }
+                        .telegram-embed {
+                            height: 70vh;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <button class="back-btn" onclick="window.close()">← Закрыть</button>
+                    <div style="font-weight: 600;">${video.title}</div>
+                    <div style="width: 80px;"></div>
+                </div>
+                
+                <div class="container">
+                    <iframe 
+                        src="${directUrl}?embed=1"
+                        class="telegram-embed"
+                        allowfullscreen
+                        allow="autoplay; encrypted-media"
+                    ></iframe>
+                </div>
+                
+                <div class="info-panel">
+                    <div class="video-title">${video.title}</div>
+                    <div class="video-meta">
+                        ${video.duration} • ${video.file_size} • Доступен до ${new Date(db.video_access.find(a => a.user_id == userId && a.video_id === videoId).expires_at).toLocaleDateString('ru-RU')}
+                    </div>
+                </div>
+
+                <script>
+                    // Автоматическая подгонка под мобильные устройства
+                    function adjustLayout() {
+                        const iframe = document.querySelector('.telegram-embed');
+                        const isMobile = window.innerWidth < 768;
+                        
+                        if (isMobile) {
+                            iframe.style.height = '70vh';
+                        } else {
+                            iframe.style.height = '80vh';
+                        }
+                    }
+                    
+                    window.addEventListener('resize', adjustLayout);
+                    adjustLayout();
+                    
+                    // Обработка закрытия
+                    document.addEventListener('keydown', function(e) {
+                        if (e.key === 'Escape') {
+                            window.close();
+                        }
+                    });
+                </script>
+            </body>
+            </html>
+        `;
+        
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
 
     } catch (error) {
-        console.error('❌ Ошибка получения доступа:', error);
+        console.error('❌ Ошибка встроенного просмотра:', error);
         res.status(500).json({ 
             success: false,
-            error: 'Ошибка доступа к видео' 
+            error: 'Ошибка загрузки материала' 
         });
     }
 });
