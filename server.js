@@ -1540,6 +1540,88 @@ app.get('/api/telegram/proxy/:token', async (req, res) => {
     }
 });
 
+// ==================== ПРОВЕРКА ДОСТУПА К ПРИВАТНЫМ ВИДЕО ====================
+
+// Проверка доступа пользователя к конкретному видео
+app.get('/api/webapp/private-videos/:videoId/access', (req, res) => {
+    try {
+        const userId = parseInt(req.query.userId);
+        const videoId = parseInt(req.params.videoId);
+        
+        console.log('🔐 Проверка доступа:', { userId, videoId });
+
+        if (!userId) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'Требуется авторизация' 
+            });
+        }
+
+        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+        if (!video) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Видео не найдено' 
+            });
+        }
+
+        // Проверка доступа (админы имеют доступ ко всему)
+        const admin = db.admins.find(a => a.user_id == userId);
+        let hasAccess = false;
+        let accessRecord = null;
+
+        if (admin) {
+            hasAccess = true;
+        } else {
+            accessRecord = db.video_access.find(access => 
+                access.user_id == userId && 
+                access.video_id === videoId && 
+                access.expires_at > new Date().toISOString()
+            );
+            hasAccess = !!accessRecord;
+        }
+
+        // Получаем защищенную ссылку если есть доступ
+        let protectedLink = null;
+        if (hasAccess) {
+            const token = btoa(`${video.channel_id}_${video.message_id}_${Date.now()}`)
+                .replace(/=/g, '')
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_');
+                
+            protectedLink = `${process.env.APP_URL || 'http://localhost:3000'}/api/telegram/proxy/${token}?userId=${userId}`;
+            
+            // Обновляем счетчик просмотров
+            if (accessRecord) {
+                accessRecord.access_count = (accessRecord.access_count || 0) + 1;
+            }
+        }
+
+        res.json({
+            success: true,
+            has_access: hasAccess,
+            protected_link: protectedLink,
+            video: {
+                id: video.id,
+                title: video.title,
+                description: video.description,
+                duration: video.duration,
+                price: video.price,
+                category: video.category,
+                level: video.level
+            },
+            access_record: accessRecord
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка проверки доступа:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка проверки доступа' 
+        });
+    }
+});
+
 // Покупка приватного видео
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
