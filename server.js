@@ -14,6 +14,125 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
+// ==================== СИСТЕМА УПРАВЛЕНИЯ ПРОЦЕССАМИ ====================
+
+import { exec } from 'child_process';
+import { promisify } from 'util';
+const execAsync = promisify(exec);
+
+// Функция для освобождения порта и управления процессами
+async function setupProcessManagement() {
+    const pidFile = join(__dirname, 'server.pid');
+    const PORT = process.env.PORT || 3000;
+    
+    try {
+        // Пытаемся убить процессы на том же порту
+        console.log('🔍 Проверка занятости порта...');
+        
+        // Для Linux/Mac
+        try {
+            const { stdout } = await execAsync(`lsof -ti:${PORT}`);
+            if (stdout.trim()) {
+                const pids = stdout.trim().split('\n');
+                console.log(`🔄 Найденные процессы на порту ${PORT}: ${pids.join(', ')}`);
+                
+                for (const pid of pids) {
+                    try {
+                        await execAsync(`kill -9 ${pid}`);
+                        console.log(`✅ Процесс ${pid} завершен`);
+                    } catch (killError) {
+                        console.log(`⚠️ Не удалось завершить процесс ${pid}`);
+                    }
+                }
+            }
+        } catch (error) {
+            // Порту свободен или команда не сработала
+            console.log('✅ Порт свободен или ОС Windows');
+        }
+        
+        // Для Windows (если нужно)
+        try {
+            const { stdout } = await execAsync(`netstat -ano | findstr :${PORT}`);
+            if (stdout) {
+                const lines = stdout.split('\n');
+                for (const line of lines) {
+                    const match = line.match(/\s+(\d+)$/);
+                    if (match) {
+                        const pid = match[1];
+                        console.log(`🔄 Найден процесс Windows PID: ${pid}`);
+                        await execAsync(`taskkill /PID ${pid} /F`);
+                        console.log(`✅ Процесс Windows ${pid} завершен`);
+                    }
+                }
+            }
+        } catch (error) {
+            // Не Windows или порт свободен
+        }
+        
+        // Сохраняем PID текущего процесса
+        const fs = await import('fs');
+        fs.writeFileSync(pidFile, process.pid.toString());
+        console.log(`📝 PID текущего процесса сохранен: ${process.pid}`);
+        
+    } catch (error) {
+        console.log('⚠️ Ошибка управления процессами:', error.message);
+    }
+}
+
+// Обработка graceful shutdown
+function setupGracefulShutdown() {
+    const pidFile = join(__dirname, 'server.pid');
+    
+    const shutdownHandlers = {
+        'SIGINT': 'Ctrl+C',
+        'SIGTERM': 'системный сигнал завершения',
+        'SIGUSR2': 'перезапуск nodemon',
+        'uncaughtException': 'необработанное исключение',
+        'unhandledRejection': 'необработанный промис'
+    };
+    
+    Object.keys(shutdownHandlers).forEach(signal => {
+        process.on(signal, async (err) => {
+            console.log(`\n🔄 Получен ${shutdownHandlers[signal]} (${signal})`);
+            
+            if (err) {
+                console.error('❌ Ошибка:', err);
+            }
+            
+            try {
+                // Удаляем PID файл
+                const fs = await import('fs');
+                if (fs.existsSync(pidFile)) {
+                    fs.unlinkSync(pidFile);
+                    console.log('✅ PID файл удален');
+                }
+                
+                console.log('👋 Сервер корректно завершает работу...');
+                
+                if (server) {
+                    server.close(() => {
+                        console.log('✅ HTTP сервер остановлен');
+                        process.exit(signal === 'uncaughtException' ? 1 : 0);
+                    });
+                    
+                    // Таймаут на случай если сервер не закрывается
+                    setTimeout(() => {
+                        console.log('⚠️ Принудительное завершение');
+                        process.exit(1);
+                    }, 5000);
+                } else {
+                    process.exit(signal === 'uncaughtException' ? 1 : 0);
+                }
+            } catch (cleanupError) {
+                console.error('❌ Ошибка при завершении:', cleanupError);
+                process.exit(1);
+            }
+        });
+    });
+    
+    console.log('✅ Обработчики graceful shutdown установлены');
+}
+
 // Автоматическое определение пути для TimeWeb
 const APP_ROOT = process.cwd();
 
@@ -3229,15 +3348,38 @@ if (process.env.BOT_TOKEN) {
     }
 }
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Сервер запущен на порту ${PORT}`);
-    console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
-    console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
-    console.log(`🎯 Квизов: ${db.quizzes.length}`);
-    console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
-    console.log(`🎮 Интерактивов: ${db.interactives.length}`);
-    console.log(`🛒 Товаров: ${db.shop_items.length}`);
-    console.log(`👥 Пользователей: ${db.users.length}`);
-    console.log('✅ Все системы работают!');
-});
+// Запуск сервера с управлением процессами
+async function startServer() {
+    try {
+        // Настраиваем управление процессами
+        await setupProcessManagement();
+        
+        const PORT = process.env.PORT || 3000;
+        
+        // Запускаем сервер
+        const server = app.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 Сервер запущен на порту ${PORT}`);
+            console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
+            console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
+            console.log(`🎯 Квизов: ${db.quizzes.length}`);
+            console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
+            console.log(`🎮 Интерактивов: ${db.interactives.length}`);
+            console.log(`🛒 Товаров: ${db.shop_items.length}`);
+            console.log(`👥 Пользователей: ${db.users.length}`);
+            console.log('✅ Все системы работают!');
+            console.log(`📊 PID главного процесса: ${process.pid}`);
+        });
+        
+        // Настраиваем graceful shutdown
+        setupGracefulShutdown();
+        
+        return server;
+        
+    } catch (error) {
+        console.error('💥 Критическая ошибка запуска сервера:', error);
+        process.exit(1);
+    }
+}
+
+// Запускаем сервер
+const server = startServer();
