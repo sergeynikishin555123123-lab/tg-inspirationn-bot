@@ -5477,7 +5477,7 @@ async function testTelegramConnection() {
     }
 }
 
-// Сохранение приватного материала - ИСПРАВЛЕННАЯ ВАЛИДАЦИЯ
+// Сохранение приватного материала - ИСПРАВЛЕННАЯ ВЕРСИЯ
 async function savePrivateVideo() {
     const saveBtn = document.getElementById('savePrivateVideoBtn');
     const originalText = saveBtn.innerHTML;
@@ -5495,7 +5495,7 @@ async function savePrivateVideo() {
         const level = document.getElementById('privateVideoLevel').value;
         const is_active = document.getElementById('privateVideoActive').checked;
         
-        // ВАЛИДАЦИЯ - ИСПРАВЛЕННАЯ
+        // ВАЛИДАЦИЯ
         if (!postUrl) {
             throw new Error('Введите ссылку на пост Telegram');
         }
@@ -5508,8 +5508,16 @@ async function savePrivateVideo() {
             throw new Error('Цена должна быть числом не менее 1 искры');
         }
         
+        // ПАРСИНГ ССЫЛКИ TELEGRAM
+        const telegramData = parseTelegramUrl(postUrl);
+        if (!telegramData.success) {
+            throw new Error(telegramData.error);
+        }
+        
         const videoData = {
             post_url: postUrl,
+            channel_id: telegramData.channelId,
+            message_id: telegramData.postId,
             title: title,
             description: description,
             duration: duration,
@@ -5552,6 +5560,71 @@ async function savePrivateVideo() {
     } finally {
         saveBtn.innerHTML = originalText;
         saveBtn.disabled = false;
+    }
+}
+
+// Функция парсинга ссылки Telegram
+function parseTelegramUrl(url) {
+    try {
+        console.log('🔗 Парсинг ссылки Telegram:', url);
+        
+        // Убираем возможные пробелы
+        url = url.trim();
+        
+        // Добавляем https если нет протокола
+        if (!url.startsWith('http')) {
+            url = 'https://' + url;
+        }
+
+        const urlObj = new URL(url);
+        const pathParts = urlObj.pathname.split('/').filter(part => part);
+        
+        console.log('📊 Части ссылки:', pathParts);
+
+        if (pathParts.length < 2) {
+            return { 
+                success: false, 
+                error: 'Неверный формат ссылки. Пример: t.me/c/1234567890/123 или t.me/username/123' 
+            };
+        }
+
+        let channelId, postId;
+        let isPrivateChannel = false;
+
+        if (pathParts[0] === 'c') {
+            // Приватный канал: t.me/c/1234567890/123
+            channelId = pathParts[1];
+            postId = parseInt(pathParts[2]);
+            isPrivateChannel = true;
+            console.log('🔒 Приватный канал:', channelId, 'Пост:', postId);
+        } else {
+            // Публичный канал: t.me/username/123
+            channelId = pathParts[0];
+            postId = parseInt(pathParts[1]);
+            console.log('🔓 Публичный канал:', channelId, 'Пост:', postId);
+        }
+
+        if (!channelId || !postId || isNaN(postId)) {
+            return { 
+                success: false, 
+                error: 'Не удалось извлечь ID канала и поста' 
+            };
+        }
+
+        return {
+            success: true,
+            channelId: channelId,
+            postId: postId,
+            postUrl: url,
+            isPrivateChannel: isPrivateChannel
+        };
+        
+    } catch (error) {
+        console.error('💥 Ошибка парсинга:', error);
+        return { 
+            success: false, 
+            error: 'Ошибка обработки ссылки: ' + error.message 
+        };
     }
 }
 // Генерация защищенной ссылки для пользователя
