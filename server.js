@@ -691,9 +691,10 @@ let db = {
     ],
     interactive_completions: [],
     interactive_submissions: [],
-    marathon_submissions: [],
-    video_access: [],
-    private_channel_videos: [
+// В объекте db добавьте эти коллекции если их нет:
+marathon_submissions: [],
+video_access: [],
+private_channel_videos: [
     // пример данных
     {
         id: 1,
@@ -709,6 +710,7 @@ let db = {
         is_active: true,
         created_at: new Date().toISOString()
     }
+]
         {
             id: 2,
             message_id: 124,
