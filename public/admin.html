@@ -5708,7 +5708,7 @@ async function purchasePrivateVideo(videoId) {
     }
 }
         
-        // Отображение списка материалов
+      // В функции displayPrivateVideosAdmin ЗАМЕНИТЕ блок с защищенной ссылкой:
 function displayPrivateVideosAdmin(videos) {
     const videosList = document.getElementById('privateVideosList');
     
@@ -5728,26 +5728,26 @@ function displayPrivateVideosAdmin(videos) {
     let html = '';
     
     videos.forEach(video => {
-        const categoryIcons = {
-            'video': '🎥',
-            'pdf': '📚',
-            'course': '🎓',
-            'lesson': '📖',
-            'masterclass': '🔥'
-        };
+        const stats = updateVideoStats(video.id);
         
-        // Генерируем защищенную ссылку для предпросмотра
-        const protectedLink = generateProtectedLink(video.channel_id, video.message_id, currentUserId);
+        // ПРАВИЛЬНАЯ ГЕНЕРАЦИЯ ЗАЩИЩЕННОЙ ССЫЛКИ
+        const token = btoa(`${video.channel_id}_${video.message_id}_${Date.now()}`)
+            .replace(/=/g, '')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_');
+            
+        const protectedLink = `/api/telegram/proxy/${token}?userId=${currentUserId}`;
+        const fullProtectedLink = `${window.location.origin}${protectedLink}`;
         
         html += `
             <div class="shop-item-card">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 300px;">
-                        <h3 style="margin: 0 0 8px 0;">${categoryIcons[video.category] || '📁'} ${video.title}</h3>
+                        <h3 style="margin: 0 0 8px 0;">🎬 ${video.title}</h3>
                         <p style="color: #718096; margin-bottom: 12px;">${video.description}</p>
                         
                         <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                            <span class="badge badge-info">${categoryIcons[video.category] || '📁'} ${video.category}</span>
+                            <span class="badge badge-info">${video.category}</span>
                             <span class="badge badge-success">${video.price}✨</span>
                             <span class="badge badge-warning">⏱️ ${video.duration}</span>
                         </div>
@@ -5755,29 +5755,35 @@ function displayPrivateVideosAdmin(videos) {
                         <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
                             <span class="badge badge-secondary">📺 ${video.channel_id}</span>
                             <span class="badge badge-secondary">📝 ${video.message_id}</span>
-                            <button class="btn btn-info btn-sm" onclick="copyProtectedLink('${video.channel_id}', '${video.message_id}')">
+                            <button class="btn btn-info btn-sm" onclick="copyToClipboard('${fullProtectedLink}')">
                                 📋 Скопировать защищенную ссылку
                             </button>
-                            <a href="${video.post_url}" target="_blank" class="btn btn-warning btn-sm">
-                                🔗 Исходный пост
-                            </a>
+                            ${video.post_url ? `
+                                <a href="${video.post_url}" target="_blank" class="btn btn-warning btn-sm">
+                                    🔗 Исходный пост
+                                </a>
+                            ` : ''}
                         </div>
                         
                         <div style="background: #f7fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                             <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Защищенная ссылка для пользователей:</div>
-                            <div style="font-family: monospace; font-size: 12px; word-break: break-all; user-select: none;">
-                                ${window.location.origin}${protectedLink}
+                            <div style="font-family: monospace; font-size: 12px; word-break: break-all; user-select: all;">
+                                ${fullProtectedLink}
                             </div>
                         </div>
                         
                         <div class="completion-stats">
                             <div class="completion-stat">
+                                <span>🛒 Покупок:</span>
+                                <strong>${stats?.purchase_count || 0}</strong>
+                            </div>
+                            <div class="completion-stat">
                                 <span>👥 Доступов:</span>
-                                <strong>${video.access_count || 0}</strong>
+                                <strong>${stats?.access_count || 0}</strong>
                             </div>
                             <div class="completion-stat">
                                 <span>💰 Доход:</span>
-                                <strong>${video.total_revenue || 0}✨</strong>
+                                <strong>${stats?.total_revenue || 0}✨</strong>
                             </div>
                         </div>
                     </div>
@@ -5792,7 +5798,6 @@ function displayPrivateVideosAdmin(videos) {
                 
                 <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
                     Создан: ${new Date(video.created_at).toLocaleDateString('ru-RU')}
-                    ${video.preview_url ? ' • 📸 Есть превью' : ''}
                 </div>
                 
                 <div class="action-buttons">
@@ -5807,23 +5812,20 @@ function displayPrivateVideosAdmin(videos) {
     videosList.innerHTML = html;
 }
 
-        // Копирование защищенной ссылки в буфер обмена
-async function copyProtectedLink(channelId, messageId) {
-    const protectedLink = generateProtectedLink(channelId, messageId, currentUserId);
-    const fullLink = `${window.location.origin}${protectedLink}`;
-    
+// ДОБАВЬТЕ ФУНКЦИЮ КОПИРОВАНИЯ В БУФЕР ОБМЕНА
+async function copyToClipboard(text) {
     try {
-        await navigator.clipboard.writeText(fullLink);
-        showMessage('✅ Защищенная ссылка скопирована в буфер обмена', 'success');
+        await navigator.clipboard.writeText(text);
+        showMessage('✅ Ссылка скопирована в буфер обмена', 'success');
     } catch (err) {
         // Fallback для старых браузеров
         const textArea = document.createElement('textarea');
-        textArea.value = fullLink;
+        textArea.value = text;
         document.body.appendChild(textArea);
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        showMessage('✅ Защищенная ссылка скопирована', 'success');
+        showMessage('✅ Ссылка скопирована', 'success');
     }
 }
 
