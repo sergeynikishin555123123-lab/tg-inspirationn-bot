@@ -841,21 +841,24 @@ function calculateLevel(sparks) {
 function addSparks(userId, sparks, activityType, description) {
     const user = db.users.find(u => u.user_id == userId);
     if (user) {
-        user.sparks = Math.max(0, user.sparks + sparks); // Защита от отрицательных значений
+        user.sparks = Math.max(0, user.sparks + sparks);
         user.level = calculateLevel(user.sparks);
         user.last_active = new Date().toISOString();
         
-        const activity = {
-            id: Date.now(),
-            user_id: userId,
-            activity_type: activityType,
-            sparks_earned: sparks,
-            description: description,
-            created_at: new Date().toISOString()
-        };
-        
-        db.activities.push(activity);
-        return activity;
+        // Создаем запись активности только для положительных начислений
+        if (sparks > 0) {
+            const activity = {
+                id: Date.now(),
+                user_id: userId,
+                activity_type: activityType,
+                sparks_earned: sparks,
+                description: description,
+                created_at: new Date().toISOString()
+            };
+            
+            db.activities.push(activity);
+            return activity;
+        }
     }
     return null;
 }
