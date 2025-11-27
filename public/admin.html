@@ -5564,13 +5564,13 @@ async function savePrivateVideo() {
 // Генерация защищенной ссылки для пользователя
 function generateProtectedLink(channelId, messageId, userId) {
     // Создаем уникальный токен на основе данных пользователя и времени
-    const token = btoa(`${userId}_${channelId}_${messageId}_${Date.now()}`)
+    const token = btoa(`${channelId}_${messageId}_${Date.now()}`)
         .replace(/=/g, '')
         .replace(/\+/g, '-')
         .replace(/\//g, '_');
     
-    // Возвращаем ссылку через наш прокси
-    return `/api/telegram/proxy/${token}`;
+    // Возвращаем ссылку через наш прокси с ID пользователя
+    return `/api/telegram/proxy/${token}?userId=${userId}`;
 }
 
 // Получение защищенной ссылки для просмотра
@@ -5685,8 +5685,30 @@ async function loadPrivateVideosAdmin() {
         document.getElementById('privateVideosList').innerHTML = '<div class="message error">Ошибка загрузки материалов</div>';
     }
 }
-
-// Отображение списка материалов
+        // Покупка доступа к приватному видео
+async function purchasePrivateVideo(videoId) {
+    try {
+        const response = await fetch(`/api/webapp/private-videos/${videoId}/purchase`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUserId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage(`✅ ${result.message}`, 'success');
+            // Обновляем интерфейс
+            loadUserPrivateVideos();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+    } catch (error) {
+        showMessage('❌ Ошибка при покупке', 'error');
+    }
+}
+        
+        // Отображение списка материалов
 function displayPrivateVideosAdmin(videos) {
     const videosList = document.getElementById('privateVideosList');
     
