@@ -3188,7 +3188,7 @@ async function loadUserStats() {
             showScreen('privateVideoDetailScreen');
         }
 
-// Покупка приватного видео - ОБНОВЛЕННАЯ ВЕРСИЯ
+// Покупка приватного видео - ИСПРАВЛЕННАЯ ВЕРСИЯ (без дублирования списаний)
 async function purchasePrivateVideo(videoId) {
     if (!confirm('Вы уверены, что хотите купить доступ к этому видео?')) return;
     
@@ -3209,11 +3209,24 @@ async function purchasePrivateVideo(videoId) {
         if (result.success) {
             showMessage(`✅ ${result.message}`, 'success');
             
-            // СИНХРОННО обновляем данные пользователя
-            await loadUserData();
+            // ОДНОКРАТНОЕ обновление данных пользователя
+            if (result.user) {
+                currentUser = result.user;
+                updateUserDisplay();
+                console.log('✅ Баланс обновлен из ответа сервера:', currentUser.sparks);
+            } else if (result.remainingSparks !== undefined) {
+                currentUser.sparks = result.remainingSparks;
+                updateUserDisplay();
+                console.log('✅ Баланс обновлен из remainingSparks:', currentUser.sparks);
+            } else {
+                console.log('🔄 Делаем один запрос для обновления данных');
+                await loadUserData();
+            }
             
-            // Обновляем магазин
-            await loadShopItems();
+            // Обновляем магазин с задержкой
+            setTimeout(() => {
+                loadShopItems();
+            }, 1000);
             
         } else {
             showMessage(`❌ ${result.error}`, 'error');
@@ -4808,27 +4821,27 @@ async function loadInteractives() {
             }
         }
 
-        // Загрузка магазина - ОБНОВЛЕННАЯ ВЕРСИЯ
+// Загрузка магазина - ИСПРАВЛЕННАЯ ВЕРСИЯ (без лишних запросов)
 async function loadShop() {
     try {
-        // Сначала обновляем данные пользователя для актуального баланса
-        const updatedUser = await loadUserData();
-        
-        if (updatedUser) {
-            document.getElementById('shopSparks').textContent = `✨ ${updatedUser.sparks.toFixed(1)}`;
-        } else {
-            document.getElementById('shopSparks').textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
+        // Используем текущие данные пользователя без дополнительных запросов
+        const shopSparksElement = document.getElementById('shopSparks');
+        if (shopSparksElement && currentUser) {
+            shopSparksElement.textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
         }
         
-        // Затем загружаем товары
+        // Загружаем товары
         await loadShopItems();
         
     } catch (error) {
         console.error('❌ Ошибка загрузки магазина:', error);
-        document.getElementById('shopSparks').textContent = `✨ ${(currentUser.sparks || 0).toFixed(1)}`;
+        const shopSparksElement = document.getElementById('shopSparks');
+        if (shopSparksElement) {
+            shopSparksElement.textContent = `✨ ${(currentUser?.sparks || 0).toFixed(1)}`;
+        }
     }
 }
-
+    
 // Загрузка товаров магазина - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ ДЛЯ МОБИЛЬНЫХ
 async function loadShopItems() {
     try {
@@ -4925,7 +4938,7 @@ async function loadShopItems() {
     }
 }
 
-        // Покупка товара - ИСПРАВЛЕННАЯ ВЕРСИЯ
+       // Покупка товара - ИСПРАВЛЕННАЯ ВЕРСИЯ (без дублирования списаний)
 async function purchaseItem(itemId) {
     if (!confirm('Вы уверены, что хотите купить этот товар?')) return;
     
@@ -4946,18 +4959,27 @@ async function purchaseItem(itemId) {
         if (result.success) {
             showMessage(`✅ ${result.message}`, 'success');
             
-            // СИНХРОННО обновляем данные пользователя
-            await loadUserData();
-            
-            // Обновляем магазин
-            await loadShopItems();
-            
-            // Показываем детали покупки, если это указано в результате
-            if (result.purchase_details) {
-                setTimeout(() => {
-                    showPurchaseDetail(result.purchase_details);
-                }, 1000);
+            // ОДНОКРАТНОЕ обновление данных пользователя
+            if (result.user) {
+                // Используем данные пользователя из ответа сервера
+                currentUser = result.user;
+                updateUserDisplay(); // Просто обновляем отображение без повторных запросов
+                console.log('✅ Баланс обновлен из ответа сервера:', currentUser.sparks);
+            } else if (result.remainingSparks !== undefined) {
+                // Если сервер вернул только остаток искр
+                currentUser.sparks = result.remainingSparks;
+                updateUserDisplay();
+                console.log('✅ Баланс обновлен из remainingSparks:', currentUser.sparks);
+            } else {
+                // Если сервер не вернул данных, делаем ОДИН запрос
+                console.log('🔄 Делаем один запрос для обновления данных');
+                await loadUserData();
             }
+            
+            // Обновляем магазин с задержкой (только визуально)
+            setTimeout(() => {
+                loadShopItems();
+            }, 1000);
             
         } else {
             showMessage(`❌ ${result.error}`, 'error');
@@ -4967,7 +4989,6 @@ async function purchaseItem(itemId) {
         showMessage('❌ Ошибка покупки. Попробуйте позже.', 'error');
     }
 }
-
         // ==================== СИСТЕМА ПОКУПОК ====================
 
 // Загрузка купленных товаров - ПОЛНОСТЬЮ ПЕРЕРАБОТАННАЯ ВЕРСИЯ
@@ -5637,6 +5658,43 @@ function filterPurchasesByType(type) {
 
         // Вызов анимации при загрузке
         setTimeout(animateElements, 500);
+
+    // ==================== БЫСТРОЕ ОБНОВЛЕНИЕ ДАННЫХ ====================
+
+// Быстрое обновление отображения пользователя без запросов к серверу
+function updateUserDisplay() {
+    if (!currentUser) return;
+    
+    console.log('🔄 Быстрое обновление отображения пользователя:', currentUser.sparks);
+    
+    // Обновляем спаркс на главном экране
+    const sparksElement = document.querySelector('.sparks');
+    if (sparksElement) {
+        sparksElement.textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
+    }
+    
+    // Обновляем спаркс в магазине
+    const shopSparksElement = document.getElementById('shopSparks');
+    if (shopSparksElement) {
+        shopSparksElement.textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
+    }
+    
+    // Обновляем уровень если изменился
+    const userLevelElement = document.getElementById('userLevel');
+    if (userLevelElement && currentUser.level) {
+        userLevelElement.textContent = currentUser.level;
+    }
+    
+    // Обновляем статистику если есть
+    const statElements = {
+        'statQuizzes': document.getElementById('statQuizzes'),
+        'statWorks': document.getElementById('statWorks'),
+        'statMarathons': document.getElementById('statMarathons'),
+        'statInteractives': document.getElementById('statInteractives')
+    };
+    
+    // Можно добавить обновление статистики если нужно
+}
     </script>
 </body>
 </html>
