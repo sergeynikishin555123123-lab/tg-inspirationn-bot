@@ -1830,21 +1830,22 @@
             </div>
         </div>
 
-        <!-- Приватные видео -->
-        <div id="privateVideos" class="tab-content">
-            <div class="card">
-                <h2 style="margin-bottom: 20px;">🎬 Управление приватными видео</h2>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="showPrivateVideoForm()">➕ Добавить видео</button>
-                </div>
+<!-- Приватные видео -->
+<div id="privateVideos" class="tab-content">
+    <div class="card">
+        <h2 style="margin-bottom: 20px;">🎬 Управление приватными видео</h2>
+        
+        <div class="action-buttons">
+            <button class="btn btn-success" onclick="showPrivateVideoForm()">➕ Добавить видео</button>
+            <button class="btn btn-info" onclick="showChannelConnectionForm()">🔗 Подключить канал</button>
+        </div>
 
-                <div id="privateVideosList" class="loading">
-                    Загрузка видео...
-                </div>
-            </div>
+        <div id="privateVideosList" class="loading">
+            Загрузка видео...
+        </div>
+    </div>
 
-               <!-- Форма создания/редактирования видео -->
+    <!-- ОБНОВЛЕННАЯ ФОРМА ДЛЯ ПРИВАТНЫХ ВИДЕО -->
     <div id="privateVideoForm" class="card" style="display: none;">
         <h3 id="privateVideoFormTitle" style="margin-bottom: 20px;">Добавление нового видео</h3>
         
@@ -1852,24 +1853,29 @@
         <div class="form-group">
             <label class="form-label">📎 Ссылка на пост в Telegram:</label>
             <input type="text" id="privateVideoPostUrl" class="form-control" 
-                   placeholder="https://t.me/c/1234567890/123">
+                   placeholder="https://t.me/c/1234567890/123"
+                   onchange="extractVideoData()">
             <div style="color: #718096; font-size: 14px; margin-top: 8px;">
                 💡 Просто скопируйте ссылку на пост из Telegram
             </div>
         </div>
 
-        <!-- АВТОМАТИЧЕСКОЕ ИЗВЛЕЧЕНИЕ ДАННЫХ -->
+        <!-- СКРЫТЫЕ ПОЛЯ ДЛЯ MESSAGE ID И CHANNEL ID -->
+        <input type="hidden" id="privateVideoMessageId">
+        <input type="hidden" id="privateVideoChannelId">
+        
+        <!-- СТАТУС ИЗВЛЕЧЕНИЯ -->
         <div class="form-group">
-            <button type="button" class="btn btn-info" onclick="extractVideoData()">
-                🔍 Автоматически извлечь данные
-            </button>
             <div id="extractionStatus" style="margin-top: 8px;"></div>
         </div>
         
         <div class="form-group">
-            <label class="form-label">🎬 Название видео:</label>
+            <label class="form-label">🎬 Название видео: *</label>
             <input type="text" id="privateVideoTitle" class="form-control" 
-                   placeholder="Профессиональный урок по акварели">
+                   placeholder="Профессиональный урок по акварели" required>
+            <div style="color: #718096; font-size: 14px; margin-top: 4px;">
+                💡 Обязательное поле
+            </div>
         </div>
         
         <div class="form-group">
@@ -1885,8 +1891,11 @@
         </div>
         
         <div class="form-group">
-            <label class="form-label">💰 Цена (искры):</label>
-            <input type="number" id="privateVideoPrice" class="form-control" value="25" min="0" step="0.5">
+            <label class="form-label">💰 Цена (искры): *</label>
+            <input type="number" id="privateVideoPrice" class="form-control" value="25" min="0" step="0.5" required>
+            <div style="color: #718096; font-size: 14px; margin-top: 4px;">
+                💡 Обязательное поле
+            </div>
         </div>
         
         <div class="form-group">
@@ -5297,77 +5306,122 @@
 
         // ==================== ПРИВАТНЫЕ ВИДЕО ====================
 
-        // Загрузка приватных видео для админки
-        async function loadPrivateVideosAdmin() {
-            try {
-                const response = await fetch(`/api/admin/private-videos?userId=${currentUserId}`);
-                const videos = await response.json();
-                
-                displayPrivateVideosAdmin(videos);
-                
-            } catch (error) {
-                document.getElementById('privateVideosList').innerHTML = '<div class="message error">Ошибка загрузки видео</div>';
-            }
-        }
+// Загрузка приватных видео для админки
+async function loadPrivateVideosAdmin() {
+    try {
+        const response = await fetch(`/api/admin/private-videos?userId=${currentUserId}`);
+        const videos = await response.json();
+        
+        displayPrivateVideosAdmin(videos);
+        
+    } catch (error) {
+        document.getElementById('privateVideosList').innerHTML = '<div class="message error">Ошибка загрузки видео</div>';
+    }
+}
 
-        // Отображение приватных видео в админке
-        function displayPrivateVideosAdmin(videos) {
-            const videosList = document.getElementById('privateVideosList');
-            
-            if (videos.length === 0) {
-                videosList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎬</div><div>Видео не найдено</div></div>';
-                return;
-            }
-            
-            let html = '';
-            
-            videos.forEach(video => {
-                html += `
-                    <div class="shop-item-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div style="flex: 1;">
-                                <h3 style="margin: 0 0 8px 0;">🎬 ${video.title}</h3>
-                                <p style="color: #718096; margin-bottom: 12px;">${video.description}</p>
-                                <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                                    <span class="badge badge-info">ID: ${video.message_id}</span>
-                                    <span class="badge badge-success">${video.price}✨</span>
-                                    <span class="badge badge-warning">⏱️ ${video.duration}</span>
-                                    <span class="badge badge-secondary">💾 ${video.file_size}</span>
-                                </div>
-                                <div style="display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap;">
-                                    ${video.tags.map(tag => `<span class="badge">${tag}</span>`).join('')}
-                                </div>
-                                <div class="completion-stats">
-                                    <div class="completion-stat">
-                                        <span>👥 Доступов:</span>
-                                        <strong>${video.access_count}</strong>
-                                    </div>
-                                    <div class="completion-stat">
-                                        <span>💰 Доход:</span>
-                                        <strong>${video.total_revenue}✨</strong>
-                                    </div>
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <span class="badge ${video.is_active ? 'badge-success' : 'badge-danger'}">
-                                    <span class="status-indicator ${video.is_active ? 'status-active' : 'status-inactive'}"></span>
-                                    ${video.is_active ? 'Активно' : 'Неактивно'}
-                                </span>
-                            </div>
+// Отображение приватных видео в админке
+function displayPrivateVideosAdmin(videos) {
+    const videosList = document.getElementById('privateVideosList');
+    
+    if (videos.length === 0) {
+        videosList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🎬</div>
+                <div>Приватных видео не найдено</div>
+                <button class="btn btn-success" onclick="showPrivateVideoForm()" style="margin-top: 20px;">
+                    ➕ Добавить первое видео
+                </button>
+                <button class="btn btn-info" onclick="showChannelConnectionForm()" style="margin-top: 10px;">
+                    🔗 Подключить Telegram канал
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = `
+        <div class="admin-header">
+            <div>
+                <h2 style="margin-bottom: 8px;">🎬 Управление приватными видео</h2>
+                <p style="color: #718096; margin: 0;">Доступ к видео через Telegram</p>
+            </div>
+            <div class="admin-actions">
+                <button class="btn btn-success" onclick="showPrivateVideoForm()">➕ Добавить видео</button>
+                <button class="btn btn-info" onclick="showChannelConnectionForm()">🔗 Подключить канал</button>
+            </div>
+        </div>
+    `;
+    
+    videos.forEach(video => {
+        html += `
+            <div class="shop-item-card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 8px 0;">🎬 ${video.title}</h3>
+                        <p style="color: #718096; margin-bottom: 12px;">${video.description}</p>
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <span class="badge badge-info">📺 ${video.channel_id}</span>
+                            <span class="badge badge-success">${video.price}✨</span>
+                            <span class="badge badge-warning">⏱️ ${video.duration}</span>
+                            <a href="${video.post_url}" target="_blank" class="badge badge-secondary">🔗 Открыть пост</a>
                         </div>
-                        <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                            Создано: ${new Date(video.created_at).toLocaleDateString('ru-RU')}
+                        <div style="display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap;">
+                            ${video.tags.map(tag => `<span class="badge">${tag}</span>`).join('')}
                         </div>
-                        <div class="action-buttons">
-                            <button class="btn btn-warning" onclick="editPrivateVideo(${video.id})">✏️ Редактировать</button>
-                            <button class="btn btn-danger" onclick="deletePrivateVideo(${video.id})">🗑️ Удалить</button>
+                        <div class="completion-stats">
+                            <div class="completion-stat">
+                                <span>👥 Доступов:</span>
+                                <strong>${video.access_count || 0}</strong>
+                            </div>
+                            <div class="completion-stat">
+                                <span>💰 Доход:</span>
+                                <strong>${video.total_revenue || 0}✨</strong>
+                            </div>
                         </div>
                     </div>
-                `;
-            });
-            
-            videosList.innerHTML = html;
+                    <div style="text-align: right;">
+                        <span class="badge ${video.is_active ? 'badge-success' : 'badge-danger'}">
+                            <span class="status-indicator ${video.is_active ? 'status-active' : 'status-inactive'}"></span>
+                            ${video.is_active ? 'Активно' : 'Неактивно'}
+                        </span>
+                    </div>
+                </div>
+                <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+                    Создано: ${new Date(video.created_at).toLocaleDateString('ru-RU')}
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-warning" onclick="editPrivateVideo(${video.id})">✏️ Редактировать</button>
+                    <button class="btn btn-danger" onclick="deletePrivateVideo(${video.id})">🗑️ Удалить</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    videosList.innerHTML = html;
+}
+
+        // Удаление приватного видео
+async function deletePrivateVideo(videoId) {
+    if (!confirm('Вы уверены, что хотите удалить это видео?')) return;
+    
+    try {
+        const response = await fetch(`/api/admin/private-videos/${videoId}?userId=${currentUserId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Видео успешно удалено', 'success');
+            loadPrivateVideosAdmin();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
         }
+        
+    } catch (error) {
+        showMessage('❌ Ошибка удаления видео', 'error');
+    }
+}
 
 function showPrivateVideoForm() {
     document.getElementById('privateVideoForm').style.display = 'block';
@@ -5446,7 +5500,7 @@ function showPrivateVideoForm() {
             }
         }
 
-// 🔧 ОБНОВЛЕННЫЕ ФУНКЦИИ ДЛЯ ПРИВАТНЫХ ВИДЕО
+// ==================== ПРИВАТНЫЕ ВИДЕО - ОБНОВЛЕННЫЕ ФУНКЦИИ ====================
 
 // Автоматическое извлечение данных из ссылки
 function extractVideoData() {
@@ -5454,7 +5508,7 @@ function extractVideoData() {
     const statusDiv = document.getElementById('extractionStatus');
     
     if (!postUrl) {
-        statusDiv.innerHTML = '<div class="message error">❌ Введите ссылку на пост</div>';
+        statusDiv.innerHTML = '<div class="message warning">⚠️ Введите ссылку на пост</div>';
         return;
     }
     
@@ -5465,15 +5519,21 @@ function extractVideoData() {
     const telegramData = parseTelegramUrl(postUrl);
     
     if (telegramData.success) {
-        statusDiv.innerHTML = '<div class="message success">✅ Данные успешно извлечены!</div>';
+        statusDiv.innerHTML = `
+            <div class="message success">
+                ✅ Данные успешно извлечены!<br>
+                <small>Канал: ${telegramData.channelId} | Пост: ${telegramData.postId}</small>
+            </div>
+        `;
         
-        // Автозаполняем поля
+        // Сохраняем ОБЯЗАТЕЛЬНЫЕ поля
+        document.getElementById('privateVideoMessageId').value = telegramData.postId;
+        document.getElementById('privateVideoChannelId').value = telegramData.channelId;
+        
+        // Автозаполняем название если пустое
         if (!document.getElementById('privateVideoTitle').value) {
-            document.getElementById('privateVideoTitle').value = `Видео из канала ${telegramData.channelId}`;
+            document.getElementById('privateVideoTitle').value = `Видео из ${telegramData.isPrivateChannel ? 'приватного канала' : 'канала ' + telegramData.channelId}`;
         }
-        
-        // Сохраняем extracted данные для отправки
-        window.extractedTelegramData = telegramData;
         
     } else {
         statusDiv.innerHTML = `<div class="message error">❌ ${telegramData.error}</div>`;
@@ -5483,16 +5543,21 @@ function extractVideoData() {
 // Парсинг ссылки Telegram
 function parseTelegramUrl(url) {
     try {
-        // Форматы ссылок Telegram:
-        // https://t.me/c/1234567890/123  (приватный канал)
-        // https://t.me/username/123      (публичный канал)
-        // https://t.me/username/123?single (пост)
+        // Убираем возможные пробелы
+        url = url.trim();
+        
+        // Добавляем https если нет протокола
+        if (!url.startsWith('http')) {
+            url = 'https://' + url;
+        }
         
         const urlObj = new URL(url);
         const pathParts = urlObj.pathname.split('/').filter(part => part);
         
+        console.log('Parsing URL:', url, 'Parts:', pathParts);
+        
         if (pathParts.length < 2) {
-            return { success: false, error: 'Неверный формат ссылки' };
+            return { success: false, error: 'Неверный формат ссылки. Пример: t.me/c/1234567890/123' };
         }
         
         let channelId, postId;
@@ -5507,6 +5572,12 @@ function parseTelegramUrl(url) {
             postId = pathParts[1];
         }
         
+        // Проверяем что postId - число
+        postId = parseInt(postId);
+        if (isNaN(postId)) {
+            return { success: false, error: 'ID поста должен быть числом' };
+        }
+        
         if (!channelId || !postId) {
             return { success: false, error: 'Не удалось извлечь ID канала и поста' };
         }
@@ -5514,17 +5585,17 @@ function parseTelegramUrl(url) {
         return {
             success: true,
             channelId: channelId,
-            postId: parseInt(postId),
+            postId: postId,
             postUrl: url,
             isPrivateChannel: pathParts[0] === 'c'
         };
         
     } catch (error) {
-        return { success: false, error: 'Ошибка обработки ссылки: ' + error.message };
+        return { success: false, error: 'Ошибка обработки ссылки. Проверьте формат' };
     }
 }
 
-// 🔧 ПОДКЛЮЧЕНИЕ КАНАЛА ПРОСТЫМ СПОСОБОМ
+// Показать форму подключения канала
 function showChannelConnectionForm() {
     const html = `
         <div class="card">
@@ -5555,6 +5626,7 @@ function showChannelConnectionForm() {
     document.getElementById('privateVideosList').innerHTML = html;
 }
 
+// Скрыть форму подключения канала
 function hideChannelConnectionForm() {
     loadPrivateVideosAdmin();
 }
@@ -5606,9 +5678,11 @@ async function connectTelegramChannel() {
     }
 }
 
-// Обновленная функция сохранения видео
+// ОБНОВЛЕННАЯ ФУНКЦИЯ СОХРАНЕНИЯ
 async function savePrivateVideo() {
     const postUrl = document.getElementById('privateVideoPostUrl').value.trim();
+    const messageId = document.getElementById('privateVideoMessageId').value;
+    const channelId = document.getElementById('privateVideoChannelId').value;
     const title = document.getElementById('privateVideoTitle').value.trim();
     const description = document.getElementById('privateVideoDescription').value.trim();
     const duration = document.getElementById('privateVideoDuration').value.trim();
@@ -5616,31 +5690,40 @@ async function savePrivateVideo() {
     const tags = document.getElementById('privateVideoTags').value.split(',').map(tag => tag.trim()).filter(tag => tag);
     const is_active = document.getElementById('privateVideoActive').checked;
     
-    if (!postUrl || !title || !price) {
-        alert('Заполните ссылку, название и цену');
+    console.log('Saving video data:', {
+        messageId, channelId, title, price, postUrl
+    });
+    
+    // ПРОВЕРКА ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
+    if (!messageId) {
+        alert('❌ Сначала извлеките данные из ссылки на пост');
+        return;
+    }
+    
+    if (!title) {
+        alert('❌ Введите название видео');
+        return;
+    }
+    
+    if (!price || price <= 0) {
+        alert('❌ Введите корректную цену');
         return;
     }
     
     try {
-        // Используем extracted данные или парсим заново
-        const telegramData = window.extractedTelegramData || parseTelegramUrl(postUrl);
-        
-        if (!telegramData.success) {
-            alert(`Ошибка в ссылке: ${telegramData.error}`);
-            return;
-        }
-        
         const videoData = {
+            message_id: parseInt(messageId),  // ОБЯЗАТЕЛЬНОЕ ПОЛЕ
+            channel_id: channelId,            // ОБЯЗАТЕЛЬНОЕ ПОЛЕ  
+            title: title,                     // ОБЯЗАТЕЛЬНОЕ ПОЛЕ
+            price: price,                     // ОБЯЗАТЕЛЬНОЕ ПОЛЕ
             post_url: postUrl,
-            channel_id: telegramData.channelId,
-            post_id: telegramData.postId,
-            title: title,
             description: description,
             duration: duration,
-            price: price,
             tags: tags,
             is_active: is_active
         };
+        
+        console.log('Sending video data to API:', videoData);
         
         let response;
         if (currentEditingId) {
@@ -5664,73 +5747,82 @@ async function savePrivateVideo() {
             hidePrivateVideoForm();
             loadPrivateVideosAdmin();
         } else {
-            showMessage(`❌ ${result.error}`, 'error');
+            showMessage(`❌ Ошибка: ${result.error}`, 'error');
+            console.error('API Error:', result);
         }
         
     } catch (error) {
-        showMessage('❌ Ошибка сохранения видео', 'error');
+        console.error('Save video error:', error);
+        showMessage('❌ Ошибка сохранения видео: ' + error.message, 'error');
     }
 }
+
+// ОБНОВЛЕННАЯ ФОРМА ПРИ ПОКАЗЕ
+function showPrivateVideoForm() {
+    document.getElementById('privateVideoForm').style.display = 'block';
+    document.getElementById('privateVideoFormTitle').textContent = 'Добавление нового видео';
+    currentEditingId = null;
+    
+    // Сбросить форму
+    document.getElementById('privateVideoPostUrl').value = '';
+    document.getElementById('privateVideoMessageId').value = '';
+    document.getElementById('privateVideoChannelId').value = '';
+    document.getElementById('privateVideoTitle').value = '';
+    document.getElementById('privateVideoDescription').value = '';
+    document.getElementById('privateVideoDuration').value = '';
+    document.getElementById('privateVideoPrice').value = '25';
+    document.getElementById('privateVideoTags').value = '';
+    document.getElementById('privateVideoActive').checked = true;
+    document.getElementById('extractionStatus').innerHTML = '';
+}
+
+// ОБНОВЛЕННОЕ РЕДАКТИРОВАНИЕ
+async function editPrivateVideo(videoId) {
+    try {
+        const response = await fetch(`/api/admin/private-videos?userId=${currentUserId}`);
+        const videos = await response.json();
+        const video = videos.find(v => v.id === videoId);
         
-        // Редактирование приватного видео
-        async function editPrivateVideo(videoId) {
-            try {
-                const response = await fetch(`/api/admin/private-videos?userId=${currentUserId}`);
-                const videos = await response.json();
-                const video = videos.find(v => v.id === videoId);
-                
-                if (!video) {
-                    showMessage('❌ Видео не найдено', 'error');
-                    return;
-                }
-                
-                document.getElementById('privateVideoForm').style.display = 'block';
-                document.getElementById('privateVideoFormTitle').textContent = 'Редактирование видео';
-                currentEditingId = videoId;
-                
-                // Заполнить форму
-                document.getElementById('privateVideoMessageId').value = video.message_id;
-                document.getElementById('privateVideoTitle').value = video.title;
-                document.getElementById('privateVideoDescription').value = video.description;
-                document.getElementById('privateVideoDuration').value = video.duration;
-                document.getElementById('privateVideoFileSize').value = video.file_size;
-                document.getElementById('privateVideoPrice').value = video.price;
-                document.getElementById('privateVideoTags').value = video.tags.join(', ');
-                document.getElementById('privateVideoActive').checked = video.is_active;
-                
-            } catch (error) {
-                showMessage('❌ Ошибка загрузки видео', 'error');
-            }
+        if (!video) {
+            showMessage('❌ Видео не найдено', 'error');
+            return;
         }
+        
+        document.getElementById('privateVideoForm').style.display = 'block';
+        document.getElementById('privateVideoFormTitle').textContent = 'Редактирование видео';
+        currentEditingId = videoId;
+        
+        // Заполнить форму
+        document.getElementById('privateVideoPostUrl').value = video.post_url || '';
+        document.getElementById('privateVideoMessageId').value = video.message_id;
+        document.getElementById('privateVideoChannelId').value = video.channel_id;
+        document.getElementById('privateVideoTitle').value = video.title;
+        document.getElementById('privateVideoDescription').value = video.description || '';
+        document.getElementById('privateVideoDuration').value = video.duration || '';
+        document.getElementById('privateVideoPrice').value = video.price;
+        document.getElementById('privateVideoTags').value = video.tags ? video.tags.join(', ') : '';
+        document.getElementById('privateVideoActive').checked = video.is_active;
+        
+        // Показать статус извлечения
+        if (video.post_url) {
+            document.getElementById('extractionStatus').innerHTML = `
+                <div class="message success">
+                    ✅ Данные загружены<br>
+                    <small>Канал: ${video.channel_id} | Пост: ${video.message_id}</small>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        showMessage('❌ Ошибка загрузки видео', 'error');
+    }
+}
 
-        // Удаление приватного видео
-        async function deletePrivateVideo(videoId) {
-            if (!confirm('Вы уверены, что хотите удалить это видео?')) return;
-            
-            try {
-                const response = await fetch(`/api/admin/private-videos/${videoId}?userId=${currentUserId}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Видео успешно удалено', 'success');
-                    loadPrivateVideosAdmin();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка удаления видео', 'error');
-            }
-        }
-
-        // Скрыть форму приватного видео
-        function hidePrivateVideoForm() {
-            document.getElementById('privateVideoForm').style.display = 'none';
-            currentEditingId = null;
-        }
+// Скрыть форму видео
+function hidePrivateVideoForm() {
+    document.getElementById('privateVideoForm').style.display = 'none';
+    currentEditingId = null;
+}
 
         // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 
