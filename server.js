@@ -1622,7 +1622,7 @@ app.get('/api/webapp/private-videos/:videoId/access', (req, res) => {
     }
 });
 
-// Покупка приватного видео
+// Покупка доступа к приватному видео
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
         const { userId, videoId } = req.body;
@@ -1705,7 +1705,7 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
 
         // СОЗДАНИЕ ДОСТУПА (на указанное количество дней)
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + video.access_duration_days);
+        expiresAt.setDate(expiresAt.getDate() + (video.access_duration_days || 30));
         
         const access = {
             id: Date.now(),
@@ -1734,7 +1734,7 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             purchase: purchase,
             access: access,
             remaining_sparks: user.sparks,
-            message: `Доступ к "${video.title}" успешно приобретен на ${video.access_duration_days} дней!`
+            message: `Доступ к "${video.title}" успешно приобретен на ${video.access_duration_days || 30} дней!`
         });
 
     } catch (error) {
@@ -1754,9 +1754,9 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         });
     }
 });
-// ==================== API ДЛЯ ПРИВАТНОГО КАНАЛА ====================
+// ==================== WEBAPP API ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
 
-// ПРАВИЛЬНЫЙ endpoint для получения приватных материалов
+// Получить список приватных материалов для пользователя
 app.get('/api/webapp/private-videos', (req, res) => {
     try {
         const userId = parseInt(req.query.userId);
@@ -1772,14 +1772,14 @@ app.get('/api/webapp/private-videos', (req, res) => {
         const videos = db.private_channel_videos.filter(video => video.is_active);
         
         const videosWithAccess = videos.map(video => {
-            // ПРОВЕРКА АКТИВНОГО ДОСТУПА
+            // Проверка активного доступа
             const hasAccess = db.video_access.some(access => 
                 access.user_id == userId && 
                 access.video_id === video.id && 
                 access.expires_at > new Date().toISOString()
             );
             
-            // ПРОВЕРКА ПОКУПКИ (ДАЖЕ ЕСЛИ ДОСТУП ИСТЕК)
+            // Проверка покупки (даже если доступ истек)
             const hasPurchase = db.purchases.some(purchase => 
                 purchase.user_id == userId && 
                 purchase.item_id === video.id && 
@@ -1787,11 +1787,19 @@ app.get('/api/webapp/private-videos', (req, res) => {
             );
 
             return {
-                ...video,
+                id: video.id,
+                title: video.title,
+                description: video.description,
+                duration: video.duration,
+                price: video.price,
+                category: video.category,
+                level: video.level,
+                preview_url: video.preview_url,
                 has_access: hasAccess,
                 has_purchase: hasPurchase,
                 can_purchase: !hasPurchase, // Можно купить, если еще не покупал
-                access_expired: hasPurchase && !hasAccess // Покупал, но доступ истек
+                access_expired: hasPurchase && !hasAccess, // Покупал, но доступ истек
+                access_duration_days: video.access_duration_days
             };
         });
 
@@ -1810,48 +1818,69 @@ app.get('/api/webapp/private-videos', (req, res) => {
         });
     }
 });
-
-// Получить информацию о конкретном видео
+// Получить детальную информацию о видео
 app.get('/api/webapp/private-videos/:videoId', (req, res) => {
-    const userId = parseInt(req.query.userId);
-    const videoId = parseInt(req.params.videoId);
-    
-    const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
-    if (!video) {
-        return res.status(404).json({ error: 'Video not found' });
-    }
-    
-    const hasAccess = db.video_access.some(
-        access => access.user_id === userId && access.video_id === videoId
-    );
-    
-    res.json({
-        ...video,
-        has_access: hasAccess,
-        can_purchase: !hasAccess
-    });
-});
+    try {
+        const userId = parseInt(req.query.userId);
+        const videoId = parseInt(req.params.videoId);
+        
+        console.log('📹 Запрос деталей видео:', { userId, videoId });
 
-// ФУНКЦИЯ ДЛЯ ПРОВЕРКИ ДОСТУПА ПОЛЬЗОВАТЕЛЯ К ВИДЕО
-function checkVideoAccess(userId, videoId) {
-    const hasAccess = db.video_access.some(access => 
-        access.user_id == userId && 
-        access.video_id === videoId && 
-        access.expires_at > new Date().toISOString()
-    );
-    
-    const hasPurchase = db.purchases.some(purchase => 
-        purchase.user_id == userId && 
-        purchase.item_id === videoId && 
-        purchase.item_type === 'private_video'
-    );
-    
-    return {
-        hasAccess,
-        hasPurchase,
-        canAccess: hasAccess || hasPurchase
-    };
-}
+        if (!userId) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'Требуется авторизация' 
+            });
+        }
+
+        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+        if (!video) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Видео не найдено' 
+            });
+        }
+
+ // Проверка доступа
+        const hasAccess = db.video_access.some(access => 
+            access.user_id == userId && 
+            access.video_id === videoId && 
+            access.expires_at > new Date().toISOString()
+        );
+        
+        const hasPurchase = db.purchases.some(purchase => 
+            purchase.user_id == userId && 
+            purchase.item_id === videoId && 
+            purchase.item_type === 'private_video'
+        );
+
+        res.json({
+            success: true,
+            video: {
+                id: video.id,
+                title: video.title,
+                description: video.description,
+                duration: video.duration,
+                price: video.price,
+                category: video.category,
+                level: video.level,
+                access_duration_days: video.access_duration_days,
+                created_at: video.created_at
+            },
+            access: {
+                has_access: hasAccess,
+                has_purchase: hasPurchase,
+                can_purchase: !hasPurchase
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения деталей видео:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка загрузки информации о видео' 
+        });
+    }
 
 // ФУНКЦИЯ ДЛЯ ОБНОВЛЕНИЯ СТАТИСТИКИ ВИДЕО
 function updateVideoStats(videoId) {
