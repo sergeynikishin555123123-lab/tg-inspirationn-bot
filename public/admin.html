@@ -2355,8 +2355,8 @@
             }
         }
 
-        // Загрузка всех данных
-       async function loadAllData() {
+// Загрузка всех данных
+async function loadAllData() {
     console.log('🔄 Начало загрузки всех данных...');
     
     try {
@@ -2371,7 +2371,7 @@
         await loadPosts();
         await loadAdmins();
         await loadModerationData();
-        await loadPrivateVideosAdmin(); // ← ЭТА СТРОЧКА ДОЛЖНА БЫТЬ
+        await loadPrivateVideosAdmin(); // Теперь эта функция будет вызвана
         
         console.log('✅ Все данные успешно загружены');
     } catch (error) {
@@ -6216,10 +6216,106 @@ async function generateProtectedLink(videoId) {
     }
 }
 
-// Вспомогательная функция для показа модального окна
+// ==================== ФУНКЦИИ ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
+
+// Удаление приватного материала
+async function deletePrivateVideo(videoId) {
+    if (!confirm('Вы уверены, что хотите удалить этот материал? Все связанные данные будут удалены.')) return;
+    
+    try {
+        const response = await fetch(`/api/admin/private-videos/${videoId}?userId=${currentUserId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Материал успешно удален', 'success');
+            loadPrivateVideosAdmin();
+        } else {
+            throw new Error(result.error || 'Ошибка удаления');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка удаления:', error);
+        showMessage(`❌ ${error.message}`, 'error');
+    }
+}
+
+// Просмотр статистики материала
+async function viewVideoStats(videoId) {
+    try {
+        // Собираем статистику из базы данных
+        const video = db.private_channel_videos.find(v => v.id === videoId);
+        if (!video) {
+            throw new Error('Материал не найден');
+        }
+        
+        const purchaseCount = db.purchases.filter(p => 
+            p.item_id === videoId && p.item_type === 'private_video'
+        ).length;
+        
+        const accessCount = db.video_access.filter(access => 
+            access.video_id === videoId && access.expires_at > new Date().toISOString()
+        ).length;
+        
+        const totalRevenue = purchaseCount * video.price;
+        const uniqueUsers = [...new Set(db.video_access.filter(access => access.video_id === videoId).map(access => access.user_id))].length;
+        
+        const statsHtml = `
+            <div style="text-align: center;">
+                <h4 style="margin-bottom: 20px;">📊 Статистика: ${video.title}</h4>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 20px 0;">
+                    <div class="video-stat-card">
+                        <div class="video-stat-number">${purchaseCount}</div>
+                        <div class="video-stat-label">Покупок</div>
+                    </div>
+                    <div class="video-stat-card">
+                        <div class="video-stat-number">${accessCount}</div>
+                        <div class="video-stat-label">Активных доступов</div>
+                    </div>
+                    <div class="video-stat-card">
+                        <div class="video-stat-number">${totalRevenue}</div>
+                        <div class="video-stat-label">Доход (искры)</div>
+                    </div>
+                    <div class="video-stat-card">
+                        <div class="video-stat-number">${uniqueUsers}</div>
+                        <div class="video-stat-label">Уникальных пользователей</div>
+                    </div>
+                </div>
+                
+                <div style="background: #f7fafc; padding: 16px; border-radius: 12px; margin: 16px 0;">
+                    <h5 style="margin: 0 0 12px 0;">📈 Детализация</h5>
+                    <div style="text-align: left; font-size: 14px;">
+                        <div>• Цена материала: <strong>${video.price}✨</strong></div>
+                        <div>• Срок доступа: <strong>${video.access_duration_days || 30} дней</strong></div>
+                        <div>• Категория: <strong>${getCategoryName(video.category)}</strong></div>
+                        <div>• Уровень: <strong>${getLevelName(video.level)}</strong></div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-success" onclick="closeModal()" style="width: 100%;">Закрыть</button>
+            </div>
+        `;
+        
+        showModal('📊 Статистика материала', statsHtml);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки статистики:', error);
+        showMessage(`❌ ${error.message}`, 'error');
+    }
+}
+        
+// Функция для модального окна (добавить если нет)
 function showModal(title, content) {
+    // Удаляем существующее модальное окно если есть
+    const existingModal = document.getElementById('customModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
     const modalHtml = `
-        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+        <div id="customModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
             <div style="background: white; border-radius: 20px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3 style="margin: 0;">${title}</h3>
@@ -6229,6 +6325,9 @@ function showModal(title, content) {
             </div>
         </div>
     `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
     
     const modal = document.createElement('div');
     modal.id = 'customModal';
@@ -6242,7 +6341,6 @@ function closeModal() {
         modal.remove();
     }
 }
-
 // Копирование в буфер обмена
 async function copyToClipboard(text) {
     try {
