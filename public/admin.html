@@ -1837,7 +1837,15 @@
         
         <div class="action-buttons">
             <button class="btn btn-success" onclick="showPrivateVideoForm()">➕ Добавить материал</button>
-            <button class="btn btn-info" onclick="testTelegramConnection()">🔗 Проверить подключение Telegram</button>
+        </div>
+
+        <!-- ИНСТРУКЦИЯ ДЛЯ АДМИНА -->
+        <div class="message info" style="margin-bottom: 20px;">
+            <strong>📋 Инструкция:</strong><br>
+            1. Создайте пост с видео/файлом в Telegram канале<br>
+            2. Добавьте бота как администратора (только "Размещать сообщения")<br>
+            3. Скопируйте ссылку на пост (правое меню → "Копировать ссылку")<br>
+            4. Вставьте ссылку ниже - система автоматически заполнит данные
         </div>
 
         <div id="privateVideosList" class="loading">
@@ -1845,25 +1853,29 @@
         </div>
     </div>
 
-    <!-- НОВАЯ УПРОЩЕННАЯ ФОРМА -->
+    <!-- УПРОЩЕННАЯ ФОРМА -->
     <div id="privateVideoForm" class="card" style="display: none;">
         <h3 id="privateVideoFormTitle" style="margin-bottom: 20px;">Добавление приватного материала</h3>
         
-        <!-- ОСНОВНОЕ ПОЛЕ - ССЫЛКА НА ПОСТ -->
+        <!-- ОСНОВНОЕ ПОЛЕ - ССЫЛКА -->
         <div class="form-group">
             <label class="form-label">🔗 Ссылка на пост в Telegram:</label>
             <input type="text" id="privateVideoPostUrl" class="form-control" 
-                   placeholder="https://t.me/c/1234567890/123 или https://t.me/username/123" 
-                   onblur="extractTelegramData()">
+                   placeholder="https://t.me/c/1234567890/123 или https://t.me/username/123">
             <div style="color: #718096; font-size: 14px; margin-top: 8px;">
-                💡 Вставьте ссылку на пост с видео/файлом в вашем Telegram канале
+                💡 Нажмите "Анализировать ссылку" после вставки
             </div>
         </div>
 
-        <!-- СТАТУС ИЗВЛЕЧЕНИЯ ДАННЫХ -->
+        <!-- КНОПКА АНАЛИЗА -->
+        <div class="action-buttons">
+            <button class="btn btn-info" onclick="extractTelegramData()">🔍 Анализировать ссылку</button>
+        </div>
+
+        <!-- СТАТУС -->
         <div id="extractionStatus" style="margin-bottom: 20px;"></div>
 
-        <!-- АВТОМАТИЧЕСКИ ЗАПОЛНЯЕМЫЕ ПОЛЯ -->
+        <!-- АВТОМАТИЧЕСКИЕ ПОЛЯ -->
         <div id="autoFields" style="display: none;">
             <div class="form-group">
                 <label class="form-label">📺 ID канала:</label>
@@ -1877,26 +1889,23 @@
             
             <div class="form-group">
                 <label class="form-label">🎬 Название материала: *</label>
-                <input type="text" id="privateVideoTitle" class="form-control" 
-                       placeholder="Название автоматически заполнится..." required>
+                <input type="text" id="privateVideoTitle" class="form-control" required>
             </div>
             
             <div class="form-group">
-                <label class="form-label">📝 Описание материала:</label>
-                <textarea id="privateVideoDescription" class="form-control" rows="3" 
-                          placeholder="Описание автоматически заполнится..."></textarea>
+                <label class="form-label">📝 Описание:</label>
+                <textarea id="privateVideoDescription" class="form-control" rows="3"></textarea>
             </div>
             
             <div class="form-group">
                 <label class="form-label">⏱️ Длительность:</label>
-                <input type="text" id="privateVideoDuration" class="form-control" 
-                       placeholder="Длительность автоматически определится">
+                <input type="text" id="privateVideoDuration" class="form-control">
             </div>
             
             <div class="form-group">
                 <label class="form-label">🖼️ Превью:</label>
                 <div id="privateVideoPreviewContainer">
-                    <!-- Превью будет добавляться автоматически -->
+                    <!-- Автоматическое превью -->
                 </div>
             </div>
             
@@ -1912,16 +1921,6 @@
                     <option value="pdf">📚 PDF документ</option>
                     <option value="course">🎓 Курс</option>
                     <option value="lesson">📖 Урок</option>
-                    <option value="masterclass">🔥 Мастер-класс</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">⭐ Уровень сложности:</label>
-                <select id="privateVideoLevel" class="form-control">
-                    <option value="beginner">👶 Начинающий</option>
-                    <option value="intermediate">🚀 Продолжающий</option>
-                    <option value="advanced">🔥 Профессионал</option>
                 </select>
             </div>
             
@@ -1930,11 +1929,11 @@
                     <input type="checkbox" id="privateVideoActive" checked> Активный материал
                 </label>
             </div>
-        </div>
-        
-        <div class="action-buttons">
-            <button class="btn btn-success" onclick="savePrivateVideo()" id="saveButton" disabled>💾 Сохранить материал</button>
-            <button class="btn btn-danger" onclick="hidePrivateVideoForm()">❌ Отмена</button>
+            
+            <div class="action-buttons">
+                <button class="btn btn-success" onclick="savePrivateVideo()" id="saveButton">💾 Сохранить материал</button>
+                <button class="btn btn-danger" onclick="hidePrivateVideoForm()">❌ Отмена</button>
+            </div>
         </div>
     </div>
 </div>
@@ -5346,75 +5345,116 @@ async function extractTelegramData() {
     }
     
     // Показываем загрузку
-    statusDiv.innerHTML = '<div class="message info">⏳ Извлекаем данные из Telegram...</div>';
+    statusDiv.innerHTML = '<div class="message info">⏳ Анализируем ссылку...</div>';
     saveButton.disabled = true;
     
     try {
-        // Отправляем запрос к API для получения данных из Telegram
-        const response = await fetch(`/api/admin/telegram/extract-post-data?userId=${currentUserId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ post_url: postUrl })
-        });
+        // Парсим ссылку чтобы получить channel_id и message_id
+        const telegramData = parseTelegramUrl(postUrl);
         
-        const result = await response.json();
-        
-        if (result.success) {
-            // Заполняем поля автоматически
-            document.getElementById('privateVideoChannelId').value = result.data.channel_id;
-            document.getElementById('privateVideoMessageId').value = result.data.message_id;
-            document.getElementById('privateVideoTitle').value = result.data.title || 'Материал из Telegram';
-            document.getElementById('privateVideoDescription').value = result.data.description || 'Приватный материал из Telegram канала';
-            document.getElementById('privateVideoDuration').value = result.data.duration || 'Не указано';
-            
-            // Добавляем превью если есть
-            const previewContainer = document.getElementById('privateVideoPreviewContainer');
-            if (result.data.preview_url) {
-                previewContainer.innerHTML = `
-                    <img src="${result.data.preview_url}" class="upload-preview" style="max-width: 300px;">
-                    <div style="color: #718096; font-size: 12px; margin-top: 8px;">
-                        📸 Превью из Telegram
-                    </div>
-                `;
-            } else {
-                previewContainer.innerHTML = `
-                    <div style="text-align: center; padding: 20px; background: #f7fafc; border-radius: 12px;">
-                        <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
-                        <div style="color: #718096;">Превью не найдено</div>
-                    </div>
-                `;
-            }
-            
-            // Показываем поля и активируем кнопку сохранения
-            autoFields.style.display = 'block';
-            saveButton.disabled = false;
-            
-            statusDiv.innerHTML = `
-                <div class="message success">
-                    ✅ Данные успешно извлечены из Telegram!<br>
-                    <small>Канал: ${result.data.channel_id} | Пост: ${result.data.message_id}</small>
-                </div>
-            `;
-            
-        } else {
-            statusDiv.innerHTML = `<div class="message error">❌ ${result.error}</div>`;
-            autoFields.style.display = 'none';
-            saveButton.disabled = true;
+        if (!telegramData.success) {
+            statusDiv.innerHTML = `<div class="message error">❌ ${telegramData.error}</div>`;
+            return;
         }
         
-    } catch (error) {
-        console.error('Ошибка извлечения данных:', error);
-        statusDiv.innerHTML = `
-            <div class="message error">
-                ❌ Ошибка подключения к Telegram<br>
-                <small>${error.message}</small>
+        // Заполняем поля на основе парсинга ссылки
+        document.getElementById('privateVideoChannelId').value = telegramData.channelId;
+        document.getElementById('privateVideoMessageId').value = telegramData.postId;
+        
+        // Генерируем автоматические названия
+        const channelName = telegramData.isPrivateChannel ? 'Приватный канал' : telegramData.channelId;
+        document.getElementById('privateVideoTitle').value = `Материал из ${channelName}`;
+        document.getElementById('privateVideoDescription').value = `Приватный материал из Telegram канала. Ссылка: ${postUrl}`;
+        document.getElementById('privateVideoDuration').value = 'Не указано';
+        
+        // Показываем информацию о канале
+        previewContainer.innerHTML = `
+            <div style="text-align: center; padding: 20px; background: #f7fafc; border-radius: 12px;">
+                <div style="font-size: 48px; margin-bottom: 12px;">📺</div>
+                <div style="font-weight: 600; margin-bottom: 8px;">Канал: ${channelName}</div>
+                <div style="color: #718096; margin-bottom: 8px;">ID сообщения: ${telegramData.postId}</div>
+                <a href="${postUrl}" target="_blank" style="color: #667eea; text-decoration: none;">🔗 Открыть пост</a>
             </div>
         `;
-        autoFields.style.display = 'none';
-        saveButton.disabled = true;
+        
+        // Показываем поля и активируем кнопку сохранения
+        autoFields.style.display = 'block';
+        saveButton.disabled = false;
+        
+        statusDiv.innerHTML = `
+            <div class="message success">
+                ✅ Ссылка распознана!<br>
+                <small>Канал: ${channelName} | Пост: ${telegramData.postId}</small>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Ошибка анализа ссылки:', error);
+        statusDiv.innerHTML = `
+            <div class="message error">
+                ❌ Ошибка анализа ссылки<br>
+                <small>Проверьте формат ссылки</small>
+            </div>
+        `;
     }
 }
 
+// Функция парсинга ссылки Telegram
+function parseTelegramUrl(url) {
+    try {
+        // Убираем возможные пробелы
+        url = url.trim();
+        
+        // Добавляем https если нет протокола
+        if (!url.startsWith('http')) {
+            url = 'https://' + url;
+        }
+        
+        const urlObj = new URL(url);
+        const pathParts = urlObj.pathname.split('/').filter(part => part);
+        
+        console.log('🔗 Анализ ссылки:', url, 'Части:', pathParts);
+        
+        if (pathParts.length < 2) {
+            return { success: false, error: 'Неверный формат ссылки. Пример: t.me/c/1234567890/123 или t.me/username/123' };
+        }
+        
+        let channelId, postId;
+        let isPrivateChannel = false;
+        
+        if (pathParts[0] === 'c') {
+            // Приватный канал: t.me/c/1234567890/123
+            channelId = pathParts[1];
+            postId = pathParts[2];
+            isPrivateChannel = true;
+        } else {
+            // Публичный канал: t.me/username/123
+            channelId = pathParts[0];
+            postId = pathParts[1];
+        }
+        
+        // Проверяем что postId - число
+        postId = parseInt(postId);
+        if (isNaN(postId)) {
+            return { success: false, error: 'ID поста должен быть числом' };
+        }
+        
+        if (!channelId || !postId) {
+            return { success: false, error: 'Не удалось извлечь ID канала и поста' };
+        }
+        
+        return {
+            success: true,
+            channelId: channelId,
+            postId: postId,
+            postUrl: url,
+            isPrivateChannel: isPrivateChannel
+        };
+        
+    } catch (error) {
+        return { success: false, error: 'Ошибка обработки ссылки. Проверьте формат' };
+    }
+}
 // Проверка подключения к Telegram
 async function testTelegramConnection() {
     try {
