@@ -14,6 +14,24 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
+// ==================== СИСТЕМА ПРИВАТНОГО КАНАЛА ====================
+
+// Конфигурация приватного канала
+const PRIVATE_CHANNEL_CONFIG = {
+    CHANNEL_ID: process.env.PRIVATE_CHANNEL_ID || '-1001234567890',
+    CHANNEL_USERNAME: process.env.PRIVATE_CHANNEL_USERNAME || '@private_videos_channel',
+    BOT_TOKEN: process.env.BOT_TOKEN
+};
+
+// Увеличены лимиты для больших файлов (3GB)
+app.use(express.json({ limit: '3gb' }));
+app.use(express.urlencoded({ limit: '3gb', extended: true }));
+app.use(cors());
+
+// Дополнительные настройки для body-parser (если используется)
+app.use(bodyParser.json({ limit: '3gb' }));
+app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
+
 // ==================== СИСТЕМА УПРАВЛЕНИЯ ПРОЦЕССАМИ ====================
 
 import { exec } from 'child_process';
@@ -738,23 +756,6 @@ video_access: [
         access_count: 3
     }
 ],
-// ==================== СИСТЕМА ПРИВАТНОГО КАНАЛА ====================
-
-// Конфигурация приватного канала
-const PRIVATE_CHANNEL_CONFIG = {
-    CHANNEL_ID: process.env.PRIVATE_CHANNEL_ID || '-1001234567890',
-    CHANNEL_USERNAME: process.env.PRIVATE_CHANNEL_USERNAME || '@private_videos_channel',
-    BOT_TOKEN: process.env.BOT_TOKEN
-};
-
-// Увеличены лимиты для больших файлов (3GB)
-app.use(express.json({ limit: '3gb' }));
-app.use(express.urlencoded({ limit: '3gb', extended: true }));
-app.use(cors());
-
-// Дополнительные настройки для body-parser (если используется)
-app.use(bodyParser.json({ limit: '3gb' }));
-app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
 
 // ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
 app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
@@ -3941,13 +3942,37 @@ app.get('/api/mobile/health', (req, res) => {
 let bot;
 if (process.env.BOT_TOKEN) {
     try {
-        bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+        // Настройки для избежания конфликтов
+        const botOptions = {
+            polling: {
+                timeout: 10,
+                limit: 100,
+                retryTimeout: 1000,
+                // Дополнительные настройки для избежания конфликтов
+                params: {
+                    timeout: 10,
+                    limit: 100
+                }
+            }
+        };
+        
+        bot = new TelegramBot(process.env.BOT_TOKEN, botOptions);
         
         console.log('✅ Telegram Bot инициализирован');
         console.log('=== НАСТРОЙКИ ПРИВАТНОГО КАНАЛА ===');
         console.log('CHANNEL_ID:', PRIVATE_CHANNEL_CONFIG.CHANNEL_ID);
         console.log('CHANNEL_USERNAME:', PRIVATE_CHANNEL_CONFIG.CHANNEL_USERNAME);
+        console.log('BOT_TOKEN:', process.env.BOT_TOKEN ? '✅ Установлен' : '❌ Отсутствует');
         console.log('==================================');
+
+        // Обработчик ошибок polling
+        bot.on('polling_error', (error) => {
+            console.log('⚠️ Ошибка polling:', error.message);
+            if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
+                console.log('🔧 Решение: Убедитесь, что запущен только один экземпляр бота');
+                console.log('💡 Попробуйте подождать 10 секунд или перезапустить приложение');
+            }
+        });
 
         bot.onText(/\/start/, (msg) => {
             const chatId = msg.chat.id;
@@ -4013,7 +4038,10 @@ if (process.env.BOT_TOKEN) {
             const userId = msg.from.id;
             
             try {
-                const userAccess = db.video_access.filter(access => access.user_id === userId);
+                const userAccess = db.video_access.filter(access => 
+                    access.user_id === userId && 
+                    access.expires_at > new Date().toISOString()
+                );
                 
                 if (userAccess.length === 0) {
                     bot.sendMessage(chatId, 
@@ -4026,16 +4054,18 @@ if (process.env.BOT_TOKEN) {
                 let message = '🎬 Ваши активные доступы к видео:\n\n';
                 
                 for (const access of userAccess) {
-                    const video = db.private_channel_videos.find(v => v.id === access.video_id);
-                    if (video && video.is_active) {
-                        // Создаем новую временную ссылку
-                        const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
-                            member_limit: 1,
-                            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
-                        });
+                    const video = db.private_channel_videos.find(v => v.id === access.video_id && v.is_active);
+                    if (video) {
+                        // Генерируем защищенную ссылку
+                        const token = btoa(`${video.channel_id}_${video.message_id}_${Date.now()}`)
+                            .replace(/=/g, '')
+                            .replace(/\+/g, '-')
+                            .replace(/\//g, '_');
+                            
+                        const protectedLink = `${process.env.APP_URL || 'http://localhost:3000'}/api/telegram/proxy/${token}?userId=${userId}`;
                         
                         message += `📹 ${video.title}\n`;
-                        message += `🔗 ${chatInviteLink.invite_link}\n`;
+                        message += `🔗 ${protectedLink}\n`;
                         message += `⏰ Ссылка действительна 24 часа\n\n`;
                     }
                 }
@@ -4060,7 +4090,6 @@ if (process.env.BOT_TOKEN) {
                 return;
             }
             
-            // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
             const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
             const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
             
@@ -4097,7 +4126,7 @@ if (process.env.BOT_TOKEN) {
                 shopItems: db.shop_items.filter(i => i.is_active).length,
                 totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
                 privateVideos: db.private_channel_videos.filter(v => v.is_active).length,
-                videoAccesses: db.video_access.length
+                videoAccesses: db.video_access.filter(va => va.expires_at > new Date().toISOString()).length
             };
             
             const statsText = `📊 Статистика бота:
@@ -4116,7 +4145,15 @@ if (process.env.BOT_TOKEN) {
 
     } catch (error) {
         console.error('❌ Ошибка инициализации бота:', error);
+        if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
+            console.log('💡 Решение проблемы:');
+            console.log('1. Убедитесь, что не запущены другие экземпляры бота');
+            console.log('2. Подождите 10-20 секунд и перезапустите приложение');
+            console.log('3. Проверьте настройки BOT_TOKEN в переменных окружения');
+        }
     }
+} else {
+    console.log('⚠️ BOT_TOKEN не установлен. Telegram бот отключен.');
 }
 
 // Запуск сервера с управлением процессами
