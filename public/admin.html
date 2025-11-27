@@ -5651,6 +5651,64 @@ function showPrivateVideoForm() {
     messageArea.innerHTML = '';
 }
 
+// Функция для открытия приватного материала во встроенном просмотрщике
+async function openPrivateVideo(videoId) {
+    try {
+        console.log('🎬 Открываем материал:', videoId);
+        
+        // Показываем загрузку
+        showLoading('Загрузка материала...');
+        
+        // Проверяем доступ
+        const accessCheck = await fetch(`/api/webapp/private-videos/${videoId}/check-access?userId=${currentUser.user_id}`);
+        const accessData = await accessCheck.json();
+        
+        if (!accessData.has_access) {
+            hideLoading();
+            showMessage('❌ ' + (accessData.error || 'Нет доступа к материалу'), 'error');
+            return;
+        }
+        
+        // Открываем в новом окне/вкладке
+        const viewerUrl = `/api/webapp/private-videos/${videoId}/view?userId=${currentUser.user_id}`;
+        
+        // Для мобильных открываем в новой вкладке, для десктопа - в popup
+        if (window.innerWidth < 768) {
+            window.open(viewerUrl, '_blank');
+        } else {
+            const width = 1000;
+            const height = 700;
+            const left = (window.innerWidth - width) / 2;
+            const top = (window.innerHeight - height) / 2;
+            
+            window.open(
+                viewerUrl,
+                'telegramViewer',
+                `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+            );
+        }
+        
+        hideLoading();
+        
+    } catch (error) {
+        console.error('❌ Ошибка открытия материала:', error);
+        hideLoading();
+        showMessage('❌ Ошибка загрузки материала', 'error');
+    }
+}
+
+// Функция проверки доступа
+async function checkVideoAccess(videoId) {
+    try {
+        const response = await fetch(`/api/webapp/private-videos/${videoId}/check-access?userId=${currentUser.user_id}`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Ошибка проверки доступа:', error);
+        return { has_access: false, error: 'Ошибка проверки' };
+    }
+}
+        
 // Редактирование материала
 async function editPrivateVideo(videoId) {
     try {
