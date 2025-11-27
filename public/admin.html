@@ -1830,13 +1830,14 @@
             </div>
         </div>
 
-<!-- Приватные видео -->
+<!-- Приватные материалы из Telegram -->
 <div id="privateVideos" class="tab-content">
     <div class="card">
         <h2 style="margin-bottom: 20px;">🎬 Управление приватными материалами</h2>
         
         <div class="action-buttons">
             <button class="btn btn-success" onclick="showPrivateVideoForm()">➕ Добавить материал</button>
+            <button class="btn btn-info" onclick="testTelegramConnection()">🔗 Проверить подключение Telegram</button>
         </div>
 
         <div id="privateVideosList" class="loading">
@@ -1844,106 +1845,100 @@
         </div>
     </div>
 
-    <!-- ОБНОВЛЕННАЯ ФОРМА ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ -->
+    <!-- НОВАЯ УПРОЩЕННАЯ ФОРМА -->
     <div id="privateVideoForm" class="card" style="display: none;">
         <h3 id="privateVideoFormTitle" style="margin-bottom: 20px;">Добавление приватного материала</h3>
         
-        <!-- ТИП МАТЕРИАЛА -->
+        <!-- ОСНОВНОЕ ПОЛЕ - ССЫЛКА НА ПОСТ -->
         <div class="form-group">
-            <label class="form-label">📦 Тип материала:</label>
-            <select id="privateVideoType" class="form-control" onchange="updateMaterialForm()">
-                <option value="video">🎥 Видео</option>
-                <option value="pdf">📚 PDF документ</option>
-                <option value="course">🎓 Курс</option>
-                <option value="pack">📦 Пакет материалов</option>
-            </select>
-        </div>
-        
-        <!-- ССЫЛКА НА МАТЕРИАЛ -->
-        <div class="form-group">
-            <label class="form-label">🔗 Ссылка на материал:</label>
-            <input type="text" id="privateVideoContentUrl" class="form-control" 
-                   placeholder="https://drive.google.com/... или https://youtube.com/...">
+            <label class="form-label">🔗 Ссылка на пост в Telegram:</label>
+            <input type="text" id="privateVideoPostUrl" class="form-control" 
+                   placeholder="https://t.me/c/1234567890/123 или https://t.me/username/123" 
+                   onblur="extractTelegramData()">
             <div style="color: #718096; font-size: 14px; margin-top: 8px;">
-                💡 Ссылка на Google Drive, YouTube, Vimeo, облачное хранилище
+                💡 Вставьте ссылку на пост с видео/файлом в вашем Telegram канале
             </div>
         </div>
 
-        <!-- ПРЕВЬЮ МАТЕРИАЛА -->
-        <div class="form-group">
-            <label class="form-label">🖼️ Превью (изображение):</label>
-            <div class="image-upload-area" id="privateVideoPreviewUploadArea" 
-                 onclick="document.getElementById('privateVideoPreviewInput').click()">
-                <div style="font-size: 48px; margin-bottom: 12px;">🖼️</div>
-                <div style="font-weight: 600; margin-bottom: 8px;">Нажмите для загрузки превью</div>
-                <div style="color: #718096; font-size: 14px;">Размер: 400x300px</div>
+        <!-- СТАТУС ИЗВЛЕЧЕНИЯ ДАННЫХ -->
+        <div id="extractionStatus" style="margin-bottom: 20px;"></div>
+
+        <!-- АВТОМАТИЧЕСКИ ЗАПОЛНЯЕМЫЕ ПОЛЯ -->
+        <div id="autoFields" style="display: none;">
+            <div class="form-group">
+                <label class="form-label">📺 ID канала:</label>
+                <input type="text" id="privateVideoChannelId" class="form-control" readonly>
             </div>
-            <input type="file" id="privateVideoPreviewInput" accept="image/*" style="display: none;" 
-                   onchange="handlePrivateVideoPreviewUpload(this.files[0])">
             
-            <div id="privateVideoPreviewImagePreview" style="display: none;">
-                <img id="privateVideoPreviewImage" class="upload-preview" style="max-width: 300px;">
-                <button class="btn btn-danger" onclick="clearPrivateVideoPreview()" style="margin-top: 12px;">
-                    🗑️ Удалить превью
-                </button>
+            <div class="form-group">
+                <label class="form-label">📝 ID сообщения:</label>
+                <input type="text" id="privateVideoMessageId" class="form-control" readonly>
             </div>
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">🎬 Название материала: *</label>
-            <input type="text" id="privateVideoTitle" class="form-control" 
-                   placeholder="Профессиональный урок по акварели" required>
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">📝 Описание:</label>
-            <textarea id="privateVideoDescription" class="form-control" rows="3" 
-                      placeholder="Подробное описание материала..."></textarea>
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">⏱️ Длительность/Объем:</label>
-            <input type="text" id="privateVideoDuration" class="form-control" 
-                   placeholder="45 минут или 120 страниц">
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">💰 Цена (искры): *</label>
-            <input type="number" id="privateVideoPrice" class="form-control" value="25" min="0" step="0.5" required>
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">🏷️ Категория:</label>
-            <select id="privateVideoCategory" class="form-control">
-                <option value="painting">🎨 Живопись</option>
-                <option value="drawing">✏️ Рисование</option>
-                <option value="design">🎯 Дизайн</option>
-                <option value="craft">🧵 Ремесла</option>
-                <option value="theory">📚 Теория</option>
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">⭐ Уровень сложности:</label>
-            <select id="privateVideoLevel" class="form-control">
-                <option value="beginner">👶 Начинающий</option>
-                <option value="intermediate">🚀 Продолжающий</option>
-                <option value="advanced">🔥 Профессионал</option>
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">
-                <input type="checkbox" id="privateVideoActive" checked> Активный материал
-            </label>
+            
+            <div class="form-group">
+                <label class="form-label">🎬 Название материала: *</label>
+                <input type="text" id="privateVideoTitle" class="form-control" 
+                       placeholder="Название автоматически заполнится..." required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">📝 Описание материала:</label>
+                <textarea id="privateVideoDescription" class="form-control" rows="3" 
+                          placeholder="Описание автоматически заполнится..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">⏱️ Длительность:</label>
+                <input type="text" id="privateVideoDuration" class="form-control" 
+                       placeholder="Длительность автоматически определится">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">🖼️ Превью:</label>
+                <div id="privateVideoPreviewContainer">
+                    <!-- Превью будет добавляться автоматически -->
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">💰 Цена (искры): *</label>
+                <input type="number" id="privateVideoPrice" class="form-control" value="25" min="0" step="0.5" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">🏷️ Категория:</label>
+                <select id="privateVideoCategory" class="form-control">
+                    <option value="video">🎥 Видео</option>
+                    <option value="pdf">📚 PDF документ</option>
+                    <option value="course">🎓 Курс</option>
+                    <option value="lesson">📖 Урок</option>
+                    <option value="masterclass">🔥 Мастер-класс</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">⭐ Уровень сложности:</label>
+                <select id="privateVideoLevel" class="form-control">
+                    <option value="beginner">👶 Начинающий</option>
+                    <option value="intermediate">🚀 Продолжающий</option>
+                    <option value="advanced">🔥 Профессионал</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="privateVideoActive" checked> Активный материал
+                </label>
+            </div>
         </div>
         
         <div class="action-buttons">
-            <button class="btn btn-success" onclick="savePrivateVideo()">💾 Сохранить материал</button>
+            <button class="btn btn-success" onclick="savePrivateVideo()" id="saveButton" disabled>💾 Сохранить материал</button>
             <button class="btn btn-danger" onclick="hidePrivateVideoForm()">❌ Отмена</button>
         </div>
     </div>
 </div>
+        
         <!-- Админы -->
         <div id="admins" class="tab-content">
             <div class="card">
@@ -2057,28 +2052,28 @@
         }
 
         // Загрузка всех данных
-        async function loadAllData() {
-            console.log('🔄 Начало загрузки всех данных...');
-            
-            try {
-                await loadStats();
-                await loadUsers();
-                await loadRoles();
-                await loadCharacters();
-                await loadQuizzes();
-                await loadMarathons();
-                await loadInteractives();
-                await loadShopItems();
-                await loadPosts();
-                await loadAdmins();
-                await loadModerationData();
-                await loadPrivateVideosAdmin();
-                
-                console.log('✅ Все данные успешно загружены');
-            } catch (error) {
-                console.error('❌ Ошибка загрузки данных:', error);
-            }
-        }
+       async function loadAllData() {
+    console.log('🔄 Начало загрузки всех данных...');
+    
+    try {
+        await loadStats();
+        await loadUsers();
+        await loadRoles();
+        await loadCharacters();
+        await loadQuizzes();
+        await loadMarathons();
+        await loadInteractives();
+        await loadShopItems();
+        await loadPosts();
+        await loadAdmins();
+        await loadModerationData();
+        await loadPrivateVideosAdmin(); // ← ЭТА СТРОЧКА ДОЛЖНА БЫТЬ
+        
+        console.log('✅ Все данные успешно загружены');
+    } catch (error) {
+        console.error('❌ Ошибка загрузки данных:', error);
+    }
+}
 
         // Показать вкладку
         function showTab(tabName) {
@@ -2120,13 +2115,16 @@
         }
 
         // Загрузка данных для вкладки
-        function loadTabData(tabName) {
-            console.log('📥 Загрузка данных для:', tabName);
-            
-            switch(tabName) {
-                case 'moderation':
-                    loadWorksForModeration();
-                    break;
+function loadTabData(tabName) {
+    console.log('📥 Загрузка данных для:', tabName);
+    
+    switch(tabName) {
+        case 'privateVideos':
+            loadPrivateVideosAdmin(); // ← ДОБАВЬ ЭТУ СТРОЧКУ
+            break;
+        case 'moderation':
+            loadWorksForModeration();
+            break;
                 case 'privateVideos':
                     loadPrivateVideosAdmin();
                     break;
@@ -5331,230 +5329,143 @@
             document.getElementById('adminRole').value = 'moderator';
         }
 
-// ==================== ПРИВАТНЫЕ ВИДЕО - ОБНОВЛЕННЫЕ ФУНКЦИИ ====================
+// ==================== ПРИВАТНЫЕ МАТЕРИАЛЫ ИЗ TELEGRAM ====================
 
-// Автоматическое извлечение данных из ссылки
-function extractVideoData() {
+// Автоматическое извлечение данных из ссылки Telegram
+async function extractTelegramData() {
     const postUrl = document.getElementById('privateVideoPostUrl').value.trim();
     const statusDiv = document.getElementById('extractionStatus');
+    const autoFields = document.getElementById('autoFields');
+    const saveButton = document.getElementById('saveButton');
     
     if (!postUrl) {
-        statusDiv.innerHTML = '<div class="message warning">⚠️ Введите ссылку на пост</div>';
+        statusDiv.innerHTML = '<div class="message warning">⚠️ Введите ссылку на пост Telegram</div>';
+        autoFields.style.display = 'none';
+        saveButton.disabled = true;
         return;
     }
     
     // Показываем загрузку
-    statusDiv.innerHTML = '<div class="message info">⏳ Извлекаем данные из ссылки...</div>';
-    
-    // Парсим ссылку Telegram
-    const telegramData = parseTelegramUrl(postUrl);
-    
-    if (telegramData.success) {
-        statusDiv.innerHTML = `
-            <div class="message success">
-                ✅ Данные успешно извлечены!<br>
-                <small>Канал: ${telegramData.channelId} | Пост: ${telegramData.postId}</small>
-            </div>
-        `;
-        
-        // Сохраняем ОБЯЗАТЕЛЬНЫЕ поля
-        document.getElementById('privateVideoMessageId').value = telegramData.postId;
-        document.getElementById('privateVideoChannelId').value = telegramData.channelId;
-        
-        // Автозаполняем название если пустое
-        if (!document.getElementById('privateVideoTitle').value) {
-            document.getElementById('privateVideoTitle').value = `Видео из ${telegramData.isPrivateChannel ? 'приватного канала' : 'канала ' + telegramData.channelId}`;
-        }
-        
-    } else {
-        statusDiv.innerHTML = `<div class="message error">❌ ${telegramData.error}</div>`;
-    }
-}
-
-// Парсинг ссылки Telegram
-function parseTelegramUrl(url) {
-    try {
-        // Убираем возможные пробелы
-        url = url.trim();
-        
-        // Добавляем https если нет протокола
-        if (!url.startsWith('http')) {
-            url = 'https://' + url;
-        }
-        
-        const urlObj = new URL(url);
-        const pathParts = urlObj.pathname.split('/').filter(part => part);
-        
-        console.log('Parsing URL:', url, 'Parts:', pathParts);
-        
-        if (pathParts.length < 2) {
-            return { success: false, error: 'Неверный формат ссылки. Пример: t.me/c/1234567890/123' };
-        }
-        
-        let channelId, postId;
-        
-        if (pathParts[0] === 'c') {
-            // Приватный канал: t.me/c/1234567890/123
-            channelId = pathParts[1];
-            postId = pathParts[2];
-        } else {
-            // Публичный канал: t.me/username/123
-            channelId = pathParts[0];
-            postId = pathParts[1];
-        }
-        
-        // Проверяем что postId - число
-        postId = parseInt(postId);
-        if (isNaN(postId)) {
-            return { success: false, error: 'ID поста должен быть числом' };
-        }
-        
-        if (!channelId || !postId) {
-            return { success: false, error: 'Не удалось извлечь ID канала и поста' };
-        }
-        
-        return {
-            success: true,
-            channelId: channelId,
-            postId: postId,
-            postUrl: url,
-            isPrivateChannel: pathParts[0] === 'c'
-        };
-        
-    } catch (error) {
-        return { success: false, error: 'Ошибка обработки ссылки. Проверьте формат' };
-    }
-}
-
-// Показать форму подключения канала
-function showChannelConnectionForm() {
-    const html = `
-        <div class="card">
-            <h3 style="margin-bottom: 20px;">🔗 Подключение Telegram канала</h3>
-            
-            <div class="form-group">
-                <label class="form-label">📢 Ссылка на любой пост из канала:</label>
-                <input type="text" id="channelPostUrl" class="form-control" 
-                       placeholder="https://t.me/c/1234567890/123 или https://t.me/username/123">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">🔑 Код доступа канала (опционально):</label>
-                <input type="text" id="channelAccessCode" class="form-control" 
-                       placeholder="Если канал приватный">
-                <div style="color: #718096; font-size: 14px; margin-top: 8px;">
-                    💡 Для приватных каналов может потребоваться код доступа
-                </div>
-            </div>
-            
-            <div class="action-buttons">
-                <button class="btn btn-success" onclick="connectTelegramChannel()">🔗 Подключить канал</button>
-                <button class="btn btn-danger" onclick="hideChannelConnectionForm()">❌ Отмена</button>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('privateVideosList').innerHTML = html;
-}
-
-// Скрыть форму подключения канала
-function hideChannelConnectionForm() {
-    loadPrivateVideosAdmin();
-}
-
-// Подключение канала
-async function connectTelegramChannel() {
-    const postUrl = document.getElementById('channelPostUrl').value.trim();
-    const accessCode = document.getElementById('channelAccessCode').value.trim();
-    
-    if (!postUrl) {
-        showMessage('❌ Введите ссылку на пост', 'error');
-        return;
-    }
+    statusDiv.innerHTML = '<div class="message info">⏳ Извлекаем данные из Telegram...</div>';
+    saveButton.disabled = true;
     
     try {
-        // Парсим ссылку для получения данных канала
-        const channelData = parseTelegramUrl(postUrl);
-        
-        if (!channelData.success) {
-            showMessage(`❌ ${channelData.error}`, 'error');
-            return;
-        }
-        
-        // Сохраняем подключение канала
-        const connectionData = {
-            channelId: channelData.channelId,
-            postUrl: postUrl,
-            accessCode: accessCode,
-            connectedAt: new Date().toISOString()
-        };
-        
-        const response = await fetch(`/api/admin/telegram/connect-channel?userId=${currentUserId}`, {
+        // Отправляем запрос к API для получения данных из Telegram
+        const response = await fetch(`/api/admin/telegram/extract-post-data?userId=${currentUserId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(connectionData)
+            body: JSON.stringify({ post_url: postUrl })
         });
         
         const result = await response.json();
         
         if (result.success) {
-            showMessage('✅ Канал успешно подключен!', 'success');
-            loadPrivateVideosAdmin();
+            // Заполняем поля автоматически
+            document.getElementById('privateVideoChannelId').value = result.data.channel_id;
+            document.getElementById('privateVideoMessageId').value = result.data.message_id;
+            document.getElementById('privateVideoTitle').value = result.data.title || 'Материал из Telegram';
+            document.getElementById('privateVideoDescription').value = result.data.description || 'Приватный материал из Telegram канала';
+            document.getElementById('privateVideoDuration').value = result.data.duration || 'Не указано';
+            
+            // Добавляем превью если есть
+            const previewContainer = document.getElementById('privateVideoPreviewContainer');
+            if (result.data.preview_url) {
+                previewContainer.innerHTML = `
+                    <img src="${result.data.preview_url}" class="upload-preview" style="max-width: 300px;">
+                    <div style="color: #718096; font-size: 12px; margin-top: 8px;">
+                        📸 Превью из Telegram
+                    </div>
+                `;
+            } else {
+                previewContainer.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background: #f7fafc; border-radius: 12px;">
+                        <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
+                        <div style="color: #718096;">Превью не найдено</div>
+                    </div>
+                `;
+            }
+            
+            // Показываем поля и активируем кнопку сохранения
+            autoFields.style.display = 'block';
+            saveButton.disabled = false;
+            
+            statusDiv.innerHTML = `
+                <div class="message success">
+                    ✅ Данные успешно извлечены из Telegram!<br>
+                    <small>Канал: ${result.data.channel_id} | Пост: ${result.data.message_id}</small>
+                </div>
+            `;
+            
         } else {
-            showMessage(`❌ Ошибка подключения: ${result.error}`, 'error');
+            statusDiv.innerHTML = `<div class="message error">❌ ${result.error}</div>`;
+            autoFields.style.display = 'none';
+            saveButton.disabled = true;
         }
         
     } catch (error) {
-        showMessage('❌ Ошибка подключения канала', 'error');
+        console.error('Ошибка извлечения данных:', error);
+        statusDiv.innerHTML = `
+            <div class="message error">
+                ❌ Ошибка подключения к Telegram<br>
+                <small>${error.message}</small>
+            </div>
+        `;
+        autoFields.style.display = 'none';
+        saveButton.disabled = true;
     }
 }
 
-// ОБНОВЛЕННАЯ ФУНКЦИЯ СОХРАНЕНИЯ
+// Проверка подключения к Telegram
+async function testTelegramConnection() {
+    try {
+        showMessage('⏳ Проверяем подключение к Telegram...', 'info');
+        
+        const response = await fetch(`/api/admin/telegram/test-connection?userId=${currentUserId}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Подключение к Telegram активно!', 'success');
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+    } catch (error) {
+        showMessage('❌ Ошибка проверки подключения', 'error');
+    }
+}
+
+// Сохранение приватного материала
 async function savePrivateVideo() {
     const postUrl = document.getElementById('privateVideoPostUrl').value.trim();
-    const messageId = document.getElementById('privateVideoMessageId').value;
     const channelId = document.getElementById('privateVideoChannelId').value;
+    const messageId = document.getElementById('privateVideoMessageId').value;
     const title = document.getElementById('privateVideoTitle').value.trim();
     const description = document.getElementById('privateVideoDescription').value.trim();
     const duration = document.getElementById('privateVideoDuration').value.trim();
     const price = parseFloat(document.getElementById('privateVideoPrice').value);
-    const tags = document.getElementById('privateVideoTags').value.split(',').map(tag => tag.trim()).filter(tag => tag);
+    const category = document.getElementById('privateVideoCategory').value;
+    const level = document.getElementById('privateVideoLevel').value;
     const is_active = document.getElementById('privateVideoActive').checked;
     
-    console.log('Saving video data:', {
-        messageId, channelId, title, price, postUrl
-    });
-    
-    // ПРОВЕРКА ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
-    if (!messageId) {
-        alert('❌ Сначала извлеките данные из ссылки на пост');
-        return;
-    }
-    
-    if (!title) {
-        alert('❌ Введите название видео');
-        return;
-    }
-    
-    if (!price || price <= 0) {
-        alert('❌ Введите корректную цену');
+    // Проверка обязательных полей
+    if (!postUrl || !channelId || !messageId || !title || !price) {
+        showMessage('❌ Заполните все обязательные поля', 'error');
         return;
     }
     
     try {
         const videoData = {
-            message_id: parseInt(messageId),  // ОБЯЗАТЕЛЬНОЕ ПОЛЕ
-            channel_id: channelId,            // ОБЯЗАТЕЛЬНОЕ ПОЛЕ  
-            title: title,                     // ОБЯЗАТЕЛЬНОЕ ПОЛЕ
-            price: price,                     // ОБЯЗАТЕЛЬНОЕ ПОЛЕ
             post_url: postUrl,
+            channel_id: channelId,
+            message_id: parseInt(messageId),
+            title: title,
             description: description,
             duration: duration,
-            tags: tags,
-            is_active: is_active
+            price: price,
+            category: category,
+            level: level,
+            is_active: is_active,
+            type: 'telegram_video' // Тип для идентификации Telegram материалов
         };
-        
-        console.log('Sending video data to API:', videoData);
         
         let response;
         if (currentEditingId) {
@@ -5574,40 +5485,45 @@ async function savePrivateVideo() {
         const result = await response.json();
         
         if (result.success) {
-            showMessage('✅ Видео успешно сохранено', 'success');
+            showMessage('✅ Материал успешно сохранен!', 'success');
             hidePrivateVideoForm();
             loadPrivateVideosAdmin();
         } else {
-            showMessage(`❌ Ошибка: ${result.error}`, 'error');
-            console.error('API Error:', result);
+            showMessage(`❌ ${result.error}`, 'error');
         }
         
     } catch (error) {
-        console.error('Save video error:', error);
-        showMessage('❌ Ошибка сохранения видео: ' + error.message, 'error');
+        console.error('Ошибка сохранения:', error);
+        showMessage('❌ Ошибка сохранения материала', 'error');
     }
 }
 
-// ОБНОВЛЕННАЯ ФОРМА ПРИ ПОКАЗЕ
+// Показать форму добавления материала
 function showPrivateVideoForm() {
     document.getElementById('privateVideoForm').style.display = 'block';
-    document.getElementById('privateVideoFormTitle').textContent = 'Добавление нового видео';
+    document.getElementById('privateVideoFormTitle').textContent = 'Добавление приватного материала';
     currentEditingId = null;
     
     // Сбросить форму
     document.getElementById('privateVideoPostUrl').value = '';
-    document.getElementById('privateVideoMessageId').value = '';
     document.getElementById('privateVideoChannelId').value = '';
+    document.getElementById('privateVideoMessageId').value = '';
     document.getElementById('privateVideoTitle').value = '';
     document.getElementById('privateVideoDescription').value = '';
     document.getElementById('privateVideoDuration').value = '';
     document.getElementById('privateVideoPrice').value = '25';
-    document.getElementById('privateVideoTags').value = '';
+    document.getElementById('privateVideoCategory').value = 'video';
+    document.getElementById('privateVideoLevel').value = 'beginner';
     document.getElementById('privateVideoActive').checked = true;
+    
+    // Сбросить статус
     document.getElementById('extractionStatus').innerHTML = '';
+    document.getElementById('autoFields').style.display = 'none';
+    document.getElementById('saveButton').disabled = true;
+    document.getElementById('privateVideoPreviewContainer').innerHTML = '';
 }
 
-// ОБНОВЛЕННОЕ РЕДАКТИРОВАНИЕ
+// Редактирование материала
 async function editPrivateVideo(videoId) {
     try {
         const response = await fetch(`/api/admin/private-videos?userId=${currentUserId}`);
@@ -5615,60 +5531,69 @@ async function editPrivateVideo(videoId) {
         const video = videos.find(v => v.id === videoId);
         
         if (!video) {
-            showMessage('❌ Видео не найдено', 'error');
+            showMessage('❌ Материал не найден', 'error');
             return;
         }
         
         document.getElementById('privateVideoForm').style.display = 'block';
-        document.getElementById('privateVideoFormTitle').textContent = 'Редактирование видео';
+        document.getElementById('privateVideoFormTitle').textContent = 'Редактирование материала';
         currentEditingId = videoId;
         
         // Заполнить форму
         document.getElementById('privateVideoPostUrl').value = video.post_url || '';
-        document.getElementById('privateVideoMessageId').value = video.message_id;
         document.getElementById('privateVideoChannelId').value = video.channel_id;
+        document.getElementById('privateVideoMessageId').value = video.message_id;
         document.getElementById('privateVideoTitle').value = video.title;
         document.getElementById('privateVideoDescription').value = video.description || '';
         document.getElementById('privateVideoDuration').value = video.duration || '';
         document.getElementById('privateVideoPrice').value = video.price;
-        document.getElementById('privateVideoTags').value = video.tags ? video.tags.join(', ') : '';
+        document.getElementById('privateVideoCategory').value = video.category || 'video';
+        document.getElementById('privateVideoLevel').value = video.level || 'beginner';
         document.getElementById('privateVideoActive').checked = video.is_active;
         
-        // Показать статус извлечения
-        if (video.post_url) {
-            document.getElementById('extractionStatus').innerHTML = `
-                <div class="message success">
-                    ✅ Данные загружены<br>
-                    <small>Канал: ${video.channel_id} | Пост: ${video.message_id}</small>
-                </div>
+        // Показать поля и активировать кнопку
+        document.getElementById('autoFields').style.display = 'block';
+        document.getElementById('saveButton').disabled = false;
+        
+        // Показать превью если есть
+        const previewContainer = document.getElementById('privateVideoPreviewContainer');
+        if (video.preview_url) {
+            previewContainer.innerHTML = `
+                <img src="${video.preview_url}" class="upload-preview" style="max-width: 300px;">
             `;
         }
         
+        // Показать статус
+        document.getElementById('extractionStatus').innerHTML = `
+            <div class="message success">
+                ✅ Данные загружены<br>
+                <small>Канал: ${video.channel_id} | Пост: ${video.message_id}</small>
+            </div>
+        `;
+        
     } catch (error) {
-        showMessage('❌ Ошибка загрузки видео', 'error');
+        showMessage('❌ Ошибка загрузки материала', 'error');
     }
 }
 
-// Скрыть форму видео
+// Скрыть форму
 function hidePrivateVideoForm() {
     document.getElementById('privateVideoForm').style.display = 'none';
     currentEditingId = null;
 }
 
-// Загрузка приватных видео для админки
+// Загрузка списка материалов
 async function loadPrivateVideosAdmin() {
     try {
         const response = await fetch(`/api/admin/private-videos?userId=${currentUserId}`);
         const videos = await response.json();
-        
         displayPrivateVideosAdmin(videos);
-        
     } catch (error) {
-        document.getElementById('privateVideosList').innerHTML = '<div class="message error">Ошибка загрузки видео</div>';
+        document.getElementById('privateVideosList').innerHTML = '<div class="message error">Ошибка загрузки материалов</div>';
     }
 }
 
-// Отображение приватных видео в админке
+// Отображение списка материалов
 function displayPrivateVideosAdmin(videos) {
     const videosList = document.getElementById('privateVideosList');
     
@@ -5676,47 +5601,52 @@ function displayPrivateVideosAdmin(videos) {
         videosList.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">🎬</div>
-                <div>Приватных видео не найдено</div>
+                <div>Приватных материалов не найдено</div>
                 <button class="btn btn-success" onclick="showPrivateVideoForm()" style="margin-top: 20px;">
-                    ➕ Добавить первое видео
-                </button>
-                <button class="btn btn-info" onclick="showChannelConnectionForm()" style="margin-top: 10px;">
-                    🔗 Подключить Telegram канал
+                    ➕ Добавить первый материал
                 </button>
             </div>
         `;
         return;
     }
     
-    let html = `
-        <div class="admin-header">
-            <div>
-                <h2 style="margin-bottom: 8px;">🎬 Управление приватными видео</h2>
-                <p style="color: #718096; margin: 0;">Доступ к видео через Telegram</p>
-            </div>
-            <div class="admin-actions">
-                <button class="btn btn-success" onclick="showPrivateVideoForm()">➕ Добавить видео</button>
-                <button class="btn btn-info" onclick="showChannelConnectionForm()">🔗 Подключить канал</button>
-            </div>
-        </div>
-    `;
+    let html = '';
     
     videos.forEach(video => {
+        const categoryIcons = {
+            'video': '🎥',
+            'pdf': '📚',
+            'course': '🎓',
+            'lesson': '📖',
+            'masterclass': '🔥'
+        };
+        
+        const levelBadges = {
+            'beginner': 'badge-success',
+            'intermediate': 'badge-warning',
+            'advanced': 'badge-danger'
+        };
+        
         html += `
             <div class="shop-item-card">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                    <div style="flex: 1;">
-                        <h3 style="margin: 0 0 8px 0;">🎬 ${video.title}</h3>
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <h3 style="margin: 0 0 8px 0;">${categoryIcons[video.category] || '📁'} ${video.title}</h3>
                         <p style="color: #718096; margin-bottom: 12px;">${video.description}</p>
+                        
                         <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                            <span class="badge badge-info">📺 ${video.channel_id}</span>
+                            <span class="badge badge-info">${categoryIcons[video.category] || '📁'} ${video.category}</span>
+                            <span class="badge ${levelBadges[video.level]}">${video.level}</span>
                             <span class="badge badge-success">${video.price}✨</span>
                             <span class="badge badge-warning">⏱️ ${video.duration}</span>
-                            <a href="${video.post_url}" target="_blank" class="badge badge-secondary">🔗 Открыть пост</a>
                         </div>
-                        <div style="display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap;">
-                            ${video.tags.map(tag => `<span class="badge">${tag}</span>`).join('')}
+                        
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <span class="badge badge-secondary">📺 ${video.channel_id}</span>
+                            <span class="badge badge-secondary">📝 ${video.message_id}</span>
+                            <a href="${video.post_url}" target="_blank" class="badge badge-info">🔗 Открыть в Telegram</a>
                         </div>
+                        
                         <div class="completion-stats">
                             <div class="completion-stat">
                                 <span>👥 Доступов:</span>
@@ -5728,16 +5658,20 @@ function displayPrivateVideosAdmin(videos) {
                             </div>
                         </div>
                     </div>
-                    <div style="text-align: right;">
+                    
+                    <div style="text-align: right; min-width: 150px;">
                         <span class="badge ${video.is_active ? 'badge-success' : 'badge-danger'}">
                             <span class="status-indicator ${video.is_active ? 'status-active' : 'status-inactive'}"></span>
-                            ${video.is_active ? 'Активно' : 'Неактивно'}
+                            ${video.is_active ? 'Активен' : 'Неактивен'}
                         </span>
                     </div>
                 </div>
+                
                 <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                    Создано: ${new Date(video.created_at).toLocaleDateString('ru-RU')}
+                    Создан: ${new Date(video.created_at).toLocaleDateString('ru-RU')}
+                    ${video.preview_url ? ' • 📸 Есть превью' : ''}
                 </div>
+                
                 <div class="action-buttons">
                     <button class="btn btn-warning" onclick="editPrivateVideo(${video.id})">✏️ Редактировать</button>
                     <button class="btn btn-danger" onclick="deletePrivateVideo(${video.id})">🗑️ Удалить</button>
@@ -5749,9 +5683,9 @@ function displayPrivateVideosAdmin(videos) {
     videosList.innerHTML = html;
 }
 
-// Удаление приватного видео
+// Удаление материала
 async function deletePrivateVideo(videoId) {
-    if (!confirm('Вы уверены, что хотите удалить это видео?')) return;
+    if (!confirm('Вы уверены, что хотите удалить этот материал?')) return;
     
     try {
         const response = await fetch(`/api/admin/private-videos/${videoId}?userId=${currentUserId}`, {
@@ -5761,14 +5695,14 @@ async function deletePrivateVideo(videoId) {
         const result = await response.json();
         
         if (result.success) {
-            showMessage('✅ Видео успешно удалено', 'success');
+            showMessage('✅ Материал успешно удален', 'success');
             loadPrivateVideosAdmin();
         } else {
             showMessage(`❌ ${result.error}`, 'error');
         }
         
     } catch (error) {
-        showMessage('❌ Ошибка удаления видео', 'error');
+        showMessage('❌ Ошибка удаления материала', 'error');
     }
 }
         // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
