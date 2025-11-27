@@ -1988,81 +1988,6 @@ app.get('/api/admin/private-videos', requireAdmin, (req, res) => {
     res.json(videos);
 });
 
-// Создать новый приватный материал
-app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
-    try {
-        console.log('🎬 Создание приватного материала:', req.body);
-        
-        const { 
-            post_url, 
-            channel_id,
-            message_id,
-            title, 
-            description, 
-            duration, 
-            price, 
-            category, 
-            level, 
-            is_active 
-        } = req.body;
-
-        // ВАЛИДАЦИЯ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
-        if (!title || !price || !channel_id || !message_id) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Заполните обязательные поля: название, цена, ID канала и сообщения' 
-            });
-        }
-
-        // ПРОВЕРКА НА ДУБЛИКАТЫ
-        const existingVideo = db.private_channel_videos.find(v => 
-            v.channel_id === channel_id && v.message_id === parseInt(message_id)
-        );
-        
-        if (existingVideo) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Материал с таким ID сообщения уже существует в этом канале' 
-            });
-        }
-
-        // СОЗДАНИЕ НОВОГО МАТЕРИАЛА
-        const newVideo = {
-            id: Date.now(),
-            post_url: post_url || '',
-            channel_id: channel_id,
-            message_id: parseInt(message_id),
-            title: title,
-            description: description || '',
-            duration: duration || 'Не указано',
-            price: parseFloat(price),
-            category: category || 'video',
-            level: level || 'beginner',
-            is_active: is_active !== undefined ? is_active : true,
-            created_at: new Date().toISOString(),
-            preview_url: '', // Можно добавить позже
-            file_size: 'Не указан',
-            tags: []
-        };
-
-        db.private_channel_videos.push(newVideo);
-
-        console.log('✅ Приватный материал создан:', newVideo);
-
-        res.json({
-            success: true,
-            video: newVideo,
-            message: 'Приватный материал успешно создан'
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка создания приватного видео:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Ошибка сервера при создании материала: ' + error.message 
-        });
-    }
-});
 
 app.put('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
     const videoId = parseInt(req.params.videoId);
@@ -2147,7 +2072,7 @@ app.get('/api/users/:userId', (req, res) => {
 
 app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
     try {
-        console.log('🎬 Создание приватного материала - полученные данные:', req.body);
+        console.log('🎬 Создание приватного материала - полученные данные:', JSON.stringify(req.body, null, 2));
         
         const { 
             post_url, 
@@ -2165,13 +2090,67 @@ app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
         console.log('🔍 Проверка обязательных полей:', {
             hasChannelId: !!channel_id,
             hasMessageId: !!message_id,
-            channel_id,
-            message_id,
-            title,
-            price
+            channel_id: channel_id,
+            message_id: message_id,
+            title: title,
+            price: price
         });
 
-        // ... остальной код
+        // ВАЛИДАЦИЯ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
+        if (!title || !price || !channel_id || !message_id) {
+            console.log('❌ Отсутствуют обязательные поля:', {
+                title: !!title,
+                price: !!price,
+                channel_id: !!channel_id,
+                message_id: !!message_id
+            });
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Заполните обязательные поля: название, цена, ID канала и сообщения' 
+            });
+        }
+
+        // ПРОВЕРКА НА ДУБЛИКАТЫ
+        const existingVideo = db.private_channel_videos.find(v => 
+            v.channel_id === channel_id && v.message_id === parseInt(message_id)
+        );
+        
+        if (existingVideo) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Материал с таким ID сообщения уже существует в этом канале' 
+            });
+        }
+
+        // СОЗДАНИЕ НОВОГО МАТЕРИАЛА
+        const newVideo = {
+            id: Date.now(),
+            post_url: post_url || '',
+            channel_id: channel_id,
+            message_id: parseInt(message_id),
+            title: title,
+            description: description || '',
+            duration: duration || 'Не указано',
+            price: parseFloat(price),
+            category: category || 'video',
+            level: level || 'beginner',
+            is_active: is_active !== undefined ? is_active : true,
+            created_at: new Date().toISOString(),
+            preview_url: '',
+            file_size: 'Не указан',
+            tags: []
+        };
+
+        db.private_channel_videos.push(newVideo);
+
+        console.log('✅ Приватный материал создан:', newVideo.title);
+
+        res.json({
+            success: true,
+            video: newVideo,
+            message: 'Приватный материал успешно создан'
+        });
+
     } catch (error) {
         console.error('❌ Ошибка создания приватного видео:', error);
         res.status(500).json({ 
