@@ -1554,6 +1554,72 @@ app.get('/api/admin/private-videos/:id/protected-link', requireAdmin, (req, res)
     }
 });
 
+// Доступ к приватному видео
+app.get('/api/webapp/private-videos/:videoId/access', (req, res) => {
+    try {
+        const videoId = parseInt(req.params.videoId);
+        const userId = parseInt(req.query.userId);
+        
+        console.log('🔗 Запрос доступа к видео:', { videoId, userId });
+
+        if (!userId) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'Требуется авторизация' 
+            });
+        }
+
+        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+        if (!video) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Видео не найдено' 
+            });
+        }
+
+        // Проверка доступа
+        const hasAccess = db.video_access.some(access => 
+            access.user_id == userId && 
+            access.video_id === videoId && 
+            access.expires_at > new Date().toISOString()
+        );
+
+        if (!hasAccess) {
+            return res.status(403).json({ 
+                success: false,
+                error: 'Нет доступа к этому видео' 
+            });
+        }
+
+        // Генерируем ссылку на Telegram
+        let telegramUrl;
+        if (video.channel_id.startsWith('-100') || !isNaN(video.channel_id)) {
+            // Приватный канал
+            const publicChannelId = video.channel_id.replace('-100', '');
+            telegramUrl = `https://t.me/c/${publicChannelId}/${video.message_id}`;
+        } else {
+            // Публичный канал
+            telegramUrl = `https://t.me/${video.channel_id}/${video.message_id}`;
+        }
+
+        console.log('✅ Сгенерирована ссылка для видео:', video.title);
+
+        res.json({
+            success: true,
+            access_url: telegramUrl,
+            video_title: video.title,
+            message: 'Доступ предоставлен. Ссылка откроется в новом окне.'
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения доступа:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка доступа к видео' 
+        });
+    }
+});
+
 // Прокси для доступа к приватным видео через Telegram
 app.get('/api/telegram/proxy/:token', async (req, res) => {
     try {
