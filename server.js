@@ -2611,7 +2611,7 @@ app.get('/api/webapp/shop/items', (req, res) => {
     res.json(items);
 });
 
-// ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА - ПРАВИЛЬНОЕ СПИСАНИЕ ИСКР
+// ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА - БЕЗ ДВОЙНОГО СПИСАНИЯ
 app.post('/api/webapp/shop/purchase', (req, res) => {
     const { userId, itemId } = req.body;
     
@@ -2639,17 +2639,12 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
     }
     
     try {
-        // ПРАВИЛЬНОЕ СПИСАНИЕ ИСКР - сохраняем старое значение для проверки
+        // ПРАВИЛЬНОЕ СПИСАНИЕ ИСКР - только один раз
         const oldSparks = user.sparks;
-        user.sparks -= item.price;
+        user.sparks = oldSparks - item.price;
         
-        // Проверяем, что списание прошло корректно
-        if (user.sparks !== oldSparks - item.price) {
-            console.error('❌ Ошибка списания искр:', { oldSparks, price: item.price, newSparks: user.sparks });
-            user.sparks = oldSparks; // Откатываем
-            return res.status(500).json({ error: 'Ошибка списания искр' });
-        }
-        
+        console.log(`💰 Списание искр: ${oldSparks} - ${item.price} = ${user.sparks}`);
+
         const purchase = {
             id: Date.now(),
             user_id: userId,
@@ -2660,8 +2655,8 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
         
         db.purchases.push(purchase);
         
-        // Логируем покупку с отрицательным значением искр
-        addSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
+        // НЕ создаем отдельную активность для списания - это дублирует операцию
+        // Просто обновляем пользователя
         
         console.log(`✅ Покупка товара: пользователь ${userId}, товар ${itemId}, цена ${item.price}, осталось искр: ${user.sparks}`);
         
@@ -3949,6 +3944,35 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     };
     
     res.json(stats);
+});
+
+// Статистика пользователя
+app.get('/api/users/:userId/stats', (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        console.log('📊 Запрос статистики для пользователя:', userId);
+
+        const user = db.users.find(u => u.user_id === userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const stats = {
+            totalQuizzesCompleted: db.quiz_completions.filter(q => q.user_id === userId).length,
+            totalWorks: db.user_works.filter(w => w.user_id === userId).length,
+            totalMarathonsCompleted: db.marathon_completions.filter(m => m.user_id === userId && m.completed).length,
+            totalInteractivesCompleted: db.interactive_completions.filter(i => i.user_id === userId).length,
+            totalActivities: db.activities.filter(a => a.user_id === userId).length,
+            totalPurchases: db.purchases.filter(p => p.user_id === userId).length
+        };
+
+        console.log('✅ Статистика отправлена:', stats);
+        res.json(stats);
+
+    } catch (error) {
+        console.error('❌ Ошибка получения статистики:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
 });
 
 // ==================== ЭКСПОРТ ОТЧЕТОВ ====================
