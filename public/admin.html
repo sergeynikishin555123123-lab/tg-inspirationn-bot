@@ -5684,13 +5684,10 @@ async function loadPrivateVideosAdmin() {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        const result = await response.json();
+        const videos = await response.json();
         
-        if (result.success) {
-            displayPrivateVideosAdmin(result.videos || []);
-        } else {
-            throw new Error(result.error || 'Неизвестная ошибка сервера');
-        }
+        console.log(`✅ Получено материалов: ${videos.length}`);
+        displayPrivateVideosAdmin(videos);
         
     } catch (error) {
         console.error('❌ Ошибка загрузки материалов:', error);
@@ -5704,7 +5701,6 @@ async function loadPrivateVideosAdmin() {
         `;
     }
 }
-
 // Отображение приватных материалов
 function displayPrivateVideosAdmin(videos) {
     const videosList = document.getElementById('privateVideosList');
