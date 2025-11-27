@@ -6023,21 +6023,21 @@ function displayPrivateVideosAdmin(videos) {
                     </div>
                 </div>
                 
-// Действия
-<div class="private-video-actions">
-    <button class="btn btn-warning btn-sm" onclick="editPrivateVideo(${video.id})" style="flex: 1;">
-        ✏️ Редактировать
-    </button>
-    <button class="btn btn-info btn-sm" onclick="viewVideoStats(${video.id})" style="flex: 1;">
-        📊 Статистика
-    </button>
-    <button class="btn btn-success btn-sm" onclick="generateProtectedLink(${video.id})" style="flex: 1;">
-        🔗 Ссылка
-    </button>
-    <button class="btn btn-danger btn-sm" onclick="deletePrivateVideo(${video.id})" style="flex: 1;">
-        🗑️ Удалить
-    </button>
-</div>
+                <!-- Действия -->
+                <div class="private-video-actions">
+                    <button class="btn btn-warning btn-sm" onclick="editPrivateVideo(${video.id})" style="flex: 1;">
+                        ✏️ Редактировать
+                    </button>
+                    <button class="btn btn-info btn-sm" onclick="viewVideoStats(${video.id})" style="flex: 1;">
+                        📊 Статистика
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="generateProtectedLink(${video.id})" style="flex: 1;">
+                        🔗 Ссылка
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deletePrivateVideo(${video.id})" style="flex: 1;">
+                        🗑️ Удалить
+                    </button>
+                </div>
                 
                 <div style="color: #718096; font-size: 12px; margin-top: 12px; text-align: center;">
                     Создан: ${new Date(video.created_at).toLocaleDateString('ru-RU')}
@@ -6575,125 +6575,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // ==================== ФУНКЦИИ ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
+        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
 
-// Удаление приватного материала
-async function deletePrivateVideo(videoId) {
-    if (!confirm('Вы уверены, что хотите удалить этот материал? Все связанные данные будут удалены.')) return;
-    
-    try {
-        const response = await fetch(`/api/admin/private-videos/${videoId}?userId=${currentUserId}`, {
-            method: 'DELETE'
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage('✅ Материал успешно удален', 'success');
-            loadPrivateVideosAdmin();
-        } else {
-            throw new Error(result.error || 'Ошибка удаления');
-        }
-        
-    } catch (error) {
-        console.error('❌ Ошибка удаления:', error);
-        showMessage(`❌ ${error.message}`, 'error');
-    }
-}
-
-// Просмотр статистики материала
-async function viewVideoStats(videoId) {
-    try {
-        const response = await fetch(`/api/admin/private-videos/${videoId}/stats?userId=${currentUserId}`);
-        const result = await response.json();
-        
-        if (result.success) {
-            const stats = result.stats;
-            const statsHtml = `
-                <div style="text-align: center;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0;">
-                        <div class="video-stat-card">
-                            <div class="video-stat-number">${stats.purchase_count || 0}</div>
-                            <div class="video-stat-label">Покупок</div>
-                        </div>
-                        <div class="video-stat-card">
-                            <div class="video-stat-number">${stats.access_count || 0}</div>
-                            <div class="video-stat-label">Активных доступов</div>
-                        </div>
-                        <div class="video-stat-card">
-                            <div class="video-stat-number">${stats.total_revenue || 0}</div>
-                            <div class="video-stat-label">Доход (искры)</div>
-                        </div>
-                        <div class="video-stat-card">
-                            <div class="video-stat-number">${stats.unique_users || 0}</div>
-                            <div class="video-stat-label">Уникальных пользователей</div>
-                        </div>
-                    </div>
-                    <button class="btn btn-success" onclick="closeModal()" style="width: 100%;">Закрыть</button>
-                </div>
-            `;
-            
-            showModal('📊 Статистика материала', statsHtml);
-        } else {
-            throw new Error(result.error || 'Ошибка загрузки статистики');
-        }
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки статистики:', error);
-        showMessage(`❌ ${error.message}`, 'error');
-    }
-}
-
-// Показать статистику на мобильных
-function showMobileStats() {
-    const statsHtml = `
-        <div style="text-align: center;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0;">
-                <div class="video-stat-card">
-                    <div class="video-stat-number">${document.getElementById('totalVideos')?.textContent || '0'}</div>
-                    <div class="video-stat-label">Материалов</div>
-                </div>
-                <div class="video-stat-card">
-                    <div class="video-stat-number">${document.getElementById('totalPurchases')?.textContent || '0'}</div>
-                    <div class="video-stat-label">Покупок</div>
-                </div>
-                <div class="video-stat-card">
-                    <div class="video-stat-number">${document.getElementById('totalRevenue')?.textContent || '0'}</div>
-                    <div class="video-stat-label">Доход</div>
-                </div>
-                <div class="video-stat-card">
-                    <div class="video-stat-number">${document.getElementById('activeAccesses')?.textContent || '0'}</div>
-                    <div class="video-stat-label">Доступов</div>
-                </div>
-            </div>
-            <button class="btn btn-success" onclick="closeModal()" style="width: 100%;">Закрыть</button>
-        </div>
-    `;
-    
-    showModal('📊 Статистика материалов', statsHtml);
-}
-
-// Проверка доступа к приватному видео
-async function accessPrivateVideo(videoId) {
-    try {
-        const response = await fetch(`/api/webapp/private-videos/${videoId}?userId=${currentUserId}`);
-        const result = await response.json();
-        
-        if (result.has_access) {
-            const protectedLink = await getProtectedViewLink(videoId);
-            if (protectedLink) {
-                window.open(protectedLink, '_blank');
-            }
-        } else {
-            showMessage('❌ У вас нет доступа к этому материалу. Приобретите доступ в магазине.', 'error');
-        }
-    } catch (error) {
-        console.error('❌ Ошибка проверки доступа:', error);
-        showMessage('❌ Ошибка проверки доступа к материалу', 'error');
-    }
-}
-
-// Вспомогательные функции для приватных материалов
+// Получение названия категории для админки
 function getCategoryName(category) {
     const categories = {
         'video': '🎥 Видео',
@@ -6705,6 +6589,7 @@ function getCategoryName(category) {
     return categories[category] || category;
 }
 
+// Получение названия уровня сложности для админки  
 function getLevelName(level) {
     const levels = {
         'beginner': '👶 Начинающий',
