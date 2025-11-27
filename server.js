@@ -692,19 +692,23 @@ let db = {
     interactive_completions: [],
     interactive_submissions: [],
     marathon_submissions: [],
+    video_access: [],
     private_channel_videos: [
-        {
-            id: 1,
-            message_id: 123,
-            title: "🎬 Профессиональный урок по акварели",
-            description: "Полный урок по технике акварельной живописи от профессионального художника",
-            duration: "45 минут",
-            file_size: "1.2 GB",
-            price: 25,
-            tags: ["акварель", "урок", "профессиональный"],
-            is_active: true,
-            created_at: new Date().toISOString()
-        },
+    // пример данных
+    {
+        id: 1,
+        post_url: "https://t.me/c/1234567890/123",
+        channel_id: "1234567890", 
+        message_id: 123,
+        title: "🎬 Профессиональный урок по акварели",
+        description: "Полный урок по технике акварельной живописи от профессионального художника",
+        duration: "45 минут",
+        price: 25,
+        category: "video",
+        level: "intermediate",
+        is_active: true,
+        created_at: new Date().toISOString()
+    }
         {
             id: 2,
             message_id: 124,
@@ -2646,6 +2650,189 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
         reviewId: newReview.id,
         sparksEarned: sparksEarned
     });
+});
+
+// ==================== ДОПОЛНИТЕЛЬНЫЕ API ДЛЯ АДМИНКИ ====================
+
+// Получить работы для модерации
+app.get('/api/admin/user-works', requireAdmin, (req, res) => {
+    try {
+        const { status = 'pending' } = req.query;
+        
+        const works = db.user_works
+            .filter(w => w.status === status)
+            .map(work => {
+                const user = db.users.find(u => u.user_id === work.user_id);
+                return {
+                    ...work,
+                    user_name: user?.tg_first_name || 'Неизвестно',
+                    user_username: user?.tg_username
+                };
+            })
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        
+        res.json({ works });
+    } catch (error) {
+        console.error('❌ Ошибка получения работ:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Модерация работы
+app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
+    try {
+        const workId = parseInt(req.params.workId);
+        const { status, admin_comment } = req.body;
+        const adminId = req.admin.user_id;
+        
+        const work = db.user_works.find(w => w.id === workId);
+        if (!work) {
+            return res.status(404).json({ error: 'Work not found' });
+        }
+        
+        work.status = status;
+        work.moderated_at = new Date().toISOString();
+        work.moderator_id = adminId;
+        work.admin_comment = admin_comment || null;
+        
+        if (status === 'approved') {
+            addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
+        }
+        
+        res.json({ 
+            success: true, 
+            message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
+            work: work
+        });
+    } catch (error) {
+        console.error('❌ Ошибка модерации работы:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Получить отзывы для модерации
+app.get('/api/admin/reviews', requireAdmin, (req, res) => {
+    try {
+        const { status = 'pending' } = req.query;
+        
+        const reviews = db.post_reviews
+            .filter(r => r.status === status)
+            .map(review => {
+                const user = db.users.find(u => u.user_id === review.user_id);
+                const post = db.channel_posts.find(p => p.post_id === review.post_id);
+                const moderator = db.admins.find(a => a.user_id === review.moderator_id);
+                return {
+                    ...review,
+                    tg_first_name: user?.tg_first_name,
+                    tg_username: user?.tg_username,
+                    post_title: post?.title,
+                    moderator_username: moderator?.username
+                };
+            })
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        
+        res.json({ reviews });
+    } catch (error) {
+        console.error('❌ Ошибка получения отзывов:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Модерация отзыва
+app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
+    try {
+        const reviewId = parseInt(req.params.reviewId);
+        const { status, admin_comment } = req.body;
+        
+        const review = db.post_reviews.find(r => r.id === reviewId);
+        if (!review) {
+            return res.status(404).json({ error: 'Review not found' });
+        }
+        
+        review.status = status;
+        review.moderated_at = new Date().toISOString();
+        review.moderator_id = req.admin.user_id;
+        review.admin_comment = admin_comment || null;
+        
+        res.json({ 
+            success: true, 
+            message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`,
+            review: review
+        });
+    } catch (error) {
+        console.error('❌ Ошибка модерации отзыва:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Получить работы марафонов
+app.get('/api/admin/marathon-submissions', requireAdmin, (req, res) => {
+    try {
+        const { marathon_id, day, status = 'pending' } = req.query;
+        
+        let submissions = db.marathon_submissions;
+        
+        if (marathon_id) {
+            submissions = submissions.filter(s => s.marathon_id === parseInt(marathon_id));
+        }
+        
+        if (day) {
+            submissions = submissions.filter(s => s.day === parseInt(day));
+        }
+        
+        if (status) {
+            submissions = submissions.filter(s => s.status === status);
+        }
+        
+        const submissionsWithDetails = submissions.map(submission => {
+            const user = db.users.find(u => u.user_id === submission.user_id);
+            const marathon = db.marathons.find(m => m.id === submission.marathon_id);
+            const task = marathon?.tasks.find(t => t.day === submission.day);
+            
+            return {
+                ...submission,
+                user_name: user?.tg_first_name || 'Неизвестно',
+                marathon_title: marathon?.title || 'Неизвестно',
+                task_title: task?.title || 'Неизвестно'
+            };
+        }).sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at));
+        
+        res.json({ submissions: submissionsWithDetails });
+    } catch (error) {
+        console.error('❌ Ошибка получения работ марафонов:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Модерация работы марафона
+app.post('/api/admin/marathon-submissions/:submissionId/moderate', requireAdmin, (req, res) => {
+    try {
+        const submissionId = parseInt(req.params.submissionId);
+        const { status, admin_comment } = req.body;
+        
+        const submission = db.marathon_submissions.find(s => s.id === submissionId);
+        if (!submission) {
+            return res.status(404).json({ error: 'Submission not found' });
+        }
+        
+        submission.status = status;
+        submission.moderated_at = new Date().toISOString();
+        submission.moderator_id = req.admin.user_id;
+        submission.admin_comment = admin_comment || null;
+        
+        if (status === 'approved') {
+            addSparks(submission.user_id, SPARKS_SYSTEM.MARATHON_SUBMISSION, 'marathon_submission_approved', `Работа марафона одобрена`);
+        }
+        
+        res.json({ 
+            success: true, 
+            message: `Работа марафона ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
+            submission: submission
+        });
+    } catch (error) {
+        console.error('❌ Ошибка модерации работы марафона:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
 });
 
 // API ДЛЯ ИНТЕРАКТИВОВ
