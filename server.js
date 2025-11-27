@@ -758,10 +758,10 @@ video_access: [
 ],
 
 // ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
-app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
+app.use(express.static(join(APP_ROOT, 'public')));
 
 // Правильная настройка для админ-панели
-app.use('/admin', express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
+app.use('/admin', express.static(join(APP_ROOT, 'public')));
 
 app.get('/admin', (req, res) => {
     res.sendFile(join(APP_ROOT, 'public', 'admin.html'));
