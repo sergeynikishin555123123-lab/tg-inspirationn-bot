@@ -1051,39 +1051,48 @@ app.get('/api/mobile/lazy-load', (req, res) => {
     }
 });
 
-// ==================== API ДЛЯ ПРИВАТНЫХ ВИДЕО ====================
+// ==================== API ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
 
-// Получить список приватных видео для админки
+// Получить все приватные материалы
 app.get('/api/admin/private-videos', requireAdmin, (req, res) => {
     try {
+        console.log('🎬 Запрос приватных материалов для админки');
+        
         const videos = db.private_channel_videos.map(video => {
-            const purchaseCount = db.purchases.filter(p => p.item_id === video.id && p.item_type === 'private_video').length;
+            const purchaseCount = db.purchases.filter(p => 
+                p.item_id === video.id && p.item_type === 'private_video'
+            ).length;
+            
+            const accessCount = db.video_access.filter(access => 
+                access.video_id === video.id
+            ).length;
+            
             const totalRevenue = purchaseCount * video.price;
             
             return {
                 ...video,
                 purchase_count: purchaseCount,
-                total_revenue: totalRevenue,
-                access_count: db.video_access.filter(va => va.video_id === video.id).length
+                access_count: accessCount,
+                total_revenue: totalRevenue
             };
         });
         
+        console.log(`✅ Найдено приватных материалов: ${videos.length}`);
         res.json(videos);
+        
     } catch (error) {
-        console.error('Ошибка получения приватных видео:', error);
+        console.error('❌ Ошибка получения приватных видео:', error);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-// ПРАВИЛЬНЫЙ endpoint для создания приватных материалов
+// Создать новый приватный материал
 app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
     try {
         console.log('🎬 Создание приватного материала:', req.body);
         
         const { 
             post_url, 
-            channel_id, 
-            message_id, 
             title, 
             description, 
             duration, 
@@ -1094,16 +1103,26 @@ app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
         } = req.body;
 
         // ВАЛИДАЦИЯ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
-        if (!title || !price || !channel_id || !message_id) {
+        if (!title || !price || !post_url) {
             return res.status(400).json({ 
                 success: false, 
-                error: 'Заполните обязательные поля: название, цена, ID канала и сообщения' 
+                error: 'Заполните обязательные поля: название, цена и ссылка на пост' 
+            });
+        }
+
+        // ПАРСИНГ ССЫЛКИ TELEGRAM
+        const telegramData = parseTelegramUrl(post_url);
+        if (!telegramData.success) {
+            return res.status(400).json({ 
+                success: false, 
+                error: telegramData.error 
             });
         }
 
         // ПРОВЕРКА НА ДУБЛИКАТЫ
         const existingVideo = db.private_channel_videos.find(v => 
-            v.channel_id === channel_id && v.message_id === parseInt(message_id)
+            v.channel_id === telegramData.channelId && 
+            v.message_id === telegramData.postId
         );
         
         if (existingVideo) {
@@ -1116,9 +1135,9 @@ app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
         // СОЗДАНИЕ НОВОГО МАТЕРИАЛА
         const newVideo = {
             id: Date.now(),
-            post_url: post_url || '',
-            channel_id: channel_id,
-            message_id: parseInt(message_id),
+            post_url: post_url,
+            channel_id: telegramData.channelId,
+            message_id: telegramData.postId,
             title: title,
             description: description || '',
             duration: duration || 'Не указано',
@@ -1134,7 +1153,12 @@ app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
 
         db.private_channel_videos.push(newVideo);
 
-        console.log('✅ Приватный материал создан:', newVideo);
+        console.log('✅ Приватный материал создан:', {
+            id: newVideo.id,
+            title: newVideo.title,
+            channel: newVideo.channel_id,
+            message: newVideo.message_id
+        });
 
         res.json({
             success: true,
@@ -1151,14 +1175,111 @@ app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
     }
 });
 
-// Обновить приватное видео
+// Функция парсинга ссылки Telegram
+function parseTelegramUrl(url) {
+    try {
+        console.log('🔗 Парсинг ссылки Telegram:', url);
+        
+        // Убираем возможные пробелы
+        url = url.trim();
+        
+        // Добавляем https если нет протокола
+        if (!url.startsWith('http')) {
+            url = 'https://' + url;
+        }
+
+        const urlObj = new URL(url);
+        const pathParts = urlObj.pathname.split('/').filter(part => part);
+        
+        console.log('📊 Части ссылки:', pathParts);
+
+        if (pathParts.length < 2) {
+            return { 
+                success: false, 
+                error: 'Неверный формат ссылки. Пример: t.me/c/1234567890/123 или t.me/username/123' 
+            };
+        }
+
+        let channelId, postId;
+        let isPrivateChannel = false;
+
+        if (pathParts[0] === 'c') {
+            // Приватный канал: t.me/c/1234567890/123
+            channelId = pathParts[1];
+            postId = parseInt(pathParts[2]);
+            isPrivateChannel = true;
+            console.log('🔒 Приватный канал:', channelId, 'Пост:', postId);
+        } else {
+            // Публичный канал: t.me/username/123
+            channelId = pathParts[0];
+            postId = parseInt(pathParts[1]);
+            console.log('🔓 Публичный канал:', channelId, 'Пост:', postId);
+        }
+
+        if (!channelId || !postId || isNaN(postId)) {
+            return { 
+                success: false, 
+                error: 'Не удалось извлечь ID канала и поста' 
+            };
+        }
+
+        return {
+            success: true,
+            channelId: channelId,
+            postId: postId,
+            postUrl: url,
+            isPrivateChannel: isPrivateChannel
+        };
+        
+    } catch (error) {
+        console.error('💥 Ошибка парсинга:', error);
+        return { 
+            success: false, 
+            error: 'Ошибка обработки ссылки: ' + error.message 
+        };
+    }
+}
+
+// Получить конкретный приватный материал
+app.get('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
+    try {
+        const videoId = parseInt(req.params.id);
+        console.log('🎬 Запрос приватного материала:', videoId);
+        
+        const video = db.private_channel_videos.find(v => v.id === videoId);
+        
+        if (!video) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Материал не найден' 
+            });
+        }
+
+        res.json({
+            success: true,
+            video: video
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения приватного видео:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Обновить приватный материал
 app.put('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
     try {
         const videoId = parseInt(req.params.id);
         const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
         
         if (videoIndex === -1) {
-            return res.status(404).json({ success: false, error: 'Материал не найден' });
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Материал не найден' 
+            });
         }
 
         const { 
@@ -1180,6 +1301,8 @@ app.put('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
         if (level) db.private_channel_videos[videoIndex].level = level;
         if (is_active !== undefined) db.private_channel_videos[videoIndex].is_active = is_active;
 
+        console.log('✅ Приватный материал обновлен:', db.private_channel_videos[videoIndex].title);
+
         res.json({
             success: true,
             video: db.private_channel_videos[videoIndex],
@@ -1187,24 +1310,37 @@ app.put('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
         });
 
     } catch (error) {
-        console.error('Ошибка обновления приватного видео:', error);
-        res.status(500).json({ success: false, error: 'Ошибка сервера' });
+        console.error('❌ Ошибка обновления приватного видео:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
     }
 });
 
-// Удалить приватное видео
+// Удалить приватный материал
 app.delete('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
     try {
         const videoId = parseInt(req.params.id);
         const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
         
         if (videoIndex === -1) {
-            return res.status(404).json({ success: false, error: 'Материал не найден' });
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Материал не найден' 
+            });
         }
+
+        const videoTitle = db.private_channel_videos[videoIndex].title;
 
         // Удаляем видео и связанные доступы
         db.private_channel_videos.splice(videoIndex, 1);
         db.video_access = db.video_access.filter(va => va.video_id !== videoId);
+        db.purchases = db.purchases.filter(p => 
+            !(p.item_id === videoId && p.item_type === 'private_video')
+        );
+
+        console.log('✅ Приватный материал удален:', videoTitle);
 
         res.json({
             success: true,
@@ -1212,8 +1348,60 @@ app.delete('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
         });
 
     } catch (error) {
-        console.error('Ошибка удаления приватного видео:', error);
-        res.status(500).json({ success: false, error: 'Ошибка сервера' });
+        console.error('❌ Ошибка удаления приватного видео:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Получить статистику приватного материала
+app.get('/api/admin/private-videos/:id/stats', requireAdmin, (req, res) => {
+    try {
+        const videoId = parseInt(req.params.id);
+        
+        const video = db.private_channel_videos.find(v => v.id === videoId);
+        if (!video) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Материал не найден' 
+            });
+        }
+
+        const purchaseCount = db.purchases.filter(p => 
+            p.item_id === videoId && p.item_type === 'private_video'
+        ).length;
+
+        const accessCount = db.video_access.filter(access => 
+            access.video_id === videoId
+        ).length;
+
+        const uniqueUsers = [...new Set(db.video_access
+            .filter(access => access.video_id === videoId)
+            .map(access => access.user_id)
+        )].length;
+
+        const totalRevenue = purchaseCount * video.price;
+
+        const stats = {
+            purchase_count: purchaseCount,
+            access_count: accessCount,
+            total_revenue: totalRevenue,
+            unique_users: uniqueUsers
+        };
+
+        res.json({
+            success: true,
+            stats: stats
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения статистики:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
     }
 });
 
@@ -1224,7 +1412,10 @@ app.get('/api/admin/private-videos/:id/protected-link', requireAdmin, (req, res)
         const video = db.private_channel_videos.find(v => v.id === videoId);
         
         if (!video) {
-            return res.status(404).json({ success: false, error: 'Материал не найден' });
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Материал не найден' 
+            });
         }
 
         // Генерируем временную ссылку
@@ -1235,18 +1426,25 @@ app.get('/api/admin/private-videos/:id/protected-link', requireAdmin, (req, res)
             
         const protectedLink = `/api/telegram/proxy/${token}`;
         
+        const fullUrl = `${process.env.APP_URL || 'http://localhost:3000'}${protectedLink}`;
+        
+        console.log('🔗 Сгенерирована защищенная ссылка:', fullUrl);
+
         res.json({
             success: true,
-            protected_link: `${process.env.APP_URL || 'http://localhost:3000'}${protectedLink}`
+            protected_link: fullUrl
         });
 
     } catch (error) {
-        console.error('Ошибка получения защищенной ссылки:', error);
-        res.status(500).json({ success: false, error: 'Ошибка сервера' });
+        console.error('❌ Ошибка получения защищенной ссылки:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
     }
 });
 
-// ПРАВИЛЬНЫЙ endpoint для получения защищенной ссылки
+// Прокси для доступа к приватным видео
 app.get('/api/telegram/proxy/:token', async (req, res) => {
     try {
         const token = req.params.token;
@@ -1326,7 +1524,8 @@ app.get('/api/telegram/proxy/:token', async (req, res) => {
                 user_id: parseInt(userId),
                 video_id: video.id,
                 purchased_at: new Date().toISOString(),
-                expires_at: expiresAt.toISOString()
+                expires_at: expiresAt.toISOString(),
+                telegram_message_id: null
             });
             
             console.log('✅ Восстановлен доступ для пользователя:', userId);
@@ -1334,7 +1533,7 @@ app.get('/api/telegram/proxy/:token', async (req, res) => {
 
         // ФОРМИРОВАНИЕ ССЫЛКИ НА TELEGRAM
         let telegramUrl;
-        if (channelId.startsWith('-100')) {
+        if (channelId.startsWith('-100') || !isNaN(channelId)) {
             // ПРИВАТНЫЙ КАНАЛ
             const publicChannelId = channelId.replace('-100', '');
             telegramUrl = `https://t.me/c/${publicChannelId}/${messageId}`;
@@ -1356,7 +1555,8 @@ app.get('/api/telegram/proxy/:token', async (req, res) => {
         });
     }
 });
-// ПРАВИЛЬНЫЙ endpoint для покупки приватных материалов
+
+// Покупка приватного видео
 app.post('/api/webapp/shop/private-videos/purchase', async (req, res) => {
     try {
         const { userId, videoId } = req.body;
@@ -1454,7 +1654,12 @@ app.post('/api/webapp/shop/private-videos/purchase', async (req, res) => {
         // ЗАПИСЬ АКТИВНОСТИ
         addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
 
-        console.log('✅ Покупка завершена:', { purchase, access });
+        console.log('✅ Покупка завершена:', { 
+            purchase: purchase.id, 
+            access: access.id,
+            user: userId,
+            video: video.title
+        });
 
         res.json({
             success: true,
@@ -1482,13 +1687,16 @@ app.post('/api/webapp/shop/private-videos/purchase', async (req, res) => {
     }
 });
 
-// Получить мои приватные видео
+// Получить приватные видео пользователя
 app.get('/api/webapp/user/private-videos', (req, res) => {
     try {
         const { userId } = req.query;
 
         if (!userId) {
-            return res.status(401).json({ error: 'Требуется авторизация' });
+            return res.status(401).json({ 
+                success: false,
+                error: 'Требуется авторизация' 
+            });
         }
 
         const userAccess = db.video_access.filter(access => 
@@ -1520,8 +1728,11 @@ app.get('/api/webapp/user/private-videos', (req, res) => {
         });
 
     } catch (error) {
-        console.error('Ошибка получения приватных видео:', error);
-        res.status(500).json({ error: 'Ошибка сервера' });
+        console.error('❌ Ошибка получения приватных видео:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка сервера' 
+        });
     }
 });
 // ==================== API ДЛЯ ПРИВАТНОГО КАНАЛА ====================
