@@ -3811,6 +3811,73 @@ app.get('/api/admin/export/users', requireAdmin, (req, res) => {
     }
 });
 
+// ==================== API ДЛЯ СТАТИСТИКИ ПРИВАТНЫХ ВИДЕО ====================
+
+// Получить статистику приватного видео
+app.get('/api/admin/private-videos/:id/stats', requireAdmin, (req, res) => {
+    try {
+        const videoId = parseInt(req.params.id);
+        const video = db.private_channel_videos.find(v => v.id === videoId);
+        
+        if (!video) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Материал не найден' 
+            });
+        }
+
+        const purchaseCount = db.purchases.filter(p => 
+            p.item_id === videoId && p.item_type === 'private_video'
+        ).length;
+        
+        const accessCount = db.video_access.filter(access => 
+            access.video_id === videoId && access.expires_at > new Date().toISOString()
+        ).length;
+        
+        const totalRevenue = purchaseCount * video.price;
+        const uniqueUsers = [...new Set(db.video_access.filter(access => access.video_id === videoId).map(access => access.user_id))].length;
+
+        const stats = {
+            purchase_count: purchaseCount,
+            access_count: accessCount,
+            total_revenue: totalRevenue,
+            unique_users: uniqueUsers
+        };
+
+        res.json({
+            success: true,
+            stats: stats
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения статистики:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Endpoint для проверки доступа пользователя к видео
+app.get('/api/webapp/private-videos/:videoId', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const videoId = parseInt(req.params.videoId);
+    
+    const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+    if (!video) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    const hasAccess = db.video_access.some(
+        access => access.user_id === userId && access.video_id === videoId && access.expires_at > new Date().toISOString()
+    );
+    
+    res.json({
+        ...video,
+        has_access: hasAccess,
+        can_purchase: !hasAccess
+    });
+
 // Экспорт статистики в CSV
 app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
     try {
