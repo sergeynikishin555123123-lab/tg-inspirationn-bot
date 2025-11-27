@@ -693,7 +693,6 @@ let db = {
     interactive_submissions: [],
 // В объекте db добавьте эти коллекции если их нет:
 marathon_submissions: [],
-video_access: [],
 private_channel_videos: [
     {
         id: 1,
@@ -706,8 +705,10 @@ private_channel_videos: [
         price: 25,
         category: "video",
         level: "intermediate",
+        access_duration_days: 30, // Срок доступа в днях
         is_active: true,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
     },
     {
         id: 2,
@@ -720,13 +721,23 @@ private_channel_videos: [
         price: 30,
         category: "video", 
         level: "intermediate",
+        access_duration_days: 30,
         is_active: true,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
     }
 ],
-video_access: [],
-marathon_submissions: []
-};
+video_access: [
+    {
+        id: 1,
+        user_id: 12345,
+        video_id: 1,
+        purchased_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +30 дней
+        telegram_message_id: null,
+        access_count: 3
+    }
+],
 // ==================== СИСТЕМА ПРИВАТНОГО КАНАЛА ====================
 
 // Конфигурация приватного канала
