@@ -3104,7 +3104,31 @@ async function loadPrivateVideos() {
     }
 }
 
-       // Отображение приватных видео - РЕАЛЬНАЯ ВЕРСИЯ
+// ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПРИВАТНЫХ ВИДЕО ====================
+
+// Получение названия категории для приложения
+function getCategoryName(category) {
+    const categories = {
+        'video': '🎥 Видео',
+        'course': '🎓 Курс',
+        'lesson': '📖 Урок',
+        'masterclass': '⚡ Мастер-класс',
+        'material': '📚 Материал'
+    };
+    return categories[category] || category;
+}
+
+// Получение названия уровня сложности
+function getLevelName(level) {
+    const levels = {
+        'beginner': '👶 Начинающий',
+        'intermediate': '🚀 Продвинутый', 
+        'advanced': '🔥 Эксперт'
+    };
+    return levels[level] || level;
+}
+    
+     // Отображение приватных видео - ИСПРАВЛЕННАЯ ВЕРСИЯ
 function displayPrivateVideos(videos) {
     const videosList = document.getElementById('privateVideosList');
     
@@ -3142,7 +3166,7 @@ function displayPrivateVideos(videos) {
                     <p style="color: #718096; margin-bottom: 12px;">${video.description || 'Описание отсутствует'}</p>
                     <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
                         <span class="badge badge-info">${getCategoryName(video.category)}</span>
-                        <span class="badge badge-warning">${video.level}</span>
+                        <span class="badge badge-warning">${getLevelName(video.level)}</span>
                         ${video.duration ? `<span class="badge badge-secondary">⏱️ ${video.duration}</span>` : ''}
                     </div>
                 </div>
