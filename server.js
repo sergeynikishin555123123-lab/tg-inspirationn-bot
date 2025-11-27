@@ -585,6 +585,18 @@ let db = {
             tags: ["акварель", "урок", "профессиональный"],
             is_active: true,
             created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            message_id: 124,
+            title: "🎨 Мастер-класс по портрету",
+            description: "Учимся рисовать портреты с нуля до профессионального уровня",
+            duration: "60 минут",
+            file_size: "1.5 GB",
+            price: 30,
+            tags: ["портрет", "мастер-класс", "рисование"],
+            is_active: true,
+            created_at: new Date().toISOString()
         }
     ],
     video_access: []
@@ -918,6 +930,135 @@ app.get('/api/mobile/lazy-load', (req, res) => {
             optimized: true 
         });
     }
+});
+
+// ==================== API ДЛЯ ПРИВАТНЫХ ВИДЕО В МАГАЗИНЕ ====================
+
+// Получить список приватных видео для магазина
+app.get('/api/webapp/shop/private-videos', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const videos = db.private_channel_videos.filter(video => video.is_active);
+    
+    const videosWithAccess = videos.map(video => {
+        const hasAccess = db.video_access.some(
+            access => access.user_id === userId && access.video_id === video.id
+        );
+        
+        return {
+            id: video.id,
+            title: video.title,
+            description: video.description,
+            type: 'private_video',
+            preview_url: video.preview_url || 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=300&h=200&fit=crop',
+            price: video.price,
+            duration: video.duration,
+            file_size: video.file_size,
+            tags: video.tags,
+            has_access: hasAccess,
+            can_purchase: !hasAccess,
+            is_active: video.is_active,
+            created_at: video.created_at
+        };
+    });
+    
+    res.json({ videos: videosWithAccess });
+});
+
+// Покупка доступа к приватному видео через магазин
+app.post('/api/webapp/shop/private-videos/purchase', async (req, res) => {
+    const { userId, videoId } = req.body;
+    
+    if (!userId || !videoId) {
+        return res.status(400).json({ error: 'User ID and video ID are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
+    
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!video) return res.status(404).json({ error: 'Video not found' });
+    
+    // Проверяем, не куплен ли уже доступ
+    const existingAccess = db.video_access.find(
+        access => access.user_id === userId && access.video_id === videoId
+    );
+    
+    if (existingAccess) {
+        return res.status(400).json({ error: 'У вас уже есть доступ к этому видео' });
+    }
+    
+    if (user.sparks < video.price) {
+        return res.status(400).json({ error: 'Недостаточно искр' });
+    }
+    
+    try {
+        // 1. Списание искр
+        user.sparks -= video.price;
+        
+        // 2. Создаем запись о доступе
+        const accessRecord = {
+            id: Date.now(),
+            user_id: userId,
+            video_id: videoId,
+            purchased_at: new Date().toISOString(),
+            access_expires: null,
+            telegram_message_id: null
+        };
+        
+        db.video_access.push(accessRecord);
+        
+        // 3. Логируем покупку
+        addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
+        
+        // 4. Предоставляем доступ через Telegram бота
+        if (bot && PRIVATE_CHANNEL_CONFIG.BOT_TOKEN) {
+            await grantVideoAccess(userId, videoId);
+        }
+        
+        res.json({
+            success: true,
+            message: `Доступ к видео "${video.title}" предоставлен! Проверьте сообщения от бота.`,
+            remainingSparks: user.sparks,
+            access: accessRecord
+        });
+        
+    } catch (error) {
+        console.error('Ошибка при покупке доступа к видео:', error);
+        // Откатываем списание искр в случае ошибки
+        user.sparks += video.price;
+        res.status(500).json({ error: 'Ошибка предоставления доступа' });
+    }
+});
+
+// Получить информацию о конкретном приватном видео для магазина
+app.get('/api/webapp/shop/private-videos/:videoId', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const videoId = parseInt(req.params.videoId);
+    
+    const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+    if (!video) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    const hasAccess = db.video_access.some(
+        access => access.user_id === userId && access.video_id === videoId
+    );
+    
+    res.json({
+        id: video.id,
+        title: video.title,
+        description: video.description,
+        type: 'private_video',
+        preview_url: video.preview_url || 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=300&h=200&fit=crop',
+        price: video.price,
+        duration: video.duration,
+        file_size: video.file_size,
+        tags: video.tags,
+        has_access: hasAccess,
+        can_purchase: !hasAccess,
+        is_active: video.is_active,
+        created_at: video.created_at
+    });
 });
 
 // ==================== API ДЛЯ ПРИВАТНОГО КАНАЛА ====================
@@ -1579,7 +1720,7 @@ app.get('/api/webapp/shop/items', (req, res) => {
     res.json(items);
 });
 
-// ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА
+// ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА - ПРАВИЛЬНОЕ СПИСАНИЕ ИСКР
 app.post('/api/webapp/shop/purchase', (req, res) => {
     const { userId, itemId } = req.body;
     
@@ -1606,27 +1747,49 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
         return res.status(400).json({ error: 'Недостаточно искр' });
     }
     
-    // Списание искр
-    user.sparks -= item.price;
-    
-    const purchase = {
-        id: Date.now(),
-        user_id: userId,
-        item_id: itemId,
-        price_paid: item.price,
-        purchased_at: new Date().toISOString()
-    };
-    
-    db.purchases.push(purchase);
-    
-    addSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
-    
-    res.json({
-        success: true,
-        message: `Покупка успешна! Куплено: ${item.title}`,
-        remainingSparks: user.sparks,
-        purchase: purchase
-    });
+    try {
+        // ПРАВИЛЬНОЕ СПИСАНИЕ ИСКР - сохраняем старое значение для проверки
+        const oldSparks = user.sparks;
+        user.sparks -= item.price;
+        
+        // Проверяем, что списание прошло корректно
+        if (user.sparks !== oldSparks - item.price) {
+            console.error('❌ Ошибка списания искр:', { oldSparks, price: item.price, newSparks: user.sparks });
+            user.sparks = oldSparks; // Откатываем
+            return res.status(500).json({ error: 'Ошибка списания искр' });
+        }
+        
+        const purchase = {
+            id: Date.now(),
+            user_id: userId,
+            item_id: itemId,
+            price_paid: item.price,
+            purchased_at: new Date().toISOString()
+        };
+        
+        db.purchases.push(purchase);
+        
+        // Логируем покупку с отрицательным значением искр
+        addSparks(userId, -item.price, 'purchase', `Покупка: ${item.title}`);
+        
+        console.log(`✅ Покупка товара: пользователь ${userId}, товар ${itemId}, цена ${item.price}, осталось искр: ${user.sparks}`);
+        
+        res.json({
+            success: true,
+            message: `Покупка успешна! Куплено: ${item.title}`,
+            remainingSparks: user.sparks,
+            purchase: purchase
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка при покупке товара:', error);
+        // Откатываем списание искр в случае ошибки
+        const user = db.users.find(u => u.user_id == userId);
+        if (user) {
+            user.sparks += item.price;
+        }
+        res.status(500).json({ error: 'Ошибка при покупке товара' });
+    }
 });
 
 app.get('/api/webapp/users/:userId/purchases', (req, res) => {
