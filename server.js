@@ -753,9 +753,10 @@ video_access: [
         purchased_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +30 дней
         telegram_message_id: null,
-        access_count: 3
-    }
-};
+       access_count: 3
+        }
+    ]
+}; // Закрытие объекта db
 
 // ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
 app.use(express.static(join(APP_ROOT, 'public')));
