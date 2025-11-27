@@ -755,7 +755,7 @@ video_access: [
         telegram_message_id: null,
         access_count: 3
     }
-],
+};
 
 // ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
 app.use(express.static(join(APP_ROOT, 'public')));
