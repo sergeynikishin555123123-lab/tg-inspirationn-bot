@@ -600,32 +600,6 @@ function addSparks(userId, sparks, activityType, description) {
     return null;
 }
 
-// Функция для получения статистики пользователя
-function getUserStats(userId) {
-    const user = db.users.find(u => u.user_id == userId);
-    if (!user) return null;
-    
-    const activities = db.activities.filter(a => a.user_id == userId);
-    const purchases = db.purchases.filter(p => p.user_id == userId);
-    const works = db.user_works.filter(w => w.user_id == userId);
-    const quizCompletions = db.quiz_completions.filter(q => q.user_id == userId);
-    const marathonCompletions = db.marathon_completions.filter(m => m.user_id == userId);
-    const interactiveCompletions = db.interactive_completions.filter(i => i.user_id == userId);
-    
-    return {
-        totalActivities: activities.length,
-        totalPurchases: purchases.length,
-        totalWorks: works.length,
-        approvedWorks: works.filter(w => w.status === 'approved').length,
-        totalQuizzesCompleted: quizCompletions.length,
-        totalMarathonsCompleted: marathonCompletions.filter(m => m.completed).length,
-        totalInteractivesCompleted: interactiveCompletions.length,
-        totalSparksEarned: activities.reduce((sum, a) => sum + a.sparks_earned, 0),
-        registrationDate: user.registration_date,
-        lastActive: user.last_active
-    };
-}
-
 // Middleware для админов
 const requireAdmin = (req, res, next) => {
     const userId = req.query.userId || req.body.userId;
