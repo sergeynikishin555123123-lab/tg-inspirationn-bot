@@ -2145,6 +2145,42 @@ app.get('/api/users/:userId', (req, res) => {
     }
 });
 
+app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
+    try {
+        console.log('🎬 Создание приватного материала - полученные данные:', req.body);
+        
+        const { 
+            post_url, 
+            channel_id,
+            message_id,
+            title, 
+            description, 
+            duration, 
+            price, 
+            category, 
+            level, 
+            is_active 
+        } = req.body;
+
+        console.log('🔍 Проверка обязательных полей:', {
+            hasChannelId: !!channel_id,
+            hasMessageId: !!message_id,
+            channel_id,
+            message_id,
+            title,
+            price
+        });
+
+        // ... остальной код
+    } catch (error) {
+        console.error('❌ Ошибка создания приватного видео:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера при создании материала: ' + error.message 
+        });
+    }
+});
+
 // НОВЫЙ МЕТОД ДЛЯ СМЕНЫ РОЛИ
 app.post('/api/users/change-role', (req, res) => {
     const { userId, roleId, characterId } = req.body;
