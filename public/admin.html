@@ -1840,13 +1840,18 @@
         </div>
 
         <!-- ИНСТРУКЦИЯ ДЛЯ АДМИНА -->
-        <div class="message info" style="margin-bottom: 20px;">
-            <strong>📋 Инструкция:</strong><br>
-            1. Создайте пост с видео/файлом в Telegram канале<br>
-            2. Добавьте бота как администратора (только "Размещать сообщения")<br>
-            3. Скопируйте ссылку на пост (правое меню → "Копировать ссылку")<br>
-            4. Вставьте ссылку ниже - система автоматически заполнит данные
-        </div>
+<div class="message info" style="margin-bottom: 20px;">
+    <strong>📋 Инструкция по добавлению защищенных материалов:</strong><br>
+    1. Создайте пост с видео/файлом в Telegram канале<br>
+    2. Добавьте бота как администратора (только "Размещать сообщения")<br>
+    3. Скопируйте ссылку на пост (правое меню → "Копировать ссылку")<br>
+    4. Вставьте ссылку ниже - система автоматически заполнит данные<br>
+    5. <strong>ВАЖНО:</strong> Система создаст защищенную ссылку, которая:<br>
+       &nbsp;&nbsp;• Не позволяет копировать оригинальный URL<br>
+       &nbsp;&nbsp;• Открывает только конкретный пост, а не весь канал<br>
+       &nbsp;&nbsp;• Требует авторизацию для просмотра<br>
+       &nbsp;&nbsp;• Содержит временный токен доступа
+</div>
 
         <div id="privateVideosList" class="loading">
             Загрузка материалов...
@@ -5556,6 +5561,36 @@ async function savePrivateVideo() {
     }
 }
 
+// Генерация защищенной ссылки для пользователя
+function generateProtectedLink(channelId, messageId, userId) {
+    // Создаем уникальный токен на основе данных пользователя и времени
+    const token = btoa(`${userId}_${channelId}_${messageId}_${Date.now()}`)
+        .replace(/=/g, '')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+    
+    // Возвращаем ссылку через наш прокси
+    return `/api/telegram/proxy/${token}`;
+}
+
+// Получение защищенной ссылки для просмотра
+async function getProtectedViewLink(videoId) {
+    try {
+        const response = await fetch(`/api/admin/private-videos/${videoId}/protected-link?userId=${currentUserId}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            return result.protected_link;
+        } else {
+            console.error('Ошибка получения защищенной ссылки:', result.error);
+            return null;
+        }
+    } catch (error) {
+        console.error('Ошибка получения защищенной ссылки:', error);
+        return null;
+    }
+}
+        
 // Показать форму добавления материала
 function showPrivateVideoForm() {
     document.getElementById('privateVideoForm').style.display = 'block';
@@ -5679,11 +5714,8 @@ function displayPrivateVideosAdmin(videos) {
             'masterclass': '🔥'
         };
         
-        const levelBadges = {
-            'beginner': 'badge-success',
-            'intermediate': 'badge-warning',
-            'advanced': 'badge-danger'
-        };
+        // Генерируем защищенную ссылку для предпросмотра
+        const protectedLink = generateProtectedLink(video.channel_id, video.message_id, currentUserId);
         
         html += `
             <div class="shop-item-card">
@@ -5694,7 +5726,6 @@ function displayPrivateVideosAdmin(videos) {
                         
                         <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
                             <span class="badge badge-info">${categoryIcons[video.category] || '📁'} ${video.category}</span>
-                            <span class="badge ${levelBadges[video.level]}">${video.level}</span>
                             <span class="badge badge-success">${video.price}✨</span>
                             <span class="badge badge-warning">⏱️ ${video.duration}</span>
                         </div>
@@ -5702,7 +5733,19 @@ function displayPrivateVideosAdmin(videos) {
                         <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
                             <span class="badge badge-secondary">📺 ${video.channel_id}</span>
                             <span class="badge badge-secondary">📝 ${video.message_id}</span>
-                            <a href="${video.post_url}" target="_blank" class="badge badge-info">🔗 Открыть в Telegram</a>
+                            <button class="btn btn-info btn-sm" onclick="copyProtectedLink('${video.channel_id}', '${video.message_id}')">
+                                📋 Скопировать защищенную ссылку
+                            </button>
+                            <a href="${video.post_url}" target="_blank" class="btn btn-warning btn-sm">
+                                🔗 Исходный пост
+                            </a>
+                        </div>
+                        
+                        <div style="background: #f7fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                            <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Защищенная ссылка для пользователей:</div>
+                            <div style="font-family: monospace; font-size: 12px; word-break: break-all; user-select: none;">
+                                ${window.location.origin}${protectedLink}
+                            </div>
                         </div>
                         
                         <div class="completion-stats">
@@ -5732,6 +5775,7 @@ function displayPrivateVideosAdmin(videos) {
                 
                 <div class="action-buttons">
                     <button class="btn btn-warning" onclick="editPrivateVideo(${video.id})">✏️ Редактировать</button>
+                    <button class="btn btn-info" onclick="testVideoAccess(${video.id})">🧪 Тест доступа</button>
                     <button class="btn btn-danger" onclick="deletePrivateVideo(${video.id})">🗑️ Удалить</button>
                 </div>
             </div>
@@ -5741,6 +5785,45 @@ function displayPrivateVideosAdmin(videos) {
     videosList.innerHTML = html;
 }
 
+        // Копирование защищенной ссылки в буфер обмена
+async function copyProtectedLink(channelId, messageId) {
+    const protectedLink = generateProtectedLink(channelId, messageId, currentUserId);
+    const fullLink = `${window.location.origin}${protectedLink}`;
+    
+    try {
+        await navigator.clipboard.writeText(fullLink);
+        showMessage('✅ Защищенная ссылка скопирована в буфер обмена', 'success');
+    } catch (err) {
+        // Fallback для старых браузеров
+        const textArea = document.createElement('textarea');
+        textArea.value = fullLink;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showMessage('✅ Защищенная ссылка скопирована', 'success');
+    }
+}
+
+// Тестирование доступа к видео
+async function testVideoAccess(videoId) {
+    try {
+        showMessage('🧪 Тестируем доступ к видео...', 'info');
+        
+        const protectedLink = await getProtectedViewLink(videoId);
+        if (protectedLink) {
+            // Открываем в новом окне для тестирования
+            window.open(protectedLink, '_blank');
+            showMessage('✅ Тестовое окно открыто', 'success');
+        } else {
+            showMessage('❌ Не удалось получить ссылку для тестирования', 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка тестирования:', error);
+        showMessage('❌ Ошибка тестирования доступа', 'error');
+    }
+}
+        
 // Удаление материала
 async function deletePrivateVideo(videoId) {
     if (!confirm('Вы уверены, что хотите удалить этот материал?')) return;
