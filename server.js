@@ -1882,7 +1882,7 @@ app.get('/api/webapp/private-videos/:videoId', (req, res) => {
         });
     }
 
-// ФУНКЦИЯ ДЛЯ ОБНОВЛЕНИЯ СТАТИСТИКИ ВИДЕО
+// Функция для обновления статистики видео
 function updateVideoStats(videoId) {
     const video = db.private_channel_videos.find(v => v.id === videoId);
     if (!video) return null;
@@ -1942,7 +1942,6 @@ async function grantVideoAccess(userId, videoId) {
         throw error;
     }
 }
-
 // Админ API для управления видео в приватном канале
 app.get('/api/admin/private-videos', requireAdmin, (req, res) => {
     const videos = db.private_channel_videos.map(video => {
