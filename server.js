@@ -876,6 +876,27 @@ function addSparks(userId, sparks, activityType, description) {
     return null;
 }
 
+// Вспомогательные функции для приватных материалов
+function getCategoryName(category) {
+    const categories = {
+        'video': '🎥 Видео',
+        'course': '🎓 Курс', 
+        'lesson': '📖 Урок',
+        'masterclass': '⚡ Мастер-класс',
+        'material': '📚 Материал'
+    };
+    return categories[category] || category;
+}
+
+function getLevelName(level) {
+    const levels = {
+        'beginner': '👶 Начинающий',
+        'intermediate': '🚀 Продвинутый',
+        'advanced': '🔥 Эксперт'
+    };
+    return levels[level] || level;
+}
+
 // Показать форму добавления материала
 function showPrivateVideoForm() {
     document.getElementById('privateVideoForm').style.display = 'block';
@@ -935,7 +956,7 @@ async function editPrivateVideo(videoId) {
     }
 }
 
-// Просмотр статистики материала
+// Просмотр статистики
 async function viewVideoStats(videoId) {
     try {
         const response = await fetch(`/api/admin/private-videos/${videoId}/stats?userId=${currentUserId}`);
@@ -974,6 +995,30 @@ async function viewVideoStats(videoId) {
         
     } catch (error) {
         console.error('❌ Ошибка загрузки статистики:', error);
+        showMessage(`❌ ${error.message}`, 'error');
+    }
+}
+
+// Удаление материала
+async function deletePrivateVideo(videoId) {
+    if (!confirm('Вы уверены, что хотите удалить этот материал? Все связанные данные будут удалены.')) return;
+    
+    try {
+        const response = await fetch(`/api/admin/private-videos/${videoId}?userId=${currentUserId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Материал успешно удален', 'success');
+            loadPrivateVideosAdmin();
+        } else {
+            throw new Error(result.error || 'Ошибка удаления');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка удаления:', error);
         showMessage(`❌ ${error.message}`, 'error');
     }
 }
@@ -3766,169 +3811,384 @@ app.get('/api/admin/export/users', requireAdmin, (req, res) => {
     }
 });
 
-// ==================== ФУНКЦИИ ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
-
-// Удаление приватного материала
-async function deletePrivateVideo(videoId) {
-    if (!confirm('Вы уверены, что хотите удалить этот материал? Все связанные данные будут удалены.')) return;
-    
+// Экспорт статистики в CSV
+app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
     try {
-        const response = await fetch(`/api/admin/private-videos/${videoId}?userId=${currentUserId}`, {
-            method: 'DELETE'
+        console.log('📈 Экспорт полной статистики в CSV');
+        
+        const users = db.users.filter(u => u.is_registered);
+        const purchases = db.purchases;
+        const activities = db.activities;
+        const works = db.user_works;
+        const quizCompletions = db.quiz_completions;
+        const marathonCompletions = db.marathon_completions.filter(m => m.completed);
+        
+        // Статистика по ролям
+        const roleStats = {};
+        db.roles.forEach(role => {
+            roleStats[role.name] = users.filter(u => u.class === role.name).length;
         });
         
-        const result = await response.json();
+        let csv = 'Раздел;Показатель;Значение\n';
         
-        if (result.success) {
-            showMessage('✅ Материал успешно удален', 'success');
-            loadPrivateVideosAdmin();
-        } else {
-            throw new Error(result.error || 'Ошибка удаления');
-        }
+        // Основная статистика
+        csv += `Пользователи;Всего пользователей;${users.length}\n`;
+        csv += `Пользователи;Зарегистрировано;${users.filter(u => u.is_registered).length}\n`;
+        csv += `Пользователи;Активных сегодня;${users.filter(u => {
+            const today = new Date();
+            const lastActive = new Date(u.last_active);
+            return lastActive.toDateString() === today.toDateString();
+        }).length}\n`;
         
-    } catch (error) {
-        console.error('❌ Ошибка удаления:', error);
-        showMessage(`❌ ${error.message}`, 'error');
-    }
-}
-
-// Показать статистику на мобильных
-function showMobileStats() {
-    const statsHtml = `
-        <div style="text-align: center;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0;">
-                <div class="video-stat-card">
-                    <div class="video-stat-number">${document.getElementById('totalVideos')?.textContent || '0'}</div>
-                    <div class="video-stat-label">Материалов</div>
-                </div>
-                <div class="video-stat-card">
-                    <div class="video-stat-number">${document.getElementById('totalPurchases')?.textContent || '0'}</div>
-                    <div class="video-stat-label">Покупок</div>
-                </div>
-                <div class="video-stat-card">
-                    <div class="video-stat-number">${document.getElementById('totalRevenue')?.textContent || '0'}</div>
-                    <div class="video-stat-label">Доход</div>
-                </div>
-                <div class="video-stat-card">
-                    <div class="video-stat-number">${document.getElementById('activeAccesses')?.textContent || '0'}</div>
-                    <div class="video-stat-label">Доступов</div>
-                </div>
-            </div>
-            <button class="btn btn-success" onclick="closeModal()" style="width: 100%;">Закрыть</button>
-        </div>
-    `;
-    
-    showModal('📊 Статистика материалов', statsHtml);
-}
-
-// Проверка доступа к приватному видео
-async function accessPrivateVideo(videoId) {
-    try {
-        const response = await fetch(`/api/webapp/private-videos/${videoId}?userId=${currentUserId}`);
-        const result = await response.json();
-        
-        if (result.has_access) {
-            const protectedLink = await getProtectedViewLink(videoId);
-            if (protectedLink) {
-                window.open(protectedLink, '_blank');
-            }
-        } else {
-            showMessage('❌ У вас нет доступа к этому материалу. Приобретите доступ в магазине.', 'error');
-        }
-    } catch (error) {
-        console.error('❌ Ошибка проверки доступа:', error);
-        showMessage('❌ Ошибка проверки доступа к материалу', 'error');
-    }
-}
-
-// Вспомогательные функции для приватных материалов
-function getCategoryName(category) {
-    const categories = {
-        'video': '🎥 Видео',
-        'course': '🎓 Курс', 
-        'lesson': '📖 Урок',
-        'masterclass': '⚡ Мастер-класс',
-        'material': '📚 Материал'
-    };
-    return categories[category] || category;
-}
-
-function getLevelName(level) {
-    const levels = {
-        'beginner': '👶 Начинающий',
-        'intermediate': '🚀 Продвинутый',
-        'advanced': '🔥 Эксперт'
-    };
-    return levels[level] || level;
-}
-
-// ==================== API ДЛЯ СТАТИСТИКИ ПРИВАТНЫХ ВИДЕО ====================
-
-// Получить статистику приватного видео
-app.get('/api/admin/private-videos/:id/stats', requireAdmin, (req, res) => {
-    try {
-        const videoId = parseInt(req.params.id);
-        const video = db.private_channel_videos.find(v => v.id === videoId);
-        
-        if (!video) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Материал не найден' 
-            });
-        }
-
-        const purchaseCount = db.purchases.filter(p => 
-            p.item_id === videoId && p.item_type === 'private_video'
-        ).length;
-        
-        const accessCount = db.video_access.filter(access => 
-            access.video_id === videoId && access.expires_at > new Date().toISOString()
-        ).length;
-        
-        const totalRevenue = purchaseCount * video.price;
-        const uniqueUsers = [...new Set(db.video_access.filter(access => access.video_id === videoId).map(access => access.user_id))].length;
-
-        const stats = {
-            purchase_count: purchaseCount,
-            access_count: accessCount,
-            total_revenue: totalRevenue,
-            unique_users: uniqueUsers
-        };
-
-        res.json({
-            success: true,
-            stats: stats
+        // Статистика по ролям
+        Object.keys(roleStats).forEach(role => {
+            csv += `Роли;${role};${roleStats[role]}\n`;
         });
-
+        
+        // Активности
+        csv += `Активности;Всего активностей;${activities.length}\n`;
+        csv += `Активности;Всего искр в системе;${users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)}\n`;
+        csv += `Активности;Всего покупок;${purchases.length}\n`;
+        csv += `Активности;Всего работ;${works.length}\n`;
+        csv += `Активности;Одобренных работ;${works.filter(w => w.status === 'approved').length}\n`;
+        
+        // Завершения
+        csv += `Завершения;Пройдено квизов;${quizCompletions.length}\n`;
+        csv += `Завершения;Завершено марафонов;${marathonCompletions.length}\n`;
+        
+        // Контент
+        csv += `Контент;Активных квизов;${db.quizzes.filter(q => q.is_active).length}\n`;
+        csv += `Контент;Активных марафонов;${db.marathons.filter(m => m.is_active).length}\n`;
+        csv += `Контент;Товаров в магазине;${db.shop_items.filter(i => i.is_active).length}\n`;
+        csv += `Контент;Постов в канале;${db.channel_posts.filter(p => p.is_active).length}\n`;
+        csv += `Контент;Интерактивов;${db.interactives.filter(i => i.is_active).length}\n`;
+        
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="full_stats_export.csv"');
+        res.send(csv);
+        
+        console.log('✅ Статистика экспортирована');
+        
     } catch (error) {
-        console.error('❌ Ошибка получения статистики:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Ошибка сервера' 
-        });
+        console.error('❌ Ошибка экспорта статистики:', error);
+        res.status(500).json({ error: 'Ошибка экспорта статистики' });
     }
 });
 
-// Endpoint для проверки доступа пользователя к видео
-app.get('/api/webapp/private-videos/:videoId', (req, res) => {
-    const userId = parseInt(req.query.userId);
-    const videoId = parseInt(req.params.videoId);
-    
-    const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
-    if (!video) {
-        return res.status(404).json({ error: 'Video not found' });
+// Оптимизированные API для мобильных устройств
+app.get('/api/webapp/mobile/shop/items', async (req, res) => {
+    try {
+        const items = db.shop_items.filter(item => item.is_active);
+        
+        // Для мобильных - ограничиваем данные и убираем тяжелый контент
+        const mobileItems = items.map(item => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            type: item.type,
+            preview_url: item.preview_url,
+            price: item.price,
+            // Исключаем большие поля для мобильных
+            content_text: req.isMobile ? (item.content_text?.substring(0, 100) + '...') : item.content_text,
+            embed_html: null, // Не отправляем embed на мобильные
+            is_active: item.is_active
+        }));
+        
+        res.json(mobileItems);
+    } catch (error) {
+        console.error('❌ Ошибка загрузки магазина для мобильных:', error);
+        res.status(500).json({ error: 'Ошибка загрузки товаров' });
     }
-    
-    const hasAccess = db.video_access.some(
-        access => access.user_id === userId && access.video_id === videoId && access.expires_at > new Date().toISOString()
-    );
-    
-    res.json({
-        ...video,
-        has_access: hasAccess,
-        can_purchase: !hasAccess
+});
+
+// Оптимизированные интерактивы для мобильных
+app.get('/api/webapp/mobile/interactives', async (req, res) => {
+    try {
+        const interactives = db.interactives.filter(i => i.is_active);
+        
+        const mobileInteractives = interactives.map(interactive => ({
+            id: interactive.id,
+            title: interactive.title,
+            description: interactive.description,
+            type: interactive.type,
+            category: interactive.category,
+            image_url: interactive.image_url,
+            question: interactive.question,
+            sparks_reward: interactive.sparks_reward,
+            allow_retake: interactive.allow_retake,
+            // Упрощаем для мобильных
+            options: interactive.options || [],
+            correct_answer: interactive.correct_answer,
+            is_active: interactive.is_active
+        }));
+        
+        res.json(mobileInteractives);
+    } catch (error) {
+        console.error('❌ Ошибка загрузки интерактивов для мобильных:', error);
+        res.status(500).json({ error: 'Ошибка загрузки интерактивов' });
+    }
+});
+
+// Health check для мобильных
+app.get('/api/mobile/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        mobile: true,
+        timestamp: new Date().toISOString(),
+        optimized: true
     });
 });
 
-// Запуск сервера
+// Telegram Bot
+let bot;
+if (process.env.BOT_TOKEN) {
+    try {
+        // Настройки для избежания конфликтов
+        const botOptions = {
+            polling: {
+                timeout: 10,
+                limit: 100,
+                retryTimeout: 1000,
+                // Дополнительные настройки для избежания конфликтов
+                params: {
+                    timeout: 10,
+                    limit: 100
+                }
+            }
+        };
+        
+        bot = new TelegramBot(process.env.BOT_TOKEN, botOptions);
+        
+        console.log('✅ Telegram Bot инициализирован');
+        console.log('=== НАСТРОЙКИ ПРИВАТНОГО КАНАЛА ===');
+        console.log('CHANNEL_ID:', PRIVATE_CHANNEL_CONFIG.CHANNEL_ID);
+        console.log('CHANNEL_USERNAME:', PRIVATE_CHANNEL_CONFIG.CHANNEL_USERNAME);
+        console.log('BOT_TOKEN:', process.env.BOT_TOKEN ? '✅ Установлен' : '❌ Отсутствует');
+        console.log('==================================');
+
+        // Обработчик ошибок polling
+        bot.on('polling_error', (error) => {
+            console.log('⚠️ Ошибка polling:', error.message);
+            if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
+                console.log('🔧 Решение: Убедитесь, что запущен только один экземпляр бота');
+                console.log('💡 Попробуйте подождать 10 секунд или перезапустить приложение');
+            }
+        });
+
+        bot.onText(/\/start/, (msg) => {
+            const chatId = msg.chat.id;
+            const name = msg.from.first_name || 'Друг';
+            const userId = msg.from.id;
+            
+            let user = db.users.find(u => u.user_id === userId);
+            if (!user) {
+                user = {
+                    id: Date.now(),
+                    user_id: userId,
+                    tg_first_name: msg.from.first_name,
+                    tg_username: msg.from.username,
+                    sparks: 0,
+                    level: 'Ученик',
+                    is_registered: false,
+                    class: null,
+                    character_id: null,
+                    character_name: null,
+                    available_buttons: [],
+                    registration_date: new Date().toISOString(),
+                    last_active: new Date().toISOString()
+                };
+                db.users.push(user);
+            } else {
+                user.last_active = new Date().toISOString();
+            }
+            
+            const welcomeText = `🎨 Привет, ${name}!
+
+Добро пожаловать в **Мастерская Вдохновения**!
+
+✨ Откройте личный кабинет чтобы:
+• 🎯 Проходить квизы и получать искры
+• 🏃‍♂️ Участвовать в марафонах  
+• 🖼️ Загружать свои работы
+• 🎮 Выполнять интерактивные задания
+• 🔄 Менять роль и персонажа
+• 📊 Отслеживать прогресс
+• 🛒 Покупать обучающие материалы
+• 🎬 Получать доступ к приватным видео
+
+Нажмите кнопку ниже чтобы начать!`;
+            
+            const keyboard = {
+                inline_keyboard: [[
+                    {
+                        text: "📱 Открыть Личный Кабинет",
+                        web_app: { url: process.env.APP_URL || `https://your-domain.timeweb.cloud` }
+                    }
+                ]]
+            };
+
+            bot.sendMessage(chatId, welcomeText, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            });
+        });
+
+        // Обработчик для запроса доступа к видео
+        bot.onText(/\/доступ|доступ/i, async (msg) => {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            try {
+                const userAccess = db.video_access.filter(access => 
+                    access.user_id === userId && 
+                    access.expires_at > new Date().toISOString()
+                );
+                
+                if (userAccess.length === 0) {
+                    bot.sendMessage(chatId, 
+                        'У вас нет активного доступа к видео.\n\n' +
+                        '📹 Приобрести доступ можно в разделе "Приватные видео" в вашем личном кабинете.'
+                    );
+                    return;
+                }
+                
+                let message = '🎬 Ваши активные доступы к видео:\n\n';
+                
+                for (const access of userAccess) {
+                    const video = db.private_channel_videos.find(v => v.id === access.video_id && v.is_active);
+                    if (video) {
+                        // Генерируем защищенную ссылку
+                        const token = btoa(`${video.channel_id}_${video.message_id}_${Date.now()}`)
+                            .replace(/=/g, '')
+                            .replace(/\+/g, '-')
+                            .replace(/\//g, '_');
+                            
+                        const protectedLink = `${process.env.APP_URL || 'http://localhost:3000'}/api/telegram/proxy/${token}?userId=${userId}`;
+                        
+                        message += `📹 ${video.title}\n`;
+                        message += `🔗 ${protectedLink}\n`;
+                        message += `⏰ Ссылка действительна 24 часа\n\n`;
+                    }
+                }
+                
+                message += '⚠️ Для повторного доступа используйте команду /доступ';
+                
+                bot.sendMessage(chatId, message);
+                
+            } catch (error) {
+                console.error('Ошибка при запросе доступа:', error);
+                bot.sendMessage(chatId, '❌ Произошла ошибка при получении доступа. Попробуйте позже.');
+            }
+        });
+
+        bot.onText(/\/admin/, (msg) => {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            const admin = db.admins.find(a => a.user_id == userId);
+            if (!admin) {
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+                return;
+            }
+            
+            const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
+            const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
+            
+            const keyboard = {
+                inline_keyboard: [[
+                    {
+                        text: "🔧 Открыть Админ Панель",
+                        url: adminUrl
+                    }
+                ]]
+            };
+            
+            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            });
+        });
+
+        bot.onText(/\/stats/, (msg) => {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            const admin = db.admins.find(a => a.user_id == userId);
+            if (!admin) {
+                bot.sendMessage(chatId, '❌ У вас нет прав доступа.');
+                return;
+            }
+            
+            const stats = {
+                totalUsers: db.users.length,
+                registeredUsers: db.users.filter(u => u.is_registered).length,
+                activeQuizzes: db.quizzes.filter(q => q.is_active).length,
+                activeMarathons: db.marathons.filter(m => m.is_active).length,
+                shopItems: db.shop_items.filter(i => i.is_active).length,
+                totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
+                privateVideos: db.private_channel_videos.filter(v => v.is_active).length,
+                videoAccesses: db.video_access.filter(va => va.expires_at > new Date().toISOString()).length
+            };
+            
+            const statsText = `📊 Статистика бота:
+            
+👥 Пользователи: ${stats.totalUsers}
+✅ Зарегистрировано: ${stats.registeredUsers}
+🎯 Активных квизов: ${stats.activeQuizzes}
+🏃‍♂️ Активных марафонов: ${stats.activeMarathons}
+🛒 Товаров в магазине: ${stats.shopItems}
+🎬 Приватных видео: ${stats.privateVideos}
+🔗 Активных доступов: ${stats.videoAccesses}
+✨ Всего искр: ${stats.totalSparks.toFixed(1)}`;
+            
+            bot.sendMessage(chatId, statsText);
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка инициализации бота:', error);
+        if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
+            console.log('💡 Решение проблемы:');
+            console.log('1. Убедитесь, что не запущены другие экземпляры бота');
+            console.log('2. Подождите 10-20 секунд и перезапустите приложение');
+            console.log('3. Проверьте настройки BOT_TOKEN в переменных окружения');
+        }
+    }
+} else {
+    console.log('⚠️ BOT_TOKEN не установлен. Telegram бот отключен.');
+}
+
+// Запуск сервера с управлением процессами
+async function startServer() {
+    try {
+        // Настраиваем управление процессами
+        await setupProcessManagement();
+        
+        const PORT = process.env.PORT || 3000;
+        
+        // Запускаем сервер
+        const server = app.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 Сервер запущен на порту ${PORT}`);
+            console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
+            console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
+            console.log(`🎯 Квизов: ${db.quizzes.length}`);
+            console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
+            console.log(`🎮 Интерактивов: ${db.interactives.length}`);
+            console.log(`🛒 Товаров: ${db.shop_items.length}`);
+            console.log(`👥 Пользователей: ${db.users.length}`);
+            console.log('✅ Все системы работают!');
+            console.log(`📊 PID главного процесса: ${process.pid}`);
+        });
+        
+        // Настраиваем graceful shutdown
+        setupGracefulShutdown();
+        
+        return server;
+        
+    } catch (error) {
+        console.error('💥 Критическая ошибка запуска сервера:', error);
+        process.exit(1);
+    }
+}
+
+// Запускаем сервер 
 const server = startServer();
