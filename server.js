@@ -695,7 +695,6 @@ let db = {
 marathon_submissions: [],
 video_access: [],
 private_channel_videos: [
-    // пример данных
     {
         id: 1,
         post_url: "https://t.me/c/1234567890/123",
@@ -709,24 +708,25 @@ private_channel_videos: [
         level: "intermediate",
         is_active: true,
         created_at: new Date().toISOString()
+    },
+    {
+        id: 2,
+        post_url: "https://t.me/c/1234567890/124", 
+        channel_id: "1234567890",
+        message_id: 124,
+        title: "🎨 Мастер-класс по портрету",
+        description: "Учимся рисовать портреты с нуля до профессионального уровня",
+        duration: "60 минут",
+        price: 30,
+        category: "video", 
+        level: "intermediate",
+        is_active: true,
+        created_at: new Date().toISOString()
     }
-]
-        {
-            id: 2,
-            message_id: 124,
-            title: "🎨 Мастер-класс по портрету",
-            description: "Учимся рисовать портреты с нуля до профессионального уровня",
-            duration: "60 минут",
-            file_size: "1.5 GB",
-            price: 30,
-            tags: ["портрет", "мастер-класс", "рисование"],
-            is_active: true,
-            created_at: new Date().toISOString()
-        }
-    ],
-    video_access: []
+],
+video_access: [],
+marathon_submissions: []
 };
-
 // ==================== СИСТЕМА ПРИВАТНОГО КАНАЛА ====================
 
 // Конфигурация приватного канала
