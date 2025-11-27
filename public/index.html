@@ -2531,7 +2531,7 @@ function showUserData() {
                     </div>
                 </div>
                 
-                <div class="sparks pulse">✨ ${(currentUser.sparks || 0).toFixed(1)}</div>
+                <div class="sparks pulse">✨ ${currentUser.sparks || 0}</div>
                 
                 <div id="userStats">
                     <div class="stats-grid">
@@ -4913,7 +4913,7 @@ async function loadShop() {
         // Используем текущие данные пользователя без дополнительных запросов
         const shopSparksElement = document.getElementById('shopSparks');
         if (shopSparksElement && currentUser) {
-            shopSparksElement.textContent = `✨ ${currentUser.sparks.toFixed(1)}`;
+            shopSparksElement.textContent = `✨ ${currentUser.sparks}`;
         }
         
         // Загружаем товары
