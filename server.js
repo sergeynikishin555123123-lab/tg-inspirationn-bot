@@ -769,7 +769,7 @@ app.get('/admin', (req, res) => {
 
 app.get('/admin/*', (req, res) => {
     // Перенаправляем все админ-запросы на admin.html
-    if (!req.path.includes('.')) { // Если это не файл (css, js, etc)
+    if (!req.path.includes('.')) {
         res.sendFile(join(APP_ROOT, 'public', 'admin.html'));
     } else {
         // Для статических файлов используем основной public
