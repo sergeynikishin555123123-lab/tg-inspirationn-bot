@@ -3264,7 +3264,21 @@ async function usePrivateVideoAccess(videoId) {
     try {
         showMessage('⏳ Получаем пригласительную ссылку...', 'info');
         
-        console.log('🔗 Запрос инвайт-ссылки для видео:', videoId);
+        console.log('🔗 Запрос инвайт-ссылки для видео:', videoId, 'пользователь:', currentUserId);
+        
+        // Сначала проверяем есть ли доступ локально
+        const hasLocalAccess = await checkLocalVideoAccess(videoId);
+        if (!hasLocalAccess) {
+            // Если локально нет доступа, обновляем данные с сервера
+            console.log('🔄 Локально доступ не найден, обновляем данные...');
+            await loadPrivateVideos(true);
+            
+            // Проверяем снова после обновления
+            const hasAccessAfterRefresh = await checkLocalVideoAccess(videoId);
+            if (!hasAccessAfterRefresh) {
+                throw new Error('У вас нет доступа к этому материалу. Возможно, покупка не завершена.');
+            }
+        }
         
         const response = await fetch(`/api/webapp/private-videos/${videoId}/invite?userId=${currentUserId}`);
         
@@ -3276,43 +3290,28 @@ async function usePrivateVideoAccess(videoId) {
         console.log('📋 Результат запроса инвайт-ссылки:', result);
         
         if (result.success && result.invite_link) {
-            // Копируем ссылку в буфер обмена
-            await navigator.clipboard.writeText(result.invite_link);
-            
-            // Показываем инструкцию
-            const userAction = confirm(
-                `🎬 Доступ к материалу\n\n` +
-                `1. Пригласительная ссылка скопирована в буфер обмена\n` +
-                `2. Перейдите по ссылке в Telegram\n` +
-                `3. Вступите в приватный канал\n` +
-                `4. Найдите материал в канале\n\n` +
-                `Хотите перейти по ссылке сейчас?`
-            );
-            
-            if (userAction) {
-                window.open(result.invite_link, '_blank');
-            }
-            
-            showMessage('✅ Пригласительная ссылка скопирована!', 'success');
+            await handleInviteLink(result.invite_link, result.video_title);
         } else {
             throw new Error(result.error || 'Не удалось получить ссылку');
         }
         
     } catch (error) {
         console.error('❌ Ошибка получения доступа:', error);
+        showMessage(`❌ ${error.message}`, 'error');
         
-        // Проверяем есть ли доступ у пользователя
-        const hasAccess = await checkUserVideoAccess(videoId);
-        if (hasAccess) {
-            showMessage('✅ У вас есть доступ к материалу. Попробуйте обновить страницу.', 'info');
-        } else {
-            showMessage(`❌ ${error.message}`, 'error');
-        }
+        // Предлагаем обновить страницу
+        setTimeout(() => {
+            if (confirm('Попробовать обновить страницу и проверить доступ?')) {
+                location.reload();
+            }
+        }, 2000);
     }
 }
 
-async function checkUserVideoAccess(videoId) {
+// Новая функция для проверки локального доступа
+async function checkLocalVideoAccess(videoId) {
     try {
+        // Проверяем в текущих данных
         const response = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
         if (response.ok) {
             const result = await response.json();
@@ -3325,12 +3324,54 @@ async function checkUserVideoAccess(videoId) {
             }
             
             const video = videos.find(v => v.id == videoId);
-            return video && (video.has_access || video.has_purchase);
+            const hasAccess = video && (video.has_access || video.has_purchase);
+            
+            console.log('🔍 Локальная проверка доступа:', {
+                videoId,
+                foundVideo: !!video,
+                hasAccess,
+                videoData: video ? {
+                    id: video.id,
+                    has_access: video.has_access,
+                    has_purchase: video.has_purchase,
+                    access_id: video.access_id
+                } : null
+            });
+            
+            return hasAccess;
         }
         return false;
     } catch (error) {
-        console.error('❌ Ошибка проверки доступа:', error);
+        console.error('❌ Ошибка локальной проверки доступа:', error);
         return false;
+    }
+}
+
+// Функция обработки инвайт-ссылки
+async function handleInviteLink(inviteLink, videoTitle) {
+    try {
+        // Копируем ссылку в буфер обмена
+        await navigator.clipboard.writeText(inviteLink);
+        
+        // Показываем инструкцию
+        const userAction = confirm(
+            `🎬 Доступ к "${videoTitle || 'материалу'}"\n\n` +
+            `1. Пригласительная ссылка скопирована в буфер обмена\n` +
+            `2. Перейдите по ссылке в Telegram\n` +
+            `3. Вступите в приватный канал\n` +
+            `4. Найдите материал в канале\n\n` +
+            `Хотите перейти по ссылке сейчас?`
+        );
+        
+        if (userAction) {
+            window.open(inviteLink, '_blank');
+        }
+        
+        showMessage('✅ Пригласительная ссылка скопирована!', 'success');
+    } catch (copyError) {
+        console.error('❌ Ошибка копирования:', copyError);
+        // Показываем ссылку напрямую если не удалось скопировать
+        showMessage(`🔗 Ссылка для вступления: ${inviteLink}`, 'info');
     }
 }
   
@@ -3389,7 +3430,6 @@ async function purchasePrivateVideo(videoId) {
     try {
         console.log('🛒 Начало покупки видео:', videoId);
         
-        // Находим информацию о видео
         const video = await getVideoInfo(videoId);
         if (!video) {
             showMessage('❌ Материал не найден', 'error');
@@ -3427,18 +3467,25 @@ async function purchasePrivateVideo(videoId) {
                 updateUserDisplay();
             }
             
-            // Ждем обновления данных перед использованием доступа
+            // Ждем и обновляем данные
             setTimeout(async () => {
-                // Принудительно обновляем список материалов
-                await loadPrivateVideos();
+                console.log('🔄 Обновляем данные после покупки...');
+                await loadPrivateVideos(true);
                 
-                // Даем время на обновление интерфейса
-                setTimeout(() => {
-                    if (confirm('Покупка успешна! Хотите получить пригласительную ссылку сейчас?')) {
-                        usePrivateVideoAccess(videoId);
-                    }
-                }, 500);
-            }, 1000);
+                // Проверяем что доступ появился
+                const hasAccess = await checkLocalVideoAccess(videoId);
+                console.log('✅ Проверка доступа после покупки:', hasAccess);
+                
+                if (hasAccess) {
+                    setTimeout(() => {
+                        if (confirm('Покупка успешна! Хотите получить пригласительную ссылку сейчас?')) {
+                            usePrivateVideoAccess(videoId);
+                        }
+                    }, 1000);
+                } else {
+                    showMessage('⚠️ Покупка завершена, но доступ не активирован. Попробуйте обновить страницу.', 'info');
+                }
+            }, 1500);
             
         } else {
             showMessage(`❌ ${result.error}`, 'error');
@@ -3554,87 +3601,7 @@ async function watchPrivateVideo(videoId) {
             return;
         }
         
-        // Формируем прямую ссылку (используем channel_id из видео)
-        let directUrl;
-        if (video.channel_id) {
-            const channelId = video.channel_id.toString().replace('-100', '');
-            directUrl = `https://t.me/c/${channelId}/${video.message_id}`;
-        } else {
-            // Fallback для старых видео
-            directUrl = `https://t.me/c/3448309846/${video.message_id}`;
-        }
         
-        console.log('🔗 Открываем ссылку:', directUrl);
-        window.open(directUrl, '_blank');
-        showMessage('✅ Открываем материал в Telegram...', 'success');
-        
-    } catch (error) {
-        console.error('❌ Ошибка открытия:', error);
-        showMessage('❌ Ошибка открытия материала', 'error');
-        
-        // Простой fallback
-        const directUrl = `https://t.me/c/3448309846/${videoId}`;
-        window.open(directUrl, '_blank');
-    }
-}
-    
-// Обработка инвайт-ссылки
-async function handleInviteLink(inviteLink, videoTitle) {
-    try {
-        // Копируем ссылку в буфер обмена
-        await navigator.clipboard.writeText(inviteLink);
-        
-        showMessage('✅ Ссылка для вступления скопирована!', 'success');
-        
-        // Показываем подробную инструкцию
-        setTimeout(() => {
-            const userAction = confirm(
-                `🎬 Доступ к "${videoTitle}"\n\n` +
-                `1. Ссылка для вступления скопирована в буфер обмена\n` +
-                `2. Перейдите по ссылке в Telegram\n` +
-                `3. Вступите в приватный канал\n` +
-                `4. Вернитесь в приложение\n` +
-                `5. Нажмите "Смотреть" снова\n\n` +
-                `Хотите перейти по ссылке сейчас?`
-            );
-            
-            if (userAction) {
-                window.open(inviteLink, '_blank');
-            }
-        }, 1000);
-        
-    } catch (copyError) {
-        console.error('Ошибка копирования:', copyError);
-        // Показываем ссылку напрямую
-        showMessage(`🔗 Ссылка для вступления: ${inviteLink}`, 'info');
-    }
-}
-
-// Альтернативные методы доступа
-function showAlternativeAccessMethods(videoId) {
-    const action = confirm(
-        'Попробуйте один из альтернативных методов:\n\n' +
-        '1. Получить новую инвайт-ссылку\n' +
-        '2. Проверить статус доступа\n' +
-        '3. Связаться с поддержкой'
-    );
-    
-    if (action) {
-        const choice = prompt('Выберите действие (1, 2 или 3):');
-        switch (choice) {
-            case '1':
-                getNewInviteLink(videoId);
-                break;
-            case '2':
-                checkAccessStatus(videoId);
-                break;
-            case '3':
-                contactSupport(videoId);
-                break;
-        }
-    }
-}
-
         // Получить детальную информацию о видео
         async function getPrivateVideoDetail(videoId) {
             try {
