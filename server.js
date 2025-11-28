@@ -5092,16 +5092,53 @@ async function startServer() {
             console.log(`📊 PID главного процесса: ${process.pid}`);
         });
         
-        // Настраиваем graceful shutdown
-        setupGracefulShutdown();
+         // Настраиваем graceful shutdown
+        setupGracefulShutdown(server);
+        
+        // Инициализируем Telegram бота
+        await initializeBot();
         
         return server;
         
     } catch (error) {
-        console.error('💥 Критическая ошибка запуска сервера:', error);
+        console.error('💥 Критическая ошибка запуска:', error);
         process.exit(1);
     }
 }
 
-// Запускаем сервер
-const server = startServer();
+// Обновленная функция graceful shutdown
+function setupGracefulShutdown(server) {
+    const pidFile = join(__dirname, 'server.pid');
+    
+    const shutdownHandlers = {
+        'SIGINT': 'Ctrl+C',
+        'SIGTERM': 'системный сигнал завершения'
+    };
+    
+    Object.keys(shutdownHandlers).forEach(signal => {
+        process.on(signal, async () => {
+            console.log(`\n🔄 Получен ${shutdownHandlers[signal]} (${signal})`);
+            
+            try {
+                // Удаляем PID файл
+                if (existsSync(pidFile)) {
+                    await fs.promises.unlink(pidFile);
+                    console.log('✅ PID файл удален');
+                }
+                
+                console.log('👋 Сервер корректно завершает работу...');
+                server.close(() => {
+                    console.log('✅ HTTP сервер остановлен');
+                    process.exit(0);
+                });
+                
+            } catch (error) {
+                console.error('❌ Ошибка при завершении:', error);
+                process.exit(1);
+            }
+        });
+    });
+}
+
+// ЗАПУСКАЕМ ПРИЛОЖЕНИЕ
+main().catch(console.error);
