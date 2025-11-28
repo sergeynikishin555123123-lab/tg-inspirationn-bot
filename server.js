@@ -1613,16 +1613,29 @@ app.get('/api/webapp/private-videos/:videoId/check-access', (req, res) => {
     }
 });
 
-// GET /api/webapp/private-videos/:videoId/invite
+// В server.js в endpoint /api/webapp/private-videos/:videoId/invite
 app.get('/api/webapp/private-videos/:videoId/invite', async (req, res) => {
     try {
         const { videoId } = req.params;
         const { userId } = req.query;
         
-        console.log('📨 Запрос пригласительной ссылки:', { videoId, userId });
+        console.log('🔗 Запрос инвайт-ссылки:', { videoId, userId });
         
-        // Проверяем покупку
-        const hasAccess = await checkVideoAccess(userId, videoId);
+        // Проверяем покупку - ДОБАВИМ ОТЛАДОЧНЫЙ ВЫВОД
+        const hasAccess = db.video_access.some(access => 
+            access.user_id == userId && 
+            access.video_id == videoId && 
+            access.expires_at > new Date().toISOString()
+        );
+        
+        console.log('📊 Проверка доступа:', {
+            userId,
+            videoId,
+            hasAccess,
+            videoAccessCount: db.video_access.length,
+            userAccesses: db.video_access.filter(a => a.user_id == userId)
+        });
+        
         if (!hasAccess) {
             return res.json({ 
                 success: false, 
@@ -1630,48 +1643,12 @@ app.get('/api/webapp/private-videos/:videoId/invite', async (req, res) => {
             });
         }
         
-        // Получаем данные видео
-        const video = await getPrivateVideoById(videoId);
-        if (!video) {
-            return res.json({ success: false, error: 'Материал не найден' });
-        }
-        
-        // Генерируем пригласительную ссылку
-        let inviteLink;
-        
-        // Если есть реальный канал в Telegram
-        if (video.channel_id && video.channel_id.startsWith('-100')) {
-            try {
-                // Пытаемся создать пригласительную ссылку через Telegram Bot API
-                const chatInviteLink = await telegramBot.createChatInviteLink(video.channel_id, {
-                    member_limit: 1,
-                    expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
-                });
-                inviteLink = chatInviteLink.invite_link;
-            } catch (tgError) {
-                console.error('Ошибка создания ссылки в Telegram:', tgError);
-                // Fallback - создаем обычную ссылку
-                inviteLink = `https://t.me/${video.channel_id.replace('-100', '')}`;
-            }
-        } else {
-            // Для публичных каналов или если channel_id это username
-            inviteLink = `https://t.me/${video.channel_id}`;
-        }
-        
-        console.log('✅ Сгенерирована ссылка:', inviteLink);
-        
-        res.json({
-            success: true,
-            invite_link: inviteLink,
-            video_title: video.title,
-            message: 'Используйте эту ссылку для вступления в канал'
-        });
-        
+        // ... остальной код
     } catch (error) {
         console.error('❌ Ошибка получения приглашения:', error);
         res.json({ 
             success: false, 
-            error: 'Не удалось получить пригласительную ссылку. Попробуйте позже.' 
+            error: 'Не удалось получить пригласительную ссылку' 
         });
     }
 });
