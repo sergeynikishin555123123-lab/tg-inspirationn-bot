@@ -3380,10 +3380,19 @@ async function checkUserSubscription(channelId) {
     return { is_subscribed: false };
 }
 
-// public/index.html - Упрощенная функция покупки
+// public/index.html - Исправленная функция покупки
 async function purchasePrivateVideo(videoId) {
     try {
-        if (!confirm(`Купить доступ к этому материалу за ${video.price}✨?\\n\\nСсылка будет автоматически отправлена вам в Telegram.`)) {
+        console.log('🛒 Покупка приватного видео:', videoId);
+        
+        // Находим информацию о видео
+        const video = await getVideoInfo(videoId);
+        if (!video) {
+            showMessage('❌ Видео не найдено', 'error');
+            return;
+        }
+        
+        if (!confirm(`Купить доступ к "${video.title}" за ${video.price}✨?\n\nСсылка будет автоматически отправлена вам в Telegram.`)) {
             return;
         }
         
@@ -3404,8 +3413,10 @@ async function purchasePrivateVideo(videoId) {
             showMessage(`✅ ${result.message}`, 'success');
             
             // Обновляем баланс
-            currentUser.sparks = result.remaining_sparks;
-            updateUserDisplay();
+            if (result.remaining_sparks !== undefined) {
+                currentUser.sparks = result.remaining_sparks;
+                updateUserDisplay();
+            }
             
             // Если есть прямая ссылка - предлагаем открыть
             if (result.direct_url) {
@@ -3413,8 +3424,11 @@ async function purchasePrivateVideo(videoId) {
                     if (confirm('Покупка успешна! Хотите открыть материал сейчас?')) {
                         window.open(result.direct_url, '_blank');
                     }
-                }, 1000);
+                }, 1500);
             }
+            
+            // Обновляем список материалов
+            loadMyPrivateVideos();
             
         } else {
             showMessage(`❌ ${result.error}`, 'error');
@@ -3426,6 +3440,66 @@ async function purchasePrivateVideo(videoId) {
     }
 }
 
+// public/index.html - Функция получения информации о видео
+async function getVideoInfo(videoId) {
+    try {
+        const response = await fetch(`/api/webapp/private-videos/${videoId}?userId=${currentUserId}`);
+        if (response.ok) {
+            const video = await response.json();
+            return video;
+        }
+    } catch (error) {
+        console.error('Ошибка получения информации о видео:', error);
+    }
+    
+    // Fallback - ищем в локальном списке
+    const privateVideosResponse = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
+    if (privateVideosResponse.ok) {
+        const result = await privateVideosResponse.json();
+        if (result.success) {
+            return result.videos.find(v => v.id == videoId);
+        }
+    }
+    
+    return null;
+}
+
+// public/index.html - Упрощенная функция просмотра
+async function watchPrivateVideo(videoId) {
+    try {
+        console.log('🎬 Просмотр видео:', videoId);
+        
+        // Получаем информацию о видео
+        const video = await getVideoInfo(videoId);
+        if (!video) {
+            showMessage('❌ Видео не найдено', 'error');
+            return;
+        }
+        
+        // Формируем прямую ссылку (используем channel_id из видео)
+        let directUrl;
+        if (video.channel_id) {
+            const channelId = video.channel_id.toString().replace('-100', '');
+            directUrl = `https://t.me/c/${channelId}/${video.message_id}`;
+        } else {
+            // Fallback для старых видео
+            directUrl = `https://t.me/c/3448309846/${video.message_id}`;
+        }
+        
+        console.log('🔗 Открываем ссылку:', directUrl);
+        window.open(directUrl, '_blank');
+        showMessage('✅ Открываем материал в Telegram...', 'success');
+        
+    } catch (error) {
+        console.error('❌ Ошибка открытия:', error);
+        showMessage('❌ Ошибка открытия материала', 'error');
+        
+        // Простой fallback
+        const directUrl = `https://t.me/c/3448309846/${videoId}`;
+        window.open(directUrl, '_blank');
+    }
+}
+    
 // Функция для проверки состояния покупки
 async function debugPurchase(videoId) {
     try {
@@ -3647,38 +3721,6 @@ function displayMyPrivateVideos(purchases) {
     });
 }
     
-// server.js - Простой endpoint для информации о видео
-app.get('/api/webapp/private-videos/:videoId', (req, res) => {
-    try {
-        const videoId = parseInt(req.params.videoId);
-        const userId = parseInt(req.query.userId);
-        
-        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
-        if (!video) {
-            return res.status(404).json({ error: 'Video not found' });
-        }
-        
-        // Формируем прямую ссылку
-        const directUrl = `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`;
-        
-        res.json({
-            id: video.id,
-            title: video.title,
-            description: video.description,
-            direct_url: directUrl,
-            has_access: db.video_access.some(access => 
-                access.user_id === userId && 
-                access.video_id === videoId &&
-                access.expires_at > new Date().toISOString()
-            )
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка получения информации о видео:', error);
-        res.status(500).json({ error: 'Server error' });
-    }
-});
-
 // Обработка инвайт-ссылки
 async function handleInviteLink(inviteLink, videoTitle) {
     try {
