@@ -963,6 +963,44 @@ async function getOrCreateInviteLink(videoId, userId) {
     }
 }
 
+// Проверка доступа к видео
+async function checkVideoAccess(userId, videoId) {
+    try {
+        // Здесь должна быть реальная проверка из вашей базы данных
+        // Временная заглушка - проверяем есть ли покупка
+        const purchase = await db.get(`
+            SELECT * FROM purchases 
+            WHERE user_id = ? AND item_id = ? AND item_type = 'private_video'
+        `, [userId, videoId]);
+        
+        return !!purchase;
+    } catch (error) {
+        console.error('Ошибка проверки доступа:', error);
+        return false;
+    }
+}
+
+// Получение данных видео
+async function getPrivateVideoById(videoId) {
+    try {
+        // Здесь реальный запрос к вашей базе данных
+        const video = await db.get(`
+            SELECT * FROM private_videos WHERE id = ?
+        `, [videoId]);
+        
+        return video;
+    } catch (error) {
+        console.error('Ошибка получения видео:', error);
+        return null;
+    }
+}
+
+// Генерация токена доступа
+function generateAccessToken(userId, videoId) {
+    const tokenData = `${userId}_${videoId}_${Date.now()}`;
+    return Buffer.from(tokenData).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
 // ==================== ОПТИМИЗИРОВАННЫЕ API ДЛЯ МОБИЛЬНЫХ ====================
 
 // Middleware для определения мобильных устройств
@@ -1096,6 +1134,77 @@ app.get('/api/mobile/lazy-load', (req, res) => {
             error: 'Lazy load error',
             optimized: true 
         });
+    }
+});
+
+// GET /api/telegram/proxy/:token
+app.get('/api/telegram/proxy/:token', async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { videoId } = req.query;
+        
+        // Декодируем токен
+        const tokenData = Buffer.from(token.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString();
+        const [userId, originalVideoId, timestamp] = tokenData.split('_');
+        
+        // Проверяем валидность токена
+        if (videoId !== originalVideoId) {
+            return res.status(403).send('Неверный токен доступа');
+        }
+        
+        // Проверяем не устарел ли токен (24 часа)
+        const tokenTime = parseInt(timestamp);
+        if (Date.now() - tokenTime > 24 * 60 * 60 * 1000) {
+            return res.status(403).send('Токен доступа устарел');
+        }
+        
+        // Получаем данные видео
+        const video = await getPrivateVideoById(videoId);
+        if (!video) {
+            return res.status(404).send('Материал не найден');
+        }
+        
+        // Проверяем доступ
+        const hasAccess = await checkVideoAccess(userId, videoId);
+        if (!hasAccess) {
+            return res.status(403).send('Доступ запрещен');
+        }
+        
+        // Здесь должна быть логика перенаправления к реальному контенту в Telegram
+        // Пока возвращаем информационную страницу
+        res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>${video.title}</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+                    .container { max-width: 600px; margin: 0 auto; }
+                    .success { color: #28a745; }
+                    .info { color: #17a2b8; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1 class="success">✅ Доступ предоставлен</h1>
+                    <h2>${video.title}</h2>
+                    <p class="info">Это защищенная страница доступа к материалу</p>
+                    <p>👤 Пользователь: ${userId}</p>
+                    <p>🎬 Материал: ${videoId}</p>
+                    <p>📅 Время доступа: ${new Date().toLocaleString('ru-RU')}</p>
+                    <hr>
+                    <p><strong>Ссылка на материал в Telegram:</strong></p>
+                    <p><a href="${video.post_url}" target="_blank">${video.post_url}</a></p>
+                    <p><em>Если ссылка не открывается автоматически, скопируйте и откройте в Telegram</em></p>
+                </div>
+            </body>
+            </html>
+        `);
+        
+    } catch (error) {
+        console.error('❌ Ошибка прокси:', error);
+        res.status(500).send('Ошибка доступа к материалу');
     }
 });
 
@@ -1527,6 +1636,139 @@ app.get('/api/webapp/private-videos/:videoId/watch', (req, res) => {
         res.status(500).json({ 
             success: false,
             error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// GET /api/webapp/private-videos/:videoId/invite
+app.get('/api/webapp/private-videos/:videoId/invite', async (req, res) => {
+    try {
+        const { videoId } = req.params;
+        const { userId } = req.query;
+        
+        console.log('📨 Запрос пригласительной ссылки:', { videoId, userId });
+        
+        // Проверяем покупку
+        const hasAccess = await checkVideoAccess(userId, videoId);
+        if (!hasAccess) {
+            return res.json({ 
+                success: false, 
+                error: 'Для получения приглашения необходимо сначала приобрести доступ к материалу' 
+            });
+        }
+        
+        // Получаем данные видео
+        const video = await getPrivateVideoById(videoId);
+        if (!video) {
+            return res.json({ success: false, error: 'Материал не найден' });
+        }
+        
+        // Генерируем пригласительную ссылку
+        let inviteLink;
+        
+        // Если есть реальный канал в Telegram
+        if (video.channel_id && video.channel_id.startsWith('-100')) {
+            try {
+                // Пытаемся создать пригласительную ссылку через Telegram Bot API
+                const chatInviteLink = await telegramBot.createChatInviteLink(video.channel_id, {
+                    member_limit: 1,
+                    expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
+                });
+                inviteLink = chatInviteLink.invite_link;
+            } catch (tgError) {
+                console.error('Ошибка создания ссылки в Telegram:', tgError);
+                // Fallback - создаем обычную ссылку
+                inviteLink = `https://t.me/${video.channel_id.replace('-100', '')}`;
+            }
+        } else {
+            // Для публичных каналов или если channel_id это username
+            inviteLink = `https://t.me/${video.channel_id}`;
+        }
+        
+        console.log('✅ Сгенерирована ссылка:', inviteLink);
+        
+        res.json({
+            success: true,
+            invite_link: inviteLink,
+            video_title: video.title,
+            message: 'Используйте эту ссылку для вступления в канал'
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения приглашения:', error);
+        res.json({ 
+            success: false, 
+            error: 'Не удалось получить пригласительную ссылку. Попробуйте позже.' 
+        });
+    }
+});
+
+// GET /api/webapp/private-videos/:videoId/access
+app.get('/api/webapp/private-videos/:videoId/access', async (req, res) => {
+    try {
+        const { videoId } = req.params;
+        const { userId } = req.query;
+        
+        console.log('🎬 Запрос доступа к видео:', { videoId, userId });
+        
+        // Проверяем покупку
+        const hasAccess = await checkVideoAccess(userId, videoId);
+        if (!hasAccess) {
+            return res.json({ 
+                success: false, 
+                error: 'Доступ к материалу не приобретен. Сначала купите материал в магазине.' 
+            });
+        }
+        
+        // Получаем данные видео
+        const video = await getPrivateVideoById(videoId);
+        if (!video) {
+            return res.json({ success: false, error: 'Материал не найден' });
+        }
+        
+        // Создаем защищенную ссылку для доступа
+        const accessToken = generateAccessToken(userId, videoId);
+        const protectedLink = `/api/telegram/proxy/${accessToken}?videoId=${videoId}`;
+        
+        // Полный URL для доступа
+        const fullAccessUrl = `${req.protocol}://${req.get('host')}${protectedLink}`;
+        
+        console.log('✅ Создан доступ:', fullAccessUrl);
+        
+        res.json({
+            success: true,
+            access_url: fullAccessUrl,
+            video_title: video.title,
+            message: 'Материал доступен для просмотра'
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка доступа:', error);
+        res.json({ 
+            success: false, 
+            error: 'Ошибка доступа к материалу' 
+        });
+    }
+});
+
+// GET /api/webapp/check-subscription
+app.get('/api/webapp/check-subscription', async (req, res) => {
+    try {
+        const { userId, channelId } = req.query;
+        
+        // Здесь должна быть реальная проверка подписки через Telegram API
+        // Пока возвращаем заглушку
+        res.json({
+            success: true,
+            is_subscribed: false, // По умолчанию false, нужно реализовать проверку
+            channel_id: channelId
+        });
+        
+    } catch (error) {
+        console.error('Ошибка проверки подписки:', error);
+        res.json({ 
+            success: true, 
+            is_subscribed: false 
         });
     }
 });
