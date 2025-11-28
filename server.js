@@ -727,14 +727,69 @@ private_channel_videos: [
 video_access: [],
 marathon_submissions: []
 };
-// ==================== СИСТЕМА ПРИВАТНОГО КАНАЛА ====================
+// ==================== ТЕЛЕГРАМ АВТОМАТИЗАЦИЯ ====================
 
-// Конфигурация приватного канала
-const PRIVATE_CHANNEL_CONFIG = {
-    CHANNEL_ID: process.env.PRIVATE_CHANNEL_ID || '-1001234567890',
-    CHANNEL_USERNAME: process.env.PRIVATE_CHANNEL_USERNAME || '@private_videos_channel',
-    BOT_TOKEN: process.env.BOT_TOKEN
-};
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+// Функция для добавления пользователя в канал
+async function addUserToChannel(userId, channelId) {
+    try {
+        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: channelId,
+                user_id: userId
+            })
+        });
+        
+        const result = await response.json();
+        
+        // Если пользователь уже участник
+        if (result.ok && ['member', 'administrator', 'creator'].includes(result.result.status)) {
+            return { success: true, already_member: true };
+        }
+        
+        // Если пользователь не участник, добавляем
+        const addResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/approveChatJoinRequest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: channelId,
+                user_id: userId
+            })
+        });
+        
+        const addResult = await addResponse.json();
+        return addResult.ok ? 
+            { success: true, added: true } : 
+            { success: false, error: addResult.description };
+            
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+// Функция для создания инвайт-ссылки для канала
+async function createChannelInviteLink(channelId) {
+    try {
+        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/createChatInviteLink`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: channelId,
+                creates_join_request: true // Требует одобрения
+            })
+        });
+        
+        const result = await response.json();
+        return result.ok ? 
+            { success: true, invite_link: result.result.invite_link } : 
+            { success: false, error: result.description };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
 
 // Увеличены лимиты для больших файлов (3GB)
 app.use(express.json({ limit: '3gb' }));
@@ -1375,156 +1430,90 @@ app.get('/api/webapp/private-videos', (req, res) => {
     }
 });
 
-// Покупка приватного видео
+// Покупка приватного материала с автоматическим добавлением в канал
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
         const { userId, videoId } = req.body;
         
-        console.log('🛒 Покупка приватного видео:', { userId, videoId });
-
-        if (!userId || !videoId) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'User ID and video ID are required' 
-            });
-        }
-
-        const user = db.users.find(u => u.user_id == userId);
-        const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
-
-        if (!user) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Пользователь не найден' 
-            });
-        }
-        
+        // Получаем информацию о видео
+        const video = await db.get('SELECT * FROM private_videos WHERE id = ?', [videoId]);
         if (!video) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Видео не найдено или неактивно' 
-            });
+            return res.json({ success: false, error: 'Материал не найден' });
         }
-
-        // ПРОВЕРКА БАЛАНСА
-        if (user.sparks < video.price) {
-            return res.status(402).json({ 
-                success: false,
-                error: `Недостаточно искр. Нужно: ${video.price}, у вас: ${user.sparks.toFixed(1)}` 
-            });
+        
+        // Проверяем баланс пользователя
+        const user = await db.get('SELECT * FROM users WHERE user_id = ?', [userId]);
+        if (!user || user.sparks < video.price) {
+            return res.json({ success: false, error: 'Недостаточно искр' });
         }
-
-        // ПРОВЕРКА НА УЖЕ КУПЛЕННЫЙ ДОСТУП
-        const existingPurchase = db.purchases.find(p => 
-            p.user_id == userId && p.item_id === videoId && p.item_type === 'private_video'
+        
+        // Проверяем, не покупал ли уже пользователь
+        const existingPurchase = await db.get(
+            'SELECT * FROM private_video_purchases WHERE user_id = ? AND video_id = ?',
+            [userId, videoId]
         );
-
+        
         if (existingPurchase) {
-            return res.status(409).json({ 
-                success: false,
-                error: 'У вас уже есть доступ к этому материалу' 
-            });
+            return res.json({ success: false, error: 'Вы уже приобрели этот материал' });
         }
-
-        // ПРОВЕРКА АКТИВНОГО ДОСТУПА
-        const existingAccess = db.video_access.find(access => 
-            access.user_id == userId && access.video_id === videoId && access.expires_at > new Date().toISOString()
+        
+        // Списываем искры
+        await db.run(
+            'UPDATE users SET sparks = sparks - ? WHERE user_id = ?',
+            [video.price, userId]
         );
-
-        if (existingAccess) {
-            return res.status(409).json({ 
-                success: false,
-                error: 'У вас уже есть активный доступ к этому материалу' 
+        
+        // Добавляем пользователя в канал
+        const addResult = await addUserToChannel(userId, video.channel_id);
+        
+        if (!addResult.success) {
+            // Если не удалось добавить, возвращаем искры
+            await db.run(
+                'UPDATE users SET sparks = sparks + ? WHERE user_id = ?',
+                [video.price, userId]
+            );
+            return res.json({ 
+                success: false, 
+                error: `Не удалось предоставить доступ: ${addResult.error}` 
             });
         }
-
-        // СПИСАНИЕ ИСКР
-        const oldSparks = user.sparks;
-        user.sparks -= video.price;
         
-        console.log(`💰 Списание искр: ${oldSparks} -> ${user.sparks}`);
-
-        // СОЗДАНИЕ ЗАПИСИ О ПОКУПКЕ
-        const purchase = {
-            id: Date.now(),
-            user_id: parseInt(userId),
-            item_id: videoId,
-            item_type: 'private_video',
-            item_title: video.title,
-            price_paid: video.price,
-            purchased_at: new Date().toISOString()
-        };
-        db.purchases.push(purchase);
-
-        // СОЗДАНИЕ ДОСТУПА (30 ДНЕЙ)
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
+        // Записываем покупку
+        await db.run(
+            `INSERT INTO private_video_purchases 
+             (user_id, video_id, price_paid, channel_id, message_id, access_granted) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [userId, videoId, video.price, video.channel_id, video.message_id, 1]
+        );
         
-        const access = {
-            id: Date.now(),
-            user_id: parseInt(userId),
-            video_id: videoId,
-            purchased_at: new Date().toISOString(),
-            expires_at: expiresAt.toISOString(),
-            telegram_message_id: null
-        };
-        db.video_access.push(access);
-
-        // ЗАПИСЬ АКТИВНОСТИ
-        // Добавьте эту функцию если её нет:
-        function addSparks(userId, sparks, activityType, description) {
-            const user = db.users.find(u => u.user_id == userId);
-            if (user) {
-                user.sparks = Math.max(0, user.sparks + sparks);
-                user.last_active = new Date().toISOString();
-                
-                const activity = {
-                    id: Date.now(),
-                    user_id: userId,
-                    activity_type: activityType,
-                    sparks_earned: sparks,
-                    description: description,
-                    created_at: new Date().toISOString()
-                };
-                
-                db.activities.push(activity);
-                return activity;
-            }
-            return null;
-        }
-
-        addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
-
-        console.log('✅ Покупка завершена:', { 
-            purchase: purchase.id, 
-            access: access.id,
-            user: userId,
-            video: video.title
-        });
-
+        // Обновляем статистику видео
+        await db.run(
+            'UPDATE private_videos SET purchase_count = purchase_count + 1 WHERE id = ?',
+            [videoId]
+        );
+        
+        // Записываем активность
+        await db.run(
+            `INSERT INTO user_activities 
+             (user_id, activity_type, description, sparks_earned) 
+             VALUES (?, ?, ?, ?)`,
+            [userId, 'private_video_purchase', `Покупка приватного материала: ${video.title}`, -video.price]
+        );
+        
+        // Получаем обновленные данные пользователя
+        const updatedUser = await db.get('SELECT * FROM users WHERE user_id = ?', [userId]);
+        
         res.json({
             success: true,
-            purchase: purchase,
-            access: access,
-            remaining_sparks: user.sparks,
-            message: `Доступ к "${video.title}" успешно приобретен! Ссылка для просмотра доступна в ваших покупках.`
+            message: `✅ Материал "${video.title}" успешно приобретен! Вы были добавлены в канал.`,
+            user: updatedUser,
+            video: video,
+            access_granted: true
         });
-
+        
     } catch (error) {
-        console.error('❌ Ошибка покупки приватного видео:', error);
-        
-        // ОТКАТ СПИСАНИЯ В СЛУЧАЕ ОШИБКИ
-        if (userId) {
-            const user = db.users.find(u => u.user_id == userId);
-            if (user) {
-                user.sparks += req.body.videoId ? db.private_channel_videos.find(v => v.id == req.body.videoId)?.price || 0 : 0;
-            }
-        }
-        
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка при покупке доступа к видео' 
-        });
+        console.error('Ошибка покупки приватного видео:', error);
+        res.json({ success: false, error: 'Ошибка покупки' });
     }
 });
 
@@ -1703,51 +1692,98 @@ app.get('/api/webapp/private-videos/:videoId/invite', async (req, res) => {
     }
 });
 
-// GET /api/webapp/private-videos/:videoId/access
+// Получение доступа к купленному материалу
 app.get('/api/webapp/private-videos/:videoId/access', async (req, res) => {
     try {
         const { videoId } = req.params;
         const { userId } = req.query;
         
-        console.log('🎬 Запрос доступа к видео:', { videoId, userId });
-        
         // Проверяем покупку
-        const hasAccess = await checkVideoAccess(userId, videoId);
-        if (!hasAccess) {
+        const purchase = await db.get(
+            `SELECT p.*, v.title, v.channel_id, v.message_id 
+             FROM private_video_purchases p
+             JOIN private_videos v ON p.video_id = v.id
+             WHERE p.user_id = ? AND p.video_id = ? AND p.access_granted = 1`,
+            [userId, videoId]
+        );
+        
+        if (!purchase) {
             return res.json({ 
                 success: false, 
-                error: 'Доступ к материалу не приобретен. Сначала купите материал в магазине.' 
+                error: 'Доступ к материалу не найден или не оплачен' 
             });
         }
         
-        // Получаем данные видео
-        const video = await getPrivateVideoById(videoId);
-        if (!video) {
-            return res.json({ success: false, error: 'Материал не найден' });
+        // Проверяем, что пользователь все еще в канале
+        const memberCheck = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: purchase.channel_id,
+                user_id: userId
+            })
+        });
+        
+        const checkResult = await memberCheck.json();
+        const isMember = checkResult.ok && ['member', 'administrator', 'creator'].includes(checkResult.result.status);
+        
+        if (!isMember) {
+            // Пытаемся добавить снова
+            const addResult = await addUserToChannel(userId, purchase.channel_id);
+            if (!addResult.success) {
+                return res.json({ 
+                    success: false, 
+                    error: 'Вы не являетесь участником канала. Обратитесь к администратору.' 
+                });
+            }
         }
         
-        // Создаем защищенную ссылку для доступа
-        const accessToken = generateAccessToken(userId, videoId);
-        const protectedLink = `/api/telegram/proxy/${accessToken}?videoId=${videoId}`;
+        // Создаем прямую ссылку на пост
+        const postUrl = `https://t.me/c/${purchase.channel_id.toString().replace('-100', '')}/${purchase.message_id}`;
         
-        // Полный URL для доступа
-        const fullAccessUrl = `${req.protocol}://${req.get('host')}${protectedLink}`;
-        
-        console.log('✅ Создан доступ:', fullAccessUrl);
+        // Обновляем счетчик просмотров
+        await db.run(
+            'UPDATE private_video_purchases SET view_count = view_count + 1 WHERE id = ?',
+            [purchase.id]
+        );
         
         res.json({
             success: true,
-            access_url: fullAccessUrl,
-            video_title: video.title,
-            message: 'Материал доступен для просмотра'
+            access_type: 'direct_link',
+            post_url: postUrl,
+            video_title: purchase.title,
+            message: 'Открываем материал...'
         });
         
     } catch (error) {
-        console.error('❌ Ошибка доступа:', error);
-        res.json({ 
-            success: false, 
-            error: 'Ошибка доступа к материалу' 
+        console.error('Ошибка доступа к приватному видео:', error);
+        res.json({ success: false, error: 'Ошибка доступа' });
+    }
+});
+
+// Получение списка купленных материалов
+app.get('/api/webapp/users/:userId/purchased-private-videos', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        const purchases = await db.all(
+            `SELECT p.*, v.title, v.description, v.duration, v.category, v.level,
+                    v.channel_id, v.message_id, v.price as original_price
+             FROM private_video_purchases p
+             JOIN private_videos v ON p.video_id = v.id
+             WHERE p.user_id = ? AND p.access_granted = 1
+             ORDER BY p.purchased_at DESC`,
+            [userId]
+        );
+        
+        res.json({
+            success: true,
+            purchases: purchases || []
         });
+        
+    } catch (error) {
+        console.error('Ошибка загрузки покупок:', error);
+        res.json({ success: false, error: 'Ошибка загрузки', purchases: [] });
     }
 });
 
