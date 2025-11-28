@@ -1535,12 +1535,12 @@ app.get('/api/webapp/private-videos', (req, res) => {
     }
 });
 
-// server.js - ОБНОВЛЕННЫЙ ENDPOINT ПОКУПКИ ПРИВАТНЫХ МАТЕРИАЛОВ
+// server.js - АВТОМАТИЗИРОВАННЫЙ ENDPOINT ПОКУПКИ
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
         const { userId, videoId } = req.body;
         
-        console.log('🛒 Покупка приватного видео:', { userId, videoId });
+        console.log('🛒 Автоматическая покупка приватного видео:', { userId, videoId });
 
         if (!userId || !videoId) {
             return res.status(400).json({ 
@@ -1621,47 +1621,16 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         // ЗАПИСЬ АКТИВНОСТИ
         addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
 
-        // 🔥 АВТОМАТИЧЕСКОЕ ДОБАВЛЕНИЕ В КАНАЛ TELEGRAM
-        console.log(`🔗 Пытаемся добавить пользователя ${userId} в канал ${video.channel_id}`);
-        const addToChannelResult = await addUserToPrivateChannel(userId, video.channel_id, video.title);
+        // 🔥 АВТОМАТИЧЕСКАЯ ОТПРАВКА ССЫЛКИ В TELEGRAM
+        console.log(`🤖 Автоматически отправляем ссылку пользователю ${userId}`);
+        const telegramResult = await sendVideoAccessToUser(userId, video);
         
-        let responseMessage = '';
-        let directUrl = '';
-        
-        if (addToChannelResult.success) {
-            console.log(`✅ Пользователь успешно добавлен в канал: ${addToChannelResult.message}`);
-            
-            if (addToChannelResult.added) {
-                // Пользователь добавлен автоматически
-                responseMessage = `Доступ к "${video.title}" успешно приобретен! Вы были автоматически добавлены в канал.`;
-                directUrl = `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`;
-            } else if (addToChannelResult.invite_link) {
-                // Отправлена инвайт-ссылка
-                responseMessage = `Доступ к "${video.title}" успешно приобретен! Для получения доступа используйте отправленную вам пригласительную ссылку в Telegram.`;
-            } else {
-                // Уже был участником
-                responseMessage = `Доступ к "${video.title}" успешно приобретен! Вы уже состоите в канале.`;
-                directUrl = `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`;
-            }
-        } else {
-            console.log(`⚠️ Пользователь не добавлен в канал: ${addToChannelResult.error}`);
-            
-            // Создаем инвайт-ссылку как запасной вариант
-            const inviteResult = await createPrivateInviteLink(video.channel_id, userId);
-            
-            if (inviteResult.success) {
-                responseMessage = `Доступ к "${video.title}" успешно приобретен! Для получения доступа используйте пригласительную ссылку: ${inviteResult.invite_link}`;
-            } else {
-                responseMessage = `Доступ к "${video.title}" успешно приобретен! Для получения доступа обратитесь к администратору.`;
-            }
-        }
-
         console.log('✅ Покупка завершена:', { 
             purchase: purchase.id, 
             access: access.id,
             user: userId,
             video: video.title,
-            channel_add: addToChannelResult.success
+            telegram_sent: telegramResult.success
         });
 
         res.json({
@@ -1669,11 +1638,11 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             purchase: purchase,
             access: access,
             remaining_sparks: user.sparks,
-            channel_added: addToChannelResult.success,
-            channel_method: addToChannelResult.method,
-            direct_url: directUrl,
-            invite_link: addToChannelResult.invite_link,
-            message: responseMessage
+            telegram_sent: telegramResult.success,
+            direct_url: telegramResult.direct_url || `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`,
+            message: telegramResult.success ? 
+                `✅ Доступ к "${video.title}" успешно приобретен! Ссылка отправлена вам в Telegram.` :
+                `✅ Доступ к "${video.title}" успешно приобретен! Ссылка: ${telegramResult.direct_url}`
         });
 
     } catch (error) {
@@ -2323,6 +2292,114 @@ function contactSupport(videoId) {
     
     window.open(telegramUrl, '_blank');
     showMessage('💬 Открываем чат с поддержкой...', 'info');
+}
+
+// server.js - ФУНКЦИЯ АВТОМАТИЧЕСКОЙ ОТПРАВКИ ДОСТУПА
+async function sendVideoAccessToUser(userId, video) {
+    try {
+        console.log(`📨 Отправляем доступ пользователю ${userId} на видео: ${video.title}`);
+        
+        if (!TELEGRAM_BOT_TOKEN) {
+            return { 
+                success: false, 
+                error: 'Токен бота не настроен',
+                direct_url: `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`
+            };
+        }
+
+        // Формируем прямую ссылку на пост
+        const directUrl = `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`;
+        
+        // Создаем красивое сообщение
+        const message = `🎬 *Вы получили доступ к приватному материалу!*
+
+📹 *${video.title}*
+
+${video.description ? `📝 ${video.description}\\n` : ''}
+${video.duration ? `⏱️ Длительность: ${video.duration}\\n` : ''}
+🎯 *Уровень:* ${getLevelName(video.level)}
+📚 *Категория:* ${getCategoryName(video.category)}
+
+🔗 *Ссылка для просмотра:*
+${directUrl}
+
+💡 *Инструкция:*
+1. Нажмите на ссылку выше
+2. Материал откроется в Telegram
+3. Сохраните ссылку для будущего доступа
+
+⏰ *Доступ активен:* 30 дней
+📅 *Истекает:* ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('ru-RU')}
+
+Приятного просмотра! 🎉`;
+
+        // Отправляем сообщение через Telegram Bot API
+        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: userId,
+                text: message,
+                parse_mode: 'Markdown',
+                disable_web_page_preview: false,
+                reply_markup: {
+                    inline_keyboard: [[
+                        {
+                            text: "🎬 Смотреть материал",
+                            url: directUrl
+                        }
+                    ]]
+                }
+            })
+        });
+
+        const result = await response.json();
+        
+        if (result.ok) {
+            console.log(`✅ Сообщение с доступом отправлено пользователю ${userId}`);
+            return {
+                success: true,
+                message_id: result.result.message_id,
+                direct_url: directUrl
+            };
+        } else {
+            console.error(`❌ Ошибка отправки сообщения:`, result.description);
+            return {
+                success: false,
+                error: result.description,
+                direct_url: directUrl // Все равно возвращаем ссылку
+            };
+        }
+
+    } catch (error) {
+        console.error(`💥 Ошибка отправки доступа пользователю ${userId}:`, error);
+        return {
+            success: false,
+            error: error.message,
+            direct_url: `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`
+        };
+    }
+}
+
+// Вспомогательные функции для форматирования
+function getCategoryName(category) {
+    const categories = {
+        'video': '🎥 Видео',
+        'course': '🎓 Курс', 
+        'lesson': '📖 Урок',
+        'masterclass': '⚡ Мастер-класс',
+        'material': '📚 Материал'
+    };
+    return categories[category] || category;
+}
+
+function getLevelName(level) {
+    const levels = {
+        'beginner': '👶 Начинающий',
+        'intermediate': '🚀 Продвинутый',
+        'advanced': '🔥 Эксперт'
+    };
+    return levels[level] || level;
 }
 
 // Скрипт для проверки прав бота
