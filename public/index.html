@@ -5965,6 +5965,87 @@ function filterPurchasesByType(type) {
             }
         }
 
+// Функция для обработки покупки и автоматического доступа
+async function handlePrivateVideoPurchase(videoId) {
+    try {
+        const response = await fetch('/api/webapp/private-videos/purchase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentUserId,
+                videoId: videoId
+            })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            // УСПЕШНАЯ ПОКУПКА - ОБРАБАТЫВАЕМ РЕЗУЛЬТАТ
+            if (result.channel_added && result.direct_url) {
+                // Пользователь добавлен в канал - открываем материал
+                showMessage(result.message, 'success');
+                setTimeout(() => {
+                    window.open(result.direct_url, '_blank');
+                }, 2000);
+            } else if (result.invite_link) {
+                // Нужно использовать инвайт-ссылку
+                showMessage(result.message, 'info');
+                // Показываем кнопку для перехода по ссылке
+                showInviteLinkModal(result.invite_link, result.video_title);
+            } else {
+                // Общий успех
+                showMessage(result.message, 'success');
+            }
+        } else {
+            showMessage(result.error, 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка покупки:', error);
+        showMessage('Ошибка при покупке доступа', 'error');
+    }
+}
+
+// Функция для показа модального окна с инвайт-ссылкой
+function showInviteLinkModal(inviteLink, videoTitle) {
+    const modalHtml = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;">
+            <div style="background: white; padding: 24px; border-radius: 12px; max-width: 400px; width: 90%;">
+                <h3 style="margin-bottom: 16px;">🎬 Доступ к "${videoTitle}"</h3>
+                <p style="margin-bottom: 16px; color: #666;">Для просмотра материала необходимо вступить в приватный канал Telegram.</p>
+                
+                <div style="background: #f0f8ff; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                    <div style="font-size: 12px; color: #007bff; margin-bottom: 8px;">Пригласительная ссылка:</div>
+                    <div style="word-break: break-all; font-size: 14px; background: white; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                        ${inviteLink}
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="copyToClipboard('${inviteLink}')" style="flex: 1; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        📋 Копировать ссылку
+                    </button>
+                    <button onclick="window.open('${inviteLink}', '_blank')" style="flex: 1; padding: 12px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        🔗 Открыть в Telegram
+                    </button>
+                </div>
+                
+                <button onclick="this.closest('div[style]').remove()" style="width: 100%; margin-top: 16px; padding: 8px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    Закрыть
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Функция копирования в буфер обмена
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showMessage('Ссылка скопирована в буфер обмена', 'success');
+    });
+}
+    
         // ==================== ПРИГЛАШЕНИЯ ====================
 
         // Копирование ссылки приглашения
