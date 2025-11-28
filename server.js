@@ -3683,7 +3683,7 @@ app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) =>
     const interactiveIndex = db.interactives.findIndex(i => i.id === interactiveId);
     
     if (interactiveIndex === -1) {
-        return res.status(app.get('/api/webapp/private-videos', (req, res) => {404).json({ error: 'Interactive not found' });
+        return res.status(404).json({ error: 'Interactive not found' });
     }
     
     db.interactives.splice(interactiveIndex, 1);
