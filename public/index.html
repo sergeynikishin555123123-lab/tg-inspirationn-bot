@@ -5425,7 +5425,7 @@ async function purchaseItem(itemId) {
     
         // ==================== СИСТЕМА ПОКУПОК ====================
 
-// Загрузка купленных товаров - ПОЛНОСТЬЮ ПЕРЕРАБОТАННАЯ ВЕРСИЯ
+// Исправленная функция загрузки покупок
 async function loadPurchasedItems() {
     try {
         console.log('🛒 Загружаем покупки для пользователя:', currentUserId);
@@ -5433,33 +5433,7 @@ async function loadPurchasedItems() {
         const response = await fetch(`/api/webapp/users/${currentUserId}/purchases`);
         const data = await response.json();
         
-        console.log('📦 Данные покупок от API:', {
-            count: data.purchases?.length,
-            purchases: data.purchases?.map(p => ({
-                id: p.id,
-                title: p.title,
-                type: p.type,
-                hasEmbed: !!p.embed_html,
-                embedLength: p.embed_html?.length,
-                allFields: Object.keys(p) // Показывает все доступные поля
-            }))
-        });
-        
-        // Дополнительная детальная информация о embed-товарах
-        if (data.purchases && data.purchases.length > 0) {
-            const embedPurchases = data.purchases.filter(p => p.type === 'embed');
-            console.log('🎬 Embed-товары найдены:', {
-                count: embedPurchases.length,
-                items: embedPurchases.map(p => ({
-                    id: p.id,
-                    title: p.title,
-                    embed_html: p.embed_html ? `[${p.embed_html.length} chars]` : 'MISSING',
-                    html_content: p.html_content ? `[${p.html_content.length} chars]` : 'MISSING',
-                    content_html: p.content_html ? `[${p.content_html.length} chars]` : 'MISSING',
-                    content: p.content ? `[${p.content.length} chars]` : 'MISSING'
-                }))
-            });
-        }
+        console.log('📦 Данные покупок от API:', data);
         
         const purchasedList = document.getElementById('purchasedItemsList');
         purchasedList.innerHTML = '';
@@ -5526,33 +5500,26 @@ async function loadPurchasedItems() {
         
         // Создаем карточки для каждой покупки
         sortedPurchases.forEach(purchase => {
-            console.log(`📋 Обрабатываем покупку ${purchase.id}:`, {
-                title: purchase.title,
-                type: purchase.type,
-                hasEmbed: !!purchase.embed_html,
-                hasFiles: !!(purchase.file_url || purchase.file_data)
-            });
-            
             const purchaseCard = document.createElement('div');
             purchaseCard.className = 'purchase-item';
             purchaseCard.style.cursor = 'pointer';
             purchaseCard.onclick = () => showPurchaseDetail(purchase);
             purchaseCard.dataset.type = purchase.type;
-            purchaseCard.dataset.title = purchase.title.toLowerCase();
+            purchaseCard.dataset.title = (purchase.title || '').toLowerCase();
             
-            // Создаем превью контента в зависимости от типа
+            // Создаем превью контента
             const contentPreview = generatePurchasePreview(purchase);
             
             purchaseCard.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
                     <div style="flex: 1;">
-                        <h3 style="margin: 0 0 8px 0; color: #2d3748; font-size: 18px;">${purchase.title}</h3>
+                        <h3 style="margin: 0 0 8px 0; color: #2d3748; font-size: 18px;">${purchase.title || 'Без названия'}</h3>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
                             <span class="badge badge-info" style="font-size: 11px;">
                                 ${getPurchaseTypeIcon(purchase.type)} ${getPurchaseTypeName(purchase.type)}
                             </span>
                             <span class="badge badge-success" style="font-size: 11px;">
-                                💰 ${purchase.price_paid || purchase.price}✨
+                                💰 ${purchase.price_paid || purchase.price || 0}✨
                             </span>
                             <span class="badge" style="background: #e9d8fd; color: #6b46c1; font-size: 11px;">
                                 📅 ${new Date(purchase.purchased_at || purchase.created_at).toLocaleDateString('ru-RU')}
@@ -5600,7 +5567,6 @@ async function loadPurchasedItems() {
         `;
     }
 }
-
         // Функция для получения иконки типа товара
         function getPurchaseTypeIcon(type) {
             const icons = {
