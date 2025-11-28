@@ -1882,6 +1882,12 @@
     </div>
     
     <div class="form-group">
+        <label class="form-label">⏱️ Длительность (опционально):</label>
+        <input type="text" id="privateVideoDuration" class="form-control" 
+               placeholder="Например: 15 минут">
+    </div>
+    
+    <div class="form-group">
         <label class="form-label">💰 Цена (искры): *</label>
         <input type="number" id="privateVideoPrice" class="form-control" value="25" min="1" step="1" required>
     </div>
@@ -5410,113 +5416,6 @@ async function extractTelegramData() {
     }
 }
 
-// Сохранение приватного материала - ИСПРАВЛЕННАЯ ВЕРСИЯ
-async function savePrivateVideo() {
-    const saveBtn = document.getElementById('savePrivateVideoBtn');
-    const originalText = saveBtn.innerHTML;
-    
-    try {
-        saveBtn.innerHTML = '⏳ Сохранение...';
-        saveBtn.disabled = true;
-        
-        const postUrl = document.getElementById('privateVideoPostUrl').value.trim();
-        const title = document.getElementById('privateVideoTitle').value.trim();
-        const description = document.getElementById('privateVideoDescription').value.trim();
-        const duration = document.getElementById('privateVideoDuration').value.trim();
-        const price = parseFloat(document.getElementById('privateVideoPrice').value);
-        const category = document.getElementById('privateVideoCategory').value;
-        const level = document.getElementById('privateVideoLevel').value;
-        const is_active = document.getElementById('privateVideoActive').checked;
-        
-        // ВАЛИДАЦИЯ ОСНОВНЫХ ПОЛЕЙ
-        if (!postUrl) {
-            throw new Error('Введите ссылку на пост Telegram');
-        }
-        
-        if (!title) {
-            throw new Error('Введите название материала');
-        }
-        
-        if (isNaN(price) || price < 1) {
-            throw new Error('Цена должна быть числом не менее 1 искры');
-        }
-        
-        // ПАРСИНГ ССЫЛКИ TELEGRAM
-        console.log('🔗 Парсим ссылку:', postUrl);
-        const telegramData = parseTelegramUrl(postUrl);
-        console.log('📊 Результат парсинга:', telegramData);
-        
-        if (!telegramData.success) {
-            throw new Error(telegramData.error);
-        }
-
-        // ПРОВЕРКА ЧТО ВСЕ ОБЯЗАТЕЛЬНЫЕ ПОЛЯ ЕСТЬ
-        if (!telegramData.channelId || !telegramData.postId) {
-            throw new Error('Не удалось извлечь ID канала и поста из ссылки');
-        }
-        
-        // ПОДГОТОВКА ДАННЫХ ДЛЯ ОТПРАВКИ
-        const videoData = {
-            post_url: postUrl,
-            channel_id: telegramData.channelId,
-            message_id: telegramData.postId,
-            title: title,
-            description: description,
-            duration: duration,
-            price: price,
-            category: category,
-            level: level,
-            is_active: is_active,
-            invite_links_enabled: true
-        };
-        
-        console.log('📤 Отправка данных на сервер:', videoData);
-        
-        let response;
-        if (currentEditingId) {
-            response = await fetch(`/api/admin/private-videos/${currentEditingId}?userId=${currentUserId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(videoData)
-            });
-        } else {
-            response = await fetch(`/api/admin/private-videos?userId=${currentUserId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(videoData)
-            });
-        }
-
-        console.log('📨 Статус ответа:', response.status);
-        
-        if (!response.ok) {
-            // Если статус не OK, пробуем прочитать текст ответа
-            const errorText = await response.text();
-            console.error('❌ Текст ошибки:', errorText);
-            throw new Error(`Ошибка сервера: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        console.log('📩 Ответ сервера:', result);
-        
-        if (result.success) {
-            showMessage('✅ Материал успешно сохранен!', 'success');
-            hidePrivateVideoForm();
-            loadPrivateVideosAdmin();
-        } else {
-            throw new Error(result.error || 'Ошибка сохранения');
-        }
-        
-    } catch (error) {
-        console.error('❌ Ошибка сохранения:', error);
-        showMessage(`❌ ${error.message}`, 'error');
-    } finally {
-        saveBtn.innerHTML = originalText;
-        saveBtn.disabled = false;
-    }
-}
-        
-// Автоматический парсинг ссылки при вводе
 // Автоматический парсинг ссылки при вводе
 function setupTelegramUrlAutoParse() {
     const postUrlInput = document.getElementById('privateVideoPostUrl');
@@ -5681,27 +5580,62 @@ async function getProtectedViewLink(videoId) {
     }
 }
         
-// Показать форму добавления материала
+// ЗАМЕНИТЕ функцию showPrivateVideoForm на эту:
 function showPrivateVideoForm() {
-    document.getElementById('privateVideoForm').style.display = 'block';
+    // Сначала скрываем все формы
+    hideAllForms();
+    
+    // Показываем нужную форму
+    const form = document.getElementById('privateVideoForm');
+    if (!form) {
+        console.error('❌ Форма приватного видео не найдена');
+        return;
+    }
+    
+    form.style.display = 'block';
     document.getElementById('privateVideoFormTitle').textContent = 'Добавление приватного материала';
     currentEditingId = null;
     
-    // Сбросить форму
-    document.getElementById('privateVideoPostUrl').value = '';
-    document.getElementById('privateVideoTitle').value = '';
-    document.getElementById('privateVideoDescription').value = '';
-    document.getElementById('privateVideoDuration').value = '';
-    document.getElementById('privateVideoPrice').value = '25';
-    document.getElementById('privateVideoCategory').value = 'video';
-    document.getElementById('privateVideoLevel').value = 'beginner';
-    document.getElementById('privateVideoActive').checked = true;
+    // БЕЗОПАСНОЕ СБРАСЫВАНИЕ ПОЛЕЙ (проверяем существование элементов)
+    const fields = [
+        { id: 'privateVideoPostUrl', value: '' },
+        { id: 'privateVideoTitle', value: '' },
+        { id: 'privateVideoDescription', value: '' },
+        { id: 'privateVideoDuration', value: '' },
+        { id: 'privateVideoPrice', value: '25' },
+        { id: 'privateVideoCategory', value: 'video' },
+        { id: 'privateVideoLevel', value: 'beginner' }
+    ];
     
-    // Очистить сообщения
+    fields.forEach(field => {
+        const element = document.getElementById(field.id);
+        if (element) {
+            element.value = field.value;
+        } else {
+            console.warn(`⚠️ Элемент не найден: ${field.id}`);
+        }
+    });
+    
+    // Чекбокс
+    const activeCheckbox = document.getElementById('privateVideoActive');
+    if (activeCheckbox) {
+        activeCheckbox.checked = true;
+    }
+    
+    // Очищаем сообщения
     const messageArea = document.getElementById('messageArea');
-    messageArea.innerHTML = '';
+    if (messageArea) {
+        messageArea.innerHTML = '';
+    }
+    
+    // Скрываем блок информации о парсинге
+    const parsingInfo = document.getElementById('parsingInfo');
+    if (parsingInfo) {
+        parsingInfo.style.display = 'none';
+    }
+    
+    console.log('✅ Форма приватного видео показана');
 }
-
 // Функция для создания пригласительной ссылки
 async function generateInviteLink(videoId) {
     try {
@@ -5947,59 +5881,76 @@ function showPrivateVideoForm() {
     document.getElementById('privateVideoActive').checked = true;
 }
 
-// УМНАЯ ФОРМА ДЛЯ ДОБАВЛЕНИЯ МАТЕРИАЛОВ
+// ОБНОВЛЕННАЯ ФУНКЦИЯ НАСТРОЙКИ УМНОЙ ФОРМЫ
 function setupSmartVideoForm() {
     const postUrlInput = document.getElementById('privateVideoPostUrl');
     const titleInput = document.getElementById('privateVideoTitle');
     const descriptionInput = document.getElementById('privateVideoDescription');
     
-    if (postUrlInput) {
-        // Автопарсинг при потере фокуса
-        postUrlInput.addEventListener('blur', async function() {
-            const url = this.value.trim();
-            if (!url) return;
-            
-            await parseAndFillForm(url);
-        });
-        
-        // Автопарсинг при вводе (с задержкой)
-        let parseTimeout;
-        postUrlInput.addEventListener('input', function() {
-            clearTimeout(parseTimeout);
-            const url = this.value.trim();
-            
-            if (url.length > 20) { // Парсим только если URL достаточно длинный
-                parseTimeout = setTimeout(async () => {
-                    await parseAndFillForm(url);
-                }, 1000);
-            }
-        });
+    if (!postUrlInput) {
+        console.warn('⚠️ Элемент privateVideoPostUrl не найден');
+        return;
     }
+    
+    // Автопарсинг при потере фокуса
+    postUrlInput.addEventListener('blur', async function() {
+        const url = this.value.trim();
+        if (!url) return;
+        
+        await parseAndFillForm(url);
+    });
+    
+    // Автопарсинг при вводе (с задержкой)
+    let parseTimeout;
+    postUrlInput.addEventListener('input', function() {
+        clearTimeout(parseTimeout);
+        const url = this.value.trim();
+        
+        if (url.length > 20) { // Парсим только если URL достаточно длинный
+            parseTimeout = setTimeout(async () => {
+                await parseAndFillForm(url);
+            }, 1000);
+        }
+    });
+    
+    console.log('✅ Умная форма настроена');
 }
-
-// ФУНКЦИЯ АВТОМАТИЧЕСКОГО ПАРСИНГА И ЗАПОЛНЕНИЯ ФОРМЫ
+        
+// ОБНОВЛЕННАЯ ФУНКЦИЯ ПАРСИНГА И ЗАПОЛНЕНИЯ ФОРМЫ
 async function parseAndFillForm(url) {
     try {
         showMessage('🔗 Анализируем ссылку...', 'info');
         
-        const response = await fetch('/api/admin/parse-telegram-url', {
+        // ДОБАВЛЯЕМ userId В ЗАПРОС
+        const response = await fetch(`/api/admin/parse-telegram-url?userId=${currentUserId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url })
         });
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                showMessage('❌ Ошибка авторизации. Обновите страницу.', 'error');
+                return;
+            }
+            throw new Error(`HTTP ${response.status}`);
+        }
         
         const result = await response.json();
         
         if (result.success) {
             const data = result.parsed_data;
             
-            // ЗАПОЛНЯЕМ ФОРМУ АВТОМАТИЧЕСКИ
-            if (!document.getElementById('privateVideoTitle').value) {
-                document.getElementById('privateVideoTitle').value = result.suggested_title;
+            // БЕЗОПАСНОЕ ЗАПОЛНЕНИЕ ФОРМЫ
+            const titleInput = document.getElementById('privateVideoTitle');
+            const descInput = document.getElementById('privateVideoDescription');
+            
+            if (titleInput && !titleInput.value) {
+                titleInput.value = result.suggested_title;
             }
             
-            if (!document.getElementById('privateVideoDescription').value) {
-                document.getElementById('privateVideoDescription').value = result.suggested_description;
+            if (descInput && !descInput.value) {
+                descInput.value = result.suggested_description;
             }
             
             // ПОКАЗЫВАЕМ ИНФОРМАЦИЮ О ПАРСИНГЕ
@@ -6014,7 +5965,6 @@ async function parseAndFillForm(url) {
         showMessage('❌ Ошибка анализа ссылки', 'error');
     }
 }
-
 // ПОКАЗ РЕЗУЛЬТАТОВ ПАРСИНГА
 function showParsingResult(parsedData, channelInfo) {
     const messageArea = document.getElementById('messageArea');
@@ -6049,8 +5999,16 @@ function showParsingResult(parsedData, channelInfo) {
 
 // ФУНКЦИЯ БЫСТРОГО ДОБАВЛЕНИЯ МАТЕРИАЛА
 async function quickAddPrivateVideo() {
-    const url = document.getElementById('privateVideoPostUrl').value.trim();
-    const price = document.getElementById('privateVideoPrice').value;
+    const urlInput = document.getElementById('privateVideoPostUrl');
+    const priceInput = document.getElementById('privateVideoPrice');
+    
+    if (!urlInput || !priceInput) {
+        showMessage('❌ Форма не загружена правильно', 'error');
+        return;
+    }
+    
+    const url = urlInput.value.trim();
+    const price = priceInput.value;
     
     if (!url) {
         showMessage('❌ Введите ссылку на пост Telegram', 'error');
@@ -6060,45 +6018,31 @@ async function quickAddPrivateVideo() {
     try {
         showMessage('⏳ Создаем материал...', 'info');
         
-        // Сначала парсим URL
-        const parseResponse = await fetch('/api/admin/parse-telegram-url', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
-        });
-        
-        const parseResult = await parseResponse.json();
-        
-        if (!parseResult.success) {
-            showMessage(`❌ ${parseResult.error}`, 'error');
-            return;
-        }
-        
         // Автоматически создаем материал
         const videoData = {
             post_url: url,
-            title: parseResult.suggested_title,
-            description: parseResult.suggested_description,
             price: price || 25,
-            category: 'video',
-            level: 'beginner',
             is_active: true
         };
         
-        const createResponse = await fetch('/api/admin/private-videos?userId=' + currentUserId, {
+        const response = await fetch(`/api/admin/private-videos?userId=${currentUserId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(videoData)
         });
         
-        const createResult = await createResponse.json();
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
         
-        if (createResult.success) {
+        const result = await response.json();
+        
+        if (result.success) {
             showMessage('✅ Материал успешно создан!', 'success');
             hidePrivateVideoForm();
             loadPrivateVideosAdmin();
         } else {
-            showMessage(`❌ ${createResult.error}`, 'error');
+            showMessage(`❌ ${result.error}`, 'error');
         }
         
     } catch (error) {
@@ -6294,45 +6238,57 @@ async function extractTelegramData() {
     }
 }
 
-// Сохранение приватного материала
+// ОБНОВЛЕННАЯ ФУНКЦИЯ СОХРАНЕНИЯ МАТЕРИАЛА
 async function savePrivateVideo() {
     const saveBtn = document.getElementById('savePrivateVideoBtn');
+    if (!saveBtn) {
+        showMessage('❌ Кнопка сохранения не найдена', 'error');
+        return;
+    }
+    
     const originalText = saveBtn.innerHTML;
     
     try {
         saveBtn.innerHTML = '⏳ Сохранение...';
         saveBtn.disabled = true;
         
-        const channelId = document.getElementById('privateVideoChannelId').value.trim();
-        const messageId = parseInt(document.getElementById('privateVideoMessageId').value);
-        const title = document.getElementById('privateVideoTitle').value.trim();
-        const description = document.getElementById('privateVideoDescription').value.trim();
-        const duration = document.getElementById('privateVideoDuration').value.trim();
-        const price = parseFloat(document.getElementById('privateVideoPrice').value);
-        const category = document.getElementById('privateVideoCategory').value;
-        const level = document.getElementById('privateVideoLevel').value;
-        const is_active = document.getElementById('privateVideoActive').checked;
+        // БЕЗОПАСНОЕ ПОЛУЧЕНИЕ ЗНАЧЕНИЙ
+        const getValue = (id) => {
+            const element = document.getElementById(id);
+            return element ? element.value : '';
+        };
         
-        // Валидация
-        if (!channelId || !messageId || !title || !price) {
-            throw new Error('Заполните все обязательные поля');
-        }
+        const getChecked = (id) => {
+            const element = document.getElementById(id);
+            return element ? element.checked : true;
+        };
         
-        if (!channelId.startsWith('-100')) {
-            throw new Error('ID канала должен начинаться с -100');
+        const post_url = getValue('privateVideoPostUrl');
+        const title = getValue('privateVideoTitle');
+        const description = getValue('privateVideoDescription');
+        const duration = getValue('privateVideoDuration');
+        const price = getValue('privateVideoPrice');
+        const category = getValue('privateVideoCategory');
+        const level = getValue('privateVideoLevel');
+        const is_active = getChecked('privateVideoActive');
+        
+        // ВАЛИДАЦИЯ
+        if (!post_url || !title || !price) {
+            throw new Error('Заполните обязательные поля: ссылка, название и цена');
         }
         
         const videoData = {
-            channel_id: channelId,
-            message_id: messageId,
+            post_url: post_url,
             title: title,
             description: description,
             duration: duration,
-            price: price,
+            price: parseFloat(price),
             category: category,
             level: level,
             is_active: is_active
         };
+        
+        console.log('📤 Отправка данных:', videoData);
         
         let response;
         if (currentEditingId) {
@@ -6348,6 +6304,10 @@ async function savePrivateVideo() {
                 body: JSON.stringify(videoData)
             });
         }
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
         
         const result = await response.json();
         
@@ -6360,6 +6320,7 @@ async function savePrivateVideo() {
         }
         
     } catch (error) {
+        console.error('❌ Ошибка сохранения:', error);
         showMessage(`❌ ${error.message}`, 'error');
     } finally {
         saveBtn.innerHTML = originalText;
@@ -6367,13 +6328,74 @@ async function savePrivateVideo() {
     }
 }
 
-// Вызовите эту функцию при загрузке страницы
+// ОБНОВЛЕННАЯ ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
 document.addEventListener('DOMContentLoaded', function() {
-    setupTelegramUrlAutoParse();
+    console.log('🚀 Инициализация админ-панели...');
+    
+    // Инициализируем админ-панель
+    initAdminPanel();
+    
+    // Настраиваем умную форму после загрузки данных
+    setTimeout(() => {
+        setupSmartVideoForm();
+        console.log('✅ Умная форма инициализирована');
+    }, 1000);
 });
         
         // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 
+// ПРОСТАЯ ФУНКЦИЯ ПАРСИНГА НА КЛИЕНТЕ (если серверный парсинг не работает)
+function simpleParseTelegramUrl(url) {
+    try {
+        url = url.trim().replace(/\s+/g, '');
+        
+        if (!url.startsWith('http')) {
+            url = 'https://' + url;
+        }
+
+        const urlObj = new URL(url);
+        const pathParts = urlObj.pathname.split('/').filter(part => part);
+        
+        if (pathParts.length < 2) {
+            return { success: false, error: 'Неверный формат ссылки' };
+        }
+
+        let channelId, postId;
+        let isPrivateChannel = false;
+
+        if (pathParts[0] === 'c') {
+            // Приватный канал: t.me/c/1234567890/123
+            if (pathParts.length < 3) {
+                return { success: false, error: 'Неверный формат приватной ссылки' };
+            }
+            channelId = '-100' + pathParts[1];
+            postId = parseInt(pathParts[2]);
+            isPrivateChannel = true;
+        } else {
+            // Публичный канал: t.me/username/123
+            channelId = pathParts[0];
+            postId = parseInt(pathParts[1]);
+        }
+
+        if (!channelId || !postId || isNaN(postId)) {
+            return { success: false, error: 'Не удалось извлечь ID канала и поста' };
+        }
+
+        return {
+            success: true,
+            channelId: channelId,
+            postId: postId,
+            isPrivateChannel: isPrivateChannel,
+            directUrl: isPrivateChannel ? 
+                `https://t.me/c/${channelId.replace('-100', '')}/${postId}` :
+                `https://t.me/${channelId}/${postId}`
+        };
+        
+    } catch (error) {
+        return { success: false, error: 'Ошибка обработки ссылки' };
+    }
+}
+        
         // Показать сообщение
         function showMessage(message, type) {
             const messageArea = document.getElementById('messageArea');
