@@ -1830,7 +1830,7 @@
             </div>
         </div>
 
-<!-- Приватные материалы -->
+<!-- УПРАВЛЕНИЕ ПРИВАТНЫМИ МАТЕРИАЛАМИ -->
 <div id="privateVideos" class="tab-content">
     <div class="card">
         <h2 style="margin-bottom: 20px;">🎬 Управление приватными материалами</h2>
@@ -1841,11 +1841,10 @@
         </div>
 
         <div class="message info" style="margin-bottom: 20px;">
-            <strong>📋 Инструкция:</strong><br>
-            1. Создайте пост в Telegram канале<br>
-            2. Скопируйте ссылку на пост<br>
-            3. Заполните информацию о материале<br>
-            4. Система создаст защищенный доступ
+            <strong>🎯 Автоматическая система доступа:</strong><br>
+            1. Пользователь покупает материал → автоматически добавляется в канал<br>
+            2. В приложении появляется прямая ссылка на пост<br>
+            3. При переходе открывается конкретный пост в Telegram
         </div>
 
         <div id="privateVideosList" class="loading">
@@ -1853,27 +1852,28 @@
         </div>
     </div>
 
-    <!-- Форма добавления материала -->
+    <!-- ФОРМА ДОБАВЛЕНИЯ МАТЕРИАЛА -->
     <div id="privateVideoForm" class="card" style="display: none;">
         <h3 id="privateVideoFormTitle" style="margin-bottom: 20px;">Добавление приватного материала</h3>
         
-        <!-- Обновите этот раздел в форме -->
-<div class="form-group">
-    <label class="form-label">🔗 Ссылка на пост в Telegram:</label>
-    <div style="display: flex; gap: 12px; align-items: center;">
-        <input type="text" id="privateVideoPostUrl" class="form-control" 
-               placeholder="https://t.me/c/1234567890/123 или https://t.me/username/123"
-               style="flex: 1;">
-        <button type="button" class="btn btn-info" onclick="extractTelegramData()" 
-                style="white-space: nowrap;">
-            🔍 Анализировать
-        </button>
-    </div>
-    <div style="color: #718096; font-size: 14px; margin-top: 8px;">
-        💡 Примеры: t.me/c/1234567890/123 (приватный) или t.me/username/123 (публичный)
-    </div>
-</div>
+        <div class="form-group">
+            <label class="form-label">🔗 ID канала (обязательно):</label>
+            <input type="text" id="privateVideoChannelId" class="form-control" 
+                   placeholder="-1001234567890" required>
+            <div style="color: #718096; font-size: 14px; margin-top: 8px;">
+                💡 ID канала должен начинаться с -100. Можно получить через @username_to_id_bot
+            </div>
+        </div>
 
+        <div class="form-group">
+            <label class="form-label">📝 ID сообщения (обязательно):</label>
+            <input type="number" id="privateVideoMessageId" class="form-control" 
+                   placeholder="123" required>
+            <div style="color: #718096; font-size: 14px; margin-top: 8px;">
+                💡 Номер сообщения в канале. Можно получить из ссылки на пост
+            </div>
+        </div>
+        
         <div class="form-group">
             <label class="form-label">🎬 Название материала: *</label>
             <input type="text" id="privateVideoTitle" class="form-control" required 
@@ -5659,7 +5659,7 @@ async function loadPrivateVideosAdmin() {
         `;
     }
 }
-// Отображение приватных материалов
+// Отображение приватных материалов в админке
 function displayPrivateVideosAdmin(videos) {
     const videosList = document.getElementById('privateVideosList');
     
@@ -5697,23 +5697,19 @@ function displayPrivateVideosAdmin(videos) {
                         </div>
                         
                         <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                            <span class="badge">📺 ${video.channel_id}</span>
-                            <span class="badge">📝 ${video.message_id}</span>
-                            ${video.post_url ? `
-                                <a href="${video.post_url}" target="_blank" class="btn btn-warning btn-sm" style="padding: 4px 8px; font-size: 12px;">
-                                    🔗 Исходный пост
-                                </a>
-                            ` : ''}
+                            <span class="badge">📺 Канал: ${video.channel_id}</span>
+                            <span class="badge">📝 Пост: ${video.message_id}</span>
                         </div>
                         
-                        <!-- Защищенная ссылка -->
-                        <div style="background: #f7fafc; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-                            <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Защищенная ссылка:</div>
+                        <!-- Прямая ссылка на пост -->
+                        <div style="background: #f0fff4; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                            <div style="font-size: 12px; color: #276749; margin-bottom: 4px;">Прямая ссылка на пост:</div>
                             <div style="display: flex; gap: 8px; align-items: center;">
-                                <code style="flex: 1; font-size: 12px; word-break: break-all; background: white; padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
-                                    /api/telegram/proxy/${btoa(video.id + '_' + Date.now()).replace(/=/g, '')}
+                                <code style="flex: 1; font-size: 12px; word-break: break-all; background: white; padding: 8px; border-radius: 4px; border: 1px solid #9ae6b4;">
+                                    https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}
                                 </code>
-                                <button class="btn btn-info btn-sm" onclick="copyProtectedLink(${video.id})" style="padding: 4px 8px; font-size: 12px;">
+                                <button class="btn btn-info btn-sm" onclick="copyPrivateVideoLink('${video.channel_id}', ${video.message_id})" 
+                                        style="padding: 4px 8px; font-size: 12px;">
                                     📋 Копировать
                                 </button>
                             </div>
@@ -5729,10 +5725,6 @@ function displayPrivateVideosAdmin(videos) {
                                 <span>💰 Доход:</span>
                                 <strong>${revenue}✨</strong>
                             </div>
-                            <div class="completion-stat">
-                                <span>📊 Доступов:</span>
-                                <strong>${video.access_count || 0}</strong>
-                            </div>
                         </div>
                     </div>
                     
@@ -5744,14 +5736,9 @@ function displayPrivateVideosAdmin(videos) {
                     </div>
                 </div>
                 
-                <div style="color: #718096; font-size: 14px; margin-bottom: 16px;">
-                    Создан: ${new Date(video.created_at).toLocaleDateString('ru-RU')}
-                    ${video.updated_at ? ` • Обновлен: ${new Date(video.updated_at).toLocaleDateString('ru-RU')}` : ''}
-                </div>
-                
                 <div class="action-buttons">
                     <button class="btn btn-warning" onclick="editPrivateVideo(${video.id})">✏️ Редактировать</button>
-                    <button class="btn btn-info" onclick="viewVideoStats(${video.id})">📊 Статистика</button>
+                    <button class="btn btn-info" onclick="viewPrivateVideoStats(${video.id})">📊 Статистика</button>
                     <button class="btn btn-danger" onclick="deletePrivateVideo(${video.id})">🗑️ Удалить</button>
                 </div>
             </div>
@@ -5759,6 +5746,14 @@ function displayPrivateVideosAdmin(videos) {
     });
     
     videosList.innerHTML = html;
+}
+
+// Копирование ссылки на приватный материал
+function copyPrivateVideoLink(channelId, messageId) {
+    const link = `https://t.me/c/${channelId.toString().replace('-100', '')}/${messageId}`;
+    navigator.clipboard.writeText(link).then(() => {
+        showMessage('✅ Ссылка скопирована', 'success');
+    });
 }
 
 // Получение названия категории
@@ -5988,7 +5983,7 @@ async function extractTelegramData() {
     }
 }
 
-// Сохранение приватного материала - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Сохранение приватного материала
 async function savePrivateVideo() {
     const saveBtn = document.getElementById('savePrivateVideoBtn');
     const originalText = saveBtn.innerHTML;
@@ -5997,7 +5992,8 @@ async function savePrivateVideo() {
         saveBtn.innerHTML = '⏳ Сохранение...';
         saveBtn.disabled = true;
         
-        const postUrl = document.getElementById('privateVideoPostUrl').value.trim();
+        const channelId = document.getElementById('privateVideoChannelId').value.trim();
+        const messageId = parseInt(document.getElementById('privateVideoMessageId').value);
         const title = document.getElementById('privateVideoTitle').value.trim();
         const description = document.getElementById('privateVideoDescription').value.trim();
         const duration = document.getElementById('privateVideoDuration').value.trim();
@@ -6006,38 +6002,18 @@ async function savePrivateVideo() {
         const level = document.getElementById('privateVideoLevel').value;
         const is_active = document.getElementById('privateVideoActive').checked;
         
-        // ВАЛИДАЦИЯ ОСНОВНЫХ ПОЛЕЙ
-        if (!postUrl) {
-            throw new Error('Введите ссылку на пост Telegram');
+        // Валидация
+        if (!channelId || !messageId || !title || !price) {
+            throw new Error('Заполните все обязательные поля');
         }
         
-        if (!title) {
-            throw new Error('Введите название материала');
+        if (!channelId.startsWith('-100')) {
+            throw new Error('ID канала должен начинаться с -100');
         }
         
-        if (isNaN(price) || price < 1) {
-            throw new Error('Цена должна быть числом не менее 1 искры');
-        }
-        
-        // ПАРСИНГ ССЫЛКИ TELEGRAM
-        console.log('🔗 Парсим ссылку:', postUrl);
-        const telegramData = parseTelegramUrl(postUrl);
-        console.log('📊 Результат парсинга:', telegramData);
-        
-        if (!telegramData.success) {
-            throw new Error(telegramData.error);
-        }
-
-        // ПРОВЕРКА ЧТО ВСЕ ОБЯЗАТЕЛЬНЫЕ ПОЛЯ ЕСТЬ
-        if (!telegramData.channelId || !telegramData.postId) {
-            throw new Error('Не удалось извлечь ID канала и поста из ссылки');
-        }
-        
-        // ПОДГОТОВКА ДАННЫХ ДЛЯ ОТПРАВКИ
         const videoData = {
-            post_url: postUrl,
-            channel_id: telegramData.channelId,
-            message_id: telegramData.postId,
+            channel_id: channelId,
+            message_id: messageId,
             title: title,
             description: description,
             duration: duration,
@@ -6046,8 +6022,6 @@ async function savePrivateVideo() {
             level: level,
             is_active: is_active
         };
-        
-        console.log('📤 Отправка данных на сервер:', videoData);
         
         let response;
         if (currentEditingId) {
@@ -6063,18 +6037,8 @@ async function savePrivateVideo() {
                 body: JSON.stringify(videoData)
             });
         }
-
-        console.log('📨 Статус ответа:', response.status);
-        
-        if (!response.ok) {
-            // Если статус не OK, пробуем прочитать текст ответа
-            const errorText = await response.text();
-            console.error('❌ Текст ошибки:', errorText);
-            throw new Error(`Ошибка сервера: ${response.status}`);
-        }
         
         const result = await response.json();
-        console.log('📩 Ответ сервера:', result);
         
         if (result.success) {
             showMessage('✅ Материал успешно сохранен!', 'success');
@@ -6085,7 +6049,6 @@ async function savePrivateVideo() {
         }
         
     } catch (error) {
-        console.error('❌ Ошибка сохранения:', error);
         showMessage(`❌ ${error.message}`, 'error');
     } finally {
         saveBtn.innerHTML = originalText;
