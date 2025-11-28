@@ -3159,7 +3159,7 @@ function getLevelName(level) {
     return levels[level] || level;
 }
     
-// Отображение доступных приватных материалов
+// public/index.html - Обновите отображение видео
 function displayPrivateVideos(videos) {
     const videosList = document.getElementById('privateVideosList');
     
@@ -3205,7 +3205,7 @@ function displayPrivateVideos(videos) {
             <div style="text-align: center;">
                 ${canAfford ? 
                     `<button class="btn btn-success" onclick="purchasePrivateVideo(${video.id})">
-                         🛒 Купить доступ за ${video.price}✨
+                         🛒 Купить за ${video.price}✨
                      </button>` :
                     `<button class="btn btn-secondary" disabled>
                          🔒 Недостаточно искр
@@ -3217,7 +3217,7 @@ function displayPrivateVideos(videos) {
         videosList.appendChild(videoCard);
     });
 }
-
+    
 // Реальная функция получения пригласительной ссылки
 async function getChannelInvite(videoId) {
     try {
@@ -3805,6 +3805,27 @@ async function checkVideoAccess(videoId) {
 
         // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 
+// public/index.html - Вспомогательные функции
+function getCategoryName(category) {
+    const categories = {
+        'video': '🎥 Видео',
+        'course': '🎓 Курс',
+        'lesson': '📖 Урок', 
+        'masterclass': '⚡ Мастер-класс',
+        'material': '📚 Материал'
+    };
+    return categories[category] || category;
+}
+
+function getLevelName(level) {
+    const levels = {
+        'beginner': '👶 Начинающий',
+        'intermediate': '🚀 Продвинутый',
+        'advanced': '🔥 Эксперт'
+    };
+    return levels[level] || level;
+}
+    
 // Генерация полного содержимого покупки для детального просмотра
 function generatePurchaseContent(purchase) {
     const fileUrl = purchase.file_data || purchase.file_url;
