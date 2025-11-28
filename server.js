@@ -695,9 +695,7 @@ let db = {
 private_channel_videos: [
     {
         id: 1,
-        post_url: "https://t.me/c/1234567890/123",
-        channel_id: "1234567890", 
-        message_id: 123,
+        invite_link: "https://t.me/+INVITE_LINK_123",
         title: "🎬 Профессиональный урок по акварели",
         description: "Полный урок по технике акварельной живописи от профессионального художника",
         duration: "45 минут",
@@ -709,14 +707,12 @@ private_channel_videos: [
     },
     {
         id: 2,
-        post_url: "https://t.me/c/1234567890/124", 
-        channel_id: "1234567890",
-        message_id: 124,
-        title: "🎨 Мастер-класс по портрету",
+        invite_link: "https://t.me/+INVITE_LINK_456",
+        title: "🎨 Мастер-класс по портрету", 
         description: "Учимся рисовать портреты с нуля до профессионального уровня",
         duration: "60 минут",
         price: 30,
-        category: "video", 
+        category: "video",
         level: "intermediate",
         is_active: true,
         created_at: new Date().toISOString()
