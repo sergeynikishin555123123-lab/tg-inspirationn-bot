@@ -3589,12 +3589,9 @@ function displayMyPrivateVideos(purchases) {
     
     videosList.innerHTML = '';
     
-purchases.forEach(video => {
+ purchases.forEach(video => {
         const videoCard = document.createElement('div');
         videoCard.className = 'shop-item';
-        
-        const daysLeft = video.days_remaining > 0 ? video.days_remaining : 0;
-        const statusBadge = daysLeft > 7 ? 'badge-success' : daysLeft > 3 ? 'badge-warning' : 'badge-danger';
         
         videoCard.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
@@ -3604,13 +3601,7 @@ purchases.forEach(video => {
                     <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
                         <span class="badge badge-info">${getCategoryName(video.category)}</span>
                         <span class="badge badge-warning">${getLevelName(video.level)}</span>
-                        ${video.duration ? `<span class="badge badge-secondary">⏱️ ${video.duration}</span>` : ''}
                         <span class="badge badge-success">✅ Доступ активен</span>
-                        <span class="badge ${statusBadge}">⏰ ${daysLeft} дней осталось</span>
-                    </div>
-                    <div style="color: #718096; font-size: 14px;">
-                        📅 Приобретен: ${new Date(video.purchased_at).toLocaleDateString('ru-RU')}
-                        ${video.expires_at ? ` • ⏰ Истекает: ${new Date(video.expires_at).toLocaleDateString('ru-RU')}` : ''}
                     </div>
                 </div>
             </div>
@@ -3619,9 +3610,13 @@ purchases.forEach(video => {
                 <button class="btn btn-success" onclick="watchPrivateVideo(${video.id})" style="margin-bottom: 8px;">
                     📺 Смотреть в Telegram
                 </button>
-                <div style="color: #718096; font-size: 12px; margin-top: 8px;">
-                    Откроется конкретный пост в приватном канале
-                </div>
+                <br>
+                <button class="btn btn-info" onclick="checkAccessStatus(${video.id})" style="font-size: 12px; padding: 8px 12px;">
+                    🔍 Проверить доступ
+                </button>
+                <button class="btn btn-warning" onclick="getNewInviteLink(${video.id})" style="font-size: 12px; padding: 8px 12px;">
+                    🔑 Новая ссылка
+                </button>
             </div>
         `;
         
