@@ -3091,8 +3091,16 @@ function loadAvailableButtons() {
 
 async function loadPrivateVideos() {
     try {
+        console.log('🎬 Загрузка приватных материалов для пользователя:', currentUserId);
+        
         const response = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
+        console.log('✅ Данные приватных материалов:', result);
         
         if (result.success) {
             displayPrivateVideos(result.videos);
@@ -3101,6 +3109,7 @@ async function loadPrivateVideos() {
         }
         
     } catch (error) {
+        console.error('❌ Ошибка загрузки приватных материалов:', error);
         const videosList = document.getElementById('privateVideosList');
         videosList.innerHTML = `
             <div class="error">
@@ -3113,7 +3122,6 @@ async function loadPrivateVideos() {
     }
 }
 
- 
 // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПРИВАТНЫХ ВИДЕО ====================
 
 // Получение названия категории для приложения
@@ -3141,7 +3149,49 @@ function getLevelName(level) {
 function displayPrivateVideos(videos) {
     const videosList = document.getElementById('privateVideosList');
     
-    if (!videos || videos.length === 0) {
+    // Если API возвращает массив напрямую, а не объект с success
+    if (Array.isArray(videos)) {
+        console.log('📦 Получен массив видео напрямую:', videos.length);
+        renderVideosList(videos);
+        return;
+    }
+    
+    // Если videos это объект с данными
+    if (videos && Array.isArray(videos.videos)) {
+        console.log('📦 Получен объект с видео:', videos.videos.length);
+        renderVideosList(videos.videos);
+        return;
+    }
+    
+    // Если нет видео
+    if (!videos || (Array.isArray(videos) && videos.length === 0)) {
+        videosList.innerHTML = `
+            <div class="info">
+                <div style="text-align: center; padding: 40px;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">🎬</div>
+                    <h3 style="margin-bottom: 12px;">Пока нет доступных материалов</h3>
+                    <p style="color: #718096; margin-bottom: 20px;">
+                        Новые материалы появятся здесь после их добавления администратором
+                    </p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    console.error('❌ Неизвестный формат данных:', videos);
+    videosList.innerHTML = `
+        <div class="error">
+            Ошибка формата данных. Попробуйте обновить страницу.
+        </div>
+    `;
+}
+
+// Вынесем рендеринг в отдельную функцию для переиспользования
+function renderVideosList(videosArray) {
+    const videosList = document.getElementById('privateVideosList');
+    
+    if (videosArray.length === 0) {
         videosList.innerHTML = `
             <div class="info">
                 <div style="text-align: center; padding: 40px;">
@@ -3158,16 +3208,16 @@ function displayPrivateVideos(videos) {
     
     videosList.innerHTML = '';
     
-    videos.forEach(video => {
+    videosArray.forEach(video => {
         const canAfford = currentUser && currentUser.sparks >= video.price;
-        const hasAccess = video.has_access;
+        const hasAccess = video.has_access || video.has_purchase;
         const videoCard = document.createElement('div');
         videoCard.className = 'shop-item';
         
         videoCard.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                 <div style="flex: 1;">
-                    <h3 style="margin: 0 0 8px 0;">🎬 ${video.title}</h3>
+                    <h3 style="margin: 0 0 8px 0;">🎬 ${video.title || 'Без названия'}</h3>
                     <p style="color: #718096; margin-bottom: 12px;">${video.description || 'Описание отсутствует'}</p>
                     <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
                         <span class="badge badge-info">${getCategoryName(video.category)}</span>
@@ -3177,7 +3227,7 @@ function displayPrivateVideos(videos) {
                     </div>
                 </div>
                 <div style="text-align: right;">
-                    <div class="spark-badge">${video.price}✨</div>
+                    <div class="spark-badge">${video.price || 0}✨</div>
                     ${!canAfford && !hasAccess ? '<div style="color: #f56565; font-size: 11px; margin-top: 4px;">Недостаточно искр</div>' : ''}
                     ${hasAccess ? '<div style="color: #48bb78; font-size: 11px; margin-top: 4px;">✅ Куплено</div>' : ''}
                 </div>
@@ -3205,7 +3255,6 @@ function displayPrivateVideos(videos) {
         videosList.appendChild(videoCard);
     });
 }
-
 async function usePrivateVideoAccess(videoId) {
     try {
         showMessage('⏳ Получаем пригласительную ссылку...', 'info');
@@ -3340,6 +3389,8 @@ async function checkUserSubscription(channelId) {
 
 async function purchasePrivateVideo(videoId) {
     try {
+        console.log('🛒 Начало покупки видео:', videoId);
+        
         // Находим информацию о видео
         const video = await getVideoInfo(videoId);
         if (!video) {
@@ -3362,7 +3413,12 @@ async function purchasePrivateVideo(videoId) {
             })
         });
         
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
+        console.log('📋 Результат покупки:', result);
         
         if (result.success) {
             showMessage(`✅ ${result.message}`, 'success');
@@ -3381,7 +3437,9 @@ async function purchasePrivateVideo(videoId) {
             }, 1500);
             
             // Обновляем список материалов
-            loadPrivateVideos();
+            setTimeout(() => {
+                loadPrivateVideos();
+            }, 1000);
             
         } else {
             showMessage(`❌ ${result.error}`, 'error');
@@ -3389,21 +3447,48 @@ async function purchasePrivateVideo(videoId) {
         
     } catch (error) {
         console.error('❌ Ошибка покупки:', error);
-        showMessage('❌ Ошибка при покупке', 'error');
+        showMessage(`❌ Ошибка при покупке: ${error.message}`, 'error');
     }
 }
 
 async function getVideoInfo(videoId) {
     try {
-        const response = await fetch(`/api/webapp/private-videos/${videoId}?userId=${currentUserId}`);
+        console.log('🔍 Получение информации о видео:', videoId);
+        
+        // Сначала пробуем получить из общего списка
+        const response = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
         if (response.ok) {
-            const video = await response.json();
+            const result = await response.json();
+            let videos = [];
+            
+            if (Array.isArray(result)) {
+                videos = result;
+            } else if (result && Array.isArray(result.videos)) {
+                videos = result.videos;
+            }
+            
+            const video = videos.find(v => v.id == videoId);
+            if (video) {
+                console.log('✅ Видео найдено в общем списке:', video.title);
+                return video;
+            }
+        }
+        
+        // Если не нашли в общем списке, пробуем прямой запрос
+        const directResponse = await fetch(`/api/webapp/private-videos/${videoId}?userId=${currentUserId}`);
+        if (directResponse.ok) {
+            const video = await directResponse.json();
+            console.log('✅ Видео найдено по прямому запросу:', video.title);
             return video;
         }
+        
+        console.error('❌ Видео не найдено');
+        return null;
+        
     } catch (error) {
-        console.error('Ошибка получения информации о видео:', error);
+        console.error('❌ Ошибка получения информации о видео:', error);
+        return null;
     }
-    return null;
 }
 
 // public/index.html - Упрощенная функция просмотра
