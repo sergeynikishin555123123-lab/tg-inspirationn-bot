@@ -1874,6 +1874,7 @@
         let drawingCanvas = null;
         let drawingContext = null;
         let isDrawing = false;
+        let userVideoAccess = {};
         let lastX = 0;
         let lastY = 0;
         let currentColor = '#000000';
@@ -3146,6 +3147,17 @@ function getLevelName(level) {
     return levels[level] || level;
 }
     
+// Функция для обновления кэша доступа
+function updateVideoAccessCache(videos) {
+    if (videos && Array.isArray(videos)) {
+        userVideoAccess = {};
+        videos.forEach(video => {
+            userVideoAccess[video.id] = video.has_access || video.has_purchase;
+        });
+    }
+}
+
+// Обновить функцию displayPrivateVideos:
 function displayPrivateVideos(videos) {
     const videosList = document.getElementById('privateVideosList');
     
@@ -3155,6 +3167,7 @@ function displayPrivateVideos(videos) {
         renderVideosList(videos);
         return;
     }
+    updateVideoAccessCache(videosArray || videos.videos || videos);
     
     // Если videos это объект с данными
     if (videos && Array.isArray(videos.videos)) {
