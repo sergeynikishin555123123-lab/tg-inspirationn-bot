@@ -4653,138 +4653,255 @@ app.get('/api/mobile/health', (req, res) => {
     });
 });
 
-// Telegram Bot
+// ==================== ИСПРАВЛЕННАЯ СИСТЕМА TELEGRAM БОТА ====================
+
 let bot;
-if (process.env.BOT_TOKEN) {
+
+// Функция инициализации бота
+async function initializeBot() {
     try {
-        bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+        if (!process.env.BOT_TOKEN) {
+            console.log('⚠️ Токен бота не настроен, бот не будет запущен');
+            return;
+        }
+
+        console.log('🤖 Инициализация Telegram бота...');
         
-        console.log('✅ Telegram Bot инициализирован');
-        console.log('=== НАСТРОЙКИ ПРИВАТНОГО КАНАЛА ===');
-        console.log('CHANNEL_ID:', PRIVATE_CHANNEL_CONFIG.CHANNEL_ID);
-        console.log('CHANNEL_USERNAME:', PRIVATE_CHANNEL_CONFIG.CHANNEL_USERNAME);
-        console.log('==================================');
-
-bot.onText(/\/start/, (msg) => {
-    const chatId = msg.chat.id;
-    const name = msg.from.first_name || 'Друг';
-    const userId = msg.from.id;
-    
-    let user = db.users.find(u => u.user_id === userId);
-    if (!user) {
-        user = {
-            id: Date.now(),
-            user_id: userId,
-            tg_first_name: msg.from.first_name,
-            tg_username: msg.from.username,
-            sparks: 0,
-            level: 'Ученик',
-            is_registered: false,
-            class: null,
-            character_id: null,
-            character_name: null,
-            available_buttons: [],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
-        };
-        db.users.push(user);
-    } else {
-        user.last_active = new Date().toISOString();
-    }
-    
-    // ДИНАМИЧЕСКАЯ ССЫЛКА НА ВАШЕ ПРИЛОЖЕНИЕ
-    const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
-    const webAppUrl = `${baseUrl}?tgWebAppStartParam=${userId}`;
-    
-    console.log('🔗 Генерируем ссылку для WebApp:', webAppUrl);
-    
-    const welcomeText = `🎨 Привет, ${name}!
-
-Добро пожаловать в **Мастерская Вдохновения**!
-
-✨ Откройте личный кабинет чтобы:
-• 🎯 Проходить квизы и получать искры
-• 🏃‍♂️ Участвовать в марафонах  
-• 🖼️ Загружать свои работы
-• 🎮 Выполнять интерактивные задания
-• 🔄 Менять роль и персонажа
-• 📊 Отслеживать прогресс
-• 🛒 Покупать обучающие материалы
-• 🎬 Получать доступ к приватным видео
-
-Нажмите кнопку ниже чтобы начать!`;
-    
-    const keyboard = {
-        inline_keyboard: [[
-            {
-                text: "📱 Открыть Личный Кабинет",
-                web_app: { url: webAppUrl }
-            }
-        ]]
-    };
-
-    bot.sendMessage(chatId, welcomeText, {
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-    });
-});
-
-        // Обработчик для запроса доступа к видео
-        bot.onText(/\/доступ|доступ/i, async (msg) => {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
-            
-            try {
-                const userAccess = db.video_access.filter(access => access.user_id === userId);
-                
-                if (userAccess.length === 0) {
-                    bot.sendMessage(chatId, 
-                        'У вас нет активного доступа к видео.\n\n' +
-                        '📹 Приобрести доступ можно в разделе "Приватные видео" в вашем личном кабинете.'
-                    );
-                    return;
+        // Создаем экземпляр бота с правильными опциями
+        bot = new TelegramBot(process.env.BOT_TOKEN, {
+            polling: {
+                interval: 300,
+                autoStart: true,
+                params: {
+                    timeout: 10
                 }
-                
-                let message = '🎬 Ваши активные доступы к видео:\n\n';
-                
-                for (const access of userAccess) {
-                    const video = db.private_channel_videos.find(v => v.id === access.video_id);
-                    if (video && video.is_active) {
-                        // Создаем новую временную ссылку
-                        const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
-                            member_limit: 1,
-                            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
-                        });
-                        
-                        message += `📹 ${video.title}\n`;
-                        message += `🔗 ${chatInviteLink.invite_link}\n`;
-                        message += `⏰ Ссылка действительна 24 часа\n\n`;
-                    }
-                }
-                
-                message += '⚠️ Для повторного доступа используйте команду /доступ';
-                
-                bot.sendMessage(chatId, message);
-                
-            } catch (error) {
-                console.error('Ошибка при запросе доступа:', error);
-                bot.sendMessage(chatId, '❌ Произошла ошибка при получении доступа. Попробуйте позже.');
             }
         });
 
-        bot.onText(/\/admin/, (msg) => {
+        console.log('✅ Telegram Bot создан');
+
+        // Настройка обработчиков команд
+        setupBotHandlers();
+
+        console.log('✅ Обработчики команд настроены');
+        console.log('🎯 Бот готов к работе!');
+
+    } catch (error) {
+        console.error('💥 Ошибка инициализации бота:', error);
+    }
+}
+
+// Настройка обработчиков команд
+function setupBotHandlers() {
+    if (!bot) {
+        console.error('❌ Бот не инициализирован');
+        return;
+    }
+
+    // Обработчик команды /start
+    bot.onText(/\/start/, async (msg) => {
+        try {
             const chatId = msg.chat.id;
             const userId = msg.from.id;
-            
-            const admin = db.admins.find(a => a.user_id == userId);
-            if (!admin) {
-                bot.sendMessage(chatId, '❌ У вас нет прав доступа к админ панели.');
+            const firstName = msg.from.first_name || 'Друг';
+            const username = msg.from.username || `user_${userId}`;
+
+            console.log(`👋 Команда /start от ${firstName} (${userId})`);
+
+            // Сохраняем/обновляем пользователя
+            let user = db.users.find(u => u.user_id === userId);
+            if (!user) {
+                user = {
+                    id: Date.now(),
+                    user_id: userId,
+                    tg_first_name: firstName,
+                    tg_username: username,
+                    sparks: 10, // Бонус за старт
+                    level: 'Ученик',
+                    is_registered: false,
+                    class: null,
+                    character_id: null,
+                    character_name: null,
+                    available_buttons: [],
+                    registration_date: new Date().toISOString(),
+                    last_active: new Date().toISOString()
+                };
+                db.users.push(user);
+                
+                // Начисляем бонус за старт
+                addSparks(userId, 10, 'welcome_bonus', 'Бонус за начало работы с ботом');
+                
+                console.log(`✅ Новый пользователь создан: ${firstName}`);
+            } else {
+                user.last_active = new Date().toISOString();
+                user.tg_first_name = firstName;
+                user.tg_username = username;
+                console.log(`✅ Пользователь обновлен: ${firstName}`);
+            }
+
+            // Создаем приветственное сообщение
+            const welcomeText = `🎨 Привет, ${firstName}!
+
+Добро пожаловать в **Мастерскую Вдохновения**!
+
+✨ Я ваш помощник в мире творчества. Вот что я умею:
+
+• 🎯 Открыть личный кабинет
+• 📊 Показать статистику
+• 🛒 Помочь с покупками
+• 🎬 Предоставить доступ к материалам
+
+💡 *Основные команды:*
+/start - Начать работу
+/profile - Мой профиль
+/stats - Статистика
+/help - Помощь
+
+Нажмите кнопку ниже чтобы открыть личный кабинет!`;
+
+            // Создаем клавиатуру
+            const keyboard = {
+                inline_keyboard: [[
+                    {
+                        text: "📱 Открыть Личный Кабинет",
+                        web_app: { 
+                            url: `${process.env.APP_URL || 'http://localhost:3000'}?tgWebAppStartParam=${userId}`
+                        }
+                    }
+                ]]
+            };
+
+            await bot.sendMessage(chatId, welcomeText, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            });
+
+            console.log(`✅ Приветственное сообщение отправлено пользователю ${userId}`);
+
+        } catch (error) {
+            console.error('❌ Ошибка обработки /start:', error);
+        }
+    });
+
+    // Обработчик команды /profile
+    bot.onText(/\/profile/, async (msg) => {
+        try {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            const firstName = msg.from.first_name || 'Пользователь';
+
+            console.log(`👤 Команда /profile от ${firstName} (${userId})`);
+
+            const user = db.users.find(u => u.user_id === userId);
+            if (!user) {
+                await bot.sendMessage(chatId, 
+                    '❌ Ваш профиль не найден. Используйте /start для начала работы.'
+                );
                 return;
             }
+
+            const stats = getUserStats(userId);
+            const profileText = `👤 *Ваш профиль*
+
+*Имя:* ${user.tg_first_name}
+*Уровень:* ${user.level}
+*Искры:* ${user.sparks.toFixed(1)}✨
+*Роль:* ${user.class || 'Не выбрана'}
+*Персонаж:* ${user.character_name || 'Не выбран'}
+
+*📊 Статистика:*
+• Пройдено квизов: ${stats.totalQuizzesCompleted}
+• Загружено работ: ${stats.totalWorks}
+• Завершено марафонов: ${stats.totalMarathonsCompleted}
+• Пройдено интерактивов: ${stats.totalInteractivesCompleted}
+
+💡 Используйте /stats для подробной статистики`;
+
+            await bot.sendMessage(chatId, profileText, {
+                parse_mode: 'Markdown'
+            });
+
+        } catch (error) {
+            console.error('❌ Ошибка обработки /profile:', error);
+        }
+    });
+
+    // Обработчик команды /stats
+    bot.onText(/\/stats/, async (msg) => {
+        try {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+
+            console.log(`📊 Команда /stats от пользователя ${userId}`);
+
+            // Проверяем права администратора
+            const admin = db.admins.find(a => a.user_id == userId);
+            if (!admin) {
+                await bot.sendMessage(chatId, 
+                    '❌ У вас нет прав доступа к этой команде.'
+                );
+                return;
+            }
+
+            const stats = {
+                totalUsers: db.users.length,
+                registeredUsers: db.users.filter(u => u.is_registered).length,
+                activeQuizzes: db.quizzes.filter(q => q.is_active).length,
+                activeMarathons: db.marathons.filter(m => m.is_active).length,
+                shopItems: db.shop_items.filter(i => i.is_active).length,
+                totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
+                privateVideos: db.private_channel_videos.filter(v => v.is_active).length,
+                videoAccesses: db.video_access.length,
+                totalActivities: db.activities.length,
+                totalPurchases: db.purchases.length
+            };
             
-            // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
-            const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
-            const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
+            const statsText = `📊 *Статистика бота*
+
+👥 *Пользователи:*
+• Всего: ${stats.totalUsers}
+• Зарегистрировано: ${stats.registeredUsers}
+
+🎯 *Контент:*
+• Активных квизов: ${stats.activeQuizzes}
+• Активных марафонов: ${stats.activeMarathons}
+• Товаров в магазине: ${stats.shopItems}
+• Приватных видео: ${stats.privateVideos}
+
+💰 *Экономика:*
+• Всего искр в системе: ${stats.totalSparks.toFixed(1)}✨
+• Активных доступов: ${stats.videoAccesses}
+• Всего покупок: ${stats.totalPurchases}
+• Всего активностей: ${stats.totalActivities}
+
+🔄 *Последнее обновление:* ${new Date().toLocaleString('ru-RU')}`;
+
+            await bot.sendMessage(chatId, statsText, {
+                parse_mode: 'Markdown'
+            });
+
+        } catch (error) {
+            console.error('❌ Ошибка обработки /stats:', error);
+        }
+    });
+
+    // Обработчик команды /admin
+    bot.onText(/\/admin/, async (msg) => {
+        try {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+
+            console.log(`🔧 Команда /admin от пользователя ${userId}`);
+
+            const admin = db.admins.find(a => a.user_id == userId);
+            if (!admin) {
+                await bot.sendMessage(chatId, 
+                    '❌ У вас нет прав доступа к админ панели.'
+                );
+                return;
+            }
+
+            const adminUrl = `${process.env.APP_URL || 'http://localhost:3000'}/admin.html?userId=${userId}`;
             
             const keyboard = {
                 inline_keyboard: [[
@@ -4795,52 +4912,164 @@ bot.onText(/\/start/, (msg) => {
                 ]]
             };
             
-            bot.sendMessage(chatId, `🔧 Панель администратора\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
+            await bot.sendMessage(chatId, 
+                `🔧 *Панель администратора*\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
                 parse_mode: 'Markdown',
                 reply_markup: keyboard
             });
-        });
 
-        bot.onText(/\/stats/, (msg) => {
+        } catch (error) {
+            console.error('❌ Ошибка обработки /admin:', error);
+        }
+    });
+
+    // Обработчик команды /help
+    bot.onText(/\/help/, async (msg) => {
+        try {
+            const chatId = msg.chat.id;
+            const firstName = msg.from.first_name || 'Друг';
+
+            const helpText = `🆘 *Помощь по боту*
+
+*Основные команды:*
+/start - Начать работу с ботом
+/profile - Показать ваш профиль
+/help - Показать эту справку
+
+*Для администраторов:*
+/stats - Статистика бота
+/admin - Открыть админ панель
+
+*Доступ к материалам:*
+Используйте кнопку "Личный кабинет" для доступа ко всем функциям:
+• 🎯 Квизы и тесты
+• 🏃‍♂️ Творческие марафоны
+• 🖼️ Галерея работ
+• 🛒 Магазин знаний
+• 🎬 Приватные видео
+
+💡 *Совет:* Большинство функций доступно через веб-приложение в личном кабинете.
+
+📧 *Поддержка:* Если у вас есть вопросы, обратитесь к администратору.`;
+
+            await bot.sendMessage(chatId, helpText, {
+                parse_mode: 'Markdown'
+            });
+
+        } catch (error) {
+            console.error('❌ Ошибка обработки /help:', error);
+        }
+    });
+
+    // Обработчик команды /доступ
+    bot.onText(/\/доступ/, async (msg) => {
+        try {
             const chatId = msg.chat.id;
             const userId = msg.from.id;
-            
-            const admin = db.admins.find(a => a.user_id == userId);
-            if (!admin) {
-                bot.sendMessage(chatId, '❌ У вас нет прав доступа.');
+            const firstName = msg.from.first_name || 'Пользователь';
+
+            console.log(`🎬 Команда /доступ от ${firstName} (${userId})`);
+
+            const userAccess = db.video_access.filter(access => 
+                access.user_id === userId && 
+                access.expires_at > new Date().toISOString()
+            );
+
+            if (userAccess.length === 0) {
+                await bot.sendMessage(chatId, 
+                    `🎬 *Доступ к материалам*\n\nУ вас нет активного доступа к приватным видео.\n\n📹 Приобрести доступ можно в разделе "Приватные видео" в вашем личном кабинете.`, {
+                    parse_mode: 'Markdown'
+                });
                 return;
             }
-            
-            const stats = {
-                totalUsers: db.users.length,
-                registeredUsers: db.users.filter(u => u.is_registered).length,
-                activeQuizzes: db.quizzes.filter(q => q.is_active).length,
-                activeMarathons: db.marathons.filter(m => m.is_active).length,
-                shopItems: db.shop_items.filter(i => i.is_active).length,
-                totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
-                privateVideos: db.private_channel_videos.filter(v => v.is_active).length,
-                videoAccesses: db.video_access.length
-            };
-            
-            const statsText = `📊 Статистика бота:
-            
-👥 Пользователи: ${stats.totalUsers}
-✅ Зарегистрировано: ${stats.registeredUsers}
-🎯 Активных квизов: ${stats.activeQuizzes}
-🏃‍♂️ Активных марафонов: ${stats.activeMarathons}
-🛒 Товаров в магазине: ${stats.shopItems}
-🎬 Приватных видео: ${stats.privateVideos}
-🔗 Активных доступов: ${stats.videoAccesses}
-✨ Всего искр: ${stats.totalSparks.toFixed(1)}`;
-            
-            bot.sendMessage(chatId, statsText);
-        });
 
-    } catch (error) {
-        console.error('❌ Ошибка инициализации бота:', error);
-    }
+            let message = `🎬 *Ваши активные доступы к видео:*\n\n`;
+
+            for (const access of userAccess) {
+                const video = db.private_channel_videos.find(v => v.id === access.video_id);
+                if (video && video.is_active) {
+                    const expiresDate = new Date(access.expires_at);
+                    const daysLeft = Math.ceil((expiresDate - new Date()) / (1000 * 60 * 60 * 24));
+                    
+                    message += `📹 *${video.title}*\n`;
+                    message += `⏰ Доступен еще: ${daysLeft} дней\n`;
+                    message += `📅 Истекает: ${expiresDate.toLocaleDateString('ru-RU')}\n\n`;
+                }
+            }
+
+            message += `💡 *Для просмотра материалов откройте личный кабинет и перейдите в раздел "Мои материалы".*`;
+
+            await bot.sendMessage(chatId, message, {
+                parse_mode: 'Markdown'
+            });
+
+        } catch (error) {
+            console.error('❌ Ошибка обработки /доступ:', error);
+        }
+    });
+
+    // Обработчик текстовых сообщений (не команд)
+    bot.on('message', async (msg) => {
+        // Игнорируем команды (они обрабатываются отдельно)
+        if (msg.text && msg.text.startsWith('/')) {
+            return;
+        }
+
+        try {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            const text = msg.text;
+
+            // Простой эхо-ответ на текстовые сообщения
+            if (text && text.trim().length > 0) {
+                await bot.sendMessage(chatId, 
+                    `🤖 Я получил ваше сообщение: "${text}"\n\nИспользуйте /help для просмотра доступных команд.`, {
+                    reply_to_message_id: msg.message_id
+                });
+            }
+
+        } catch (error) {
+            console.error('❌ Ошибка обработки сообщения:', error);
+        }
+    });
+
+    // Обработчик ошибок бота
+    bot.on('polling_error', (error) => {
+        console.error('❌ Ошибка polling бота:', error.code, error.message);
+    });
+
+    bot.on('webhook_error', (error) => {
+        console.error('❌ Ошибка webhook бота:', error);
+    });
+
+    bot.on('error', (error) => {
+        console.error('❌ Общая ошибка бота:', error);
+    });
+
+    console.log('✅ Все обработчики команд настроены');
 }
 
+// Функция для отправки уведомлений пользователям
+async function sendTelegramNotification(userId, message, options = {}) {
+    try {
+        if (!bot) {
+            console.error('❌ Бот не инициализирован для отправки уведомления');
+            return false;
+        }
+
+        await bot.sendMessage(userId, message, {
+            parse_mode: 'Markdown',
+            ...options
+        });
+
+        console.log(`✅ Уведомление отправлено пользователю ${userId}`);
+        return true;
+
+    } catch (error) {
+        console.error(`❌ Ошибка отправки уведомления пользователю ${userId}:`, error.message);
+        return false;
+    }
+}
 // Запуск сервера с управлением процессами
 async function startServer() {
     try {
