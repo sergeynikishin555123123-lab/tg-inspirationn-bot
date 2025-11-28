@@ -14,24 +14,6 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
-// ==================== СИСТЕМА ПРИВАТНОГО КАНАЛА ====================
-
-// Конфигурация приватного канала
-const PRIVATE_CHANNEL_CONFIG = {
-    CHANNEL_ID: process.env.PRIVATE_CHANNEL_ID || '-1001234567890',
-    CHANNEL_USERNAME: process.env.PRIVATE_CHANNEL_USERNAME || '@private_videos_channel',
-    BOT_TOKEN: process.env.BOT_TOKEN
-};
-
-// Увеличены лимиты для больших файлов (3GB)
-app.use(express.json({ limit: '3gb' }));
-app.use(express.urlencoded({ limit: '3gb', extended: true }));
-app.use(cors());
-
-// Дополнительные настройки для body-parser
-app.use(bodyParser.json({ limit: '3gb' }));
-app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
-
 // ==================== СИСТЕМА УПРАВЛЕНИЯ ПРОЦЕССАМИ ====================
 
 import { exec } from 'child_process';
@@ -44,6 +26,7 @@ async function setupProcessManagement() {
     const PORT = process.env.PORT || 3000;
     
     try {
+        // Пытаемся убить процессы на том же порту
         console.log('🔍 Проверка занятости порта...');
         
         // Для Linux/Mac
@@ -63,10 +46,11 @@ async function setupProcessManagement() {
                 }
             }
         } catch (error) {
+            // Порту свободен или команда не сработала
             console.log('✅ Порт свободен или ОС Windows');
         }
         
-        // Для Windows
+        // Для Windows (если нужно)
         try {
             const { stdout } = await execAsync(`netstat -ano | findstr :${PORT}`);
             if (stdout) {
@@ -131,6 +115,7 @@ function setupGracefulShutdown() {
                         process.exit(signal === 'uncaughtException' ? 1 : 0);
                     });
                     
+                    // Таймаут на случай если сервер не закрывается
                     setTimeout(() => {
                         console.log('⚠️ Принудительное завершение');
                         process.exit(1);
@@ -154,7 +139,7 @@ const APP_ROOT = process.cwd();
 console.log('🎨 Мастерская Вдохновения - Запуск системы...');
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 
-// In-memory база данных с полным наполнением
+// In-memory база данных с улучшенной структурой
 let db = {
     users: [
         {
@@ -183,21 +168,6 @@ let db = {
             class: 'Художники',
             character_id: 1,
             character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
-        },
-        {
-            id: 3,
-            user_id: 79156202620,
-            tg_first_name: 'Модератор',
-            tg_username: 'moderator',
-            sparks: 150.0,
-            level: 'Знаток',
-            is_registered: true,
-            class: 'Стилисты',
-            character_id: 3,
-            character_name: 'Эстелла Моде',
             available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             registration_date: new Date().toISOString(),
             last_active: new Date().toISOString()
@@ -547,26 +517,9 @@ let db = {
             content_text: "Это тестовый embed-контент для проверки отображения",
             is_active: true,
             created_at: new Date().toISOString()
-        }
+        }  
     ],
-    activities: [
-        {
-            id: 1,
-            user_id: 12345,
-            activity_type: 'registration',
-            sparks_earned: 10,
-            description: 'Регистрация',
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            user_id: 898508164,
-            activity_type: 'quiz',
-            sparks_earned: 8,
-            description: 'Квиз: Основы живописи',
-            created_at: new Date().toISOString()
-        }
-    ],
+    activities: [],
     admins: [
         { 
             id: 1, 
@@ -590,15 +543,7 @@ let db = {
             created_at: new Date().toISOString() 
         }
     ],
-    purchases: [
-        {
-            id: 1,
-            user_id: 12345,
-            item_id: 1,
-            price_paid: 15,
-            purchased_at: new Date().toISOString()
-        }
-    ],
+    purchases: [],
     channel_posts: [
         {
             id: 1,
@@ -646,66 +591,12 @@ let db = {
             action_target: null
         }
     ],
-    post_reviews: [
-        {
-            id: 1,
-            user_id: 12345,
-            post_id: "post_art_basics",
-            review_text: "Очень полезный пост! Никогда не задумывался о композиции так глубоко.",
-            rating: 5,
-            status: 'approved',
-            created_at: new Date().toISOString(),
-            moderated_at: new Date().toISOString(),
-            moderator_id: 898508164,
-            admin_comment: null
-        }
-    ],
-    user_works: [
-        {
-            id: 1,
-            user_id: 12345,
-            title: "Мой первый пейзаж",
-            description: "Попытка нарисовать закат акварелью",
-            image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
-            type: "image",
-            status: "approved",
-            created_at: new Date().toISOString(),
-            moderated_at: new Date().toISOString(),
-            moderator_id: 898508164,
-            admin_comment: "Отличная работа для начала!"
-        }
-    ],
+    post_reviews: [],
+    user_works: [],
     work_reviews: [],
-    marathon_completions: [
-        {
-            id: 1,
-            user_id: 12345,
-            marathon_id: 1,
-            current_day: 3,
-            progress: 42,
-            completed: false,
-            started_at: new Date().toISOString()
-        }
-    ],
-    quiz_completions: [
-        {
-            id: 1,
-            user_id: 898508164,
-            quiz_id: 1,
-            completed_at: new Date().toISOString(),
-            score: 5,
-            sparks_earned: 10,
-            perfect_score: true
-        }
-    ],
-    daily_reviews: [
-        {
-            id: 1,
-            user_id: 12345,
-            date: new Date().toISOString(),
-            type: 'daily_comment'
-        }
-    ],
+    marathon_completions: [],
+    quiz_completions: [],
+    daily_reviews: [],
     interactives: [
         {
             id: 1,
@@ -798,91 +689,78 @@ let db = {
             created_at: new Date().toISOString()
         }
     ],
-    interactive_completions: [
-        {
-            id: 1,
-            user_id: 12345,
-            interactive_id: 1,
-            completed_at: new Date().toISOString(),
-            score: 1,
-            sparks_earned: 3,
-            answer: 0
-        }
-    ],
+    interactive_completions: [],
     interactive_submissions: [],
-    marathon_submissions: [
-        {
-            id: 1,
-            user_id: 12345,
-            marathon_id: 1,
-            day: 1,
-            submission_text: "Попробовал основные техники акварели. Очень понравилась техника 'по-мокрому'!",
-            submission_image: null,
-            submitted_at: new Date().toISOString(),
-            status: 'approved'
-        }
-    ],
-    private_channel_videos: [
-        {
-            id: 1,
-            post_url: "https://t.me/c/1234567890/123",
-            channel_id: "1234567890", 
-            message_id: 123,
-            title: "🎬 Профессиональный урок по акварели",
-            description: "Полный урок по технике акварельной живописи от профессионального художника",
-            duration: "45 минут",
-            price: 25,
-            category: "video",
-            level: "intermediate",
-            access_duration_days: 30,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            post_url: "https://t.me/c/1234567890/124", 
-            channel_id: "1234567890",
-            message_id: 124,
-            title: "🎨 Мастер-класс по портрету",
-            description: "Учимся рисовать портреты с нуля до профессионального уровня",
-            duration: "60 минут",
-            price: 30,
-            category: "video", 
-            level: "intermediate",
-            access_duration_days: 30,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        }
-    ],
-    video_access: [
-        {
-            id: 1,
-            user_id: 12345,
-            video_id: 1,
-            purchased_at: new Date().toISOString(),
-            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            telegram_message_id: null,
-            access_count: 3
-        }
-    ]
+// В объекте db добавьте эти коллекции если их нет:
+marathon_submissions: [],
+video_access: [],
+private_channel_videos: [
+    {
+        id: 1,
+        post_url: "https://t.me/c/1234567890/123",
+        channel_id: "1234567890", 
+        message_id: 123,
+        title: "🎬 Профессиональный урок по акварели",
+        description: "Полный урок по технике акварельной живописи от профессионального художника",
+        duration: "45 минут",
+        price: 25,
+        category: "video",
+        level: "intermediate",
+        is_active: true,
+        created_at: new Date().toISOString()
+    },
+    {
+        id: 2,
+        post_url: "https://t.me/c/1234567890/124", 
+        channel_id: "1234567890",
+        message_id: 124,
+        title: "🎨 Мастер-класс по портрету",
+        description: "Учимся рисовать портреты с нуля до профессионального уровня",
+        duration: "60 минут",
+        price: 30,
+        category: "video", 
+        level: "intermediate",
+        is_active: true,
+        created_at: new Date().toISOString()
+    }
+],
+video_access: [],
+marathon_submissions: []
+};
+// ==================== СИСТЕМА ПРИВАТНОГО КАНАЛА ====================
+
+// Конфигурация приватного канала
+const PRIVATE_CHANNEL_CONFIG = {
+    CHANNEL_ID: process.env.PRIVATE_CHANNEL_ID || '-1001234567890',
+    CHANNEL_USERNAME: process.env.PRIVATE_CHANNEL_USERNAME || '@private_videos_channel',
+    BOT_TOKEN: process.env.BOT_TOKEN
 };
 
-// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
-app.use(express.static(join(APP_ROOT, 'public')));
+// Увеличены лимиты для больших файлов (3GB)
+app.use(express.json({ limit: '3gb' }));
+app.use(express.urlencoded({ limit: '3gb', extended: true }));
+app.use(cors());
 
-// Настройка для админ-панели
-app.use('/admin', express.static(join(APP_ROOT, 'public')));
+// Дополнительные настройки для body-parser (если используется)
+app.use(bodyParser.json({ limit: '3gb' }));
+app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
+
+// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
+app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
+
+// Правильная настройка для админ-панели
+app.use('/admin', express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
 
 app.get('/admin', (req, res) => {
     res.sendFile(join(APP_ROOT, 'public', 'admin.html'));
 });
 
 app.get('/admin/*', (req, res) => {
-    if (!req.path.includes('.')) {
+    // Перенаправляем все админ-запросы на admin.html
+    if (!req.path.includes('.')) { // Если это не файл (css, js, etc)
         res.sendFile(join(APP_ROOT, 'public', 'admin.html'));
     } else {
+        // Для статических файлов используем основной public
         const filePath = req.path.replace('/admin/', '');
         res.sendFile(join(APP_ROOT, 'public', filePath));
     }
@@ -890,13 +768,16 @@ app.get('/admin/*', (req, res) => {
 
 // ==================== НАСТРОЙКИ ДЛЯ БОЛЬШИХ ФАЙЛОВ ====================
 
+// Middleware для увеличения лимитов и таймаутов
 app.use((req, res, next) => {
-    req.setTimeout(30 * 60 * 1000);
-    res.setTimeout(30 * 60 * 1000);
+    // Увеличиваем таймауты для больших файлов (30 минут)
+    req.setTimeout(30 * 60 * 1000); // 30 минут
+    res.setTimeout(30 * 60 * 1000); // 30 минут
     console.log(`⏰ Установлены таймауты для ${req.method} ${req.url}`);
     next();
 });
 
+// Обработка ошибок больших файлов
 app.use((error, req, res, next) => {
     if (error.code === 'LIMIT_FILE_SIZE') {
         console.error('❌ Файл слишком большой:', error.message);
@@ -918,6 +799,7 @@ app.use((error, req, res, next) => {
     next(error);
 });
 
+// Глобальный обработчик ошибок для больших файлов
 process.on('uncaughtException', (error) => {
     if (error.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
         console.error('❌ Превышен максимальный размер тела запроса');
@@ -928,8 +810,7 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('❌ Необработанное отклонение промиса:', reason);
 });
 
-// ==================== СИСТЕМА НАЧИСЛЕНИЯ ИСКР ====================
-
+// УЛУЧШЕННАЯ СИСТЕМА НАЧИСЛЕНИЯ ИСКР
 const SPARKS_SYSTEM = {
     QUIZ_PER_CORRECT_ANSWER: 1,
     QUIZ_PERFECT_BONUS: 5,
@@ -948,25 +829,38 @@ const SPARKS_SYSTEM = {
     ROLE_CHANGE: 0
 };
 
-// Вспомогательные функции для приватных материалов
-function getCategoryName(category) {
-    const categories = {
-        'video': '🎥 Видео',
-        'course': '🎓 Курс', 
-        'lesson': '📖 Урок',
-        'masterclass': '⚡ Мастер-класс',
-        'material': '📚 Материал'
-    };
-    return categories[category] || category;
+// Вспомогательные функции
+function calculateLevel(sparks) {
+    if (sparks >= 400) return 'Наставник';
+    if (sparks >= 300) return 'Мастер';
+    if (sparks >= 150) return 'Знаток';
+    if (sparks >= 50) return 'Искатель';
+    return 'Ученик';
 }
 
-function getLevelName(level) {
-    const levels = {
-        'beginner': '👶 Начинающий',
-        'intermediate': '🚀 Продвинутый',
-        'advanced': '🔥 Эксперт'
-    };
-    return levels[level] || level;
+function addSparks(userId, sparks, activityType, description) {
+    const user = db.users.find(u => u.user_id == userId);
+    if (user) {
+        user.sparks = Math.max(0, user.sparks + sparks);
+        user.level = calculateLevel(user.sparks);
+        user.last_active = new Date().toISOString();
+        
+        // Создаем запись активности только для положительных начислений
+        if (sparks > 0) {
+            const activity = {
+                id: Date.now(),
+                user_id: userId,
+                activity_type: activityType,
+                sparks_earned: sparks,
+                description: description,
+                created_at: new Date().toISOString()
+            };
+            
+            db.activities.push(activity);
+            return activity;
+        }
+    }
+    return null;
 }
 
 function getUserStats(userId) {
@@ -992,40 +886,7 @@ function getUserStats(userId) {
     };
 }
 
-// Вспомогательные функции
-function calculateLevel(sparks) {
-    if (sparks >= 400) return 'Наставник';
-    if (sparks >= 300) return 'Мастер';
-    if (sparks >= 150) return 'Знаток';
-    if (sparks >= 50) return 'Искатель';
-    return 'Ученик';
-}
-
-function addSparks(userId, sparks, activityType, description) {
-    const user = db.users.find(u => u.user_id == userId);
-    if (user) {
-        user.sparks = Math.max(0, user.sparks + sparks);
-        user.level = calculateLevel(user.sparks);
-        user.last_active = new Date().toISOString();
-        
-        if (sparks > 0) {
-            const activity = {
-                id: Date.now(),
-                user_id: userId,
-                activity_type: activityType,
-                sparks_earned: sparks,
-                description: description,
-                created_at: new Date().toISOString()
-            };
-            
-            db.activities.push(activity);
-            return activity;
-        }
-    }
-    return null;
-}
-
-// Middleware для админов
+// Middleware - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const requireAdmin = (req, res, next) => {
     const userId = req.query.userId || req.body.userId;
     
@@ -1035,9 +896,11 @@ const requireAdmin = (req, res, next) => {
         return res.status(401).json({ error: 'User ID required' });
     }
     
+    // ПРОСТАЯ ПРОВЕРКА - ВСЕ, У КОГО ЕСТЬ ID, МОГУТ ВОЙТИ В АДМИНКУ
     const admin = db.admins.find(a => a.user_id == userId);
     if (!admin) {
         console.log('⚠️ Пользователь не найден в списке админов, но разрешаем доступ');
+        // Разрешаем доступ всем для тестирования
         req.admin = { user_id: userId, role: 'admin' };
         return next();
     }
@@ -1046,8 +909,7 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
-// ==================== ОСНОВНЫЕ API ====================
-
+// Basic routes
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
@@ -1062,6 +924,8 @@ app.get('/health', (req, res) => {
     });
 });
 
+// ==================== ОПТИМИЗИРОВАННЫЕ API ДЛЯ МОБИЛЬНЫХ ====================
+
 // Middleware для определения мобильных устройств
 app.use((req, res, next) => {
     const userAgent = req.headers['user-agent'] || '';
@@ -1070,20 +934,22 @@ app.use((req, res, next) => {
     
     if (isMobile) {
         console.log('📱 Мобильное устройство обнаружено:', userAgent.substring(0, 50));
+        // Устанавливаем специальные заголовки для мобильных
         res.set('X-Mobile-Optimized', 'true');
     }
     next();
 });
 
-// Оптимизированный API для мобильных
+// Оптимизированный API для мобильных с увеличенными таймаутами
 app.get('/api/mobile/optimized-data', (req, res) => {
     const userId = parseInt(req.query.userId);
     const isMobile = req.isMobile;
     
     console.log(`📱 Оптимизированный мобильный API запрос от пользователя: ${userId}`);
     
+    // Устанавливаем увеличенный таймаут для мобильных
     if (isMobile) {
-        req.setTimeout(45000);
+        req.setTimeout(45000); // 45 секунд
         res.setTimeout(45000);
     }
     
@@ -1093,6 +959,7 @@ app.get('/api/mobile/optimized-data', (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
         
+        // Упрощенные данные для мобильных
         const response = {
             user: {
                 id: user.user_id,
@@ -1102,6 +969,7 @@ app.get('/api/mobile/optimized-data', (req, res) => {
                 role: user.class,
                 character: user.character_name
             },
+            // Минимальные данные для быстрой загрузки
             quick_stats: {
                 quizzes: db.quizzes.filter(q => q.is_active).length,
                 marathons: db.marathons.filter(m => m.is_active).length,
@@ -1131,6 +999,7 @@ app.get('/api/mobile/lazy-load', (req, res) => {
     
     console.log(`📱 Ленивая загрузка: ${type}, страница ${page}`);
     
+    // Устанавливаем увеличенный таймаут
     if (isMobile) {
         req.setTimeout(30000);
         res.setTimeout(30000);
@@ -1153,6 +1022,7 @@ app.get('/api/mobile/lazy-load', (req, res) => {
                         type: item.type,
                         price: item.price,
                         preview_url: item.preview_url,
+                        // Для embed-видео добавляем специальную пометку
                         is_embed: item.type === 'embed'
                     }));
                 break;
@@ -1188,6 +1058,1048 @@ app.get('/api/mobile/lazy-load', (req, res) => {
             optimized: true 
         });
     }
+});
+
+// ==================== API ДЛЯ ПРИВАТНЫХ ВИДЕО ====================
+
+// Получить все приватные видео
+app.get('/api/webapp/private-videos', (req, res) => {
+    try {
+        const userId = parseInt(req.query.userId);
+        console.log('🎬 Запрос приватных видео для пользователя:', userId);
+
+        if (!userId) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'Требуется авторизация' 
+            });
+        }
+
+        const videos = db.private_channel_videos.filter(video => video.is_active);
+        
+        const videosWithAccess = videos.map(video => {
+            // Проверка активного доступа
+            const hasAccess = db.video_access.some(access => 
+                access.user_id == userId && 
+                access.video_id === video.id && 
+                access.expires_at > new Date().toISOString()
+            );
+            
+            // Проверка покупки (даже если доступ истек)
+            const hasPurchase = db.purchases.some(purchase => 
+                purchase.user_id == userId && 
+                purchase.item_id === video.id && 
+                purchase.item_type === 'private_video'
+            );
+
+            return {
+                ...video,
+                has_access: hasAccess,
+                has_purchase: hasPurchase,
+                can_purchase: !hasPurchase, // Можно купить, если еще не покупал
+                access_expired: hasPurchase && !hasAccess // Покупал, но доступ истек
+            };
+        });
+
+        console.log(`✅ Найдено видео: ${videosWithAccess.length}`);
+
+        res.json({ 
+            success: true,
+            videos: videosWithAccess 
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения приватных видео:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка загрузки видео' 
+        });
+    }
+});
+
+// Покупка приватного видео
+app.post('/api/webapp/private-videos/purchase', async (req, res) => {
+    try {
+        const { userId, videoId } = req.body;
+        
+        console.log('🛒 Покупка приватного видео:', { userId, videoId });
+
+        if (!userId || !videoId) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'User ID and video ID are required' 
+            });
+        }
+
+        const user = db.users.find(u => u.user_id == userId);
+        const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
+
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Пользователь не найден' 
+            });
+        }
+        
+        if (!video) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Видео не найдено или неактивно' 
+            });
+        }
+
+        // ПРОВЕРКА БАЛАНСА
+        if (user.sparks < video.price) {
+            return res.status(402).json({ 
+                success: false,
+                error: `Недостаточно искр. Нужно: ${video.price}, у вас: ${user.sparks.toFixed(1)}` 
+            });
+        }
+
+        // ПРОВЕРКА НА УЖЕ КУПЛЕННЫЙ ДОСТУП
+        const existingPurchase = db.purchases.find(p => 
+            p.user_id == userId && p.item_id === videoId && p.item_type === 'private_video'
+        );
+
+        if (existingPurchase) {
+            return res.status(409).json({ 
+                success: false,
+                error: 'У вас уже есть доступ к этому материалу' 
+            });
+        }
+
+        // ПРОВЕРКА АКТИВНОГО ДОСТУПА
+        const existingAccess = db.video_access.find(access => 
+            access.user_id == userId && access.video_id === videoId && access.expires_at > new Date().toISOString()
+        );
+
+        if (existingAccess) {
+            return res.status(409).json({ 
+                success: false,
+                error: 'У вас уже есть активный доступ к этому материалу' 
+            });
+        }
+
+        // СПИСАНИЕ ИСКР
+        const oldSparks = user.sparks;
+        user.sparks -= video.price;
+        
+        console.log(`💰 Списание искр: ${oldSparks} -> ${user.sparks}`);
+
+        // СОЗДАНИЕ ЗАПИСИ О ПОКУПКЕ
+        const purchase = {
+            id: Date.now(),
+            user_id: parseInt(userId),
+            item_id: videoId,
+            item_type: 'private_video',
+            item_title: video.title,
+            price_paid: video.price,
+            purchased_at: new Date().toISOString()
+        };
+        db.purchases.push(purchase);
+
+        // СОЗДАНИЕ ДОСТУПА (30 ДНЕЙ)
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+        
+        const access = {
+            id: Date.now(),
+            user_id: parseInt(userId),
+            video_id: videoId,
+            purchased_at: new Date().toISOString(),
+            expires_at: expiresAt.toISOString(),
+            telegram_message_id: null
+        };
+        db.video_access.push(access);
+
+        // ЗАПИСЬ АКТИВНОСТИ
+        // Добавьте эту функцию если её нет:
+        function addSparks(userId, sparks, activityType, description) {
+            const user = db.users.find(u => u.user_id == userId);
+            if (user) {
+                user.sparks = Math.max(0, user.sparks + sparks);
+                user.last_active = new Date().toISOString();
+                
+                const activity = {
+                    id: Date.now(),
+                    user_id: userId,
+                    activity_type: activityType,
+                    sparks_earned: sparks,
+                    description: description,
+                    created_at: new Date().toISOString()
+                };
+                
+                db.activities.push(activity);
+                return activity;
+            }
+            return null;
+        }
+
+        addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
+
+        console.log('✅ Покупка завершена:', { 
+            purchase: purchase.id, 
+            access: access.id,
+            user: userId,
+            video: video.title
+        });
+
+        res.json({
+            success: true,
+            purchase: purchase,
+            access: access,
+            remaining_sparks: user.sparks,
+            message: `Доступ к "${video.title}" успешно приобретен! Ссылка для просмотра доступна в ваших покупках.`
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка покупки приватного видео:', error);
+        
+        // ОТКАТ СПИСАНИЯ В СЛУЧАЕ ОШИБКИ
+        if (userId) {
+            const user = db.users.find(u => u.user_id == userId);
+            if (user) {
+                user.sparks += req.body.videoId ? db.private_channel_videos.find(v => v.id == req.body.videoId)?.price || 0 : 0;
+            }
+        }
+        
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка при покупке доступа к видео' 
+        });
+    }
+});
+
+// Получить мои приватные видео
+app.get('/api/webapp/user/private-videos', (req, res) => {
+    try {
+        const { userId } = req.query;
+
+        if (!userId) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'Требуется авторизация' 
+            });
+        }
+
+        const userAccess = db.video_access.filter(access => 
+            access.user_id == userId && access.expires_at > new Date().toISOString()
+        );
+
+        const accessibleVideos = userAccess.map(access => {
+            const video = db.private_channel_videos.find(v => v.id === access.video_id && v.is_active);
+            if (!video) return null;
+            
+            return {
+                ...video,
+                access_id: access.id,
+                purchased_at: access.purchased_at,
+                expires_at: access.expires_at,
+                days_remaining: Math.ceil((new Date(access.expires_at) - new Date()) / (1000 * 60 * 60 * 24))
+            };
+        }).filter(video => video !== null);
+
+        // Также возвращаем доступные для покупки видео
+        const availableVideos = db.private_channel_videos.filter(video => 
+            video.is_active && 
+            !userAccess.some(access => access.video_id === video.id)
+        );
+
+        res.json({
+            accessible_videos: accessibleVideos,
+            available_videos: availableVideos
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения приватных видео:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Получить защищенную ссылку для просмотра
+app.get('/api/webapp/private-videos/:videoId/watch', (req, res) => {
+    try {
+        const videoId = parseInt(req.params.videoId);
+        const userId = parseInt(req.query.userId);
+        
+        console.log('🔗 Запрос ссылки для видео:', { videoId, userId });
+
+        if (!userId) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'Требуется авторизация' 
+            });
+        }
+
+        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+        if (!video) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Видео не найдено' 
+            });
+        }
+
+        // Проверка доступа
+        const hasAccess = db.video_access.some(access => 
+            access.user_id == userId && 
+            access.video_id === videoId && 
+            access.expires_at > new Date().toISOString()
+        );
+
+        if (!hasAccess) {
+            return res.status(403).json({ 
+                success: false,
+                error: 'Нет доступа к этому видео' 
+            });
+        }
+
+        // Генерируем защищенную ссылку
+        const token = btoa(`${video.channel_id}_${video.message_id}_${Date.now()}`)
+            .replace(/=/g, '')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_');
+            
+        const protectedLink = `/api/telegram/proxy/${token}?userId=${userId}`;
+        const fullUrl = `${process.env.APP_URL || 'http://localhost:3000'}${protectedLink}`;
+
+        console.log('✅ Сгенерирована ссылка для видео:', video.title);
+
+        res.json({
+            success: true,
+            watch_url: fullUrl,
+            video_title: video.title
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения ссылки:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Обновить приватный материал
+app.put('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
+    try {
+        const videoId = parseInt(req.params.id);
+        const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
+        
+        if (videoIndex === -1) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Материал не найден' 
+            });
+        }
+
+        const { 
+            title, 
+            description, 
+            duration, 
+            price, 
+            category, 
+            level, 
+            is_active 
+        } = req.body;
+
+        // Обновляем только переданные поля
+        if (title) db.private_channel_videos[videoIndex].title = title;
+        if (description !== undefined) db.private_channel_videos[videoIndex].description = description;
+        if (duration !== undefined) db.private_channel_videos[videoIndex].duration = duration;
+        if (price !== undefined) db.private_channel_videos[videoIndex].price = parseFloat(price);
+        if (category) db.private_channel_videos[videoIndex].category = category;
+        if (level) db.private_channel_videos[videoIndex].level = level;
+        if (is_active !== undefined) db.private_channel_videos[videoIndex].is_active = is_active;
+
+        console.log('✅ Приватный материал обновлен:', db.private_channel_videos[videoIndex].title);
+
+        res.json({
+            success: true,
+            video: db.private_channel_videos[videoIndex],
+            message: 'Материал успешно обновлен'
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка обновления приватного видео:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Удалить приватный материал
+app.delete('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
+    try {
+        const videoId = parseInt(req.params.id);
+        const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
+        
+        if (videoIndex === -1) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Материал не найден' 
+            });
+        }
+
+        const videoTitle = db.private_channel_videos[videoIndex].title;
+
+        // Удаляем видео и связанные доступы
+        db.private_channel_videos.splice(videoIndex, 1);
+        db.video_access = db.video_access.filter(va => va.video_id !== videoId);
+        db.purchases = db.purchases.filter(p => 
+            !(p.item_id === videoId && p.item_type === 'private_video')
+        );
+
+        console.log('✅ Приватный материал удален:', videoTitle);
+
+        res.json({
+            success: true,
+            message: 'Материал успешно удален'
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка удаления приватного видео:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Получить статистику приватного материала
+app.get('/api/admin/private-videos/:id/stats', requireAdmin, (req, res) => {
+    try {
+        const videoId = parseInt(req.params.id);
+        
+        const video = db.private_channel_videos.find(v => v.id === videoId);
+        if (!video) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Материал не найден' 
+            });
+        }
+
+        const purchaseCount = db.purchases.filter(p => 
+            p.item_id === videoId && p.item_type === 'private_video'
+        ).length;
+
+        const accessCount = db.video_access.filter(access => 
+            access.video_id === videoId
+        ).length;
+
+        const uniqueUsers = [...new Set(db.video_access
+            .filter(access => access.video_id === videoId)
+            .map(access => access.user_id)
+        )].length;
+
+        const totalRevenue = purchaseCount * video.price;
+
+        const stats = {
+            purchase_count: purchaseCount,
+            access_count: accessCount,
+            total_revenue: totalRevenue,
+            unique_users: uniqueUsers
+        };
+
+        res.json({
+            success: true,
+            stats: stats
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения статистики:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Получить защищенную ссылку для просмотра
+app.get('/api/admin/private-videos/:id/protected-link', requireAdmin, (req, res) => {
+    try {
+        const videoId = parseInt(req.params.id);
+        const video = db.private_channel_videos.find(v => v.id === videoId);
+        
+        if (!video) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Материал не найден' 
+            });
+        }
+
+        // Генерируем временную ссылку
+        const token = btoa(`${video.channel_id}_${video.message_id}_${Date.now()}`)
+            .replace(/=/g, '')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_');
+            
+        const protectedLink = `/api/telegram/proxy/${token}`;
+        
+        const fullUrl = `${process.env.APP_URL || 'http://localhost:3000'}${protectedLink}`;
+        
+        console.log('🔗 Сгенерирована защищенная ссылка:', fullUrl);
+
+        res.json({
+            success: true,
+            protected_link: fullUrl
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения защищенной ссылки:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Доступ к приватному видео
+app.get('/api/webapp/private-videos/:videoId/access', (req, res) => {
+    try {
+        const videoId = parseInt(req.params.videoId);
+        const userId = parseInt(req.query.userId);
+        
+        console.log('🔗 Запрос доступа к видео:', { videoId, userId });
+
+        if (!userId) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'Требуется авторизация' 
+            });
+        }
+
+        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+        if (!video) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Видео не найдено' 
+            });
+        }
+
+        // Проверка доступа
+        const hasAccess = db.video_access.some(access => 
+            access.user_id == userId && 
+            access.video_id === videoId && 
+            access.expires_at > new Date().toISOString()
+        );
+
+        if (!hasAccess) {
+            return res.status(403).json({ 
+                success: false,
+                error: 'Нет доступа к этому видео' 
+            });
+        }
+
+        // Генерируем ссылку на Telegram
+        let telegramUrl;
+        if (video.channel_id.startsWith('-100') || !isNaN(video.channel_id)) {
+            // Приватный канал
+            const publicChannelId = video.channel_id.replace('-100', '');
+            telegramUrl = `https://t.me/c/${publicChannelId}/${video.message_id}`;
+        } else {
+            // Публичный канал
+            telegramUrl = `https://t.me/${video.channel_id}/${video.message_id}`;
+        }
+
+        console.log('✅ Сгенерирована ссылка для видео:', video.title);
+
+        res.json({
+            success: true,
+            access_url: telegramUrl,
+            video_title: video.title,
+            message: 'Доступ предоставлен. Ссылка откроется в новом окне.'
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения доступа:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка доступа к видео' 
+        });
+    }
+});
+
+// Прокси для доступа к приватным видео через Telegram
+app.get('/api/telegram/proxy/:token', async (req, res) => {
+    try {
+        const token = req.params.token;
+        const userId = req.query.userId;
+        
+        console.log('🔗 Обработка прокси-запроса:', { token, userId });
+
+        if (!userId) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'Требуется авторизация' 
+            });
+        }
+
+        // Декодируем токен
+        const decoded = atob(token.replace(/-/g, '+').replace(/_/g, '/'));
+        const [channelId, messageId, timestamp] = decoded.split('_');
+        
+        // Проверка срока действия токена (24 часа)
+        const tokenAge = Date.now() - parseInt(timestamp);
+        if (tokenAge > 24 * 60 * 60 * 1000) {
+            return res.status(410).json({ 
+                success: false,
+                error: 'Ссылка устарела' 
+            });
+        }
+
+        // Поиск видео
+        const video = db.private_channel_videos.find(v => 
+            v.channel_id === channelId && 
+            v.message_id === parseInt(messageId) && 
+            v.is_active
+        );
+
+        if (!video) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Видео не найдено' 
+            });
+        }
+
+        // Проверка доступа
+        const hasAccess = db.video_access.some(access => 
+            access.user_id == userId && 
+            access.video_id === video.id && 
+            access.expires_at > new Date().toISOString()
+        );
+
+        if (!hasAccess) {
+            return res.status(403).json({ 
+                success: false,
+                error: 'Нет доступа к видео' 
+            });
+        }
+
+        // Формируем ссылку на Telegram
+        let telegramUrl;
+        if (channelId.startsWith('-100') || !isNaN(channelId)) {
+            // Приватный канал
+            const publicChannelId = channelId.replace('-100', '');
+            telegramUrl = `https://t.me/c/${publicChannelId}/${messageId}`;
+        } else {
+            // Публичный канал
+            telegramUrl = `https://t.me/${channelId}/${messageId}`;
+        }
+
+        console.log('✅ Перенаправление на:', telegramUrl);
+        res.redirect(telegramUrl);
+
+    } catch (error) {
+        console.error('❌ Ошибка прокси:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка доступа к видео' 
+        });
+    }
+});
+
+// Покупка приватного видео
+app.post('/api/webapp/shop/private-videos/purchase', async (req, res) => {
+    try {
+        const { userId, videoId } = req.body;
+        
+        console.log('🛒 Покупка приватного видео:', { userId, videoId });
+
+        if (!userId || !videoId) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'User ID and video ID are required' 
+            });
+        }
+
+        const user = db.users.find(u => u.user_id == userId);
+        const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
+
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Пользователь не найден' 
+            });
+        }
+        
+        if (!video) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Видео не найдено или неактивно' 
+            });
+        }
+
+        // ПРОВЕРКА БАЛАНСА
+        if (user.sparks < video.price) {
+            return res.status(402).json({ 
+                success: false,
+                error: `Недостаточно искр. Нужно: ${video.price}, у вас: ${user.sparks.toFixed(1)}` 
+            });
+        }
+
+        // ПРОВЕРКА НА УЖЕ КУПЛЕННЫЙ ДОСТУП
+        const existingPurchase = db.purchases.find(p => 
+            p.user_id == userId && p.item_id === videoId && p.item_type === 'private_video'
+        );
+
+        if (existingPurchase) {
+            return res.status(409).json({ 
+                success: false,
+                error: 'У вас уже есть доступ к этому материалу' 
+            });
+        }
+
+        // ПРОВЕРКА АКТИВНОГО ДОСТУПА
+        const existingAccess = db.video_access.find(access => 
+            access.user_id == userId && access.video_id === videoId && access.expires_at > new Date().toISOString()
+        );
+
+        if (existingAccess) {
+            return res.status(409).json({ 
+                success: false,
+                error: 'У вас уже есть активный доступ к этому материалу' 
+            });
+        }
+
+        // СПИСАНИЕ ИСКР
+        const oldSparks = user.sparks;
+        user.sparks -= video.price;
+        
+        console.log(`💰 Списание искр: ${oldSparks} -> ${user.sparks}`);
+
+        // СОЗДАНИЕ ЗАПИСИ О ПОКУПКЕ
+        const purchase = {
+            id: Date.now(),
+            user_id: parseInt(userId),
+            item_id: videoId,
+            item_type: 'private_video',
+            item_title: video.title,
+            price_paid: video.price,
+            purchased_at: new Date().toISOString()
+        };
+        db.purchases.push(purchase);
+
+        // СОЗДАНИЕ ДОСТУПА (30 ДНЕЙ)
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+        
+        const access = {
+            id: Date.now(),
+            user_id: parseInt(userId),
+            video_id: videoId,
+            purchased_at: new Date().toISOString(),
+            expires_at: expiresAt.toISOString(),
+            telegram_message_id: null
+        };
+        db.video_access.push(access);
+
+        // ЗАПИСЬ АКТИВНОСТИ
+        addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
+
+        console.log('✅ Покупка завершена:', { 
+            purchase: purchase.id, 
+            access: access.id,
+            user: userId,
+            video: video.title
+        });
+
+        res.json({
+            success: true,
+            purchase: purchase,
+            access: access,
+            remaining_sparks: user.sparks,
+            message: `Доступ к "${video.title}" успешно приобретен! Ссылка для просмотра доступна в ваших покупках.`
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка покупки приватного видео:', error);
+        
+        // ОТКАТ СПИСАНИЯ В СЛУЧАЕ ОШИБКИ
+        if (userId) {
+            const user = db.users.find(u => u.user_id == userId);
+            if (user) {
+                user.sparks += req.body.videoId ? db.private_channel_videos.find(v => v.id == req.body.videoId)?.price || 0 : 0;
+            }
+        }
+        
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка при покупке доступа к видео' 
+        });
+    }
+});
+
+// Получить приватные видео пользователя
+app.get('/api/webapp/user/private-videos', (req, res) => {
+    try {
+        const { userId } = req.query;
+
+        if (!userId) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'Требуется авторизация' 
+            });
+        }
+
+        const userAccess = db.video_access.filter(access => 
+            access.user_id == userId && access.expires_at > new Date().toISOString()
+        );
+
+        const accessibleVideos = userAccess.map(access => {
+            const video = db.private_channel_videos.find(v => v.id === access.video_id && v.is_active);
+            if (!video) return null;
+            
+            return {
+                ...video,
+                access_id: access.id,
+                purchased_at: access.purchased_at,
+                expires_at: access.expires_at,
+                days_remaining: Math.ceil((new Date(access.expires_at) - new Date()) / (1000 * 60 * 60 * 24))
+            };
+        }).filter(video => video !== null);
+
+        // Также возвращаем доступные для покупки видео
+        const availableVideos = db.private_channel_videos.filter(video => 
+            video.is_active && 
+            !userAccess.some(access => access.video_id === video.id)
+        );
+
+        res.json({
+            accessible_videos: accessibleVideos,
+            available_videos: availableVideos
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения приватных видео:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+// ==================== API ДЛЯ ПРИВАТНОГО КАНАЛА ====================
+
+// ПРАВИЛЬНЫЙ endpoint для получения приватных материалов
+app.get('/api/webapp/private-videos', (req, res) => {
+    try {
+        const userId = parseInt(req.query.userId);
+        console.log('🎬 Запрос приватных видео для пользователя:', userId);
+
+        if (!userId) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'Требуется авторизация' 
+            });
+        }
+
+        const videos = db.private_channel_videos.filter(video => video.is_active);
+        
+        const videosWithAccess = videos.map(video => {
+            // ПРОВЕРКА АКТИВНОГО ДОСТУПА
+            const hasAccess = db.video_access.some(access => 
+                access.user_id == userId && 
+                access.video_id === video.id && 
+                access.expires_at > new Date().toISOString()
+            );
+            
+            // ПРОВЕРКА ПОКУПКИ (ДАЖЕ ЕСЛИ ДОСТУП ИСТЕК)
+            const hasPurchase = db.purchases.some(purchase => 
+                purchase.user_id == userId && 
+                purchase.item_id === video.id && 
+                purchase.item_type === 'private_video'
+            );
+
+            return {
+                ...video,
+                has_access: hasAccess,
+                has_purchase: hasPurchase,
+                can_purchase: !hasPurchase, // Можно купить, если еще не покупал
+                access_expired: hasPurchase && !hasAccess // Покупал, но доступ истек
+            };
+        });
+
+        console.log(`✅ Найдено видео: ${videosWithAccess.length}`);
+
+        res.json({ 
+            success: true,
+            videos: videosWithAccess 
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения приватных видео:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка загрузки видео' 
+        });
+    }
+});
+
+// Получить информацию о конкретном видео
+app.get('/api/webapp/private-videos/:videoId', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const videoId = parseInt(req.params.videoId);
+    
+    const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+    if (!video) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    const hasAccess = db.video_access.some(
+        access => access.user_id === userId && access.video_id === videoId
+    );
+    
+    res.json({
+        ...video,
+        has_access: hasAccess,
+        can_purchase: !hasAccess
+    });
+});
+
+// ФУНКЦИЯ ДЛЯ ПРОВЕРКИ ДОСТУПА ПОЛЬЗОВАТЕЛЯ К ВИДЕО
+function checkVideoAccess(userId, videoId) {
+    const hasAccess = db.video_access.some(access => 
+        access.user_id == userId && 
+        access.video_id === videoId && 
+        access.expires_at > new Date().toISOString()
+    );
+    
+    const hasPurchase = db.purchases.some(purchase => 
+        purchase.user_id == userId && 
+        purchase.item_id === videoId && 
+        purchase.item_type === 'private_video'
+    );
+    
+    return {
+        hasAccess,
+        hasPurchase,
+        canAccess: hasAccess || hasPurchase
+    };
+}
+
+// ФУНКЦИЯ ДЛЯ ОБНОВЛЕНИЯ СТАТИСТИКИ ВИДЕО
+function updateVideoStats(videoId) {
+    const video = db.private_channel_videos.find(v => v.id === videoId);
+    if (!video) return null;
+    
+    const purchaseCount = db.purchases.filter(p => 
+        p.item_id === videoId && p.item_type === 'private_video'
+    ).length;
+    
+    const accessCount = db.video_access.filter(access => 
+        access.video_id === videoId
+    ).length;
+    
+    const totalRevenue = purchaseCount * video.price;
+    
+    return {
+        purchase_count: purchaseCount,
+        access_count: accessCount,
+        total_revenue: totalRevenue
+    };
+}
+
+// Функция предоставления доступа через Telegram бота
+async function grantVideoAccess(userId, videoId) {
+    try {
+        const user = db.users.find(u => u.user_id == userId);
+        const video = db.private_channel_videos.find(v => v.id == videoId);
+        const accessRecord = db.video_access.find(a => a.user_id === userId && a.video_id === videoId);
+        
+        if (!user || !video || !accessRecord) {
+            throw new Error('Данные для предоставления доступа не найдены');
+        }
+        
+        // Создаем уникальную ссылку-приглашение в канал
+        const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
+            member_limit: 1,
+            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
+        });
+        
+        // Отправляем пользователю сообщение с доступом
+        const message = await bot.sendMessage(userId, 
+            `🎬 Вам предоставлен доступ к видео!\n\n` +
+            `📹 ${video.title}\n` +
+            `⏱️ Длительность: ${video.duration}\n` +
+            `💾 Размер: ${video.file_size}\n\n` +
+            `🔗 Ссылка для просмотра: ${chatInviteLink.invite_link}\n\n` +
+            `⚠️ Ссылка действительна 24 часа. Для повторного доступа напишите "доступ" в этот чат.`,
+            { parse_mode: 'HTML' }
+        );
+        
+        // Сохраняем ID сообщения
+        accessRecord.telegram_message_id = message.message_id;
+        
+        console.log(`✅ Доступ к видео ${videoId} предоставлен пользователю ${userId}`);
+        
+    } catch (error) {
+        console.error('❌ Ошибка предоставления доступа:', error);
+        throw error;
+    }
+}
+
+// Админ API для управления видео в приватном канале
+app.get('/api/admin/private-videos', requireAdmin, (req, res) => {
+    const videos = db.private_channel_videos.map(video => {
+        const accessCount = db.video_access.filter(access => access.video_id === video.id).length;
+        const totalRevenue = accessCount * video.price;
+        
+        return {
+            ...video,
+            access_count: accessCount,
+            total_revenue: totalRevenue
+        };
+    });
+    
+    res.json(videos);
+});
+
+
+app.put('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
+    const videoId = parseInt(req.params.videoId);
+    const { title, description, duration, file_size, price, tags, is_active } = req.body;
+    
+    const video = db.private_channel_videos.find(v => v.id === videoId);
+    if (!video) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    if (title) video.title = title;
+    if (description) video.description = description;
+    if (duration) video.duration = duration;
+    if (file_size) video.file_size = file_size;
+    if (price) video.price = parseFloat(price);
+    if (tags) video.tags = tags;
+    if (is_active !== undefined) video.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Видео успешно обновлено',
+        video: video
+    });
+});
+
+app.delete('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
+    const videoId = parseInt(req.params.videoId);
+    const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
+    
+    if (videoIndex === -1) {
+        return res.status(404).json({ error: 'Video not found' });
+    }
+    
+    // Проверяем, есть ли пользователи с доступом
+    const usersWithAccess = db.video_access.filter(access => access.video_id === videoId);
+    if (usersWithAccess.length > 0) {
+        return res.status(400).json({ 
+            error: 'Нельзя удалить видео, у которого есть пользователи с доступом' 
+        });
+    }
+    
+    db.private_channel_videos.splice(videoIndex, 1);
+    res.json({ success: true, message: 'Видео удалено' });
 });
 
 // WebApp API
@@ -1227,6 +2139,135 @@ app.get('/api/users/:userId', (req, res) => {
     }
 });
 
+app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
+    try {
+        console.log('🎬 Создание приватного материала - полученные данные:', JSON.stringify(req.body, null, 2));
+        
+        const { 
+            post_url, 
+            channel_id,
+            message_id,
+            title, 
+            description, 
+            duration, 
+            price, 
+            category, 
+            level, 
+            is_active 
+        } = req.body;
+
+        console.log('🔍 Проверка обязательных полей:', {
+            hasChannelId: !!channel_id,
+            hasMessageId: !!message_id,
+            channel_id: channel_id,
+            message_id: message_id,
+            title: title,
+            price: price
+        });
+
+        // ВАЛИДАЦИЯ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
+        if (!title || !price || !channel_id || !message_id) {
+            console.log('❌ Отсутствуют обязательные поля:', {
+                title: !!title,
+                price: !!price,
+                channel_id: !!channel_id,
+                message_id: !!message_id
+            });
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Заполните обязательные поля: название, цена, ID канала и сообщения' 
+            });
+        }
+
+        // ПРОВЕРКА НА ДУБЛИКАТЫ
+        const existingVideo = db.private_channel_videos.find(v => 
+            v.channel_id === channel_id && v.message_id === parseInt(message_id)
+        );
+        
+        if (existingVideo) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Материал с таким ID сообщения уже существует в этом канале' 
+            });
+        }
+
+        // СОЗДАНИЕ НОВОГО МАТЕРИАЛА
+        const newVideo = {
+            id: Date.now(),
+            post_url: post_url || '',
+            channel_id: channel_id,
+            message_id: parseInt(message_id),
+            title: title,
+            description: description || '',
+            duration: duration || 'Не указано',
+            price: parseFloat(price),
+            category: category || 'video',
+            level: level || 'beginner',
+            is_active: is_active !== undefined ? is_active : true,
+            created_at: new Date().toISOString(),
+            preview_url: '',
+            file_size: 'Не указан',
+            tags: []
+        };
+
+        db.private_channel_videos.push(newVideo);
+
+        console.log('✅ Приватный материал создан:', newVideo.title);
+
+        res.json({
+            success: true,
+            video: newVideo,
+            message: 'Приватный материал успешно создан'
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка создания приватного видео:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка сервера при создании материала: ' + error.message 
+        });
+    }
+});
+
+// НОВЫЙ МЕТОД ДЛЯ СМЕНЫ РОЛИ
+app.post('/api/users/change-role', (req, res) => {
+    const { userId, roleId, characterId } = req.body;
+    
+    if (!userId || !roleId) {
+        return res.status(400).json({ error: 'User ID and role are required' });
+    }
+    
+    const user = db.users.find(u => u.user_id == userId);
+    const role = db.roles.find(r => r.id == roleId);
+    const character = db.characters.find(c => c.id == characterId);
+    
+    if (!user || !role) {
+        return res.status(404).json({ error: 'User or role not found' });
+    }
+    
+    if (!user.is_registered) {
+        return res.status(400).json({ error: 'User not registered' });
+    }
+    
+    // Сохраняем старую роль для лога
+    const oldRole = user.class;
+    
+    user.class = role.name;
+    user.character_id = characterId;
+    user.character_name = character ? character.name : null;
+    user.available_buttons = role.available_buttons;
+    user.last_active = new Date().toISOString();
+    
+    // Логируем смену роли (0 искр)
+    addSparks(userId, SPARKS_SYSTEM.ROLE_CHANGE, 'role_change', `Смена роли: ${oldRole} → ${role.name}`);
+    
+    res.json({ 
+        success: true, 
+        message: 'Роль успешно изменена!',
+        user: user
+    });
+});
+
 app.post('/api/users/register', (req, res) => {
     const { userId, firstName, roleId, characterId } = req.body;
     
@@ -1247,6 +2288,7 @@ app.post('/api/users/register', (req, res) => {
     const isNewUser = !user;
     
     if (!user) {
+        // Создаем нового пользователя
         user = {
             id: Date.now(),
             user_id: parseInt(userId),
@@ -1265,6 +2307,7 @@ app.post('/api/users/register', (req, res) => {
         db.users.push(user);
     }
     
+    // Обновляем данные пользователя
     user.tg_first_name = firstName;
     user.class = role.name;
     user.character_id = characterId;
@@ -1281,6 +2324,7 @@ app.post('/api/users/register', (req, res) => {
         addSparks(userId, sparksAdded, 'registration', 'Регистрация');
         message = `Регистрация успешна! +${sparksAdded}✨`;
         
+        // Автоматически добавляем пользователя как модератора для тестирования
         const adminExists = db.admins.find(a => a.user_id == userId);
         if (!adminExists) {
             db.admins.push({
@@ -1309,6 +2353,7 @@ app.get('/api/webapp/roles', (req, res) => {
         console.log('📋 Запрос на получение ролей');
         const roles = db.roles.filter(role => role.is_active);
         console.log('✅ Найдено ролей:', roles.length);
+        console.log('📝 Роли:', roles.map(r => r.name));
         res.json(roles);
     } catch (error) {
         console.error('❌ Ошибка получения ролей:', error);
@@ -1332,44 +2377,6 @@ app.get('/api/webapp/characters/:roleId', (req, res) => {
         res.status(500).json({ error: 'Ошибка загрузки персонажей' });
     }
 });
-
-app.post('/api/users/change-role', (req, res) => {
-    const { userId, roleId, characterId } = req.body;
-    
-    if (!userId || !roleId) {
-        return res.status(400).json({ error: 'User ID and role are required' });
-    }
-    
-    const user = db.users.find(u => u.user_id == userId);
-    const role = db.roles.find(r => r.id == roleId);
-    const character = db.characters.find(c => c.id == characterId);
-    
-    if (!user || !role) {
-        return res.status(404).json({ error: 'User or role not found' });
-    }
-    
-    if (!user.is_registered) {
-        return res.status(400).json({ error: 'User not registered' });
-    }
-    
-    const oldRole = user.class;
-    
-    user.class = role.name;
-    user.character_id = characterId;
-    user.character_name = character ? character.name : null;
-    user.available_buttons = role.available_buttons;
-    user.last_active = new Date().toISOString();
-    
-    addSparks(userId, SPARKS_SYSTEM.ROLE_CHANGE, 'role_change', `Смена роли: ${oldRole} → ${role.name}`);
-    
-    res.json({ 
-        success: true, 
-        message: 'Роль успешно изменена!',
-        user: user
-    });
-});
-
-// ==================== API ДЛЯ КВИЗОВ ====================
 
 app.get('/api/webapp/quizzes', (req, res) => {
     const userId = parseInt(req.query.userId);
@@ -1401,6 +2408,7 @@ app.get('/api/webapp/quizzes', (req, res) => {
     res.json(quizzesWithStatus);
 });
 
+// ИСПРАВЛЕННОЕ ОТПРАВЛЕНИЕ РЕЗУЛЬТАТОВ КВИЗА
 app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
     const quizId = parseInt(req.params.quizId);
     const { userId, answers } = req.body;
@@ -1442,11 +2450,14 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
         }
     });
     
+    // ИСПРАВЛЕННОЕ НАЧИСЛЕНИЕ ИСКР
     let sparksEarned = 0;
     const perfectScore = correctAnswers === quiz.questions.length;
     
+    // Начисляем искры за правильные ответы
     sparksEarned = correctAnswers * quiz.sparks_per_correct;
     
+    // Добавляем бонус за идеальный результат
     if (perfectScore) {
         sparksEarned += quiz.sparks_perfect_bonus;
     }
@@ -1485,8 +2496,6 @@ app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
     });
 });
 
-// ==================== API ДЛЯ МАРАФОНОВ ====================
-
 app.get('/api/webapp/marathons', (req, res) => {
     const userId = parseInt(req.query.userId);
     const marathons = db.marathons.filter(m => m.is_active);
@@ -1511,6 +2520,7 @@ app.get('/api/webapp/marathons', (req, res) => {
     res.json(marathonsWithStatus);
 });
 
+// НОВЫЙ МЕТОД ДЛЯ ОТПРАВКИ РАБОТЫ В МАРАФОНЕ
 app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
     console.log('📤 Отправка работы марафона, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
     
@@ -1531,6 +2541,7 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
         return res.status(404).json({ error: 'Task not found' });
     }
     
+    // Проверяем требования к заданию
     if (task.requires_submission && !submission_text && !submission_image) {
         return res.status(400).json({ error: 'Это задание требует отправки работы' });
     }
@@ -1556,6 +2567,7 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
         return res.status(400).json({ error: 'Неверный день марафона' });
     }
     
+    // Сохраняем работу пользователя
     if (submission_text || submission_image) {
         db.marathon_submissions.push({
             id: Date.now(),
@@ -1569,6 +2581,7 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
         });
     }
     
+    // Начисляем искры только после отправки работы
     const sparksEarned = marathon.sparks_per_day;
     addSparks(userId, sparksEarned, 'marathon_day', `Марафон: ${marathon.title} - день ${day}`);
     
@@ -1579,6 +2592,7 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
         completion.completed = true;
         completion.progress = 100;
         
+        // Дополнительная награда за завершение марафона
         const marathonBonus = marathon.sparks_per_day * 2;
         addSparks(userId, marathonBonus, 'marathon_completion', `Завершение марафона: ${marathon.title}`);
     }
@@ -1595,13 +2609,12 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
     });
 });
 
-// ==================== API ДЛЯ МАГАЗИНА ====================
-
 app.get('/api/webapp/shop/items', (req, res) => {
     const items = db.shop_items.filter(item => item.is_active);
     res.json(items);
 });
 
+// ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА - БЕЗ ДВОЙНОГО СПИСАНИЯ
 app.post('/api/webapp/shop/purchase', (req, res) => {
     const { userId, itemId } = req.body;
     
@@ -1615,6 +2628,7 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (!item) return res.status(404).json({ error: 'Item not found' });
     
+    // Проверяем, не куплен ли уже товар
     const existingPurchase = db.purchases.find(
         p => p.user_id === userId && p.item_id === itemId
     );
@@ -1628,6 +2642,7 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
     }
     
     try {
+        // ПРАВИЛЬНОЕ СПИСАНИЕ ИСКР - только один раз
         const oldSparks = user.sparks;
         user.sparks = oldSparks - item.price;
         
@@ -1643,6 +2658,9 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
         
         db.purchases.push(purchase);
         
+        // НЕ создаем отдельную активность для списания - это дублирует операцию
+        // Просто обновляем пользователя
+        
         console.log(`✅ Покупка товара: пользователь ${userId}, товар ${itemId}, цена ${item.price}, осталось искр: ${user.sparks}`);
         
         res.json({
@@ -1654,6 +2672,7 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
         
     } catch (error) {
         console.error('❌ Ошибка при покупке товара:', error);
+        // Откатываем списание искр в случае ошибки
         const user = db.users.find(u => u.user_id == userId);
         if (user) {
             user.sparks += item.price;
@@ -1676,10 +2695,11 @@ app.get('/api/webapp/users/:userId/purchases', (req, res) => {
                 file_url: item?.file_url,
                 content_text: item?.content_text,
                 preview_url: item?.preview_url,
+                // ВАЖНО: Добавляем embed_html для embed-товаров
                 embed_html: item?.embed_html,
-                html_content: item?.embed_html,
-                content_html: item?.embed_html,
-                content: item?.embed_html,
+                html_content: item?.embed_html, // альтернативное поле
+                content_html: item?.embed_html, // альтернативное поле
+                content: item?.embed_html, // альтернативное поле
                 file_data: item?.file_url?.startsWith('data:') ? item.file_url : null,
                 preview_data: item?.preview_url?.startsWith('data:') ? item.preview_url : null
             };
@@ -1688,8 +2708,6 @@ app.get('/api/webapp/users/:userId/purchases', (req, res) => {
         
     res.json({ purchases: userPurchases });
 });
-
-// ==================== API ДЛЯ АКТИВНОСТЕЙ ====================
 
 app.get('/api/webapp/users/:userId/activities', (req, res) => {
     const userId = parseInt(req.params.userId);
@@ -1700,8 +2718,7 @@ app.get('/api/webapp/users/:userId/activities', (req, res) => {
     res.json({ activities: userActivities });
 });
 
-// ==================== API ДЛЯ РАБОТ ПОЛЬЗОВАТЕЛЕЙ ====================
-
+// Работы пользователя
 app.post('/api/webapp/upload-work', (req, res) => {
     console.log('📤 Загрузка работы, размер данных:', (req.headers['content-length'] / 1024 / 1024).toFixed(2), 'MB');
     
@@ -1748,8 +2765,7 @@ app.get('/api/webapp/users/:userId/works', (req, res) => {
     res.json({ works: userWorks });
 });
 
-// ==================== API ДЛЯ ПОСТОВ КАНАЛА ====================
-
+// Посты канала
 app.get('/api/webapp/channel-posts', (req, res) => {
     const posts = db.channel_posts
         .filter(p => p.is_active)
@@ -1835,608 +2851,32 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
     });
 });
 
-// ==================== API ДЛЯ ИНТЕРАКТИВОВ ====================
+// ==================== ДОПОЛНИТЕЛЬНЫЕ API ДЛЯ АДМИНКИ ====================
 
-app.get('/api/webapp/interactives', (req, res) => {
-    const userId = parseInt(req.query.userId);
-    const interactives = db.interactives.filter(i => i.is_active);
-    
-    const interactivesWithStatus = interactives.map(interactive => {
-        const completion = db.interactive_completions.find(
-            ic => ic.user_id === userId && ic.interactive_id === interactive.id
-        );
-        
-        return {
-            ...interactive,
-            completed: !!completion,
-            user_score: completion ? completion.score : 0,
-            can_retake: interactive.allow_retake && !completion
-        };
-    });
-    
-    res.json(interactivesWithStatus);
-});
-
-app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
-    const interactiveId = parseInt(req.params.interactiveId);
-    const { userId, answer } = req.body;
-    
-    if (!userId) {
-        return res.status(400).json({ error: 'User ID is required' });
-    }
-    
-    const interactive = db.interactives.find(i => i.id === interactiveId);
-    if (!interactive) {
-        return res.status(404).json({ error: 'Interactive not found' });
-    }
-    
-    const existingCompletion = db.interactive_completions.find(
-        ic => ic.user_id === userId && ic.interactive_id === interactiveId
-    );
-    
-    if (existingCompletion && !interactive.allow_retake) {
-        return res.status(400).json({ error: 'Вы уже прошли этот интерактив' });
-    }
-    
-    const isCorrect = answer === interactive.correct_answer;
-    const sparksEarned = isCorrect ? interactive.sparks_reward : 0;
-    
-    if (existingCompletion) {
-        existingCompletion.score = isCorrect ? 1 : 0;
-        existingCompletion.sparks_earned = sparksEarned;
-        existingCompletion.completed_at = new Date().toISOString();
-        existingCompletion.answer = answer;
-    } else {
-        db.interactive_completions.push({
-            id: Date.now(),
-            user_id: userId,
-            interactive_id: interactiveId,
-            completed_at: new Date().toISOString(),
-            score: isCorrect ? 1 : 0,
-            sparks_earned: sparksEarned,
-            answer: answer
-        });
-    }
-    
-    if (sparksEarned > 0) {
-        addSparks(userId, sparksEarned, 'interactive', `Интерактив: ${interactive.title}`);
-    }
-    
-    res.json({
-        success: true,
-        correct: isCorrect,
-        score: isCorrect ? 1 : 0,
-        sparksEarned: sparksEarned,
-        message: isCorrect ? 
-            `Правильно! +${sparksEarned}✨` : 
-            'Попробуйте еще раз!'
-    });
-});
-
-// ==================== API ДЛЯ ПРИВАТНЫХ ВИДЕО ====================
-
-app.get('/api/webapp/private-videos', (req, res) => {
+// Получить работы для модерации
+app.get('/api/admin/user-works', requireAdmin, (req, res) => {
     try {
-        const userId = parseInt(req.query.userId);
-        console.log('🎬 Запрос приватных видео для пользователя:', userId);
-
-        if (!userId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Требуется авторизация' 
-            });
-        }
-
-        const videos = db.private_channel_videos.filter(video => video.is_active);
+        const { status = 'pending' } = req.query;
         
-        const videosWithAccess = videos.map(video => {
-            const hasAccess = db.video_access.some(access => 
-                access.user_id == userId && 
-                access.video_id === video.id && 
-                access.expires_at > new Date().toISOString()
-            );
-            
-            const hasPurchase = db.purchases.some(purchase => 
-                purchase.user_id == userId && 
-                purchase.item_id === video.id && 
-                purchase.item_type === 'private_video'
-            );
-
-            return {
-                id: video.id,
-                title: video.title,
-                description: video.description,
-                duration: video.duration,
-                price: video.price,
-                category: video.category,
-                level: video.level,
-                preview_url: video.preview_url,
-                has_access: hasAccess,
-                has_purchase: hasPurchase,
-                can_purchase: !hasPurchase,
-                access_expired: hasPurchase && !hasAccess,
-                access_duration_days: video.access_duration_days
-            };
-        });
-
-        console.log(`✅ Найдено видео: ${videosWithAccess.length}`);
-
-        res.json({ 
-            success: true,
-            videos: videosWithAccess 
-        });
+        const works = db.user_works
+            .filter(w => w.status === status)
+            .map(work => {
+                const user = db.users.find(u => u.user_id === work.user_id);
+                return {
+                    ...work,
+                    user_name: user?.tg_first_name || 'Неизвестно',
+                    user_username: user?.tg_username
+                };
+            })
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         
+        res.json({ works });
     } catch (error) {
-        console.error('❌ Ошибка получения приватных видео:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка загрузки видео' 
-        });
+        console.error('❌ Ошибка получения работ:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-app.get('/api/webapp/private-videos/:videoId', (req, res) => {
-    try {
-        const userId = parseInt(req.query.userId);
-        const videoId = parseInt(req.params.videoId);
-        
-        console.log('📹 Запрос деталей видео:', { userId, videoId });
-
-        if (!userId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Требуется авторизация' 
-            });
-        }
-
-        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
-        if (!video) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Видео не найдено' 
-            });
-        }
-
-        const hasAccess = db.video_access.some(access => 
-            access.user_id == userId && 
-            access.video_id === videoId && 
-            access.expires_at > new Date().toISOString()
-        );
-        
-        const hasPurchase = db.purchases.some(purchase => 
-            purchase.user_id == userId && 
-            purchase.item_id === videoId && 
-            purchase.item_type === 'private_video'
-        );
-
-        res.json({
-            success: true,
-            video: {
-                id: video.id,
-                title: video.title,
-                description: video.description,
-                duration: video.duration,
-                price: video.price,
-                category: video.category,
-                level: video.level,
-                access_duration_days: video.access_duration_days,
-                created_at: video.created_at
-            },
-            access: {
-                has_access: hasAccess,
-                has_purchase: hasPurchase,
-                can_purchase: !hasPurchase
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка получения деталей видео:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка загрузки информации о видео' 
-        });
-    }
-});
-
-app.post('/api/webapp/private-videos/purchase', async (req, res) => {
-    try {
-        const { userId, videoId } = req.body;
-        
-        console.log('🛒 Покупка приватного видео:', { userId, videoId });
-
-        if (!userId || !videoId) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'User ID and video ID are required' 
-            });
-        }
-
-        const user = db.users.find(u => u.user_id == userId);
-        const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
-
-        if (!user) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Пользователь не найден' 
-            });
-        }
-        
-        if (!video) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Видео не найдено или неактивно' 
-            });
-        }
-
-        if (user.sparks < video.price) {
-            return res.status(402).json({ 
-                success: false,
-                error: `Недостаточно искр. Нужно: ${video.price}, у вас: ${user.sparks.toFixed(1)}` 
-            });
-        }
-
-        const existingPurchase = db.purchases.find(p => 
-            p.user_id == userId && p.item_id === videoId && p.item_type === 'private_video'
-        );
-
-        if (existingPurchase) {
-            return res.status(409).json({ 
-                success: false,
-                error: 'У вас уже есть доступ к этому материалу' 
-            });
-        }
-
-        const existingAccess = db.video_access.find(access => 
-            access.user_id == userId && access.video_id === videoId && access.expires_at > new Date().toISOString()
-        );
-
-        if (existingAccess) {
-            return res.status(409).json({ 
-                success: false,
-                error: 'У вас уже есть активный доступ к этому материалу' 
-            });
-        }
-
-        const oldSparks = user.sparks;
-        user.sparks -= video.price;
-        
-        console.log(`💰 Списание искр: ${oldSparks} -> ${user.sparks}`);
-
-        const purchase = {
-            id: Date.now(),
-            user_id: parseInt(userId),
-            item_id: videoId,
-            item_type: 'private_video',
-            item_title: video.title,
-            price_paid: video.price,
-            purchased_at: new Date().toISOString()
-        };
-        db.purchases.push(purchase);
-
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + (video.access_duration_days || 30));
-        
-        const access = {
-            id: Date.now(),
-            user_id: parseInt(userId),
-            video_id: videoId,
-            purchased_at: new Date().toISOString(),
-            expires_at: expiresAt.toISOString(),
-            telegram_message_id: null,
-            access_count: 0
-        };
-        db.video_access.push(access);
-
-        addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
-
-        console.log('✅ Покупка завершена:', { 
-            purchase: purchase.id, 
-            access: access.id,
-            user: userId,
-            video: video.title,
-            access_days: video.access_duration_days
-        });
-
-        res.json({
-            success: true,
-            purchase: purchase,
-            access: access,
-            remaining_sparks: user.sparks,
-            message: `Доступ к "${video.title}" успешно приобретен на ${video.access_duration_days || 30} дней!`
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка покупки приватного видео:', error);
-        
-        if (userId) {
-            const user = db.users.find(u => u.user_id == userId);
-            if (user) {
-                user.sparks += req.body.videoId ? db.private_channel_videos.find(v => v.id == req.body.videoId)?.price || 0 : 0;
-            }
-        }
-        
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка при покупке доступа к видео' 
-        });
-    }
-});
-
-app.get('/api/webapp/private-videos/:videoId/access', (req, res) => {
-    try {
-        const userId = parseInt(req.query.userId);
-        const videoId = parseInt(req.params.videoId);
-        
-        console.log('🔐 Проверка доступа:', { userId, videoId });
-
-        if (!userId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Требуется авторизация' 
-            });
-        }
-
-        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
-        if (!video) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Видео не найдено' 
-            });
-        }
-
-        const admin = db.admins.find(a => a.user_id == userId);
-        let hasAccess = false;
-        let accessRecord = null;
-
-        if (admin) {
-            hasAccess = true;
-        } else {
-            accessRecord = db.video_access.find(access => 
-                access.user_id == userId && 
-                access.video_id === videoId && 
-                access.expires_at > new Date().toISOString()
-            );
-            hasAccess = !!accessRecord;
-        }
-
-        let protectedLink = null;
-        if (hasAccess) {
-            const token = btoa(`${video.channel_id}_${video.message_id}_${Date.now()}`)
-                .replace(/=/g, '')
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_');
-                
-            protectedLink = `${process.env.APP_URL || 'http://localhost:3000'}/api/telegram/proxy/${token}?userId=${userId}`;
-            
-            if (accessRecord) {
-                accessRecord.access_count = (accessRecord.access_count || 0) + 1;
-            }
-        }
-
-        res.json({
-            success: true,
-            has_access: hasAccess,
-            protected_link: protectedLink,
-            video: {
-                id: video.id,
-                title: video.title,
-                description: video.description,
-                duration: video.duration,
-                price: video.price,
-                category: video.category,
-                level: video.level
-            },
-            access_record: accessRecord
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка проверки доступа:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка проверки доступа' 
-        });
-    }
-});
-
-
-
-// ==================== API ДЛЯ АДМИНКИ - ОСНОВНЫЕ ДАННЫЕ ====================
-
-// Получить все данные для админки
-app.get('/api/admin/dashboard', requireAdmin, (req, res) => {
-    try {
-        const stats = {
-            totalUsers: db.users.length,
-            registeredUsers: db.users.filter(u => u.is_registered).length,
-            activeQuizzes: db.quizzes.filter(q => q.is_active).length,
-            activeMarathons: db.marathons.filter(m => m.is_active).length,
-            shopItems: db.shop_items.filter(i => i.is_active).length,
-            totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
-            totalAdmins: db.admins.length,
-            pendingReviews: db.post_reviews.filter(r => r.status === 'pending').length,
-            pendingWorks: db.user_works.filter(w => w.status === 'pending').length,
-            totalPosts: db.channel_posts.filter(p => p.is_active).length,
-            totalPurchases: db.purchases.length,
-            totalActivities: db.activities.length,
-            interactives: db.interactives.filter(i => i.is_active).length,
-            privateVideos: db.private_channel_videos.filter(v => v.is_active).length
-        };
-        
-        res.json({
-            success: true,
-            stats: stats,
-            modules: {
-                users: true,
-                content: true,
-                moderation: true,
-                analytics: true,
-                shop: true,
-                private_videos: true
-            }
-        });
-    } catch (error) {
-        console.error('❌ Ошибка загрузки дашборда:', error);
-        res.status(500).json({ error: 'Ошибка загрузки данных' });
-    }
-});
-
-// Получить всех пользователей для админки
-app.get('/api/admin/users', requireAdmin, (req, res) => {
-    try {
-        const { page = 1, limit = 20, search = '' } = req.query;
-        const offset = (page - 1) * limit;
-        
-        let users = db.users;
-        
-        // Поиск по имени или username
-        if (search) {
-            users = users.filter(user => 
-                user.tg_first_name?.toLowerCase().includes(search.toLowerCase()) ||
-                user.tg_username?.toLowerCase().includes(search.toLowerCase())
-            );
-        }
-        
-        const total = users.length;
-        const paginatedUsers = users.slice(offset, offset + parseInt(limit));
-        
-        const usersWithStats = paginatedUsers.map(user => {
-            const stats = getUserStats(user.user_id);
-            return {
-                ...user,
-                stats: stats
-            };
-        });
-        
-        res.json({
-            success: true,
-            users: usersWithStats,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total: total,
-                pages: Math.ceil(total / limit)
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка получения пользователей:', error);
-        res.status(500).json({ error: 'Ошибка загрузки пользователей' });
-    }
-});
-
-// Получить конкретного пользователя
-app.get('/api/admin/users/:userId', requireAdmin, (req, res) => {
-    try {
-        const userId = parseInt(req.params.userId);
-        const user = db.users.find(u => u.user_id === userId);
-        
-        if (!user) {
-            return res.status(404).json({ error: 'Пользователь не найден' });
-        }
-        
-        const stats = getUserStats(userId);
-        const activities = db.activities
-            .filter(a => a.user_id === userId)
-            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-            .slice(0, 50);
-            
-        const purchases = db.purchases.filter(p => p.user_id === userId);
-        const works = db.user_works.filter(w => w.user_id === userId);
-        
-        res.json({
-            success: true,
-            user: user,
-            stats: stats,
-            activities: activities,
-            purchases: purchases,
-            works: works
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка получения пользователя:', error);
-        res.status(500).json({ error: 'Ошибка загрузки данных пользователя' });
-    }
-});
-
-// Обновить пользователя
-app.put('/api/admin/users/:userId', requireAdmin, (req, res) => {
-    try {
-        const userId = parseInt(req.params.userId);
-        const { sparks, level, is_registered, class: userClass, character_id } = req.body;
-        
-        const user = db.users.find(u => u.user_id === userId);
-        if (!user) {
-            return res.status(404).json({ error: 'Пользователь не найден' });
-        }
-        
-        if (sparks !== undefined) user.sparks = parseFloat(sparks);
-        if (level !== undefined) user.level = level;
-        if (is_registered !== undefined) user.is_registered = is_registered;
-        if (userClass !== undefined) user.class = userClass;
-        if (character_id !== undefined) {
-            user.character_id = character_id;
-            const character = db.characters.find(c => c.id === character_id);
-            user.character_name = character ? character.name : null;
-        }
-        
-        user.last_active = new Date().toISOString();
-        
-        res.json({
-            success: true,
-            message: 'Пользователь успешно обновлен',
-            user: user
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка обновления пользователя:', error);
-        res.status(500).json({ error: 'Ошибка обновления пользователя' });
-    }
-});
-
-// ==================== API ДЛЯ СИСТЕМНЫХ НАСТРОЕК ====================
-
-// Получить настройки системы
-app.get('/api/admin/settings', requireAdmin, (req, res) => {
-    try {
-        const settings = {
-            system: {
-                name: "Мастерская Вдохновения",
-                version: "7.0.0",
-                maintenance: false,
-                registration_enabled: true,
-                max_file_size: "3GB",
-                telegram_bot_connected: !!process.env.BOT_TOKEN
-            },
-            sparks: SPARKS_SYSTEM,
-            private_channel: PRIVATE_CHANNEL_CONFIG
-        };
-        
-        res.json({
-            success: true,
-            settings: settings
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки настроек:', error);
-        res.status(500).json({ error: 'Ошибка загрузки настроек' });
-    }
-});
-
-// Проверить доступ к админке
-app.get('/api/admin/check-access', requireAdmin, (req, res) => {
-    res.json({
-        success: true,
-        user: req.admin,
-        permissions: {
-            users: true,
-            content: true,
-            moderation: true,
-            analytics: true,
-            settings: true
-        },
-        timestamp: new Date().toISOString()
-    });
-});
 // Модерация работы
 app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
     try {
@@ -2594,6 +3034,84 @@ app.post('/api/admin/marathon-submissions/:submissionId/moderate', requireAdmin,
     }
 });
 
+// API ДЛЯ ИНТЕРАКТИВОВ
+app.get('/api/webapp/interactives', (req, res) => {
+    const userId = parseInt(req.query.userId);
+    const interactives = db.interactives.filter(i => i.is_active);
+    
+    const interactivesWithStatus = interactives.map(interactive => {
+        const completion = db.interactive_completions.find(
+            ic => ic.user_id === userId && ic.interactive_id === interactive.id
+        );
+        
+        return {
+            ...interactive,
+            completed: !!completion,
+            user_score: completion ? completion.score : 0,
+            can_retake: interactive.allow_retake && !completion
+        };
+    });
+    
+    res.json(interactivesWithStatus);
+});
+
+app.post('/api/webapp/interactives/:interactiveId/submit', (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const { userId, answer } = req.body;
+    
+    if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    const interactive = db.interactives.find(i => i.id === interactiveId);
+    if (!interactive) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    const existingCompletion = db.interactive_completions.find(
+        ic => ic.user_id === userId && ic.interactive_id === interactiveId
+    );
+    
+    if (existingCompletion && !interactive.allow_retake) {
+        return res.status(400).json({ error: 'Вы уже прошли этот интерактив' });
+    }
+    
+    const isCorrect = answer === interactive.correct_answer;
+    const sparksEarned = isCorrect ? interactive.sparks_reward : 0;
+    
+    if (existingCompletion) {
+        existingCompletion.score = isCorrect ? 1 : 0;
+        existingCompletion.sparks_earned = sparksEarned;
+        existingCompletion.completed_at = new Date().toISOString();
+        existingCompletion.answer = answer;
+    } else {
+        db.interactive_completions.push({
+            id: Date.now(),
+            user_id: userId,
+            interactive_id: interactiveId,
+            completed_at: new Date().toISOString(),
+            score: isCorrect ? 1 : 0,
+            sparks_earned: sparksEarned,
+            answer: answer
+        });
+    }
+    
+    if (sparksEarned > 0) {
+        addSparks(userId, sparksEarned, 'interactive', `Интерактив: ${interactive.title}`);
+    }
+    
+    res.json({
+        success: true,
+        correct: isCorrect,
+        score: isCorrect ? 1 : 0,
+        sparksEarned: sparksEarned,
+        message: isCorrect ? 
+            `Правильно! +${sparksEarned}✨` : 
+            'Попробуйте еще раз!'
+    });
+});
+
+// Admin API
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
     const stats = {
         totalUsers: db.users.length,
@@ -2613,7 +3131,124 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
     res.json(stats);
 });
 
-// ==================== ПОЛНОЕ УПРАВЛЕНИЕ РОЛЯМИ ====================
+// Управление интерактивами
+app.get('/api/admin/interactives', requireAdmin, (req, res) => {
+    const interactives = db.interactives.map(interactive => {
+        const completions = db.interactive_completions.filter(ic => ic.interactive_id === interactive.id);
+        
+        return {
+            ...interactive,
+            completions_count: completions.length,
+            average_score: completions.length > 0 ? 
+                completions.reduce((sum, ic) => sum + ic.score, 0) / completions.length : 0
+        };
+    });
+    res.json(interactives);
+});
+
+app.post('/api/admin/interactives', requireAdmin, (req, res) => {
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake } = req.body;
+    
+    if (!title || !type || !category) {
+        return res.status(400).json({ error: 'Title, type and category are required' });
+    }
+    
+    const newInteractive = {
+        id: Date.now(),
+        title,
+        description: description || '',
+        type,
+        category,
+        image_url: image_url || '',
+        question: question || '',
+        options: options || [],
+        correct_answer: correct_answer || 0,
+        sparks_reward: sparks_reward || SPARKS_SYSTEM.INTERACTIVE_COMPLETION,
+        allow_retake: allow_retake || false,
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.interactives.push(newInteractive);
+    
+    res.json({ 
+        success: true, 
+        message: 'Интерактив успешно создан', 
+        interactiveId: newInteractive.id,
+        interactive: newInteractive
+    });
+});
+
+app.put('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const { title, description, type, category, image_url, question, options, correct_answer, sparks_reward, allow_retake, is_active } = req.body;
+    
+    const interactive = db.interactives.find(i => i.id === interactiveId);
+    if (!interactive) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    if (title) interactive.title = title;
+    if (description) interactive.description = description;
+    if (type) interactive.type = type;
+    if (category) interactive.category = category;
+    if (image_url) interactive.image_url = image_url;
+    if (question) interactive.question = question;
+    if (options) interactive.options = options;
+    if (correct_answer !== undefined) interactive.correct_answer = correct_answer;
+    if (sparks_reward !== undefined) interactive.sparks_reward = sparks_reward;
+    if (allow_retake !== undefined) interactive.allow_retake = allow_retake;
+    if (is_active !== undefined) interactive.is_active = is_active;
+    
+    res.json({ 
+        success: true, 
+        message: 'Интерактив успешно обновлен',
+        interactive: interactive
+    });
+});
+
+app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) => {
+    const interactiveId = parseInt(req.params.interactiveId);
+    const interactiveIndex = db.interactives.findIndex(i => i.id === interactiveId);
+    
+    if (interactiveIndex === -1) {
+        return res.status(404).json({ error: 'Interactive not found' });
+    }
+    
+    db.interactives.splice(interactiveIndex, 1);
+    res.json({ success: true, message: 'Интерактив удален' });
+});
+
+// Управление ролями
+app.get('/api/admin/roles', requireAdmin, (req, res) => {
+    res.json(db.roles);
+});
+
+app.post('/api/admin/roles', requireAdmin, (req, res) => {
+    const { name, description, icon, available_buttons } = req.body;
+    
+    if (!name || !description) {
+        return res.status(400).json({ error: 'Name and description are required' });
+    }
+    
+    const newRole = {
+        id: Date.now(),
+        name,
+        description,
+        icon: icon || '🎨',
+        available_buttons: available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+        is_active: true,
+        created_at: new Date().toISOString()
+    };
+    
+    db.roles.push(newRole);
+    
+    res.json({ 
+        success: true, 
+        message: 'Роль успешно создана', 
+        role: newRole
+    });
+});
 
 app.put('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
     const roleId = parseInt(req.params.roleId);
@@ -2654,8 +3289,7 @@ app.delete('/api/admin/roles/:roleId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Роль удалена' });
 });
 
-// ==================== ПОЛНОЕ УПРАВЛЕНИЕ ПЕРСОНАЖАМИ ====================
-
+// Управление персонажами
 app.get('/api/admin/characters', requireAdmin, (req, res) => {
     const characters = db.characters.map(character => {
         const role = db.roles.find(r => r.id === character.role_id);
@@ -2733,8 +3367,7 @@ app.delete('/api/admin/characters/:characterId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Персонаж удален' });
 });
 
-// ==================== ПОЛНОЕ УПРАВЛЕНИЕ МАГАЗИНОМ ====================
-
+// Управление магазином
 app.get('/api/admin/shop/items', requireAdmin, (req, res) => {
     res.json(db.shop_items);
 });
@@ -2753,6 +3386,7 @@ app.post('/api/admin/shop/items', requireAdmin, (req, res) => {
         return res.status(400).json({ error: 'Title and price are required' });
     }
     
+    // Для embed-товаров проверяем наличие HTML
     if (type === 'embed' && !embed_html) {
         return res.status(400).json({ error: 'Для типа "embed" необходимо указать HTML-код' });
     }
@@ -2804,6 +3438,7 @@ app.put('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
         return res.status(404).json({ error: 'Item not found' });
     }
     
+    // Для embed-товаров проверяем наличие HTML
     if (type === 'embed' && !embed_html) {
         return res.status(400).json({ error: 'Для типа "embed" необходимо указать HTML-код' });
     }
@@ -2846,8 +3481,7 @@ app.delete('/api/admin/shop/items/:itemId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Товар удален' });
 });
 
-// ==================== ПОЛНОЕ УПРАВЛЕНИЕ КВИЗАМИ ====================
-
+// Управление квизами
 app.get('/api/admin/quizzes', requireAdmin, (req, res) => {
     const quizzes = db.quizzes.map(quiz => {
         const completions = db.quiz_completions.filter(qc => qc.quiz_id === quiz.id);
@@ -2928,8 +3562,7 @@ app.delete('/api/admin/quizzes/:quizId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Квиз удален' });
 });
 
-// ==================== ПОЛНОЕ УПРАВЛЕНИЕ МАРАФОНАМИ ====================
-
+// Управление марафонами
 app.get('/api/admin/marathons', requireAdmin, (req, res) => {
     const marathons = db.marathons.map(marathon => {
         const completions = db.marathon_completions.filter(mc => mc.marathon_id === marathon.id);
@@ -3005,8 +3638,52 @@ app.delete('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Марафон удален' });
 });
 
-// ==================== ПОЛНОЕ УПРАВЛЕНИЕ ПОСТАМИ ====================
+// Управление работами пользователей
+app.get('/api/admin/user-works', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    const works = db.user_works
+        .filter(w => w.status === status)
+        .map(work => {
+            const user = db.users.find(u => u.user_id === work.user_id);
+            return {
+                ...work,
+                user_name: user?.tg_first_name || 'Неизвестно',
+                user_username: user?.tg_username
+            };
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    res.json({ works });
+});
 
+app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
+    const workId = parseInt(req.params.workId);
+    const { status, admin_comment } = req.body;
+    const adminId = req.admin.user_id;
+    
+    const work = db.user_works.find(w => w.id === workId);
+    if (!work) {
+        return res.status(404).json({ error: 'Work not found' });
+    }
+    
+    work.status = status;
+    work.moderated_at = new Date().toISOString();
+    work.moderator_id = adminId;
+    work.admin_comment = admin_comment || null;
+    
+    if (status === 'approved') {
+        addSparks(work.user_id, SPARKS_SYSTEM.WORK_APPROVED, 'work_approved', `Работа одобрена: ${work.title}`);
+    }
+    
+    res.json({ 
+        success: true, 
+        message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
+        work: work
+    });
+});
+
+// Управление постами
 app.get('/api/admin/channel-posts', requireAdmin, (req, res) => {
     const posts = db.channel_posts.map(post => {
         const admin = db.admins.find(a => a.user_id === post.admin_id);
@@ -3096,8 +3773,51 @@ app.delete('/api/admin/channel-posts/:postId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Пост удален' });
 });
 
-// ==================== ПОЛНОЕ УПРАВЛЕНИЕ АДМИНАМИ ====================
+// Управление отзывами
+app.get('/api/admin/reviews', requireAdmin, (req, res) => {
+    const { status = 'pending' } = req.query;
+    
+    const reviews = db.post_reviews
+        .filter(r => r.status === status)
+        .map(review => {
+            const user = db.users.find(u => u.user_id === review.user_id);
+            const post = db.channel_posts.find(p => p.post_id === review.post_id);
+            const moderator = db.admins.find(a => a.user_id === review.moderator_id);
+            return {
+                ...review,
+                tg_first_name: user?.tg_first_name,
+                tg_username: user?.tg_username,
+                post_title: post?.title,
+                moderator_username: moderator?.username
+            };
+        })
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    res.json({ reviews });
+});
 
+app.post('/api/admin/reviews/:reviewId/moderate', requireAdmin, (req, res) => {
+    const reviewId = parseInt(req.params.reviewId);
+    const { status, admin_comment } = req.body;
+    
+    const review = db.post_reviews.find(r => r.id === reviewId);
+    if (!review) {
+        return res.status(404).json({ error: 'Review not found' });
+    }
+    
+    review.status = status;
+    review.moderated_at = new Date().toISOString();
+    review.moderator_id = req.admin.user_id;
+    review.admin_comment = admin_comment || null;
+    
+    res.json({ 
+        success: true, 
+        message: `Отзыв ${status === 'approved' ? 'одобрен' : 'отклонен'}`,
+        review: review
+    });
+});
+
+// Управление админами
 app.get('/api/admin/admins', requireAdmin, (req, res) => {
     res.json(db.admins);
 });
@@ -3147,8 +3867,7 @@ app.delete('/api/admin/admins/:userId', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'Админ удален' });
 });
 
-// ==================== ОТЧЕТЫ И СТАТИСТИКА ====================
-
+// Отчет по пользователям
 app.get('/api/admin/users-report', requireAdmin, (req, res) => {
     const users = db.users
         .filter(u => u.is_registered)
@@ -3188,6 +3907,7 @@ app.get('/api/admin/users-report', requireAdmin, (req, res) => {
     res.json({ users });
 });
 
+// Полная статистика
 app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     const stats = {
         users: {
@@ -3229,16 +3949,48 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     res.json(stats);
 });
 
+// Статистика пользователя
+app.get('/api/users/:userId/stats', (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        console.log('📊 Запрос статистики для пользователя:', userId);
+
+        const user = db.users.find(u => u.user_id === userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const stats = {
+            totalQuizzesCompleted: db.quiz_completions.filter(q => q.user_id === userId).length,
+            totalWorks: db.user_works.filter(w => w.user_id === userId).length,
+            totalMarathonsCompleted: db.marathon_completions.filter(m => m.user_id === userId && m.completed).length,
+            totalInteractivesCompleted: db.interactive_completions.filter(i => i.user_id === userId).length,
+            totalActivities: db.activities.filter(a => a.user_id === userId).length,
+            totalPurchases: db.purchases.filter(p => p.user_id === userId).length
+        };
+
+        console.log('✅ Статистика отправлена:', stats);
+        res.json(stats);
+
+    } catch (error) {
+        console.error('❌ Ошибка получения статистики:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
 // ==================== ЭКСПОРТ ОТЧЕТОВ ====================
 
+// Экспорт пользователей в CSV
 app.get('/api/admin/export/users', requireAdmin, (req, res) => {
     try {
         console.log('📊 Экспорт пользователей в CSV');
         
         const users = db.users.filter(u => u.is_registered);
         
+        // Заголовки CSV
         let csv = 'ID;Имя;Username;Роль;Персонаж;Уровень;Искры;Зарегистрирован;Последняя активность\n';
         
+        // Данные пользователей
         users.forEach(user => {
             const row = [
                 user.user_id,
@@ -3255,6 +4007,7 @@ app.get('/api/admin/export/users', requireAdmin, (req, res) => {
             csv += row + '\n';
         });
         
+        // Устанавливаем заголовки для скачивания
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', 'attachment; filename="users_export.csv"');
         res.send(csv);
@@ -3267,6 +4020,7 @@ app.get('/api/admin/export/users', requireAdmin, (req, res) => {
     }
 });
 
+// Экспорт статистики в CSV
 app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
     try {
         console.log('📈 Экспорт полной статистики в CSV');
@@ -3278,6 +4032,7 @@ app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
         const quizCompletions = db.quiz_completions;
         const marathonCompletions = db.marathon_completions.filter(m => m.completed);
         
+        // Статистика по ролям
         const roleStats = {};
         db.roles.forEach(role => {
             roleStats[role.name] = users.filter(u => u.class === role.name).length;
@@ -3285,6 +4040,7 @@ app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
         
         let csv = 'Раздел;Показатель;Значение\n';
         
+        // Основная статистика
         csv += `Пользователи;Всего пользователей;${users.length}\n`;
         csv += `Пользователи;Зарегистрировано;${users.filter(u => u.is_registered).length}\n`;
         csv += `Пользователи;Активных сегодня;${users.filter(u => {
@@ -3293,19 +4049,23 @@ app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
             return lastActive.toDateString() === today.toDateString();
         }).length}\n`;
         
+        // Статистика по ролям
         Object.keys(roleStats).forEach(role => {
             csv += `Роли;${role};${roleStats[role]}\n`;
         });
         
+        // Активности
         csv += `Активности;Всего активностей;${activities.length}\n`;
         csv += `Активности;Всего искр в системе;${users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)}\n`;
         csv += `Активности;Всего покупок;${purchases.length}\n`;
         csv += `Активности;Всего работ;${works.length}\n`;
         csv += `Активности;Одобренных работ;${works.filter(w => w.status === 'approved').length}\n`;
         
+        // Завершения
         csv += `Завершения;Пройдено квизов;${quizCompletions.length}\n`;
         csv += `Завершения;Завершено марафонов;${marathonCompletions.length}\n`;
         
+        // Контент
         csv += `Контент;Активных квизов;${db.quizzes.filter(q => q.is_active).length}\n`;
         csv += `Контент;Активных марафонов;${db.marathons.filter(m => m.is_active).length}\n`;
         csv += `Контент;Товаров в магазине;${db.shop_items.filter(i => i.is_active).length}\n`;
@@ -3324,314 +4084,81 @@ app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
     }
 });
 
-// Управление приватными видео
-app.get('/api/admin/private-videos', requireAdmin, (req, res) => {
+// Оптимизированные API для мобильных устройств
+app.get('/api/webapp/mobile/shop/items', async (req, res) => {
     try {
-        const videos = db.private_channel_videos.map(video => {
-            const purchaseCount = db.purchases.filter(p => 
-                p.item_id === video.id && p.item_type === 'private_video'
-            ).length;
-            
-            const accessCount = db.video_access.filter(access => 
-                access.video_id === video.id && access.expires_at > new Date().toISOString()
-            ).length;
-            
-            return {
-                ...video,
-                purchase_count: purchaseCount,
-                access_count: accessCount
-            };
-        });
+        const items = db.shop_items.filter(item => item.is_active);
         
-        res.json(videos);
+        // Для мобильных - ограничиваем данные и убираем тяжелый контент
+        const mobileItems = items.map(item => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            type: item.type,
+            preview_url: item.preview_url,
+            price: item.price,
+            // Исключаем большие поля для мобильных
+            content_text: req.isMobile ? (item.content_text?.substring(0, 100) + '...') : item.content_text,
+            embed_html: null, // Не отправляем embed на мобильные
+            is_active: item.is_active
+        }));
         
+        res.json(mobileItems);
     } catch (error) {
-        console.error('❌ Ошибка получения приватных видео:', error);
-        res.status(500).json({ error: 'Ошибка сервера' });
+        console.error('❌ Ошибка загрузки магазина для мобильных:', error);
+        res.status(500).json({ error: 'Ошибка загрузки товаров' });
     }
 });
 
-app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
+// Оптимизированные интерактивы для мобильных
+app.get('/api/webapp/mobile/interactives', async (req, res) => {
     try {
-        console.log('🎬 Создание приватного материала - полученные данные:', JSON.stringify(req.body, null, 2));
+        const interactives = db.interactives.filter(i => i.is_active);
         
-        const { 
-            post_url, 
-            channel_id,
-            message_id,
-            title, 
-            description, 
-            duration, 
-            price, 
-            category, 
-            level, 
-            is_active 
-        } = req.body;
-
-        console.log('🔍 Проверка обязательных полей:', {
-            hasChannelId: !!channel_id,
-            hasMessageId: !!message_id,
-            channel_id: channel_id,
-            message_id: message_id,
-            title: title,
-            price: price
-        });
-
-        if (!title || !price || !channel_id || !message_id) {
-            console.log('❌ Отсутствуют обязательные поля:', {
-                title: !!title,
-                price: !!price,
-                channel_id: !!channel_id,
-                message_id: !!message_id
-            });
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Заполните обязательные поля: название, цена, ID канала и сообщения' 
-            });
-        }
-
-        const existingVideo = db.private_channel_videos.find(v => 
-            v.channel_id === channel_id && v.message_id === parseInt(message_id)
-        );
+        const mobileInteractives = interactives.map(interactive => ({
+            id: interactive.id,
+            title: interactive.title,
+            description: interactive.description,
+            type: interactive.type,
+            category: interactive.category,
+            image_url: interactive.image_url,
+            question: interactive.question,
+            sparks_reward: interactive.sparks_reward,
+            allow_retake: interactive.allow_retake,
+            // Упрощаем для мобильных
+            options: interactive.options || [],
+            correct_answer: interactive.correct_answer,
+            is_active: interactive.is_active
+        }));
         
-        if (existingVideo) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Материал с таким ID сообщения уже существует в этом канале' 
-            });
-        }
-
-        const newVideo = {
-            id: Date.now(),
-            post_url: post_url || '',
-            channel_id: channel_id,
-            message_id: parseInt(message_id),
-            title: title,
-            description: description || '',
-            duration: duration || 'Не указано',
-            price: parseFloat(price),
-            category: category || 'video',
-            level: level || 'beginner',
-            is_active: is_active !== undefined ? is_active : true,
-            created_at: new Date().toISOString(),
-            preview_url: '',
-            file_size: 'Не указан',
-            tags: []
-        };
-
-        db.private_channel_videos.push(newVideo);
-
-        console.log('✅ Приватный материал создан:', newVideo.title);
-
-        res.json({
-            success: true,
-            video: newVideo,
-            message: 'Приватный материал успешно создан'
-        });
-
+        res.json(mobileInteractives);
     } catch (error) {
-        console.error('❌ Ошибка создания приватного видео:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Ошибка сервера при создании материала: ' + error.message 
-        });
+        console.error('❌ Ошибка загрузки интерактивов для мобильных:', error);
+        res.status(500).json({ error: 'Ошибка загрузки интерактивов' });
     }
 });
 
-app.put('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
-    try {
-        const videoId = parseInt(req.params.id);
-        const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
-        
-        if (videoIndex === -1) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Материал не найден' 
-            });
-        }
-
-        const { 
-            title, 
-            description, 
-            duration, 
-            access_duration_days,
-            price, 
-            category, 
-            level, 
-            is_active 
-        } = req.body;
-
-        if (title) db.private_channel_videos[videoIndex].title = title;
-        if (description !== undefined) db.private_channel_videos[videoIndex].description = description;
-        if (duration !== undefined) db.private_channel_videos[videoIndex].duration = duration;
-        if (access_duration_days !== undefined) db.private_channel_videos[videoIndex].access_duration_days = access_duration_days;
-        if (price !== undefined) db.private_channel_videos[videoIndex].price = parseFloat(price);
-        if (category) db.private_channel_videos[videoIndex].category = category;
-        if (level) db.private_channel_videos[videoIndex].level = level;
-        if (is_active !== undefined) db.private_channel_videos[videoIndex].is_active = is_active;
-        db.private_channel_videos[videoIndex].updated_at = new Date().toISOString();
-
-        console.log('✅ Приватный материал обновлен:', db.private_channel_videos[videoIndex].title);
-
-        res.json({
-            success: true,
-            video: db.private_channel_videos[videoIndex],
-            message: 'Материал успешно обновлен'
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка обновления приватного видео:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Ошибка сервера' 
-        });
-    }
+// Health check для мобильных
+app.get('/api/mobile/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        mobile: true,
+        timestamp: new Date().toISOString(),
+        optimized: true
+    });
 });
 
-app.delete('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
-    try {
-        const videoId = parseInt(req.params.id);
-        const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
-        
-        if (videoIndex === -1) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Материал не найден' 
-            });
-        }
-
-        const videoTitle = db.private_channel_videos[videoIndex].title;
-
-        db.private_channel_videos.splice(videoIndex, 1);
-        db.video_access = db.video_access.filter(va => va.video_id !== videoId);
-        db.purchases = db.purchases.filter(p => 
-            !(p.item_id === videoId && p.item_type === 'private_video')
-        );
-
-        console.log('✅ Приватный материал удален:', videoTitle);
-
-        res.json({
-            success: true,
-            message: 'Материал успешно удален'
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка удаления приватного видео:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Ошибка сервера' 
-        });
-    }
-});
-
-// Прокси для доступа к приватным видео через Telegram
-app.get('/api/telegram/proxy/:token', async (req, res) => {
-    try {
-        const token = req.params.token;
-        const userId = req.query.userId;
-        
-        console.log('🔗 Обработка прокси-запроса:', { token, userId });
-
-        if (!userId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Требуется авторизация' 
-            });
-        }
-
-        const decoded = atob(token.replace(/-/g, '+').replace(/_/g, '/'));
-        const [channelId, messageId, timestamp] = decoded.split('_');
-        
-        const tokenAge = Date.now() - parseInt(timestamp);
-        if (tokenAge > 24 * 60 * 60 * 1000) {
-            return res.status(410).json({ 
-                success: false,
-                error: 'Ссылка устарела' 
-            });
-        }
-
-        const video = db.private_channel_videos.find(v => 
-            v.channel_id === channelId && 
-            v.message_id === parseInt(messageId) && 
-            v.is_active
-        );
-
-        if (!video) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Видео не найдено' 
-            });
-        }
-
-        const admin = db.admins.find(a => a.user_id == userId);
-        if (!admin) {
-            const hasAccess = db.video_access.some(access => 
-                access.user_id == userId && 
-                access.video_id === video.id && 
-                access.expires_at > new Date().toISOString()
-            );
-
-            if (!hasAccess) {
-                return res.status(403).json({ 
-                    success: false,
-                    error: 'Нет доступа к видео' 
-                });
-            }
-        }
-
-        let telegramUrl;
-        if (channelId.startsWith('-100') || !isNaN(channelId)) {
-            const publicChannelId = channelId.replace('-100', '');
-            telegramUrl = `https://t.me/c/${publicChannelId}/${messageId}`;
-        } else {
-            telegramUrl = `https://t.me/${channelId}/${messageId}`;
-        }
-
-        console.log('✅ Перенаправление на:', telegramUrl);
-        res.redirect(telegramUrl);
-
-    } catch (error) {
-        console.error('❌ Ошибка прокси:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка доступа к видео' 
-        });
-    }
-});
-
-// ==================== TELEGRAM BOT ====================
-
+// Telegram Bot
 let bot;
 if (process.env.BOT_TOKEN) {
     try {
-        const botOptions = {
-            polling: {
-                timeout: 10,
-                limit: 100,
-                retryTimeout: 1000,
-                params: {
-                    timeout: 10,
-                    limit: 100
-                }
-            }
-        };
-        
-        bot = new TelegramBot(process.env.BOT_TOKEN, botOptions);
+        bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
         
         console.log('✅ Telegram Bot инициализирован');
         console.log('=== НАСТРОЙКИ ПРИВАТНОГО КАНАЛА ===');
         console.log('CHANNEL_ID:', PRIVATE_CHANNEL_CONFIG.CHANNEL_ID);
         console.log('CHANNEL_USERNAME:', PRIVATE_CHANNEL_CONFIG.CHANNEL_USERNAME);
-        console.log('BOT_TOKEN:', process.env.BOT_TOKEN ? '✅ Установлен' : '❌ Отсутствует');
         console.log('==================================');
-
-        bot.on('polling_error', (error) => {
-            console.log('⚠️ Ошибка polling:', error.message);
-            if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
-                console.log('🔧 Решение: Убедитесь, что запущен только один экземпляр бота');
-                console.log('💡 Попробуйте подождать 10 секунд или перезапустить приложение');
-            }
-        });
 
         bot.onText(/\/start/, (msg) => {
             const chatId = msg.chat.id;
@@ -3691,15 +4218,13 @@ if (process.env.BOT_TOKEN) {
             });
         });
 
+        // Обработчик для запроса доступа к видео
         bot.onText(/\/доступ|доступ/i, async (msg) => {
             const chatId = msg.chat.id;
             const userId = msg.from.id;
             
             try {
-                const userAccess = db.video_access.filter(access => 
-                    access.user_id === userId && 
-                    access.expires_at > new Date().toISOString()
-                );
+                const userAccess = db.video_access.filter(access => access.user_id === userId);
                 
                 if (userAccess.length === 0) {
                     bot.sendMessage(chatId, 
@@ -3712,17 +4237,16 @@ if (process.env.BOT_TOKEN) {
                 let message = '🎬 Ваши активные доступы к видео:\n\n';
                 
                 for (const access of userAccess) {
-                    const video = db.private_channel_videos.find(v => v.id === access.video_id && v.is_active);
-                    if (video) {
-                        const token = btoa(`${video.channel_id}_${video.message_id}_${Date.now()}`)
-                            .replace(/=/g, '')
-                            .replace(/\+/g, '-')
-                            .replace(/\//g, '_');
-                            
-                        const protectedLink = `${process.env.APP_URL || 'http://localhost:3000'}/api/telegram/proxy/${token}?userId=${userId}`;
+                    const video = db.private_channel_videos.find(v => v.id === access.video_id);
+                    if (video && video.is_active) {
+                        // Создаем новую временную ссылку
+                        const chatInviteLink = await bot.createChatInviteLink(PRIVATE_CHANNEL_CONFIG.CHANNEL_ID, {
+                            member_limit: 1,
+                            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
+                        });
                         
                         message += `📹 ${video.title}\n`;
-                        message += `🔗 ${protectedLink}\n`;
+                        message += `🔗 ${chatInviteLink.invite_link}\n`;
                         message += `⏰ Ссылка действительна 24 часа\n\n`;
                     }
                 }
@@ -3747,6 +4271,7 @@ if (process.env.BOT_TOKEN) {
                 return;
             }
             
+            // ДИНАМИЧЕСКАЯ ССЫЛКА С .html
             const baseUrl = process.env.APP_URL || 'https://sergeynikishin555123123-lab-tg-inspirationn-bot-3c3e.twc1.net';
             const adminUrl = `${baseUrl}/admin.html?userId=${userId}`;
             
@@ -3783,7 +4308,7 @@ if (process.env.BOT_TOKEN) {
                 shopItems: db.shop_items.filter(i => i.is_active).length,
                 totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0),
                 privateVideos: db.private_channel_videos.filter(v => v.is_active).length,
-                videoAccesses: db.video_access.filter(va => va.expires_at > new Date().toISOString()).length
+                videoAccesses: db.video_access.length
             };
             
             const statsText = `📊 Статистика бота:
@@ -3802,26 +4327,18 @@ if (process.env.BOT_TOKEN) {
 
     } catch (error) {
         console.error('❌ Ошибка инициализации бота:', error);
-        if (error.code === 'ETELEGRAM' && error.message.includes('409 Conflict')) {
-            console.log('💡 Решение проблемы:');
-            console.log('1. Убедитесь, что не запущены другие экземпляры бота');
-            console.log('2. Подождите 10-20 секунд и перезапустите приложение');
-            console.log('3. Проверьте настройки BOT_TOKEN в переменных окружения');
-        }
     }
-} else {
-    console.log('⚠️ BOT_TOKEN не установлен. Telegram бот отключен.');
 }
-
-// ==================== ЗАПУСК СЕРВЕРА ====================
 
 // Запуск сервера с управлением процессами
 async function startServer() {
     try {
+        // Настраиваем управление процессами
         await setupProcessManagement();
         
         const PORT = process.env.PORT || 3000;
         
+        // Запускаем сервер
         const server = app.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Сервер запущен на порту ${PORT}`);
             console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
@@ -3835,6 +4352,7 @@ async function startServer() {
             console.log(`📊 PID главного процесса: ${process.pid}`);
         });
         
+        // Настраиваем graceful shutdown
         setupGracefulShutdown();
         
         return server;
@@ -3845,5 +4363,5 @@ async function startServer() {
     }
 }
 
-// Запускаем сервер 
-startServer().catch(console.error);
+// Запускаем сервер
+const server = startServer();
