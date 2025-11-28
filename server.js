@@ -692,7 +692,6 @@ let db = {
     interactive_completions: [],
     interactive_submissions: [],
 // В объекте db добавьте эти коллекции если их нет:
-marathon_submissions: [],
 private_channel_videos: [
     {
         id: 1,
@@ -4812,6 +4811,62 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
         message: `Работа ${status === 'approved' ? 'одобрена' : 'отклонена'}`,
         work: work
     });
+});
+
+// GET /api/webapp/private-videos/:videoId/new-invite
+app.get('/api/webapp/private-videos/:videoId/new-invite', async (req, res) => {
+    try {
+        const { videoId } = req.params;
+        const { userId } = req.query;
+        
+        console.log('🔄 Запрос новой инвайт-ссылки:', { videoId, userId });
+
+        // Проверяем доступ
+        const hasAccess = db.video_access.some(access => 
+            access.user_id == userId && 
+            access.video_id === parseInt(videoId) && 
+            access.expires_at > new Date().toISOString()
+        );
+
+        if (!hasAccess) {
+            return res.json({ 
+                success: false, 
+                error: 'Нет доступа к этому материалу' 
+            });
+        }
+
+        const video = db.private_channel_videos.find(v => v.id === parseInt(videoId));
+        if (!video) {
+            return res.json({ 
+                success: false, 
+                error: 'Материал не найден' 
+            });
+        }
+
+        // Создаем новую инвайт-ссылку
+        const inviteResult = await createPrivateInviteLink(video.channel_id, userId);
+        
+        if (inviteResult.success) {
+            res.json({
+                success: true,
+                invite_link: inviteResult.invite_link,
+                video_title: video.title,
+                message: 'Новая пригласительная ссылка создана'
+            });
+        } else {
+            res.json({
+                success: false,
+                error: 'Не удалось создать пригласительную ссылку'
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ Ошибка создания новой ссылки:', error);
+        res.json({ 
+            success: false, 
+            error: 'Ошибка сервера' 
+        });
+    }
 });
 
 // Управление постами
