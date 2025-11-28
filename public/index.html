@@ -3159,44 +3159,75 @@ function displayPrivateVideos(videos) {
         const canAfford = currentUser && currentUser.sparks >= video.price;
         const hasAccess = video.has_access;
         
-        videoCard.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                <div style="flex: 1;">
-                    <h3 style="margin: 0 0 8px 0;">${video.title}</h3>
-                    <p style="color: #718096; margin-bottom: 12px;">${video.description || 'Описание отсутствует'}</p>
-                    <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                        <span class="badge badge-info">${getCategoryName(video.category)}</span>
-                        <span class="badge badge-warning">${getLevelName(video.level)}</span>
-                        ${video.duration ? `<span class="badge badge-secondary">⏱️ ${video.duration}</span>` : ''}
-                    </div>
-                </div>
-                <div style="text-align: right;">
-                    ${hasAccess ? 
-                        '<span class="badge badge-success">✅ Доступ есть</span>' : 
-                        `<div class="spark-badge">${video.price}✨</div>`
-                    }
-                </div>
+// В функции displayPrivateVideos обновите карточку доступа:
+videoCard.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+        <div style="flex: 1;">
+            <h3 style="margin: 0 0 8px 0;">${video.title}</h3>
+            <p style="color: #718096; margin-bottom: 12px;">${video.description || 'Описание отсутствует'}</p>
+            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                <span class="badge badge-info">${getCategoryName(video.category)}</span>
+                <span class="badge badge-warning">${getLevelName(video.level)}</span>
+                ${video.duration ? `<span class="badge badge-secondary">⏱️ ${video.duration}</span>` : ''}
             </div>
-            
+        </div>
+        <div style="text-align: right;">
             ${hasAccess ? 
-                `<div class="success" style="text-align: center; margin-top: 12px;">
-                    <p>✅ Доступ активирован</p>
-                    <button class="btn btn-success" onclick="accessPrivateVideo(${video.id})">
-                        🎬 Смотреть материал
-                    </button>
-                </div>` :
-                `<div style="text-align: center;">
-                    ${canAfford ? 
-                        `<button class="btn btn-success" onclick="purchasePrivateVideo(${video.id})">
-                            🛒 Купить доступ за ${video.price}✨
-                        </button>` :
-                        `<button class="btn btn-secondary" disabled>
-                            🔒 Недостаточно искр (нужно ${video.price}✨)
-                        </button>`
-                    }
-                </div>`
+                '<span class="badge badge-success">✅ Доступ есть</span>' : 
+                `<div class="spark-badge">${video.price}✨</div>`
             }
-        `;
+        </div>
+    </div>
+    
+    ${hasAccess ? 
+        `<div class="success" style="text-align: center; margin-top: 12px;">
+            <p>✅ Доступ активирован</p>
+            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 8px;">
+                <button class="btn btn-success" onclick="accessPrivateVideo(${video.id})">
+                    🎬 Смотреть материал
+                </button>
+                <button class="btn btn-info" onclick="getChannelInvite(${video.id})">
+                    🔗 Получить приглашение
+                </button>
+            </div>
+        </div>` :
+        `<div style="text-align: center;">
+            ${canAfford ? 
+                `<button class="btn btn-success" onclick="purchasePrivateVideo(${video.id})">
+                    🛒 Купить доступ за ${video.price}✨
+                </button>` :
+                `<button class="btn btn-secondary" disabled>
+                    🔒 Недостаточно искр (нужно ${video.price}✨)
+                </button>`
+            }
+        </div>`
+    }
+`;
+
+// Добавьте функцию получения приглашения
+async function getChannelInvite(videoId) {
+    try {
+        showMessage('⏳ Получаем пригласительную ссылку...', 'info');
+        
+        const response = await fetch(`/api/webapp/private-videos/${video.id}/invite?userId=${currentUserId}`);
+        const result = await response.json();
+        
+        if (result.success && result.invite_link) {
+            await navigator.clipboard.writeText(result.invite_link);
+            showMessage('✅ Пригласительная ссылка скопирована в буфер обмена!', 'success');
+            
+            // Показываем инструкцию
+            setTimeout(() => {
+                showMessage('📋 Перейдите по ссылке чтобы вступить в канал, затем обновите страницу', 'info');
+            }, 2000);
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка получения приглашения:', error);
+        showMessage('❌ Ошибка получения пригласительной ссылки', 'error');
+    }
+}
         
         videosList.appendChild(videoCard);
     });
@@ -3301,20 +3332,46 @@ async function purchasePrivateVideo(videoId) {
     }
 }
 
-// Доступ к приватному видео
+// Полностью перепишите функцию accessPrivateVideo:
 async function accessPrivateVideo(videoId) {
     try {
-        showMessage('⏳ Получаем доступ...', 'info');
+        showMessage('⏳ Получаем доступ к материалу...', 'info');
         
         const response = await fetch(`/api/webapp/private-videos/${videoId}/access?userId=${currentUserId}`);
         const result = await response.json();
         
-        if (result.success && result.access_url) {
-            // Открываем материал в новом окне
-            window.open(result.access_url, '_blank');
-            showMessage('✅ Материал открывается...', 'success');
+        if (result.success) {
+            if (result.access_type === 'invite_link') {
+                // Открываем пригласительную ссылку
+                window.open(result.access_url, '_blank');
+                showMessage('✅ Открываем пригласительную ссылку...', 'success');
+                
+                // Показываем инструкцию
+                setTimeout(() => {
+                    showMessage('📋 После вступления в канал обновите страницу для доступа к материалам', 'info');
+                }, 2000);
+                
+            } else if (result.access_type === 'direct_access') {
+                // Прямой доступ через прокси
+                window.open(result.access_url, '_blank');
+                showMessage('✅ Материал открывается...', 'success');
+            } else {
+                // Fallback
+                window.open(result.access_url, '_blank');
+                showMessage('✅ Открываем материал...', 'success');
+            }
         } else {
-            showMessage(`❌ ${result.error}`, 'error');
+            if (result.error && result.error.includes('не подписан')) {
+                showMessage('❌ Для доступа к материалу необходимо быть подписчиком канала', 'error');
+                // Предлагаем альтернативу
+                setTimeout(() => {
+                    if (confirm('Хотите получить пригласительную ссылку в канал?')) {
+                        requestChannelInvite(videoId);
+                    }
+                }, 1500);
+            } else {
+                showMessage(`❌ ${result.error}`, 'error');
+            }
         }
         
     } catch (error) {
@@ -3323,6 +3380,38 @@ async function accessPrivateVideo(videoId) {
     }
 }
 
+// Функция запроса пригласительной ссылки
+async function requestChannelInvite(videoId) {
+    try {
+        showMessage('⏳ Запрашиваем пригласительную ссылку...', 'info');
+        
+        const response = await fetch(`/api/webapp/private-videos/${videoId}/request-invite`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUserId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.invite_link) {
+            // Копируем ссылку в буфер обмена
+            await navigator.clipboard.writeText(result.invite_link);
+            showMessage('✅ Пригласительная ссылка скопирована! Перейдите по ней чтобы вступить в канал.', 'success');
+            
+            // Показываем инструкцию
+            setTimeout(() => {
+                showMessage('🔑 После вступления в канал вернитесь и обновите страницу для доступа к материалам', 'info');
+            }, 2000);
+            
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка запроса ссылки:', error);
+        showMessage('❌ Ошибка получения пригласительной ссылки', 'error');
+    }
+}
         // Получить детальную информацию о видео
         async function getPrivateVideoDetail(videoId) {
             try {
