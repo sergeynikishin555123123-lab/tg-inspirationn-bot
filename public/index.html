@@ -2742,9 +2742,9 @@ function loadAvailableButtons() {
             break;
             
         case 'myPrivateVideosScreen':
-            console.log('📦 Загрузка моих приватных материалов');
-            loadMyPrivateVideos();
-            break;
+    console.log('📦 Загрузка моих приватных материалов');
+    loadMyPrivateVideos();
+    break;
             
         case 'quizzesScreen':
             console.log('🎯 Загрузка квизов');
@@ -3337,6 +3337,7 @@ async function checkUserSubscription(channelId) {
 }
 
 // Покупка приватного материала - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Обновленная функция покупки приватного видео
 async function purchasePrivateVideo(videoId) {
     try {
         console.log('🛒 Начинаем покупку приватного видео:', videoId);
@@ -3346,7 +3347,7 @@ async function purchasePrivateVideo(videoId) {
             return;
         }
         
-        if (!confirm('Вы уверены, что хотите купить доступ к этому материалу?\n\nПосле покупки вы будете автоматически добавлены в канал и получите прямой доступ к материалу.')) {
+        if (!confirm('Вы уверены, что хотите купить доступ к этому материалу?\n\nПосле покупки вы получите доступ к материалу на 30 дней.')) {
             return;
         }
         
@@ -3375,13 +3376,11 @@ async function purchasePrivateVideo(videoId) {
         if (result.success) {
             showMessage(`✅ ${result.message}`, 'success');
             
-            // ОБНОВЛЯЕМ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
-            if (result.user) {
-                currentUser = result.user;
-                updateUserDisplay();
-            }
+            // Обновляем данные пользователя
+            currentUser.sparks = result.remaining_sparks;
+            updateUserDisplay();
             
-            // ПРЕДЛАГАЕМ ПЕРЕЙТИ К МАТЕРИАЛАМ
+            // Предлагаем перейти к материалам
             setTimeout(() => {
                 if (confirm('Покупка успешна! Хотите перейти к вашим материалам?')) {
                     showScreen('myPrivateVideosScreen');
@@ -3426,23 +3425,81 @@ async function debugPurchase(videoId) {
     }
 }
     
-    // Загрузка купленных приватных материалов
+    // Загрузка моих приватных материалов
 async function loadMyPrivateVideos() {
     try {
-        const response = await fetch(`/api/webapp/users/${currentUserId}/purchased-private-videos`);
-        const result = await response.json();
+        console.log('📦 Загрузка моих приватных материалов...');
         
-        if (result.success) {
-            displayMyPrivateVideos(result.purchases);
-        } else {
-            throw new Error(result.error || 'Ошибка загрузки материалов');
+        const response = await fetch(`/api/webapp/user/private-videos?userId=${currentUserId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
+        const result = await response.json();
+        
+        const videosList = document.getElementById('myPrivateVideosList');
+        videosList.innerHTML = '';
+        
+        if (!result.accessible_videos || result.accessible_videos.length === 0) {
+            videosList.innerHTML = `
+                <div class="info">
+                    <div style="text-align: center; padding: 40px;">
+                        <div style="font-size: 64px; margin-bottom: 16px;">🎬</div>
+                        <h3 style="margin-bottom: 12px;">У вас пока нет приватных материалов</h3>
+                        <p style="color: #718096; margin-bottom: 20px;">
+                            Приобретенные материалы появятся здесь после покупки
+                        </p>
+                        <button class="btn" onclick="showScreen('privateVideosScreen')" style="margin-top: 16px;">
+                            🛍️ Перейти к материалам
+                        </button>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        result.accessible_videos.forEach(video => {
+            const videoCard = document.createElement('div');
+            videoCard.className = 'shop-item';
+            
+            videoCard.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 8px 0;">🎬 ${video.title}</h3>
+                        <p style="color: #718096; margin-bottom: 12px;">${video.description || 'Описание отсутствует'}</p>
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <span class="badge badge-info">${getCategoryName(video.category)}</span>
+                            <span class="badge badge-warning">${getLevelName(video.level)}</span>
+                            ${video.duration ? `<span class="badge badge-secondary">⏱️ ${video.duration}</span>` : ''}
+                            <span class="badge badge-success">✅ Куплено</span>
+                            <span class="badge badge-info">⏰ ${video.days_remaining} дней осталось</span>
+                        </div>
+                        <div style="color: #718096; font-size: 14px;">
+                            📅 Приобретен: ${new Date(video.purchased_at).toLocaleDateString('ru-RU')}
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center;">
+                    <button class="btn btn-success" onclick="watchPrivateVideo(${video.id})">
+                        🎬 Смотреть материал
+                    </button>
+                </div>
+            `;
+            
+            videosList.appendChild(videoCard);
+        });
+        
     } catch (error) {
+        console.error('❌ Ошибка загрузки моих материалов:', error);
         const videosList = document.getElementById('myPrivateVideosList');
         videosList.innerHTML = `
             <div class="error">
                 Ошибка загрузки материалов: ${error.message}
+                <button class="btn" onclick="loadMyPrivateVideos()" style="margin-top: 10px;">
+                    🔄 Повторить
+                </button>
             </div>
         `;
     }
@@ -3505,29 +3562,30 @@ function displayMyPrivateVideos(purchases) {
     });
 }
     
-// Доступ к купленному материалу
-async function accessPrivateVideo(videoId) {
+// Просмотр приватного видео
+async function watchPrivateVideo(videoId) {
     try {
         showMessage('⏳ Открываем материал...', 'info');
         
-        const response = await fetch(`/api/webapp/private-videos/${videoId}/access?userId=${currentUserId}`);
+        const response = await fetch(`/api/webapp/private-videos/${videoId}/watch?userId=${currentUserId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
         
-        if (result.success) {
-            // Открываем пост в Telegram
-            window.open(result.post_url, '_blank');
-            showMessage('✅ Материал открывается в Telegram...', 'success');
-            
-            // Обновляем список для обновления счетчика просмотров
-            setTimeout(() => loadMyPrivateVideos(), 2000);
-            
+        if (result.success && result.watch_url) {
+            // Открываем материал в новом окне
+            window.open(result.watch_url, '_blank');
+            showMessage('✅ Материал открывается...', 'success');
         } else {
-            showMessage(`❌ ${result.error}`, 'error');
+            throw new Error(result.error || 'Не удалось открыть материал');
         }
         
     } catch (error) {
-        console.error('❌ Ошибка доступа:', error);
-        showMessage('❌ Ошибка открытия материала', 'error');
+        console.error('❌ Ошибка просмотра:', error);
+        showMessage(`❌ ${error.message}`, 'error');
     }
 }
     
