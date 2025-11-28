@@ -2523,6 +2523,24 @@ function contactSupport(videoId) {
     showMessage('💬 Открываем чат с поддержкой...', 'info');
 }
 
+// Скрипт для проверки прав бота
+async function checkBotPermissions() {
+    try {
+        const chat = await bot.telegram.getChat(process.env.CHANNEL_ID);
+        const botMember = await bot.telegram.getChatMember(process.env.CHANNEL_ID, process.env.BOT_ID);
+        
+        console.log('👑 Права бота в канале:', {
+            can_invite_users: botMember.can_invite_users,
+            can_promote_members: botMember.can_promote_members,
+            can_restrict_members: botMember.can_restrict_members,
+            status: botMember.status
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка проверки прав бота:', error);
+    }
+}
+
 // server.js - ОБНОВЛЕННАЯ ФУНКЦИЯ АВТОМАТИЧЕСКОГО ДОБАВЛЕНИЯ В КАНАЛ
 async function addUserToPrivateChannel(userId, channelId, videoTitle = '') {
     try {
