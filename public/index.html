@@ -3425,7 +3425,7 @@ async function debugPurchase(videoId) {
     }
 }
     
-    // Загрузка моих приватных материалов
+   // Обновленная функция загрузки моих материалов
 async function loadMyPrivateVideos() {
     try {
         console.log('📦 Загрузка моих приватных материалов...');
@@ -3459,9 +3459,13 @@ async function loadMyPrivateVideos() {
             return;
         }
         
+        // Показываем доступные материалы
         result.accessible_videos.forEach(video => {
             const videoCard = document.createElement('div');
             videoCard.className = 'shop-item';
+            
+            const daysLeft = video.days_remaining > 0 ? video.days_remaining : 0;
+            const statusBadge = daysLeft > 7 ? 'badge-success' : daysLeft > 3 ? 'badge-warning' : 'badge-danger';
             
             videoCard.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
@@ -3473,23 +3477,78 @@ async function loadMyPrivateVideos() {
                             <span class="badge badge-warning">${getLevelName(video.level)}</span>
                             ${video.duration ? `<span class="badge badge-secondary">⏱️ ${video.duration}</span>` : ''}
                             <span class="badge badge-success">✅ Куплено</span>
-                            <span class="badge badge-info">⏰ ${video.days_remaining} дней осталось</span>
+                            <span class="badge ${statusBadge}">⏰ ${daysLeft} дней осталось</span>
                         </div>
                         <div style="color: #718096; font-size: 14px;">
                             📅 Приобретен: ${new Date(video.purchased_at).toLocaleDateString('ru-RU')}
+                            ${video.expires_at ? ` • ⏰ Истекает: ${new Date(video.expires_at).toLocaleDateString('ru-RU')}` : ''}
                         </div>
                     </div>
                 </div>
                 
                 <div style="text-align: center;">
-                    <button class="btn btn-success" onclick="watchPrivateVideo(${video.id})">
+                    <button class="btn btn-success" onclick="watchPrivateVideo(${video.id})" style="margin-bottom: 8px;">
                         🎬 Смотреть материал
+                    </button>
+                    <br>
+                    <button class="btn btn-info" onclick="checkVideoAccess(${video.id})" style="font-size: 12px; padding: 8px 12px;">
+                        🔍 Проверить доступ
                     </button>
                 </div>
             `;
             
             videosList.appendChild(videoCard);
         });
+        
+        // Показываем доступные для покупки материалы
+        if (result.available_videos && result.available_videos.length > 0) {
+            const availableSection = document.createElement('div');
+            availableSection.innerHTML = `
+                <div style="margin-top: 32px; padding-top: 24px; border-top: 2px solid #e2e8f0;">
+                    <h3 style="text-align: center; margin-bottom: 20px; color: #718096;">🛍️ Доступные для покупки материалы</h3>
+                </div>
+            `;
+            
+            videosList.appendChild(availableSection);
+            
+            result.available_videos.forEach(video => {
+                const videoCard = document.createElement('div');
+                videoCard.className = 'shop-item';
+                
+                const canAfford = currentUser && currentUser.sparks >= video.price;
+                
+                videoCard.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 8px 0;">🎬 ${video.title}</h3>
+                            <p style="color: #718096; margin-bottom: 12px;">${video.description || 'Описание отсутствует'}</p>
+                            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                                <span class="badge badge-info">${getCategoryName(video.category)}</span>
+                                <span class="badge badge-warning">${getLevelName(video.level)}</span>
+                                ${video.duration ? `<span class="badge badge-secondary">⏱️ ${video.duration}</span>` : ''}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="spark-badge">${video.price}✨</div>
+                            ${!canAfford ? '<div style="color: #f56565; font-size: 11px; margin-top: 4px;">Недостаточно искр</div>' : ''}
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        ${canAfford ? 
+                            `<button class="btn btn-success" onclick="purchasePrivateVideo(${video.id})">
+                                 🛒 Купить доступ за ${video.price}✨
+                             </button>` :
+                            `<button class="btn btn-secondary" disabled>
+                                 🔒 Недостаточно искр
+                             </button>`
+                        }
+                    </div>
+                `;
+                
+                videosList.appendChild(videoCard);
+            });
+        }
         
     } catch (error) {
         console.error('❌ Ошибка загрузки моих материалов:', error);
@@ -3562,12 +3621,13 @@ function displayMyPrivateVideos(purchases) {
     });
 }
     
-// Просмотр приватного видео
+// Упрощенная функция просмотра приватного видео
 async function watchPrivateVideo(videoId) {
     try {
         showMessage('⏳ Открываем материал...', 'info');
         
-        const response = await fetch(`/api/webapp/private-videos/${videoId}/watch?userId=${currentUserId}`);
+        // Сначала пробуем прямой доступ
+        const response = await fetch(`/api/webapp/private-videos/${videoId}/direct?userId=${currentUserId}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -3575,17 +3635,48 @@ async function watchPrivateVideo(videoId) {
         
         const result = await response.json();
         
-        if (result.success && result.watch_url) {
+        if (result.success && result.direct_url) {
             // Открываем материал в новом окне
-            window.open(result.watch_url, '_blank');
-            showMessage('✅ Материал открывается...', 'success');
+            window.open(result.direct_url, '_blank');
+            showMessage('✅ Материал открывается в Telegram...', 'success');
         } else {
             throw new Error(result.error || 'Не удалось открыть материал');
         }
         
     } catch (error) {
-        console.error('❌ Ошибка просмотра:', error);
-        showMessage(`❌ ${error.message}`, 'error');
+        console.error('❌ Ошибка прямого доступа:', error);
+        
+        // Fallback: пробуем через прокси
+        try {
+            showMessage('🔄 Пробуем альтернативный метод...', 'info');
+            
+            const proxyResponse = await fetch(`/api/webapp/private-videos/${videoId}/watch?userId=${currentUserId}`);
+            const proxyResult = await proxyResponse.json();
+            
+            if (proxyResult.success && proxyResult.watch_url) {
+                window.open(proxyResult.watch_url, '_blank');
+                showMessage('✅ Материал открывается...', 'success');
+            } else {
+                throw new Error(proxyResult.error || 'Не удалось открыть материал');
+            }
+        } catch (proxyError) {
+            console.error('❌ Ошибка прокси-доступа:', proxyError);
+            showMessage(`❌ Ошибка: ${proxyError.message}`, 'error');
+        }
+    }
+}
+
+// Функция проверки доступа (для отладки)
+async function checkVideoAccess(videoId) {
+    try {
+        const response = await fetch(`/api/webapp/private-videos/${videoId}/check-access?userId=${currentUserId}`);
+        const result = await response.json();
+        
+        console.log('🔍 Проверка доступа:', result);
+        return result;
+    } catch (error) {
+        console.error('❌ Ошибка проверки доступа:', error);
+        return { has_access: false, error: error.message };
     }
 }
     
