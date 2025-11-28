@@ -3629,44 +3629,129 @@ purchases.forEach(video => {
     });
 }
     
-// Улучшенная функция просмотра с прямым переходом в пост
+// Улучшенная функция просмотра с детальной отладкой
 async function watchPrivateVideo(videoId) {
     try {
-        showMessage('⏳ Открываем материал...', 'info');
+        console.log('🎬 Начинаем просмотр видео ID:', videoId);
+        console.log('👤 User ID:', currentUserId);
         
-        // Получаем прямую ссылку на пост
+        showMessage('⏳ Получаем доступ к материалу...', 'info');
+        
+        // Получаем информацию о доступе
         const response = await fetch(`/api/webapp/private-videos/${videoId}/watch?userId=${currentUserId}`);
+        
+        console.log('📡 Статус ответа:', response.status);
+        console.log('📡 URL запроса:', response.url);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const result = await response.json();
+        console.log('📋 Ответ сервера:', result);
         
-        if (result.success && result.direct_post_url) {
-            // Открываем конкретный пост в Telegram
-            window.open(result.direct_post_url, '_blank');
-            showMessage('✅ Открываем материал в Telegram...', 'success');
-            
-            // Логируем просмотр
-            await fetch(`/api/webapp/private-videos/${videoId}/view`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUserId })
-            });
-            
+        if (result.success) {
+            if (result.direct_post_url) {
+                // Открываем конкретный пост в Telegram
+                console.log('🔗 Открываем ссылку:', result.direct_post_url);
+                window.open(result.direct_post_url, '_blank');
+                showMessage('✅ Открываем материал в Telegram...', 'success');
+                
+                // Логируем просмотр
+                try {
+                    await fetch(`/api/webapp/private-videos/${videoId}/view`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: currentUserId })
+                    });
+                } catch (logError) {
+                    console.log('⚠️ Ошибка логирования:', logError);
+                }
+                
+            } else if (result.invite_link) {
+                // Используем инвайт-ссылку
+                console.log('🔗 Используем инвайт-ссылку:', result.invite_link);
+                await handleInviteLink(result.invite_link, result.video_title);
+                
+            } else {
+                throw new Error('Не удалось получить ссылку для доступа');
+            }
         } else {
             throw new Error(result.error || 'Не удалось получить доступ к материалу');
         }
         
     } catch (error) {
         console.error('❌ Ошибка доступа:', error);
+        console.error('🔍 Детали ошибки:', {
+            videoId: videoId,
+            userId: currentUserId,
+            error: error.message,
+            stack: error.stack
+        });
+        
         showMessage(`❌ ${error.message}`, 'error');
         
         // Предлагаем альтернативные действия
         setTimeout(() => {
-            showMessage('💡 Если доступ не работает, свяжитесь с администратором', 'info');
+            showAlternativeAccessMethods(videoId);
         }, 2000);
+    }
+}
+
+// Обработка инвайт-ссылки
+async function handleInviteLink(inviteLink, videoTitle) {
+    try {
+        // Копируем ссылку в буфер обмена
+        await navigator.clipboard.writeText(inviteLink);
+        
+        showMessage('✅ Ссылка для вступления скопирована!', 'success');
+        
+        // Показываем подробную инструкцию
+        setTimeout(() => {
+            const userAction = confirm(
+                `🎬 Доступ к "${videoTitle}"\n\n` +
+                `1. Ссылка для вступления скопирована в буфер обмена\n` +
+                `2. Перейдите по ссылке в Telegram\n` +
+                `3. Вступите в приватный канал\n` +
+                `4. Вернитесь в приложение\n` +
+                `5. Нажмите "Смотреть" снова\n\n` +
+                `Хотите перейти по ссылке сейчас?`
+            );
+            
+            if (userAction) {
+                window.open(inviteLink, '_blank');
+            }
+        }, 1000);
+        
+    } catch (copyError) {
+        console.error('Ошибка копирования:', copyError);
+        // Показываем ссылку напрямую
+        showMessage(`🔗 Ссылка для вступления: ${inviteLink}`, 'info');
+    }
+}
+
+// Альтернативные методы доступа
+function showAlternativeAccessMethods(videoId) {
+    const action = confirm(
+        'Попробуйте один из альтернативных методов:\n\n' +
+        '1. Получить новую инвайт-ссылку\n' +
+        '2. Проверить статус доступа\n' +
+        '3. Связаться с поддержкой'
+    );
+    
+    if (action) {
+        const choice = prompt('Выберите действие (1, 2 или 3):');
+        switch (choice) {
+            case '1':
+                getNewInviteLink(videoId);
+                break;
+            case '2':
+                checkAccessStatus(videoId);
+                break;
+            case '3':
+                contactSupport(videoId);
+                break;
+        }
     }
 }
 
