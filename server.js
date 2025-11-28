@@ -1281,7 +1281,7 @@ app.post('/api/webapp/private-videos/:videoId/request-invite', async (req, res) 
     }
 });
 
-// Упрощенная покупка приватного материала
+// Упрощенная покупка приватного материала - ИСПРАВЛЕННАЯ ВЕРСИЯ
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
         const { userId, videoId } = req.body;
@@ -1320,12 +1320,14 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             });
         }
 
-        // Проверка на уже купленный доступ
-        const existingPurchase = db.purchases.find(p => 
-            p.user_id == userId && p.item_id === videoId && p.item_type === 'private_video'
+        // Проверка на уже купленный доступ - ИСПРАВЛЕННАЯ ПРОВЕРКА
+        const existingAccess = db.video_access.some(access => 
+            access.user_id == userId && 
+            access.video_id == videoId && 
+            new Date(access.expires_at) > new Date()
         );
 
-        if (existingPurchase) {
+        if (existingAccess) {
             return res.status(409).json({ 
                 success: false,
                 error: 'У вас уже есть доступ к этому материалу' 
@@ -1342,7 +1344,7 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         const purchase = {
             id: Date.now(),
             user_id: parseInt(userId),
-            item_id: videoId,
+            item_id: parseInt(videoId), // ИСПРАВЛЕНО: преобразуем в число
             item_type: 'private_video',
             item_title: video.title,
             price_paid: video.price,
@@ -1350,17 +1352,19 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         };
         db.purchases.push(purchase);
 
-        // Создание доступа (30 дней)
+        // Создание доступа (30 дней) - ИСПРАВЛЕНО: video_id как число
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30);
         
         const access = {
             id: Date.now(),
             user_id: parseInt(userId),
-            video_id: videoId,
+            video_id: parseInt(videoId), // ИСПРАВЛЕНО: преобразуем в число
             purchased_at: new Date().toISOString(),
             expires_at: expiresAt.toISOString()
         };
+        
+        console.log('📝 Создаем доступ:', access);
         db.video_access.push(access);
 
         // Запись активности
@@ -1370,7 +1374,8 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             purchase: purchase.id, 
             access: access.id,
             user: userId,
-            video: video.title
+            video: video.title,
+            videoAccessCount: db.video_access.length
         });
 
         res.json({
@@ -1399,6 +1404,27 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         });
     }
 });
+
+// Endpoint для отладки - проверка состояния доступа
+app.get('/api/webapp/debug/video-access', (req, res) => {
+    try {
+        const { userId, videoId } = req.query;
+        
+        const result = {
+            video_access: db.video_access,
+            purchases: db.purchases.filter(p => p.item_type === 'private_video'),
+            user_access: db.video_access.filter(a => a.user_id == userId),
+            user_purchases: db.purchases.filter(p => p.user_id == userId && p.item_type === 'private_video'),
+            specific_access: db.video_access.filter(a => a.user_id == userId && a.video_id == videoId)
+        };
+        
+        res.json(result);
+    } catch (error) {
+        console.error('❌ Ошибка отладки:', error);
+        res.status(500).json({ error: 'Ошибка отладки' });
+    }
+});
+
 // Получить мои приватные видео
 app.get('/api/webapp/user/private-videos', (req, res) => {
     try {
@@ -1448,13 +1474,11 @@ app.get('/api/webapp/user/private-videos', (req, res) => {
     }
 });
 
-// Упрощенный endpoint для получения ссылки просмотра
-app.get('/api/webapp/private-videos/:videoId/watch', (req, res) => {
+// Получить приватные видео с информацией о доступе
+app.get('/api/webapp/private-videos', (req, res) => {
     try {
-        const videoId = parseInt(req.params.videoId);
         const userId = parseInt(req.query.userId);
-        
-        console.log('🔗 Запрос ссылки для видео:', { videoId, userId });
+        console.log('🎬 Запрос приватных материалов для пользователя:', userId);
 
         if (!userId) {
             return res.status(401).json({ 
@@ -1463,110 +1487,49 @@ app.get('/api/webapp/private-videos/:videoId/watch', (req, res) => {
             });
         }
 
-        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
-        if (!video) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Видео не найдено' 
-            });
-        }
-
-        // Проверка доступа
-        const hasAccess = db.video_access.some(access => 
-            access.user_id == userId && 
-            access.video_id === videoId && 
-            access.expires_at > new Date().toISOString()
-        );
-
-        if (!hasAccess) {
-            return res.status(403).json({ 
-                success: false,
-                error: 'Нет доступа к этому видео' 
-            });
-        }
-
-        // Генерируем токен и ссылку
-        const token = generateVideoToken(userId, videoId);
-        const watchUrl = `${req.protocol}://${req.get('host')}/api/telegram/proxy/${token}?userId=${userId}&videoId=${videoId}`;
-
-        console.log('✅ Сгенерирована ссылка для видео:', video.title);
-
-        res.json({
-            success: true,
-            watch_url: watchUrl,
-            video_title: video.title,
-            direct_url: `https://t.me/c/${video.channel_id.replace('-100', '')}/${video.message_id}`
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка получения ссылки:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка сервера' 
-        });
-    }
-});
-
-// Альтернативный метод - прямой доступ
-app.get('/api/webapp/private-videos/:videoId/direct', (req, res) => {
-    try {
-        const videoId = parseInt(req.params.videoId);
-        const userId = parseInt(req.query.userId);
+        const videos = db.private_channel_videos.filter(video => video.is_active);
         
-        console.log('🎬 Прямой доступ к видео:', { videoId, userId });
+        const videosWithAccess = videos.map(video => {
+            // Проверяем доступ пользователя
+            const hasAccess = db.video_access.some(access => 
+                access.user_id === userId && 
+                access.video_id === video.id && 
+                access.expires_at > new Date().toISOString()
+            );
+            
+            const hasPurchase = db.purchases.some(purchase => 
+                purchase.user_id === userId && 
+                purchase.item_id === video.id && 
+                purchase.item_type === 'private_video'
+            );
 
-        if (!userId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Требуется авторизация' 
-            });
-        }
-
-        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
-        if (!video) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Видео не найдено' 
-            });
-        }
-
-        // Проверка доступа
-        const hasAccess = db.video_access.some(access => 
-            access.user_id == userId && 
-            access.video_id === videoId && 
-            access.expires_at > new Date().toISOString()
-        );
-
-        if (!hasAccess) {
-            return res.status(403).json({ 
-                success: false,
-                error: 'Нет доступа к этому видео' 
-            });
-        }
-
-        // Формируем прямую ссылку на Telegram
-        let telegramUrl;
-        if (video.channel_id.startsWith('-100') || !isNaN(video.channel_id)) {
-            const publicChannelId = video.channel_id.replace('-100', '');
-            telegramUrl = `https://t.me/c/${publicChannelId}/${video.message_id}`;
-        } else {
-            telegramUrl = `https://t.me/${video.channel_id}/${video.message_id}`;
-        }
-
-        console.log('✅ Прямая ссылка:', telegramUrl);
-
-        res.json({
-            success: true,
-            direct_url: telegramUrl,
-            video_title: video.title,
-            message: 'Ссылка готова для открытия в Telegram'
+            return {
+                id: video.id,
+                invite_link: video.invite_link,
+                title: video.title,
+                description: video.description,
+                duration: video.duration,
+                price: video.price,
+                category: video.category,
+                level: video.level,
+                has_access: hasAccess,
+                has_purchase: hasPurchase,
+                can_purchase: !hasPurchase
+            };
         });
 
+        console.log(`✅ Найдено материалов: ${videosWithAccess.length}`);
+
+        res.json({ 
+            success: true,
+            videos: videosWithAccess 
+        });
+        
     } catch (error) {
-        console.error('❌ Ошибка прямого доступа:', error);
+        console.error('❌ Ошибка получения приватных материалов:', error);
         res.status(500).json({ 
             success: false,
-            error: 'Ошибка сервера' 
+            error: 'Ошибка загрузки материалов' 
         });
     }
 });
@@ -1613,27 +1576,27 @@ app.get('/api/webapp/private-videos/:videoId/check-access', (req, res) => {
     }
 });
 
-// В server.js в endpoint /api/webapp/private-videos/:videoId/invite
+// Получить инвайт-ссылку для видео
 app.get('/api/webapp/private-videos/:videoId/invite', async (req, res) => {
     try {
-        const { videoId } = req.params;
-        const { userId } = req.query;
+        const videoId = parseInt(req.params.videoId);
+        const userId = parseInt(req.query.userId);
         
         console.log('🔗 Запрос инвайт-ссылки:', { videoId, userId });
         
-        // Проверяем покупку - ДОБАВИМ ОТЛАДОЧНЫЙ ВЫВОД
+        // Проверяем покупку - ИСПРАВЛЕННАЯ ПРОВЕРКА
         const hasAccess = db.video_access.some(access => 
-            access.user_id == userId && 
-            access.video_id == videoId && 
-            access.expires_at > new Date().toISOString()
+            access.user_id === userId && 
+            access.video_id === videoId && 
+            new Date(access.expires_at) > new Date()
         );
         
         console.log('📊 Проверка доступа:', {
             userId,
             videoId,
             hasAccess,
-            videoAccessCount: db.video_access.length,
-            userAccesses: db.video_access.filter(a => a.user_id == userId)
+            videoAccessEntries: db.video_access.filter(a => a.user_id === userId),
+            allVideoAccess: db.video_access.length
         });
         
         if (!hasAccess) {
@@ -1643,7 +1606,20 @@ app.get('/api/webapp/private-videos/:videoId/invite', async (req, res) => {
             });
         }
         
-        // ... остальной код
+        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+        if (!video) {
+            return res.json({ success: false, error: 'Материал не найден' });
+        }
+        
+        console.log('✅ Доступ подтвержден, возвращаем инвайт-ссылку:', video.invite_link);
+        
+        res.json({
+            success: true,
+            invite_link: video.invite_link,
+            video_title: video.title,
+            message: 'Используйте эту ссылку для вступления в канал'
+        });
+        
     } catch (error) {
         console.error('❌ Ошибка получения приглашения:', error);
         res.json({ 
@@ -1652,7 +1628,6 @@ app.get('/api/webapp/private-videos/:videoId/invite', async (req, res) => {
         });
     }
 });
-
 // Получение доступа к купленному материалу
 app.get('/api/webapp/private-videos/:videoId/access', async (req, res) => {
     try {
