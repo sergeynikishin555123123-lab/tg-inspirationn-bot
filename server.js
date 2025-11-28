@@ -924,6 +924,45 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Проверка подписки пользователя на канал
+async function checkTelegramSubscription(userId, channelId) {
+    try {
+        // Используем Telegram Bot API для проверки подписки
+        const chatMember = await telegramBot.getChatMember(channelId, userId);
+        return ['member', 'administrator', 'creator'].includes(chatMember.status);
+    } catch (error) {
+        console.error('Ошибка проверки подписки:', error);
+        return false;
+    }
+}
+
+// Получение или создание пригласительной ссылки
+async function getOrCreateInviteLink(videoId, userId) {
+    try {
+        // Проверяем есть ли активная ссылка в базе
+        const existingLink = await getActiveInviteLink(videoId);
+        if (existingLink) {
+            return existingLink;
+        }
+        
+        // Создаем новую ссылку
+        const video = await getPrivateVideoById(videoId);
+        const inviteLink = await telegramBot.createChatInviteLink(video.channel_id, {
+            member_limit: 1,
+            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
+        });
+        
+        // Сохраняем в базу
+        await saveInviteLink(videoId, inviteLink.invite_link, userId);
+        
+        return inviteLink.invite_link;
+        
+    } catch (error) {
+        console.error('Ошибка создания ссылки:', error);
+        throw new Error('Не удалось создать пригласительную ссылку');
+    }
+}
+
 // ==================== ОПТИМИЗИРОВАННЫЕ API ДЛЯ МОБИЛЬНЫХ ====================
 
 // Middleware для определения мобильных устройств
@@ -1057,6 +1096,116 @@ app.get('/api/mobile/lazy-load', (req, res) => {
             error: 'Lazy load error',
             optimized: true 
         });
+    }
+});
+
+// GET /api/admin/private-videos/:videoId/generate-invite
+app.get('/api/admin/private-videos/:videoId/generate-invite', async (req, res) => {
+    try {
+        const { videoId } = req.params;
+        const { userId } = req.query;
+        
+        // Проверка прав администратора
+        const isAdmin = await checkAdminPermissions(userId);
+        if (!isAdmin) {
+            return res.json({ success: false, error: 'Недостаточно прав' });
+        }
+        
+        // Получаем данные видео
+        const video = await getPrivateVideoById(videoId);
+        if (!video) {
+            return res.json({ success: false, error: 'Видео не найдено' });
+        }
+        
+        // Генерируем пригласительную ссылку через Telegram API
+        const inviteLink = await telegramBot.createChatInviteLink(video.channel_id, {
+            member_limit: 1,
+            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
+        });
+        
+        // Сохраняем ссылку в базе данных
+        await saveInviteLink(videoId, inviteLink.invite_link, userId);
+        
+        res.json({
+            success: true,
+            invite_link: inviteLink.invite_link,
+            expires_at: inviteLink.expire_date
+        });
+        
+    } catch (error) {
+        console.error('Ошибка генерации ссылки:', error);
+        res.json({ success: false, error: 'Ошибка генерации пригласительной ссылки' });
+    }
+});
+
+// GET /api/webapp/private-videos/:videoId/access
+app.get('/api/webapp/private-videos/:videoId/access', async (req, res) => {
+    try {
+        const { videoId } = req.params;
+        const { userId } = req.query;
+        
+        // Проверяем покупку
+        const hasAccess = await checkVideoAccess(userId, videoId);
+        if (!hasAccess) {
+            return res.json({ success: false, error: 'Доступ к материалу не приобретен' });
+        }
+        
+        // Получаем данные видео
+        const video = await getPrivateVideoById(videoId);
+        
+        // Проверяем подписку пользователя на канал
+        const isSubscribed = await checkTelegramSubscription(userId, video.channel_id);
+        
+        if (isSubscribed) {
+            // Пользователь подписан - даем прямой доступ
+            const protectedLink = generateProtectedLink(video.channel_id, video.message_id, userId);
+            res.json({
+                success: true,
+                access_type: 'direct_access',
+                access_url: protectedLink
+            });
+        } else {
+            // Пользователь не подписан - даем пригласительную ссылку
+            const inviteLink = await getOrCreateInviteLink(videoId, userId);
+            res.json({
+                success: true,
+                access_type: 'invite_link',
+                access_url: inviteLink,
+                message: 'Для доступа к материалу необходимо вступить в канал по пригласительной ссылке'
+            });
+        }
+        
+    } catch (error) {
+        console.error('Ошибка доступа:', error);
+        res.json({ success: false, error: 'Ошибка доступа к материалу' });
+    }
+});
+
+// POST /api/webapp/private-videos/:videoId/request-invite
+app.post('/api/webapp/private-videos/:videoId/request-invite', async (req, res) => {
+    try {
+        const { videoId } = req.params;
+        const { userId } = req.body;
+        
+        // Проверяем покупку
+        const hasAccess = await checkVideoAccess(userId, videoId);
+        if (!hasAccess) {
+            return res.json({ success: false, error: 'Доступ к материалу не приобретен' });
+        }
+        
+        // Получаем или создаем пригласительную ссылку
+        const video = await getPrivateVideoById(videoId);
+        const inviteLink = await getOrCreateInviteLink(videoId, userId);
+        
+        res.json({
+            success: true,
+            invite_link: inviteLink,
+            message: 'Используйте эту ссылку для вступления в канал'
+        });
+        
+    } catch (error) {
+        console.error('Ошибка запроса ссылки:', error);
+        res.json({ success: false, error: 'Ошибка получения пригласительной ссылки' });
     }
 });
 
