@@ -1508,18 +1508,6 @@
             </div>
         </div>
 
-<!-- ЭКРАН МОИХ ПРИВАТНЫХ МАТЕРИАЛОВ -->
-<div id="myPrivateVideosScreen" class="screen">
-    <div class="card">
-        <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
-        <h2 style="text-align: center; margin-bottom: 24px;">📦 Мои приватные материалы</h2>
-        
-        <div id="myPrivateVideosList" class="loading">
-            Загрузка ваших материалов...
-        </div>
-    </div>
-</div>
-        
         <!-- Экран результатов квиза -->
         <div id="quizResultScreen" class="screen">
             <div class="card">
@@ -1816,31 +1804,21 @@
             </div>
         </div>
 
-        <!-- Экран приватных видео -->
-        <div id="privateVideosScreen" class="screen">
-            <div class="card">
-                <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
-                <h2 style="text-align: center; margin-bottom: 24px;">🎬 Приватные видео</h2>
-                <p style="text-align: center; color: #718096; margin-bottom: 24px;">
-                    Эксклюзивные видеоуроки из закрытого канала. После покупки вы получите доступ к видео в Telegram.
-                </p>
-                
-                <div id="privateVideosList" class="loading">
-                    Загрузка видео...
-                </div>
-            </div>
+        <!-- ЭКРАН ПРИВАТНЫХ МАТЕРИАЛОВ -->
+<div id="privateVideosScreen" class="screen">
+    <div class="card">
+        <button class="btn back-btn" onclick="showScreen('mainScreen')">← Назад</button>
+        <h2 style="text-align: center; margin-bottom: 24px;">🎬 Приватные материалы</h2>
+        <p style="text-align: center; color: #718096; margin-bottom: 24px;">
+            Эксклюзивные материалы из закрытого канала. После покупки вы получите пригласительную ссылку.
+        </p>
+        
+        <div id="privateVideosList" class="loading">
+            Загрузка материалов...
         </div>
-
-        <!-- Экран деталей приватного видео -->
-        <div id="privateVideoDetailScreen" class="screen">
-            <div class="card">
-                <button class="btn back-btn" onclick="showScreen('privateVideosScreen')">← Назад</button>
-                <div id="privateVideoDetailContent">
-                    <!-- Детальная информация о видео -->
-                </div>
-            </div>
-        </div>
-
+    </div>
+</div>
+        
         <!-- Экран приглашений -->
         <div id="inviteScreen" class="screen">
             <div class="card">
@@ -2679,7 +2657,6 @@ function loadAvailableButtons() {
         'interactives': { text: '🎮 Интерактивные задания', screen: 'interactivesScreen', color: 'btn-success', icon: '🎮' },
         'change_role': { text: '🔄 Сменить роль', screen: 'changeRoleScreen', color: 'change-role-btn', icon: '🔄' },
         'private_videos': { text: '🎬 Приватные материалы', screen: 'privateVideosScreen', color: 'btn-warning', icon: '🎬' },
-        'my_private_videos': { text: '📦 Мои материалы', screen: 'myPrivateVideosScreen', color: 'btn-info', icon: '📦' }
     };
     
     buttonsContainer.innerHTML = '';
@@ -3112,7 +3089,6 @@ function loadAvailableButtons() {
 
         // ==================== ПРИВАТНЫЕ ВИДЕО ====================
 
-// Загрузка доступных приватных материалов
 async function loadPrivateVideos() {
     try {
         const response = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
@@ -3129,6 +3105,9 @@ async function loadPrivateVideos() {
         videosList.innerHTML = `
             <div class="error">
                 Ошибка загрузки материалов: ${error.message}
+                <button class="btn" onclick="loadPrivateVideos()" style="margin-top: 10px;">
+                    🔄 Повторить
+                </button>
             </div>
         `;
     }
@@ -3159,7 +3138,6 @@ function getLevelName(level) {
     return levels[level] || level;
 }
     
-// public/index.html - Обновите отображение видео
 function displayPrivateVideos(videos) {
     const videosList = document.getElementById('privateVideosList');
     
@@ -3170,7 +3148,7 @@ function displayPrivateVideos(videos) {
                     <div style="font-size: 64px; margin-bottom: 16px;">🎬</div>
                     <h3 style="margin-bottom: 12px;">Пока нет доступных материалов</h3>
                     <p style="color: #718096; margin-bottom: 20px;">
-                        Новые материалы появятся здесь после их добавления
+                        Новые материалы появятся здесь после их добавления администратором
                     </p>
                 </div>
             </div>
@@ -3182,6 +3160,7 @@ function displayPrivateVideos(videos) {
     
     videos.forEach(video => {
         const canAfford = currentUser && currentUser.sparks >= video.price;
+        const hasAccess = video.has_access;
         const videoCard = document.createElement('div');
         videoCard.className = 'shop-item';
         
@@ -3194,16 +3173,25 @@ function displayPrivateVideos(videos) {
                         <span class="badge badge-info">${getCategoryName(video.category)}</span>
                         <span class="badge badge-warning">${getLevelName(video.level)}</span>
                         ${video.duration ? `<span class="badge badge-secondary">⏱️ ${video.duration}</span>` : ''}
+                        ${hasAccess ? `<span class="badge badge-success">✅ Доступен</span>` : ''}
                     </div>
                 </div>
                 <div style="text-align: right;">
                     <div class="spark-badge">${video.price}✨</div>
-                    ${!canAfford ? '<div style="color: #f56565; font-size: 11px; margin-top: 4px;">Недостаточно искр</div>' : ''}
+                    ${!canAfford && !hasAccess ? '<div style="color: #f56565; font-size: 11px; margin-top: 4px;">Недостаточно искр</div>' : ''}
+                    ${hasAccess ? '<div style="color: #48bb78; font-size: 11px; margin-top: 4px;">✅ Куплено</div>' : ''}
                 </div>
             </div>
             
             <div style="text-align: center;">
-                ${canAfford ? 
+                ${hasAccess ? `
+                    <button class="btn btn-success" onclick="usePrivateVideoAccess(${video.id})" style="margin-bottom: 8px;">
+                        🔗 Перейти к материалу
+                    </button>
+                    <div style="color: #718096; font-size: 12px; margin-top: 8px;">
+                        Нажмите чтобы получить пригласительную ссылку в канал
+                    </div>
+                ` : canAfford ? 
                     `<button class="btn btn-success" onclick="purchasePrivateVideo(${video.id})">
                          🛒 Купить за ${video.price}✨
                      </button>` :
@@ -3216,6 +3204,42 @@ function displayPrivateVideos(videos) {
         
         videosList.appendChild(videoCard);
     });
+}
+
+async function usePrivateVideoAccess(videoId) {
+    try {
+        showMessage('⏳ Получаем пригласительную ссылку...', 'info');
+        
+        const response = await fetch(`/api/webapp/private-videos/${videoId}/invite?userId=${currentUserId}`);
+        const result = await response.json();
+        
+        if (result.success && result.invite_link) {
+            // Копируем ссылку в буфер обмена
+            await navigator.clipboard.writeText(result.invite_link);
+            
+            // Показываем инструкцию
+            const userAction = confirm(
+                `🎬 Доступ к материалу\n\n` +
+                `1. Пригласительная ссылка скопирована в буфер обмена\n` +
+                `2. Перейдите по ссылке в Telegram\n` +
+                `3. Вступите в приватный канал\n` +
+                `4. Найдите материал в канале\n\n` +
+                `Хотите перейти по ссылке сейчас?`
+            );
+            
+            if (userAction) {
+                window.open(result.invite_link, '_blank');
+            }
+            
+            showMessage('✅ Пригласительная ссылка скопирована!', 'success');
+        } else {
+            throw new Error(result.error || 'Не удалось получить ссылку');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения доступа:', error);
+        showMessage(`❌ ${error.message}`, 'error');
+    }
 }
     
 // Реальная функция получения пригласительной ссылки
@@ -3262,73 +3286,7 @@ async function getChannelInvite(videoId) {
         }, 2000);
     }
 }
-
-// Добавьте эти функции после функции watchPrivateVideo
-
-// Проверить статус доступа
-async function checkAccessStatus(videoId) {
-    try {
-        const response = await fetch(`/api/webapp/private-videos/${videoId}/check-access?userId=${currentUserId}`);
-        const result = await response.json();
-        
-        let message = '📊 Статус доступа:\\n\\n';
-        
-        if (result.has_access) {
-            message += '✅ Доступ активен\\n';
-            message += `📅 Истекает: ${new Date(result.expires_at).toLocaleDateString()}\\n`;
-            message += `🔗 Канал: ${result.channel_name || 'Неизвестно'}\\n`;
-            
-            if (result.in_channel) {
-                message += '👤 Вы в канале\\n';
-            } else {
-                message += '❌ Вы не в канале\\n';
-            }
-        } else {
-            message += '❌ Доступ отсутствует\\n';
-            if (result.reason) {
-                message += `Причина: ${result.reason}\\n`;
-            }
-        }
-        
-        alert(message);
-        
-    } catch (error) {
-        console.error('❌ Ошибка проверки статуса:', error);
-        showMessage('❌ Ошибка проверки статуса доступа', 'error');
-    }
-}
-
-// Получить новую инвайт-ссылку
-async function getNewInviteLink(videoId) {
-    try {
-        showMessage('⏳ Создаем новую ссылку...', 'info');
-        
-        const response = await fetch(`/api/webapp/private-videos/${videoId}/new-invite?userId=${currentUserId}`);
-        const result = await response.json();
-        
-        if (result.success && result.invite_link) {
-            await handleInviteLink(result.invite_link, result.video_title);
-        } else {
-            throw new Error(result.error || 'Не удалось создать ссылку');
-        }
-    } catch (error) {
-        console.error('❌ Ошибка получения новой ссылки:', error);
-        showMessage(`❌ ${error.message}`, 'error');
-    }
-}
-
-// Связаться с поддержкой
-function contactSupport(videoId) {
-    const message = `Проблема с доступом к материалу ID: ${videoId}\\nПользователь: ${currentUserId}\\nВремя: ${new Date().toISOString()}`;
-    
-    // Открываем Telegram для связи с поддержкой
-    const supportUsername = 'ваш_аккаунт_поддержки'; // Замените на реальный username
-    const telegramUrl = `https://t.me/${supportUsername}?text=${encodeURIComponent(message)}`;
-    
-    window.open(telegramUrl, '_blank');
-    showMessage('💬 Открываем чат с поддержкой...', 'info');
-}
-    
+  
 // Реальная функция доступа к видео
 async function accessPrivateVideo(videoId) {
     try {
@@ -3380,23 +3338,20 @@ async function checkUserSubscription(channelId) {
     return { is_subscribed: false };
 }
 
-// public/index.html - Исправленная функция покупки
 async function purchasePrivateVideo(videoId) {
     try {
-        console.log('🛒 Покупка приватного видео:', videoId);
-        
         // Находим информацию о видео
         const video = await getVideoInfo(videoId);
         if (!video) {
-            showMessage('❌ Видео не найдено', 'error');
+            showMessage('❌ Материал не найден', 'error');
             return;
         }
         
-        if (!confirm(`Купить доступ к "${video.title}" за ${video.price}✨?\n\nСсылка будет автоматически отправлена вам в Telegram.`)) {
+        if (!confirm(`Купить доступ к "${video.title}" за ${video.price}✨?\n\nПосле покупки вы получите пригласительную ссылку в приватный канал.`)) {
             return;
         }
         
-        showMessage('⏳ Покупаем и отправляем доступ...', 'info');
+        showMessage('⏳ Обрабатываем покупку...', 'info');
         
         const response = await fetch('/api/webapp/private-videos/purchase', {
             method: 'POST',
@@ -3418,17 +3373,15 @@ async function purchasePrivateVideo(videoId) {
                 updateUserDisplay();
             }
             
-            // Если есть прямая ссылка - предлагаем открыть
-            if (result.direct_url) {
-                setTimeout(() => {
-                    if (confirm('Покупка успешна! Хотите открыть материал сейчас?')) {
-                        window.open(result.direct_url, '_blank');
-                    }
-                }, 1500);
-            }
+            // Предлагаем сразу использовать доступ
+            setTimeout(() => {
+                if (confirm('Покупка успешна! Хотите получить пригласительную ссылку сейчас?')) {
+                    usePrivateVideoAccess(videoId);
+                }
+            }, 1500);
             
             // Обновляем список материалов
-            loadMyPrivateVideos();
+            loadPrivateVideos();
             
         } else {
             showMessage(`❌ ${result.error}`, 'error');
@@ -3440,7 +3393,6 @@ async function purchasePrivateVideo(videoId) {
     }
 }
 
-// public/index.html - Функция получения информации о видео
 async function getVideoInfo(videoId) {
     try {
         const response = await fetch(`/api/webapp/private-videos/${videoId}?userId=${currentUserId}`);
@@ -3451,16 +3403,6 @@ async function getVideoInfo(videoId) {
     } catch (error) {
         console.error('Ошибка получения информации о видео:', error);
     }
-    
-    // Fallback - ищем в локальном списке
-    const privateVideosResponse = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
-    if (privateVideosResponse.ok) {
-        const result = await privateVideosResponse.json();
-        if (result.success) {
-            return result.videos.find(v => v.id == videoId);
-        }
-    }
-    
     return null;
 }
 
@@ -3498,227 +3440,6 @@ async function watchPrivateVideo(videoId) {
         const directUrl = `https://t.me/c/3448309846/${videoId}`;
         window.open(directUrl, '_blank');
     }
-}
-    
-// Функция для проверки состояния покупки
-async function debugPurchase(videoId) {
-    try {
-        console.log('🐛 DEBUG: Проверка состояния покупки');
-        console.log('User ID:', currentUserId);
-        console.log('Video ID:', videoId);
-        console.log('Current User:', currentUser);
-        
-        // Проверяем баланс
-        if (currentUser && currentUser.sparks) {
-            console.log('💰 Баланс пользователя:', currentUser.sparks);
-        }
-        
-        // Проверяем доступность API
-        const testResponse = await fetch('/api/webapp/private-videos?userId=' + currentUserId);
-        const testResult = await testResponse.json();
-        console.log('🌐 API доступен:', testResult.success);
-        
-    } catch (error) {
-        console.error('🐛 DEBUG Error:', error);
-    }
-}
-    
-   // Обновленная функция загрузки моих материалов
-async function loadMyPrivateVideos() {
-    try {
-        console.log('📦 Загрузка моих приватных материалов...');
-        
-        const response = await fetch(`/api/webapp/user/private-videos?userId=${currentUserId}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        const videosList = document.getElementById('myPrivateVideosList');
-        videosList.innerHTML = '';
-        
-        if (!result.accessible_videos || result.accessible_videos.length === 0) {
-            videosList.innerHTML = `
-                <div class="info">
-                    <div style="text-align: center; padding: 40px;">
-                        <div style="font-size: 64px; margin-bottom: 16px;">🎬</div>
-                        <h3 style="margin-bottom: 12px;">У вас пока нет приватных материалов</h3>
-                        <p style="color: #718096; margin-bottom: 20px;">
-                            Приобретенные материалы появятся здесь после покупки
-                        </p>
-                        <button class="btn" onclick="showScreen('privateVideosScreen')" style="margin-top: 16px;">
-                            🛍️ Перейти к материалам
-                        </button>
-                    </div>
-                </div>
-            `;
-            return;
-        }
-        
-        // Показываем доступные материалы
-        result.accessible_videos.forEach(video => {
-            const videoCard = document.createElement('div');
-            videoCard.className = 'shop-item';
-            
-            const daysLeft = video.days_remaining > 0 ? video.days_remaining : 0;
-            const statusBadge = daysLeft > 7 ? 'badge-success' : daysLeft > 3 ? 'badge-warning' : 'badge-danger';
-            
-            videoCard.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                    <div style="flex: 1;">
-                        <h3 style="margin: 0 0 8px 0;">🎬 ${video.title}</h3>
-                        <p style="color: #718096; margin-bottom: 12px;">${video.description || 'Описание отсутствует'}</p>
-                        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                            <span class="badge badge-info">${getCategoryName(video.category)}</span>
-                            <span class="badge badge-warning">${getLevelName(video.level)}</span>
-                            ${video.duration ? `<span class="badge badge-secondary">⏱️ ${video.duration}</span>` : ''}
-                            <span class="badge badge-success">✅ Куплено</span>
-                            <span class="badge ${statusBadge}">⏰ ${daysLeft} дней осталось</span>
-                        </div>
-                        <div style="color: #718096; font-size: 14px;">
-                            📅 Приобретен: ${new Date(video.purchased_at).toLocaleDateString('ru-RU')}
-                            ${video.expires_at ? ` • ⏰ Истекает: ${new Date(video.expires_at).toLocaleDateString('ru-RU')}` : ''}
-                        </div>
-                    </div>
-                </div>
-                
-                <div style="text-align: center;">
-                    <button class="btn btn-success" onclick="watchPrivateVideo(${video.id})" style="margin-bottom: 8px;">
-                        🎬 Смотреть материал
-                    </button>
-                    <br>
-                    <button class="btn btn-info" onclick="checkVideoAccess(${video.id})" style="font-size: 12px; padding: 8px 12px;">
-                        🔍 Проверить доступ
-                    </button>
-                </div>
-            `;
-            
-            videosList.appendChild(videoCard);
-        });
-        
-        // Показываем доступные для покупки материалы
-        if (result.available_videos && result.available_videos.length > 0) {
-            const availableSection = document.createElement('div');
-            availableSection.innerHTML = `
-                <div style="margin-top: 32px; padding-top: 24px; border-top: 2px solid #e2e8f0;">
-                    <h3 style="text-align: center; margin-bottom: 20px; color: #718096;">🛍️ Доступные для покупки материалы</h3>
-                </div>
-            `;
-            
-            videosList.appendChild(availableSection);
-            
-            result.available_videos.forEach(video => {
-                const videoCard = document.createElement('div');
-                videoCard.className = 'shop-item';
-                
-                const canAfford = currentUser && currentUser.sparks >= video.price;
-                
-                videoCard.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                        <div style="flex: 1;">
-                            <h3 style="margin: 0 0 8px 0;">🎬 ${video.title}</h3>
-                            <p style="color: #718096; margin-bottom: 12px;">${video.description || 'Описание отсутствует'}</p>
-                            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                                <span class="badge badge-info">${getCategoryName(video.category)}</span>
-                                <span class="badge badge-warning">${getLevelName(video.level)}</span>
-                                ${video.duration ? `<span class="badge badge-secondary">⏱️ ${video.duration}</span>` : ''}
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div class="spark-badge">${video.price}✨</div>
-                            ${!canAfford ? '<div style="color: #f56565; font-size: 11px; margin-top: 4px;">Недостаточно искр</div>' : ''}
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: center;">
-                        ${canAfford ? 
-                            `<button class="btn btn-success" onclick="purchasePrivateVideo(${video.id})">
-                                 🛒 Купить доступ за ${video.price}✨
-                             </button>` :
-                            `<button class="btn btn-secondary" disabled>
-                                 🔒 Недостаточно искр
-                             </button>`
-                        }
-                    </div>
-                `;
-                
-                videosList.appendChild(videoCard);
-            });
-        }
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки моих материалов:', error);
-        const videosList = document.getElementById('myPrivateVideosList');
-        videosList.innerHTML = `
-            <div class="error">
-                Ошибка загрузки материалов: ${error.message}
-                <button class="btn" onclick="loadMyPrivateVideos()" style="margin-top: 10px;">
-                    🔄 Повторить
-                </button>
-            </div>
-        `;
-    }
-}
-
-// Отображение купленных приватных материалов
-function displayMyPrivateVideos(purchases) {
-    const videosList = document.getElementById('myPrivateVideosList');
-    
-    if (!purchases || purchases.length === 0) {
-        videosList.innerHTML = `
-            <div class="info">
-                <div style="text-align: center; padding: 40px;">
-                    <div style="font-size: 64px; margin-bottom: 16px;">🎬</div>
-                    <h3 style="margin-bottom: 12px;">У вас пока нет приватных материалов</h3>
-                    <p style="color: #718096; margin-bottom: 20px;">
-                        Приобретенные материалы появятся здесь после покупки
-                    </p>
-                    <button class="btn" onclick="showScreen('privateVideosScreen')" style="margin-top: 16px;">
-                        🛍️ Перейти к материалам
-                    </button>
-                </div>
-            </div>
-        `;
-        return;
-    }
-    
-    videosList.innerHTML = '';
-    
- purchases.forEach(video => {
-        const videoCard = document.createElement('div');
-        videoCard.className = 'shop-item';
-        
-        videoCard.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                <div style="flex: 1;">
-                    <h3 style="margin: 0 0 8px 0;">🎬 ${video.title}</h3>
-                    <p style="color: #718096; margin-bottom: 12px;">${video.description || 'Описание отсутствует'}</p>
-                    <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                        <span class="badge badge-info">${getCategoryName(video.category)}</span>
-                        <span class="badge badge-warning">${getLevelName(video.level)}</span>
-                        <span class="badge badge-success">✅ Доступ активен</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div style="text-align: center;">
-                <button class="btn btn-success" onclick="watchPrivateVideo(${video.id})" style="margin-bottom: 8px;">
-                    📺 Смотреть в Telegram
-                </button>
-                <br>
-                <button class="btn btn-info" onclick="checkAccessStatus(${video.id})" style="font-size: 12px; padding: 8px 12px;">
-                    🔍 Проверить доступ
-                </button>
-                <button class="btn btn-warning" onclick="getNewInviteLink(${video.id})" style="font-size: 12px; padding: 8px 12px;">
-                    🔑 Новая ссылка
-                </button>
-            </div>
-        `;
-        
-        videosList.appendChild(videoCard);
-    });
 }
     
 // Обработка инвайт-ссылки
@@ -3778,20 +3499,6 @@ function showAlternativeAccessMethods(videoId) {
     }
 }
 
-// Функция проверки доступа (для отладки)
-async function checkVideoAccess(videoId) {
-    try {
-        const response = await fetch(`/api/webapp/private-videos/${videoId}/check-access?userId=${currentUserId}`);
-        const result = await response.json();
-        
-        console.log('🔍 Проверка доступа:', result);
-        return result;
-    } catch (error) {
-        console.error('❌ Ошибка проверки доступа:', error);
-        return { has_access: false, error: error.message };
-    }
-}
-    
         // Получить детальную информацию о видео
         async function getPrivateVideoDetail(videoId) {
             try {
