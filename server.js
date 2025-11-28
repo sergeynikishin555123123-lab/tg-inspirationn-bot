@@ -1377,15 +1377,12 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             video: video.title
         });
 
-        // Отправляем инвайт-ссылку пользователю
-        await sendVideoAccessToUser(userId, video);
-
         res.json({
             success: true,
             purchase: purchase,
             access: access,
             remaining_sparks: user.sparks,
-            invite_link: video.invite_link, // Возвращаем инвайт-ссылку
+            invite_link: video.invite_link,
             message: `✅ Доступ к "${video.title}" успешно приобретен! Используйте инвайт-ссылку для вступления в канал.`
         });
 
@@ -1825,13 +1822,13 @@ app.put('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
         } = req.body;
 
         // Обновляем только переданные поля
-        if (invite_link) db.private_channel_videos[videoIndex].invite_link = invite_link;
-        if (title) db.private_channel_videos[videoIndex].title = title;
+        if (invite_link !== undefined) db.private_channel_videos[videoIndex].invite_link = invite_link;
+        if (title !== undefined) db.private_channel_videos[videoIndex].title = title;
         if (description !== undefined) db.private_channel_videos[videoIndex].description = description;
         if (duration !== undefined) db.private_channel_videos[videoIndex].duration = duration;
         if (price !== undefined) db.private_channel_videos[videoIndex].price = parseFloat(price);
-        if (category) db.private_channel_videos[videoIndex].category = category;
-        if (level) db.private_channel_videos[videoIndex].level = level;
+        if (category !== undefined) db.private_channel_videos[videoIndex].category = category;
+        if (level !== undefined) db.private_channel_videos[videoIndex].level = level;
         if (is_active !== undefined) db.private_channel_videos[videoIndex].is_active = is_active;
 
         console.log('✅ Приватный материал обновлен:', db.private_channel_videos[videoIndex].title);
@@ -1850,6 +1847,7 @@ app.put('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
         });
     }
 });
+
 
 
 // Удаление приватного материала
@@ -2318,7 +2316,7 @@ app.get('/api/webapp/user/private-videos', (req, res) => {
         });
     }
 });
-// ==================== УПРОЩЕННЫЕ API ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
+// ==================== ИСПРАВЛЕННЫЕ API ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
 
 // Получить все приватные материалы
 app.get('/api/webapp/private-videos', (req, res) => {
@@ -2350,7 +2348,7 @@ app.get('/api/webapp/private-videos', (req, res) => {
 
             return {
                 id: video.id,
-                invite_link: video.invite_link, // Отдаем инвайт-ссылку
+                invite_link: video.invite_link,
                 title: video.title,
                 description: video.description,
                 duration: video.duration,
@@ -2378,6 +2376,7 @@ app.get('/api/webapp/private-videos', (req, res) => {
         });
     }
 });
+
 // server.js - Простой endpoint для информации о видео
 app.get('/api/webapp/private-videos/:videoId', (req, res) => {
     try {
@@ -2481,22 +2480,38 @@ async function grantVideoAccess(userId, videoId) {
 
 // Получить приватные материалы для админки
 app.get('/api/admin/private-videos', requireAdmin, (req, res) => {
-    const videos = db.private_channel_videos.map(video => {
-        const purchaseCount = db.purchases.filter(p => 
-            p.item_id === video.id && p.item_type === 'private_video'
-        ).length;
+    try {
+        const videos = db.private_channel_videos.map(video => {
+            const purchaseCount = db.purchases.filter(p => 
+                p.item_id === video.id && p.item_type === 'private_video'
+            ).length;
+            
+            const totalRevenue = purchaseCount * video.price;
+            
+            return {
+                id: video.id,
+                invite_link: video.invite_link,
+                title: video.title,
+                description: video.description,
+                duration: video.duration,
+                price: video.price,
+                category: video.category,
+                level: video.level,
+                is_active: video.is_active,
+                created_at: video.created_at,
+                purchase_count: purchaseCount,
+                total_revenue: totalRevenue
+            };
+        });
         
-        const totalRevenue = purchaseCount * video.price;
-        
-        return {
-            ...video,
-            purchase_count: purchaseCount,
-            total_revenue: totalRevenue
-        };
-    });
-    
-    res.json(videos);
+        res.json(videos);
+    } catch (error) {
+        console.error('❌ Ошибка получения приватных видео:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
 });
+
+
 app.delete('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
     const videoId = parseInt(req.params.videoId);
     const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
@@ -2557,10 +2572,10 @@ app.get('/api/users/:userId', (req, res) => {
 // Упрощенное создание приватного материала
 app.post('/api/admin/private-videos', requireAdmin, async (req, res) => {
     try {
-        console.log('🎬 Создание приватного материала - полученные данные:', JSON.stringify(req.body, null, 2));
+        console.log('🎬 Создание приватного материала - полученные данные:', req.body);
         
         const { 
-            invite_link, // Теперь принимаем только инвайт-ссылку
+            invite_link,
             title, 
             description, 
             duration, 
@@ -2572,21 +2587,29 @@ app.post('/api/admin/private-videos', requireAdmin, async (req, res) => {
 
         console.log('🔍 Проверка обязательных полей:', {
             hasInviteLink: !!invite_link,
-            invite_link: invite_link,
-            title: title,
-            price: price
+            hasTitle: !!title,
+            hasPrice: !!price
         });
 
         // Валидация обязательных полей
-        if (!invite_link || !title || !price) {
-            console.log('❌ Отсутствуют обязательные поля:', {
-                invite_link: !!invite_link,
-                title: !!title,
-                price: !!price
-            });
+        if (!invite_link) {
             return res.status(400).json({ 
                 success: false, 
-                error: 'Заполните обязательные поля: инвайт-ссылка, название и цена' 
+                error: 'Инвайт-ссылка обязательна' 
+            });
+        }
+
+        if (!title) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Название обязательно' 
+            });
+        }
+
+        if (!price || isNaN(price)) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Цена должна быть числом' 
             });
         }
 
@@ -2618,10 +2641,7 @@ app.post('/api/admin/private-videos', requireAdmin, async (req, res) => {
 
         db.private_channel_videos.push(newVideo);
 
-        console.log('✅ Приватный материал создан:', {
-            title: newVideo.title,
-            invite_link: newVideo.invite_link
-        });
+        console.log('✅ Приватный материал создан:', newVideo.title);
 
         res.json({
             success: true,
@@ -3667,7 +3687,7 @@ app.delete('/api/admin/interactives/:interactiveId', requireAdmin, (req, res) =>
     const interactiveIndex = db.interactives.findIndex(i => i.id === interactiveId);
     
     if (interactiveIndex === -1) {
-        return res.status(404).json({ error: 'Interactive not found' });
+        return res.status(app.get('/api/webapp/private-videos', (req, res) => {404).json({ error: 'Interactive not found' });
     }
     
     db.interactives.splice(interactiveIndex, 1);
