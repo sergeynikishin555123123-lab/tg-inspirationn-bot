@@ -2350,27 +2350,6 @@ app.get('/api/webapp/private-videos/:videoId', (req, res) => {
     });
 });
 
-// ФУНКЦИЯ ДЛЯ ПРОВЕРКИ ДОСТУПА ПОЛЬЗОВАТЕЛЯ К ВИДЕО
-function checkVideoAccess(userId, videoId) {
-    const hasAccess = db.video_access.some(access => 
-        access.user_id == userId && 
-        access.video_id === videoId && 
-        access.expires_at > new Date().toISOString()
-    );
-    
-    const hasPurchase = db.purchases.some(purchase => 
-        purchase.user_id == userId && 
-        purchase.item_id === videoId && 
-        purchase.item_type === 'private_video'
-    );
-    
-    return {
-        hasAccess,
-        hasPurchase,
-        canAccess: hasAccess || hasPurchase
-    };
-}
-
 // ФУНКЦИЯ ДЛЯ ОБНОВЛЕНИЯ СТАТИСТИКИ ВИДЕО
 function updateVideoStats(videoId) {
     const video = db.private_channel_videos.find(v => v.id === videoId);
