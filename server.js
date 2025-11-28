@@ -1402,7 +1402,7 @@ app.get('/api/webapp/private-videos', (req, res) => {
     }
 });
 
-// Исправленная функция покупки приватного видео
+// server.js - ОБНОВЛЕННАЯ ФУНКЦИЯ ПОКУПКИ
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
         const { userId, videoId } = req.body;
@@ -1453,18 +1453,6 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             });
         }
 
-        // ПРОВЕРКА АКТИВНОГО ДОСТУПА
-        const existingAccess = db.video_access.find(access => 
-            access.user_id == userId && access.video_id === videoId && access.expires_at > new Date().toISOString()
-        );
-
-        if (existingAccess) {
-            return res.status(409).json({ 
-                success: false,
-                error: 'У вас уже есть активный доступ к этому материалу' 
-            });
-        }
-
         // СПИСАНИЕ ИСКР
         const oldSparks = user.sparks;
         user.sparks -= video.price;
@@ -1500,11 +1488,43 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         // ЗАПИСЬ АКТИВНОСТИ
         addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
 
+        // 🔥 АВТОМАТИЧЕСКОЕ ДОБАВЛЕНИЕ В КАНАЛ TELEGRAM
+        console.log(`🔗 Пытаемся добавить пользователя ${userId} в канал ${video.channel_id}`);
+        const addToChannelResult = await addUserToPrivateChannel(userId, video.channel_id, video.title);
+        
+        if (addToChannelResult.success) {
+            console.log(`✅ Пользователь успешно добавлен в канал: ${addToChannelResult.message}`);
+            
+            // Отправляем уведомление пользователю
+            await sendTelegramNotification(userId, 
+                `🎉 Поздравляем с покупкой!\n\n` +
+                `📹 Вы приобрели доступ к: "${video.title}"\n` +
+                `⏰ Доступ активен 30 дней\n` +
+                `🔗 Вы были автоматически добавлены в приватный канал\n\n` +
+                `💡 Для просмотра материала откройте раздел "Мои материалы" в личном кабинете.`
+            );
+        } else {
+            console.log(`⚠️ Пользователь не добавлен в канал: ${addToChannelResult.error}`);
+            
+            // Отправляем инструкцию пользователю
+            await sendTelegramNotification(userId,
+                `🎉 Поздравляем с покупкой!\n\n` +
+                `📹 Вы приобрели доступ к: "${video.title}"\n` +
+                `⏰ Доступ активен 30 дней\n\n` +
+                `🔗 Для получения доступа к материалу:\n` +
+                `1. Перейдите в раздел "Мои материалы"\n` +
+                `2. Нажмите "Получить доступ"\n` +
+                `3. Используйте пригласительную ссылку\n\n` +
+                `💡 Если возникли проблемы, обратитесь к администратору.`
+            );
+        }
+
         console.log('✅ Покупка завершена:', { 
             purchase: purchase.id, 
             access: access.id,
             user: userId,
-            video: video.title
+            video: video.title,
+            channel_add: addToChannelResult.success
         });
 
         res.json({
@@ -1512,7 +1532,11 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             purchase: purchase,
             access: access,
             remaining_sparks: user.sparks,
-            message: `Доступ к "${video.title}" успешно приобретен! Ссылка для просмотра доступна в ваших покупках.`
+            channel_added: addToChannelResult.success,
+            channel_message: addToChannelResult.message,
+            message: addToChannelResult.success ? 
+                `Доступ к "${video.title}" успешно приобретен! Вы были автоматически добавлены в канал.` :
+                `Доступ к "${video.title}" успешно приобретен! Для получения доступа перейдите в раздел "Мои материалы".`
         });
 
     } catch (error) {
@@ -2102,13 +2126,153 @@ app.get('/api/admin/private-videos/:id/protected-link', requireAdmin, (req, res)
     }
 });
 
-// Доступ к приватному видео
-app.get('/api/webapp/private-videos/:videoId/access', (req, res) => {
+// server.js - УЛУЧШЕННАЯ ФУНКЦИЯ ДОБАВЛЕНИЯ В КАНАЛ
+async function addUserToPrivateChannel(userId, channelId, videoTitle = '') {
+    try {
+        console.log(`👤 Добавляем пользователя ${userId} в приватный канал ${channelId}`);
+        
+        if (!TELEGRAM_BOT_TOKEN) {
+            return { 
+                success: false, 
+                error: 'Токен бота не настроен',
+                message: 'Токен бота не настроен'
+            };
+        }
+
+        // ПРОВЕРЯЕМ, УЧАСТНИК ЛИ УЖЕ ПОЛЬЗОВАТЕЛЬ
+        console.log(`🔍 Проверяем участника ${userId} в канале ${channelId}`);
+        const checkResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: channelId,
+                user_id: parseInt(userId)
+            })
+        });
+        
+        const checkResult = await checkResponse.json();
+        console.log('📊 Результат проверки участника:', checkResult);
+        
+        // ЕСЛИ УЖЕ УЧАСТНИК - ВОЗВРАЩАЕМ УСПЕХ
+        if (checkResult.ok && ['member', 'administrator', 'creator'].includes(checkResult.result.status)) {
+            console.log('✅ Пользователь уже участник канала');
+            return { 
+                success: true, 
+                already_member: true,
+                message: 'Пользователь уже состоит в канале'
+            };
+        }
+
+        // ЕСЛИ НЕ УЧАСТНИК - ДОБАВЛЯЕМ ЧЕРЕЗ APPROVE CHAT JOIN REQUEST
+        console.log('➕ Добавляем пользователя в канал через approveChatJoinRequest...');
+        const addResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/approveChatJoinRequest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: channelId,
+                user_id: parseInt(userId)
+            })
+        });
+        
+        const addResult = await addResponse.json();
+        console.log('📊 Результат добавления:', addResult);
+        
+        if (addResult.ok) {
+            console.log('✅ Пользователь успешно добавлен в канал');
+            
+            // Отправляем приветственное сообщение
+            try {
+                await sendTelegramNotification(userId,
+                    `🎉 Добро пожаловать в приватный канал!\n\n` +
+                    `📹 Теперь у вас есть доступ к: "${videoTitle}"\n` +
+                    `🔗 Канал: ${channelId}\n\n` +
+                    `💡 Материал будет доступен в течение 30 дней с момента покупки.`
+                );
+            } catch (notificationError) {
+                console.log('⚠️ Не удалось отправить уведомление:', notificationError.message);
+            }
+            
+            return { 
+                success: true, 
+                added: true,
+                message: 'Пользователь успешно добавлен в канал'
+            };
+        } else {
+            console.log('❌ Ошибка добавления в канал:', addResult.description);
+            
+            // Пробуем альтернативный метод - создаем инвайт-ссылку
+            console.log('🔄 Пробуем альтернативный метод с инвайт-ссылкой...');
+            const inviteResult = await createPrivateInviteLink(channelId, userId);
+            
+            if (inviteResult.success) {
+                return {
+                    success: true,
+                    invite_link: inviteResult.invite_link,
+                    message: `Для доступа используйте пригласительную ссылку: ${inviteResult.invite_link}`
+                };
+            }
+            
+            return { 
+                success: false, 
+                error: addResult.description || 'Неизвестная ошибка Telegram API',
+                message: 'Не удалось автоматически добавить в канал. Используйте пригласительную ссылку из раздела "Мои материалы".'
+            };
+        }
+        
+    } catch (error) {
+        console.error('💥 Ошибка при добавлении в канал:', error);
+        return { 
+            success: false, 
+            error: `Ошибка сети: ${error.message}`,
+            message: 'Ошибка при добавлении в канал. Обратитесь к администратору.'
+        };
+    }
+}
+
+// Функция создания пригласительной ссылки
+async function createPrivateInviteLink(channelId, userId) {
+    try {
+        console.log(`🔗 Создаем инвайт-ссылку для канала ${channelId}`);
+        
+        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/createChatInviteLink`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: channelId,
+                member_limit: 1,
+                expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 часа
+                name: `Invite for user ${userId}`
+            })
+        });
+
+        const result = await response.json();
+        
+        if (result.ok) {
+            return {
+                success: true,
+                invite_link: result.result.invite_link
+            };
+        } else {
+            return {
+                success: false,
+                error: result.description
+            };
+        }
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// server.js - ENDPOINT ДЛЯ РУЧНОГО ПОЛУЧЕНИЯ ДОСТУПА
+app.post('/api/webapp/private-videos/:videoId/get-access', async (req, res) => {
     try {
         const videoId = parseInt(req.params.videoId);
-        const userId = parseInt(req.query.userId);
+        const { userId } = req.body;
         
-        console.log('🔗 Запрос доступа к видео:', { videoId, userId });
+        console.log('🔗 Ручной запрос доступа к видео:', { userId, videoId });
 
         if (!userId) {
             return res.status(401).json({ 
@@ -2125,7 +2289,7 @@ app.get('/api/webapp/private-videos/:videoId/access', (req, res) => {
             });
         }
 
-        // Проверка доступа
+        // Проверяем, есть ли доступ у пользователя
         const hasAccess = db.video_access.some(access => 
             access.user_id == userId && 
             access.video_id === videoId && 
@@ -2139,31 +2303,107 @@ app.get('/api/webapp/private-videos/:videoId/access', (req, res) => {
             });
         }
 
-        // Генерируем ссылку на Telegram
-        let telegramUrl;
-        if (video.channel_id.startsWith('-100') || !isNaN(video.channel_id)) {
-            // Приватный канал
-            const publicChannelId = video.channel_id.replace('-100', '');
-            telegramUrl = `https://t.me/c/${publicChannelId}/${video.message_id}`;
+        // Пытаемся добавить пользователя в канал
+        console.log(`🔄 Пытаемся добавить пользователя ${userId} в канал ${video.channel_id}`);
+        const addResult = await addUserToPrivateChannel(userId, video.channel_id, video.title);
+        
+        if (addResult.success) {
+            if (addResult.invite_link) {
+                // Возвращаем инвайт-ссылку если автоматическое добавление не удалось
+                res.json({
+                    success: true,
+                    access_type: 'invite_link',
+                    invite_link: addResult.invite_link,
+                    message: 'Используйте эту ссылку для вступления в канал'
+                });
+            } else {
+                // Пользователь успешно добавлен
+                res.json({
+                    success: true,
+                    access_type: 'direct_access',
+                    message: 'Вы были успешно добавлены в канал!',
+                    direct_url: `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`
+                });
+            }
         } else {
-            // Публичный канал
-            telegramUrl = `https://t.me/${video.channel_id}/${video.message_id}`;
+            // Если не удалось добавить, возвращаем инструкции
+            res.json({
+                success: false,
+                error: addResult.message,
+                message: 'Не удалось автоматически добавить в канал. Обратитесь к администратору.'
+            });
         }
-
-        console.log('✅ Сгенерирована ссылка для видео:', video.title);
-
-        res.json({
-            success: true,
-            access_url: telegramUrl,
-            video_title: video.title,
-            message: 'Доступ предоставлен. Ссылка откроется в новом окне.'
-        });
 
     } catch (error) {
         console.error('❌ Ошибка получения доступа:', error);
         res.status(500).json({ 
             success: false,
-            error: 'Ошибка доступа к видео' 
+            error: 'Ошибка получения доступа к видео' 
+        });
+    }
+});
+
+// server.js - ОБНОВЛЕННЫЙ ENDPOINT ПРОВЕРКИ ДОСТУПА
+app.get('/api/webapp/private-videos/:videoId/check-access', async (req, res) => {
+    try {
+        const videoId = parseInt(req.params.videoId);
+        const userId = parseInt(req.query.userId);
+        
+        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+        if (!video) {
+            return res.json({ 
+                success: false,
+                has_access: false,
+                error: 'Видео не найдено' 
+            });
+        }
+
+        const hasAccess = db.video_access.some(access => 
+            access.user_id == userId && 
+            access.video_id === videoId && 
+            access.expires_at > new Date().toISOString()
+        );
+
+        // Проверяем, состоит ли пользователь в канале
+        let isChannelMember = false;
+        if (hasAccess) {
+            try {
+                const checkResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: video.channel_id,
+                        user_id: userId
+                    })
+                });
+                
+                const checkResult = await checkResponse.json();
+                isChannelMember = checkResult.ok && ['member', 'administrator', 'creator'].includes(checkResult.result.status);
+            } catch (error) {
+                console.log('⚠️ Ошибка проверки участника канала:', error.message);
+            }
+        }
+
+        res.json({
+            success: true,
+            has_access: hasAccess,
+            is_channel_member: isChannelMember,
+            video: {
+                id: video.id,
+                title: video.title,
+                price: video.price
+            },
+            access_info: hasAccess ? 
+                (isChannelMember ? 'Доступ активен • В канале' : 'Доступ активен • Требуется вступление в канал') : 
+                'Нет доступа'
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка проверки доступа:', error);
+        res.json({ 
+            success: false,
+            has_access: false,
+            error: 'Ошибка сервера' 
         });
     }
 });
