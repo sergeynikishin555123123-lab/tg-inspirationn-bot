@@ -919,20 +919,18 @@ function addSparks(userId, sparks, activityType, description) {
         user.level = calculateLevel(user.sparks);
         user.last_active = new Date().toISOString();
         
-        // Создаем запись активности только для положительных начислений
-        if (sparks > 0) {
-            const activity = {
-                id: Date.now(),
-                user_id: userId,
-                activity_type: activityType,
-                sparks_earned: sparks,
-                description: description,
-                created_at: new Date().toISOString()
-            };
-            
-            db.activities.push(activity);
-            return activity;
-        }
+        // Создаем запись активности для ВСЕХ операций (положительных и отрицательных)
+        const activity = {
+            id: Date.now(),
+            user_id: userId,
+            activity_type: activityType,
+            sparks_earned: sparks, // Может быть отрицательным для списаний
+            description: description,
+            created_at: new Date().toISOString()
+        };
+        
+        db.activities.push(activity);
+        return activity;
     }
     return null;
 }
@@ -3358,7 +3356,7 @@ app.get('/api/webapp/shop/items', (req, res) => {
     res.json(items);
 });
 
-// ИСПРАВЛЕННАЯ ПОКУПКА ТОВАРА - БЕЗ ДВОЙНОГО СПИСАНИЯ
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ ПОКУПКИ ТОВАРА
 app.post('/api/webapp/shop/purchase', (req, res) => {
     const { userId, itemId } = req.body;
     
@@ -3386,7 +3384,7 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
     }
     
     try {
-        // ПРАВИЛЬНОЕ СПИСАНИЕ ИСКР - только один раз
+        // ПРАВИЛЬНОЕ СПИСАНИЕ ИСКР
         const oldSparks = user.sparks;
         user.sparks = oldSparks - item.price;
         
@@ -3402,8 +3400,8 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
         
         db.purchases.push(purchase);
         
-        // НЕ создаем отдельную активность для списания - это дублирует операцию
-        // Просто обновляем пользователя
+        // Записываем активность списания
+        addSparks(userId, -item.price, 'shop_purchase', `Покупка товара: ${item.title}`);
         
         console.log(`✅ Покупка товара: пользователь ${userId}, товар ${itemId}, цена ${item.price}, осталось искр: ${user.sparks}`);
         
