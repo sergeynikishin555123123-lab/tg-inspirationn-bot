@@ -731,45 +731,65 @@ marathon_submissions: []
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-// Функция для добавления пользователя в канал
+// Функция для добавления пользователя в канал (ОБНОВЛЕННАЯ)
 async function addUserToChannel(userId, channelId) {
     try {
-        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember`, {
+        console.log(`👤 Добавляем пользователя ${userId} в канал ${channelId}`);
+        
+        if (!TELEGRAM_BOT_TOKEN) {
+            return { success: false, error: 'Токен бота не настроен' };
+        }
+        
+        // ПРОВЕРЯЕМ, УЧАСТНИК ЛИ УЖЕ ПОЛЬЗОВАТЕЛЬ
+        const checkResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: channelId,
-                user_id: userId
+                user_id: parseInt(userId)
             })
         });
         
-        const result = await response.json();
+        const checkResult = await checkResponse.json();
         
-        // Если пользователь уже участник
-        if (result.ok && ['member', 'administrator', 'creator'].includes(result.result.status)) {
+        // ЕСЛИ УЖЕ УЧАСТНИК - ВОЗВРАЩАЕМ УСПЕХ
+        if (checkResult.ok && ['member', 'administrator', 'creator'].includes(checkResult.result.status)) {
+            console.log('✅ Пользователь уже участник канала');
             return { success: true, already_member: true };
         }
         
-        // Если пользователь не участник, добавляем
+        // ЕСЛИ НЕ УЧАСТНИК - ДОБАВЛЯЕМ
+        console.log('➕ Добавляем пользователя в канал...');
         const addResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/approveChatJoinRequest`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: channelId,
-                user_id: userId
+                user_id: parseInt(userId)
             })
         });
         
         const addResult = await addResponse.json();
-        return addResult.ok ? 
-            { success: true, added: true } : 
-            { success: false, error: addResult.description };
-            
+        
+        if (addResult.ok) {
+            console.log('✅ Пользователь успешно добавлен в канал');
+            return { success: true, added: true };
+        } else {
+            console.log('❌ Ошибка добавления в канал:', addResult.description);
+            return { 
+                success: false, 
+                error: addResult.description || 'Неизвестная ошибка Telegram API' 
+            };
+        }
+        
     } catch (error) {
-        return { success: false, error: error.message };
+        console.error('💥 Ошибка при добавлении в канал:', error);
+        return { 
+            success: false, 
+            error: `Ошибка сети: ${error.message}` 
+        };
     }
 }
-
 // Функция для создания инвайт-ссылки для канала
 async function createChannelInviteLink(channelId) {
     try {
@@ -1433,18 +1453,39 @@ app.get('/api/webapp/private-videos', (req, res) => {
 // Покупка приватного материала с автоматическим добавлением в канал
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
+        console.log('🛒 Начало покупки приватного материала:', req.body);
+        
         const { userId, videoId } = req.body;
+        
+        if (!userId || !videoId) {
+            return res.json({ 
+                success: false, 
+                error: 'Отсутствуют обязательные параметры: userId или videoId' 
+            });
+        }
         
         // Получаем информацию о видео
         const video = await db.get('SELECT * FROM private_videos WHERE id = ?', [videoId]);
         if (!video) {
+            console.log('❌ Материал не найден:', videoId);
             return res.json({ success: false, error: 'Материал не найден' });
         }
         
+        console.log('📋 Найден материал:', video.title);
+        
         // Проверяем баланс пользователя
         const user = await db.get('SELECT * FROM users WHERE user_id = ?', [userId]);
-        if (!user || user.sparks < video.price) {
-            return res.json({ success: false, error: 'Недостаточно искр' });
+        if (!user) {
+            console.log('❌ Пользователь не найден:', userId);
+            return res.json({ success: false, error: 'Пользователь не найден' });
+        }
+        
+        if (user.sparks < video.price) {
+            console.log('❌ Недостаточно искр:', user.sparks, '<', video.price);
+            return res.json({ 
+                success: false, 
+                error: `Недостаточно искр. Нужно: ${video.price}, у вас: ${user.sparks}` 
+            });
         }
         
         // Проверяем, не покупал ли уже пользователь
@@ -1454,31 +1495,40 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         );
         
         if (existingPurchase) {
+            console.log('❌ Уже куплен ранее');
             return res.json({ success: false, error: 'Вы уже приобрели этот материал' });
         }
         
-        // Списываем искры
+        // НАЧИНАЕМ ТРАНЗАКЦИЮ
+        console.log('💰 Списываем искры...');
         await db.run(
             'UPDATE users SET sparks = sparks - ? WHERE user_id = ?',
             [video.price, userId]
         );
         
-        // Добавляем пользователя в канал
+        // ДОБАВЛЯЕМ ПОЛЬЗОВАТЕЛЯ В КАНАЛ
+        console.log('📺 Добавляем пользователя в канал...');
         const addResult = await addUserToChannel(userId, video.channel_id);
         
         if (!addResult.success) {
-            // Если не удалось добавить, возвращаем искры
+            console.log('❌ Ошибка добавления в канал:', addResult.error);
+            
+            // ВОЗВРАЩАЕМ ИСКРЫ ПРИ ОШИБКЕ
             await db.run(
                 'UPDATE users SET sparks = sparks + ? WHERE user_id = ?',
                 [video.price, userId]
             );
+            
             return res.json({ 
                 success: false, 
                 error: `Не удалось предоставить доступ: ${addResult.error}` 
             });
         }
         
-        // Записываем покупку
+        console.log('✅ Пользователь добавлен в канал');
+        
+        // ЗАПИСЫВАЕМ ПОКУПКУ
+        console.log('💾 Сохраняем покупку в БД...');
         await db.run(
             `INSERT INTO private_video_purchases 
              (user_id, video_id, price_paid, channel_id, message_id, access_granted) 
@@ -1486,13 +1536,13 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             [userId, videoId, video.price, video.channel_id, video.message_id, 1]
         );
         
-        // Обновляем статистику видео
+        // ОБНОВЛЯЕМ СТАТИСТИКУ ВИДЕО
         await db.run(
-            'UPDATE private_videos SET purchase_count = purchase_count + 1 WHERE id = ?',
-            [videoId]
+            'UPDATE private_videos SET purchase_count = purchase_count + 1, total_earnings = total_earnings + ? WHERE id = ?',
+            [video.price, videoId]
         );
         
-        // Записываем активность
+        // ЗАПИСЫВАЕМ АКТИВНОСТЬ
         await db.run(
             `INSERT INTO user_activities 
              (user_id, activity_type, description, sparks_earned) 
@@ -1500,8 +1550,10 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             [userId, 'private_video_purchase', `Покупка приватного материала: ${video.title}`, -video.price]
         );
         
-        // Получаем обновленные данные пользователя
+        // ПОЛУЧАЕМ ОБНОВЛЕННЫЕ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
         const updatedUser = await db.get('SELECT * FROM users WHERE user_id = ?', [userId]);
+        
+        console.log('🎉 Покупка успешно завершена!');
         
         res.json({
             success: true,
@@ -1512,8 +1564,11 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Ошибка покупки приватного видео:', error);
-        res.json({ success: false, error: 'Ошибка покупки' });
+        console.error('💥 Критическая ошибка покупки приватного видео:', error);
+        res.json({ 
+            success: false, 
+            error: `Внутренняя ошибка сервера: ${error.message}` 
+        });
     }
 });
 
