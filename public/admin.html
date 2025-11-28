@@ -5392,25 +5392,6 @@ async function extractTelegramData() {
     }
 }
 
-// Автоматический парсинг ссылки при вводе
-function setupTelegramUrlAutoParse() {
-    const postUrlInput = document.getElementById('privateVideoPostUrl');
-    if (postUrlInput) {
-        postUrlInput.addEventListener('blur', function() {
-            const url = this.value.trim();
-            if (url) {
-                console.log('🔗 Автопарсинг ссылки:', url);
-                const telegramData = parseTelegramUrl(url);
-                
-                if (telegramData.success) {
-                    showMessage(`✅ Ссылка распознана: Канал ${telegramData.channelId}, Пост ${telegramData.postId}`, 'success');
-                } else {
-                    showMessage(`❌ ${telegramData.error}`, 'error');
-                }
-            }
-        });
-    }
-}
 
 // Добавьте этот код в конец файла
 document.addEventListener('DOMContentLoaded', function() {
@@ -5526,73 +5507,76 @@ async function processQuickAdd() {
     }
 }
 
-// Генерация защищенной ссылки для пользователя
-function generateProtectedLink(channelId, messageId, userId) {
-    // Создаем уникальный токен на основе данных пользователя и времени
-    const token = btoa(`${channelId}_${messageId}_${Date.now()}`)
-        .replace(/=/g, '')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_');
+ // Просмотр статистики видео
+async function viewVideoStats(videoId) {
+    try {
+        const response = await fetch(`/api/admin/private-videos/${videoId}/stats?userId=${currentUserId}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            const stats = result.stats;
+            const message = `
+📊 Статистика материала:
+
+🛒 Покупок: ${stats.purchase_count}
+👥 Уникальных пользователей: ${stats.unique_users}
+💰 Общий доход: ${stats.total_revenue}✨
+🔗 Активных доступов: ${stats.access_count}
+            `;
+            alert(message);
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки статистики:', error);
+        showMessage('❌ Ошибка загрузки статистики', 'error');
+    }
+}
+
+// Скрыть форму приватного видео
+function hidePrivateVideoForm() {
+    document.getElementById('privateVideoForm').style.display = 'none';
+    currentEditingId = null;
+}
+
+// Вспомогательная функция для копирования в буфер обмена
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showMessage('✅ Ссылка скопирована', 'success');
+    }).catch(() => {
+        // Fallback для старых браузеров
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showMessage('✅ Ссылка скопирована', 'success');
+    });
+}
+        
+// Удаление приватного видео
+async function deletePrivateVideo(videoId) {
+    if (!confirm('Вы уверены, что хотите удалить этот материал? Все связанные покупки и доступы также будут удалены.')) return;
     
-    // Возвращаем ссылку через наш прокси с ID пользователя
-    return `/api/telegram/proxy/${token}?userId=${userId}`;
-}
-
-// Получение защищенной ссылки для просмотра
-async function getProtectedViewLink(videoId) {
     try {
-        const response = await fetch(`/api/admin/private-videos/${videoId}/protected-link?userId=${currentUserId}`);
+        const response = await fetch(`/api/admin/private-videos/${videoId}?userId=${currentUserId}`, {
+            method: 'DELETE'
+        });
+        
         const result = await response.json();
         
         if (result.success) {
-            return result.protected_link;
+            showMessage('✅ Материал успешно удален', 'success');
+            loadPrivateVideosAdmin();
         } else {
-            console.error('Ошибка получения защищенной ссылки:', result.error);
-            return null;
+            showMessage(`❌ ${result.error}`, 'error');
         }
     } catch (error) {
-        console.error('Ошибка получения защищенной ссылки:', error);
-        return null;
+        console.error('❌ Ошибка удаления материала:', error);
+        showMessage('❌ Ошибка удаления материала', 'error');
     }
-}
-        
-// Функция для создания пригласительной ссылки
-async function generateInviteLink(videoId) {
-    try {
-        const response = await fetch(`/api/admin/private-videos/${videoId}/generate-invite?userId=${currentUserId}`);
-        const result = await response.json();
-        
-        if (result.success) {
-            return result.invite_link;
-        } else {
-            console.error('Ошибка генерации ссылки:', result.error);
-            return null;
-        }
-    } catch (error) {
-        console.error('Ошибка генерации пригласительной ссылки:', error);
-        return null;
-    }
-}
-
-// Обновите функцию copyProtectedLink:
-async function copyProtectedLink(videoId) {
-    try {
-        // Генерируем пригласительную ссылку вместо защищенной
-        const inviteLink = await generateInviteLink(videoId);
-        if (inviteLink) {
-            await navigator.clipboard.writeText(inviteLink);
-            showMessage('✅ Пригласительная ссылка скопирована', 'success');
-        } else {
-            // Fallback на старую логику
-            const protectedLink = `/api/telegram/proxy/${btoa(videoId + '_' + Date.now()).replace(/=/g, '')}`;
-            await navigator.clipboard.writeText(protectedLink);
-            showMessage('✅ Защищенная ссылка скопирована', 'success');
-        }
-    } catch (error) {
-        showMessage('❌ Ошибка копирования ссылки', 'error');
-    }
-}
-        
+}       
 // ==================== УПРОЩЕННОЕ УПРАВЛЕНИЕ ПРИВАТНЫМИ МАТЕРИАЛАМИ ====================
 
 // Загрузка приватных материалов
