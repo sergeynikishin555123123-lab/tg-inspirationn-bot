@@ -3336,22 +3336,21 @@ async function checkUserSubscription(channelId) {
     return { is_subscribed: false };
 }
 
-// Покупка приватного материала - ИСПРАВЛЕННАЯ ВЕРСИЯ
-// Обновленная функция покупки приватного видео
+// Улучшенная функция покупки с автоматическим доступом в канал
 async function purchasePrivateVideo(videoId) {
     try {
-        console.log('🛒 Начинаем покупку приватного видео:', videoId);
+        console.log('🛒 Покупка приватного видео:', videoId);
         
         if (!currentUser) {
             showMessage('❌ Ошибка: пользователь не загружен', 'error');
             return;
         }
         
-        if (!confirm('Вы уверены, что хотите купить доступ к этому материалу?\n\nПосле покупки вы получите доступ к материалу на 30 дней.')) {
+        if (!confirm('Вы уверены, что хотите купить доступ к этому материалу?\n\nПосле покупки вы получите доступ к приватному каналу Telegram.')) {
             return;
         }
         
-        showMessage('⏳ Обрабатываем покупку...', 'info');
+        showMessage('⏳ Обрабатываем покупку и настраиваем доступ...', 'info');
         
         const response = await fetch('/api/webapp/private-videos/purchase', {
             method: 'POST',
@@ -3380,16 +3379,18 @@ async function purchasePrivateVideo(videoId) {
             currentUser.sparks = result.remaining_sparks;
             updateUserDisplay();
             
-            // Предлагаем перейти к материалам
-            setTimeout(() => {
-                if (confirm('Покупка успешна! Хотите перейти к вашим материалам?')) {
-                    showScreen('myPrivateVideosScreen');
-                    loadMyPrivateVideos();
-                } else {
-                    // Обновляем список доступных материалов
-                    loadPrivateVideos();
-                }
-            }, 1500);
+            // Если есть прямая ссылка на пост - предлагаем перейти
+            if (result.direct_post_url) {
+                setTimeout(() => {
+                    if (confirm('Покупка успешна! Хотите перейти к материалу в Telegram?')) {
+                        // Открываем конкретный пост в Telegram
+                        window.open(result.direct_post_url, '_blank');
+                    }
+                }, 1500);
+            }
+            
+            // Обновляем список материалов
+            loadMyPrivateVideos();
             
         } else {
             console.error('❌ Ошибка покупки:', result.error);
@@ -3588,32 +3589,39 @@ function displayMyPrivateVideos(purchases) {
     
     videosList.innerHTML = '';
     
-    purchases.forEach(purchase => {
+purchases.forEach(video => {
         const videoCard = document.createElement('div');
         videoCard.className = 'shop-item';
+        
+        const daysLeft = video.days_remaining > 0 ? video.days_remaining : 0;
+        const statusBadge = daysLeft > 7 ? 'badge-success' : daysLeft > 3 ? 'badge-warning' : 'badge-danger';
         
         videoCard.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                 <div style="flex: 1;">
-                    <h3 style="margin: 0 0 8px 0;">🎬 ${purchase.title}</h3>
-                    <p style="color: #718096; margin-bottom: 12px;">${purchase.description || 'Описание отсутствует'}</p>
+                    <h3 style="margin: 0 0 8px 0;">🎬 ${video.title}</h3>
+                    <p style="color: #718096; margin-bottom: 12px;">${video.description || 'Описание отсутствует'}</p>
                     <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                        <span class="badge badge-info">${getCategoryName(purchase.category)}</span>
-                        <span class="badge badge-warning">${getLevelName(purchase.level)}</span>
-                        ${purchase.duration ? `<span class="badge badge-secondary">⏱️ ${purchase.duration}</span>` : ''}
-                        <span class="badge badge-success">✅ Куплено</span>
+                        <span class="badge badge-info">${getCategoryName(video.category)}</span>
+                        <span class="badge badge-warning">${getLevelName(video.level)}</span>
+                        ${video.duration ? `<span class="badge badge-secondary">⏱️ ${video.duration}</span>` : ''}
+                        <span class="badge badge-success">✅ Доступ активен</span>
+                        <span class="badge ${statusBadge}">⏰ ${daysLeft} дней осталось</span>
                     </div>
                     <div style="color: #718096; font-size: 14px;">
-                        📅 Приобретен: ${new Date(purchase.purchased_at).toLocaleDateString('ru-RU')}
-                        ${purchase.view_count > 0 ? ` • 👁️ Просмотров: ${purchase.view_count}` : ''}
+                        📅 Приобретен: ${new Date(video.purchased_at).toLocaleDateString('ru-RU')}
+                        ${video.expires_at ? ` • ⏰ Истекает: ${new Date(video.expires_at).toLocaleDateString('ru-RU')}` : ''}
                     </div>
                 </div>
             </div>
             
             <div style="text-align: center;">
-                <button class="btn btn-success" onclick="accessPrivateVideo(${purchase.video_id})">
-                    🎬 Открыть материал
+                <button class="btn btn-success" onclick="watchPrivateVideo(${video.id})" style="margin-bottom: 8px;">
+                    📺 Смотреть в Telegram
                 </button>
+                <div style="color: #718096; font-size: 12px; margin-top: 8px;">
+                    Откроется конкретный пост в приватном канале
+                </div>
             </div>
         `;
         
@@ -3621,13 +3629,13 @@ function displayMyPrivateVideos(purchases) {
     });
 }
     
-// Упрощенная функция просмотра приватного видео
+// Улучшенная функция просмотра с прямым переходом в пост
 async function watchPrivateVideo(videoId) {
     try {
         showMessage('⏳ Открываем материал...', 'info');
         
-        // Сначала пробуем прямой доступ
-        const response = await fetch(`/api/webapp/private-videos/${videoId}/direct?userId=${currentUserId}`);
+        // Получаем прямую ссылку на пост
+        const response = await fetch(`/api/webapp/private-videos/${videoId}/watch?userId=${currentUserId}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -3635,34 +3643,30 @@ async function watchPrivateVideo(videoId) {
         
         const result = await response.json();
         
-        if (result.success && result.direct_url) {
-            // Открываем материал в новом окне
-            window.open(result.direct_url, '_blank');
-            showMessage('✅ Материал открывается в Telegram...', 'success');
+        if (result.success && result.direct_post_url) {
+            // Открываем конкретный пост в Telegram
+            window.open(result.direct_post_url, '_blank');
+            showMessage('✅ Открываем материал в Telegram...', 'success');
+            
+            // Логируем просмотр
+            await fetch(`/api/webapp/private-videos/${videoId}/view`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUserId })
+            });
+            
         } else {
-            throw new Error(result.error || 'Не удалось открыть материал');
+            throw new Error(result.error || 'Не удалось получить доступ к материалу');
         }
         
     } catch (error) {
-        console.error('❌ Ошибка прямого доступа:', error);
+        console.error('❌ Ошибка доступа:', error);
+        showMessage(`❌ ${error.message}`, 'error');
         
-        // Fallback: пробуем через прокси
-        try {
-            showMessage('🔄 Пробуем альтернативный метод...', 'info');
-            
-            const proxyResponse = await fetch(`/api/webapp/private-videos/${videoId}/watch?userId=${currentUserId}`);
-            const proxyResult = await proxyResponse.json();
-            
-            if (proxyResult.success && proxyResult.watch_url) {
-                window.open(proxyResult.watch_url, '_blank');
-                showMessage('✅ Материал открывается...', 'success');
-            } else {
-                throw new Error(proxyResult.error || 'Не удалось открыть материал');
-            }
-        } catch (proxyError) {
-            console.error('❌ Ошибка прокси-доступа:', proxyError);
-            showMessage(`❌ Ошибка: ${proxyError.message}`, 'error');
-        }
+        // Предлагаем альтернативные действия
+        setTimeout(() => {
+            showMessage('💡 Если доступ не работает, свяжитесь с администратором', 'info');
+        }, 2000);
     }
 }
 
