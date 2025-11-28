@@ -154,7 +154,7 @@ const APP_ROOT = process.cwd();
 console.log('🎨 Мастерская Вдохновения - Запуск системы...');
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 
-// In-memory база данных
+// In-memory база данных с полным наполнением
 let db = {
     users: [
         {
@@ -183,6 +183,21 @@ let db = {
             class: 'Художники',
             character_id: 1,
             character_name: 'Лука Цветной',
+            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+            registration_date: new Date().toISOString(),
+            last_active: new Date().toISOString()
+        },
+        {
+            id: 3,
+            user_id: 79156202620,
+            tg_first_name: 'Модератор',
+            tg_username: 'moderator',
+            sparks: 150.0,
+            level: 'Знаток',
+            is_registered: true,
+            class: 'Стилисты',
+            character_id: 3,
+            character_name: 'Эстелла Моде',
             available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
             registration_date: new Date().toISOString(),
             last_active: new Date().toISOString()
@@ -316,6 +331,34 @@ let db = {
             allow_retake: true,
             is_active: true,
             created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            title: "🏛️ История искусства",
+            description: "Тест по истории мирового искусства",
+            questions: [
+                {
+                    question: "В какой стране возникло искусство эпохи Возрождения?",
+                    options: ["Франция", "Италия", "Испания", "Германия"],
+                    correctAnswer: 1
+                },
+                {
+                    question: "Кто является автором фрески 'Тайная вечеря'?",
+                    options: ["Микеланджело", "Рафаэль", "Леонардо да Винчи", "Боттичелли"],
+                    correctAnswer: 2
+                },
+                {
+                    question: "Какой стиль характеризуется асимметрией и изогнутыми линиями?",
+                    options: ["Ренессанс", "Барокко", "Готика", "Классицизм"],
+                    correctAnswer: 1
+                }
+            ],
+            sparks_per_correct: 1,
+            sparks_perfect_bonus: 5,
+            cooldown_hours: 24,
+            allow_retake: true,
+            is_active: true,
+            created_at: new Date().toISOString()
         }
     ],
     marathons: [
@@ -338,9 +381,90 @@ let db = {
                     description: "Практикуйтесь в смешивании цветов и загрузите фото своей палитры",
                     requires_submission: true,
                     submission_type: "image"
+                },
+                { 
+                    day: 3, 
+                    title: "Работа с светом", 
+                    description: "Научитесь передавать свет и тень в акварели",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 4, 
+                    title: "Пейзаж акварелью", 
+                    description: "Нарисуйте свой первый пейзаж и загрузите фото работы",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 5, 
+                    title: "Портрет акварелью", 
+                    description: "Освойте технику портрета акварелью",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 6, 
+                    title: "Натюрморт", 
+                    description: "Создайте композицию с натуры и загрузите фото",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 7, 
+                    title: "Финальная работа", 
+                    description: "Завершите марафон итоговой работой и поделитесь впечатлениями",
+                    requires_submission: true,
+                    submission_type: "text"
                 }
             ],
             sparks_per_day: 7,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            title: "👗 Марафон стиля",
+            description: "5-дневный марафон по созданию гармоничного образа",
+            duration_days: 5,
+            tasks: [
+                { 
+                    day: 1, 
+                    title: "Анализ цветотипа", 
+                    description: "Определите свой цветотип и опишите результаты",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 2, 
+                    title: "Базовая капсула", 
+                    description: "Создайте базовый гардероб и загрузите фото своих вещей",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 3, 
+                    title: "Акценты и аксессуары", 
+                    description: "Научитесь дополнять образ аксессуарами",
+                    requires_submission: true,
+                    submission_type: "text"
+                },
+                { 
+                    day: 4, 
+                    title: "Стилизация", 
+                    description: "Создайте несколько образов и загрузите фото",
+                    requires_submission: true,
+                    submission_type: "image"
+                },
+                { 
+                    day: 5, 
+                    title: "Итоговый образ", 
+                    description: "Подберите идеальный образ для мероприятия и опишите его",
+                    requires_submission: true,
+                    submission_type: "text"
+                }
+            ],
+            sparks_per_day: 5,
             is_active: true,
             created_at: new Date().toISOString()
         }
@@ -354,12 +478,95 @@ let db = {
             file_url: "https://example.com/watercolor-course.mp4",
             preview_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=300&h=200&fit=crop",
             price: 15,
-            content_text: "В этом уроке вы научитесь основам работы с акварелью...",
+            content_text: "В этом уроке вы научитесь основам работы с акварелью, смешиванию цветов и созданию первых работ. Материал подойдет для начинающих художников.\n\nСодержание:\n- Подготовка материалов\n- Основные техники\n- Смешивание цветов\n- Создание простых работ\n- Советы по улучшению",
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            title: "📚 Основы композиции",
+            description: "PDF руководство по основам композиции в живописи",
+            type: "pdf",
+            file_url: "https://example.com/composition-guide.pdf",
+            preview_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=200&fit=crop",
+            price: 10,
+            content_text: "Подробное руководство по построению композиции в художественных работах. Золотое сечение, правило третей, баланс и ритм.\n\nТемы:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с цветом",
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 3,
+            title: "👗 Гид по стилю",
+            description: "Полное руководство по созданию гармоничного образа",
+            type: "text",
+            file_url: "",
+            preview_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=300&h=200&fit=crop",
+            price: 12,
+            content_text: "Как определить свой цветотип, подобрать базовый гардероб, сочетать цвета и аксессуары. Практические советы от стилиста.\n\nРазделы:\n- Определение цветотипа\n- Базовый гардероб\n- Сочетание цветов\n- Выбор аксессуаров\n- Создание образов",
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 4,
+            title: "🧵 Основы вышивки",
+            description: "Видеокурс по основам вышивки для начинающих",
+            type: "video",
+            file_url: "https://example.com/embroidery-course.mp4",
+            preview_url: "https://images.unsplash.com/photo-1576588676125-c6d68cf48b5c?w=300&h=200&fit=crop",
+            price: 18,
+            content_text: "Полный курс по основам вышивки. От простых стежков до сложных техник.\n\nСодержание:\n- Необходимые материалы\n- Основные стежки\n- Техники вышивки\n- Создание узоров\n- Завершение работы",
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 5,
+            title: "🎬 Видео-урок по композиции",
+            description: "Эксклюзивный видео-урок по основам композиции от профессионального художника",
+            type: "embed",
+            embed_html: `<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1139315921?h=93d70dfee4&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="ТИХОНОВА"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>`,
+            preview_url: "https://images.unsplash.com/photo-1492684223066-81332ee5ff30?w=300&h=200&fit=crop",
+            price: 20,
+            content_text: "Профессиональный видео-урок по основам композиции в живописи. Вы научитесь правильно располагать элементы на холсте, создавать гармоничные композиции и направлять взгляд зрителя.\n\nТемы урока:\n- Золотое сечение\n- Правило третей\n- Баланс и симметрия\n- Создание глубины\n- Работа с акцентами",
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 6,
+            title: "📺 Тестовое видео",
+            description: "Простой тест embed-видео",
+            type: "embed",
+            embed_html: `<div style="width: 100%; height: 400px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
+                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">Тестовое видео</div>
+                    <div style="color: #666;">Здесь будет встроенное видео</div>
+                </div>
+            </div>`,
+            preview_url: "",
+            price: 5,
+            content_text: "Это тестовый embed-контент для проверки отображения",
             is_active: true,
             created_at: new Date().toISOString()
         }
     ],
-    activities: [],
+    activities: [
+        {
+            id: 1,
+            user_id: 12345,
+            activity_type: 'registration',
+            sparks_earned: 10,
+            description: 'Регистрация',
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            user_id: 898508164,
+            activity_type: 'quiz',
+            sparks_earned: 8,
+            description: 'Квиз: Основы живописи',
+            created_at: new Date().toISOString()
+        }
+    ],
     admins: [
         { 
             id: 1, 
@@ -367,16 +574,68 @@ let db = {
             username: 'admin', 
             role: 'admins', 
             created_at: new Date().toISOString() 
+        },
+        { 
+            id: 2, 
+            user_id: 79156202620, 
+            username: 'admin2', 
+            role: 'admins', 
+            created_at: new Date().toISOString() 
+        },
+        { 
+            id: 3, 
+            user_id: 781959267, 
+            username: 'admin3', 
+            role: 'admins', 
+            created_at: new Date().toISOString() 
         }
     ],
-    purchases: [],
+    purchases: [
+        {
+            id: 1,
+            user_id: 12345,
+            item_id: 1,
+            price_paid: 15,
+            purchased_at: new Date().toISOString()
+        }
+    ],
     channel_posts: [
         {
             id: 1,
             post_id: "post_art_basics",
             title: "🎨 Основы композиции в живописи",
-            content: "Сегодня поговорим о фундаментальных принципах построения композиции...",
+            content: "Сегодня поговорим о фундаментальных принципах построения композиции. Золотое сечение, правило третей и многое другое! Композиция - это основа любого художественного произведения, которая помогает направлять взгляд зрителя и создавать гармоничное изображение.\n\n💡 Практический совет: Попробуйте использовать правило третей в своей следующей работе - разделите холст на 9 равных частей и размещайте ключевые элементы на пересечениях линий.",
             image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
+            video_url: null,
+            media_type: 'image',
+            admin_id: 898508164,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            telegram_message_id: null,
+            action_type: null,
+            action_target: null
+        },
+        {
+            id: 2,
+            post_id: "post_style_tips",
+            title: "👗 5 советов по созданию стильного образа",
+            content: "1. Определите свой цветотип\n2. Создайте базовую капсулу\n3. Не бойтесь аксессуаров\n4. Учитывайте мероприятие\n5. Будьте уверены в себе!\n\n✨ Помните: Стиль - это не следование трендам, а умение выражать свою индивидуальность через одежду.",
+            image_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop",
+            video_url: null,
+            media_type: 'image',
+            admin_id: 898508164,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            telegram_message_id: null,
+            action_type: null,
+            action_target: null
+        },
+        {
+            id: 3,
+            post_id: "post_history_art",
+            title: "🏛️ Интересные факты о Ренессансе",
+            content: "Эпоха Возрождения подарила миру множество шедевров. Знаете ли вы, что:\n\n• Леонардо да Винчи был вегетарианцем\n• Микеланджело считал себя в первую очередь скульптором\n• Рафаэль умер в день своего рождения\n• Боттичелли сжег многие свои работы\n\n🎯 Интересный факт: Картины того времени часто содержали скрытые символы и послания.",
+            image_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
             video_url: null,
             media_type: 'image',
             admin_id: 898508164,
@@ -387,12 +646,66 @@ let db = {
             action_target: null
         }
     ],
-    post_reviews: [],
-    user_works: [],
+    post_reviews: [
+        {
+            id: 1,
+            user_id: 12345,
+            post_id: "post_art_basics",
+            review_text: "Очень полезный пост! Никогда не задумывался о композиции так глубоко.",
+            rating: 5,
+            status: 'approved',
+            created_at: new Date().toISOString(),
+            moderated_at: new Date().toISOString(),
+            moderator_id: 898508164,
+            admin_comment: null
+        }
+    ],
+    user_works: [
+        {
+            id: 1,
+            user_id: 12345,
+            title: "Мой первый пейзаж",
+            description: "Попытка нарисовать закат акварелью",
+            image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
+            type: "image",
+            status: "approved",
+            created_at: new Date().toISOString(),
+            moderated_at: new Date().toISOString(),
+            moderator_id: 898508164,
+            admin_comment: "Отличная работа для начала!"
+        }
+    ],
     work_reviews: [],
-    marathon_completions: [],
-    quiz_completions: [],
-    daily_reviews: [],
+    marathon_completions: [
+        {
+            id: 1,
+            user_id: 12345,
+            marathon_id: 1,
+            current_day: 3,
+            progress: 42,
+            completed: false,
+            started_at: new Date().toISOString()
+        }
+    ],
+    quiz_completions: [
+        {
+            id: 1,
+            user_id: 898508164,
+            quiz_id: 1,
+            completed_at: new Date().toISOString(),
+            score: 5,
+            sparks_earned: 10,
+            perfect_score: true
+        }
+    ],
+    daily_reviews: [
+        {
+            id: 1,
+            user_id: 12345,
+            date: new Date().toISOString(),
+            type: 'daily_comment'
+        }
+    ],
     interactives: [
         {
             id: 1,
@@ -408,11 +721,107 @@ let db = {
             allow_retake: false,
             is_active: true,
             created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            title: "👗 Подбери образ для мероприятия",
+            description: "Создай гармоничный образ для конкретного события",
+            type: "style_match",
+            category: "style",
+            image_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop",
+            question: "Какое сочетание цветов подойдет для деловой встречи?",
+            options: ["Черный + белый + красный акцент", "Ярко-красный + зеленый", "Фиолетовый + оранжевый", "Розовый + голубой"],
+            correct_answer: 0,
+            sparks_reward: 2,
+            allow_retake: true,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 3,
+            title: "✏️ Продолжи рисунок",
+            description: "Дорисуйте предложенный контур и создайте свою работу",
+            type: "drawing_challenge",
+            category: "art",
+            image_url: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop",
+            question: "Дорисуйте этот контур и создайте свою уникальную работу",
+            options: [],
+            correct_answer: null,
+            sparks_reward: 5,
+            allow_retake: true,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 4,
+            title: "🔍 Найди отличия",
+            description: "Найдите все отличия между двумя изображениями",
+            type: "find_difference",
+            category: "art",
+            image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop",
+            question: "Сколько отличий вы нашли между изображениями?",
+            options: ["2 отличия", "3 отличия", "4 отличия", "5 отличий"],
+            correct_answer: 2,
+            sparks_reward: 3,
+            allow_retake: false,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 5,
+            title: "🧩 Исторический пазл",
+            description: "Соберите пазл из фрагментов известной картины",
+            type: "puzzle",
+            category: "history",
+            image_url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop",
+            question: "Из скольких фрагментов состоит этот пазл?",
+            options: ["6 фрагментов", "9 фрагментов", "12 фрагментов", "16 фрагментов"],
+            correct_answer: 1,
+            sparks_reward: 2,
+            allow_retake: true,
+            is_active: true,
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 6,
+            title: "🎭 Определи стиль художника",
+            description: "По фрагменту картины определите авторский стиль",
+            type: "guess_era",
+            category: "history",
+            image_url: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=400&h=300&fit=crop",
+            question: "Какому художнику принадлежит этот стиль?",
+            options: ["Ван Гог", "Моне", "Пикассо", "Дали"],
+            correct_answer: 0,
+            sparks_reward: 4,
+            allow_retake: false,
+            is_active: true,
+            created_at: new Date().toISOString()
         }
     ],
-    interactive_completions: [],
+    interactive_completions: [
+        {
+            id: 1,
+            user_id: 12345,
+            interactive_id: 1,
+            completed_at: new Date().toISOString(),
+            score: 1,
+            sparks_earned: 3,
+            answer: 0
+        }
+    ],
     interactive_submissions: [],
-    marathon_submissions: [],
+    marathon_submissions: [
+        {
+            id: 1,
+            user_id: 12345,
+            marathon_id: 1,
+            day: 1,
+            submission_text: "Попробовал основные техники акварели. Очень понравилась техника 'по-мокрому'!",
+            submission_image: null,
+            submitted_at: new Date().toISOString(),
+            status: 'approved'
+        }
+    ],
     private_channel_videos: [
         {
             id: 1,
@@ -424,6 +833,22 @@ let db = {
             duration: "45 минут",
             price: 25,
             category: "video",
+            level: "intermediate",
+            access_duration_days: 30,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            post_url: "https://t.me/c/1234567890/124", 
+            channel_id: "1234567890",
+            message_id: 124,
+            title: "🎨 Мастер-класс по портрету",
+            description: "Учимся рисовать портреты с нуля до профессионального уровня",
+            duration: "60 минут",
+            price: 30,
+            category: "video", 
             level: "intermediate",
             access_duration_days: 30,
             is_active: true,
