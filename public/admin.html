@@ -1840,19 +1840,12 @@
             <button class="btn btn-info" onclick="loadPrivateVideosAdmin()">🔄 Обновить список</button>
         </div>
 
-        <div class="message info" style="margin-bottom: 20px;">
-            <strong>🎯 Простая система доступа:</strong><br>
-            1. Добавьте инвайт-ссылку на канал<br>
-            2. Пользователь покупает материал → получает инвайт-ссылку<br>
-            3. Пользователь вступает в канал по ссылке
-        </div>
-
         <div id="privateVideosList" class="loading">
             Загрузка материалов...
         </div>
     </div>
 
-    <!-- УПРОЩЕННАЯ ФОРМА ДОБАВЛЕНИЯ МАТЕРИАЛА -->
+    <!-- ФОРМА ДОБАВЛЕНИЯ МАТЕРИАЛА -->
     <div id="privateVideoForm" class="card" style="display: none;">
         <h3 id="privateVideoFormTitle" style="margin-bottom: 20px;">🎬 Добавление приватного материала</h3>
         
@@ -1860,9 +1853,6 @@
             <label class="form-label">🔗 Инвайт-ссылка на канал: *</label>
             <input type="text" id="privateVideoInviteLink" class="form-control" 
                    placeholder="https://t.me/+INVITE_LINK" required>
-            <div style="color: #718096; font-size: 14px; margin-top: 8px;">
-                💡 Создайте инвайт-ссылку в настройках Telegram канала
-            </div>
         </div>
 
         <div class="form-group">
@@ -1878,7 +1868,7 @@
         </div>
         
         <div class="form-group">
-            <label class="form-label">⏱️ Длительность (опционально):</label>
+            <label class="form-label">⏱️ Длительность:</label>
             <input type="text" id="privateVideoDuration" class="form-control" 
                    placeholder="Например: 45 минут">
         </div>
