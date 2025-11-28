@@ -726,6 +726,85 @@ private_channel_videos: [
 video_access: [],
 marathon_submissions: []
 };
+
+// Добавьте эти маршруты в ваш бэкенд
+router.get('/:videoId/new-invite', async (req, res) => {
+    try {
+        const { videoId } = req.params;
+        const { userId } = req.query;
+        
+        const video = await db.get(
+            'SELECT * FROM private_videos WHERE id = ?',
+            [videoId]
+        );
+        
+        if (!video) {
+            return res.json({ success: false, error: 'Материал не найден' });
+        }
+        
+        // Создаем новую инвайт-ссылку
+        const invite = await bot.telegram.createChatInviteLink(video.channel_id, {
+            member_limit: 1,
+            creates_join_request: false,
+            name: `Доступ к ${video.title}`
+        });
+        
+        res.json({
+            success: true,
+            invite_link: invite.invite_link,
+            video_title: video.title
+        });
+        
+    } catch (error) {
+        console.error('Ошибка создания инвайт-ссылки:', error);
+        res.json({ success: false, error: 'Ошибка создания ссылки' });
+    }
+});
+
+router.get('/:videoId/access-status', async (req, res) => {
+    try {
+        const { videoId } = req.params;
+        const { userId } = req.query;
+        
+        const video = await db.get(
+            'SELECT * FROM private_videos WHERE id = ?',
+            [videoId]
+        );
+        
+        const purchase = await db.get(
+            `SELECT * FROM private_video_purchases 
+             WHERE user_id = ? AND video_id = ? AND expires_at > datetime('now')`,
+            [userId, videoId]
+        );
+        
+        let inChannel = false;
+        let channelName = null;
+        
+        if (purchase && video) {
+            try {
+                const chatMember = await bot.telegram.getChatMember(video.channel_id, userId);
+                inChannel = !(chatMember.status === 'left' || chatMember.status === 'kicked');
+                
+                const chat = await bot.telegram.getChat(video.channel_id);
+                channelName = chat.title;
+            } catch (tgError) {
+                console.log('Ошибка проверки статуса в канале:', tgError.message);
+            }
+        }
+        
+        res.json({
+            has_access: !!purchase,
+            in_channel: inChannel,
+            expires_at: purchase ? purchase.expires_at : null,
+            channel_name: channelName,
+            reason: purchase ? null : 'Покупка не найдена или истекла'
+        });
+        
+    } catch (error) {
+        console.error('Ошибка проверки статуса:', error);
+        res.json({ success: false, error: 'Ошибка проверки статуса' });
+    }
+});
 // ==================== ТЕЛЕГРАМ АВТОМАТИЗАЦИЯ ====================
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -1866,6 +1945,125 @@ app.get('/api/webapp/private-videos/:videoId/direct', (req, res) => {
     }
 });
 
+// routes/privateVideos.js - улучшенная версия
+router.get('/:videoId/watch', async (req, res) => {
+    try {
+        const { videoId } = req.params;
+        const { userId } = req.query;
+        
+        console.log('🔍 Запрос доступа:', { videoId, userId });
+        
+        // Проверяем существование видео
+        const video = await db.get(
+            'SELECT * FROM private_videos WHERE id = ?',
+            [videoId]
+        );
+        
+        if (!video) {
+            console.log('❌ Видео не найдено:', videoId);
+            return res.json({ 
+                success: false, 
+                error: 'Материал не найден' 
+            });
+        }
+        
+        console.log('📹 Найдено видео:', video.title);
+        
+        // Проверяем покупку
+        const purchase = await db.get(
+            `SELECT * FROM private_video_purchases 
+             WHERE user_id = ? AND video_id = ? AND expires_at > datetime('now')`,
+            [userId, videoId]
+        );
+        
+        if (!purchase) {
+            console.log('❌ Покупка не найдена или истекла:', { userId, videoId });
+            
+            // Проверяем, есть ли активная покупка
+            const anyPurchase = await db.get(
+                `SELECT * FROM private_video_purchases 
+                 WHERE user_id = ? AND video_id = ?`,
+                [userId, videoId]
+            );
+            
+            if (anyPurchase) {
+                return res.json({ 
+                    success: false, 
+                    error: 'Доступ к материалу истек' 
+                });
+            } else {
+                return res.json({ 
+                    success: false, 
+                    error: 'У вас нет доступа к этому материалу' 
+                });
+            }
+        }
+        
+        console.log('✅ Покупка найдена:', purchase.id);
+        
+        // Формируем прямую ссылку на пост
+        let directPostUrl;
+        if (video.channel_id && video.message_id) {
+            // Преобразуем channel_id для ссылки
+            const channelIdForUrl = video.channel_id.toString().replace('-100', '');
+            directPostUrl = `https://t.me/c/${channelIdForUrl}/${video.message_id}`;
+            console.log('🔗 Сформирована ссылка:', directPostUrl);
+        }
+        
+        // Проверяем, добавлен ли пользователь в канал
+        let inviteLink = null;
+        try {
+            // Пытаемся создать одноразовую инвайт-ссылку
+            const chatMember = await bot.telegram.getChatMember(video.channel_id, userId);
+            console.log('👤 Статус пользователя в канале:', chatMember.status);
+            
+            if (chatMember.status === 'left' || chatMember.status === 'kicked') {
+                // Пользователь не в канале - создаем инвайт-ссылку
+                const invite = await bot.telegram.createChatInviteLink(video.channel_id, {
+                    member_limit: 1,
+                    creates_join_request: false
+                });
+                inviteLink = invite.invite_link;
+                console.log('🔑 Создана инвайт-ссылка');
+            }
+        } catch (tgError) {
+            console.log('⚠️ Ошибка проверки статуса пользователя:', tgError.message);
+            // Создаем инвайт-ссылку в любом случае для надежности
+            try {
+                const invite = await bot.telegram.createChatInviteLink(video.channel_id, {
+                    member_limit: 1,
+                    creates_join_request: false
+                });
+                inviteLink = invite.invite_link;
+                console.log('🔑 Создана резервная инвайт-ссылка');
+            } catch (inviteError) {
+                console.log('❌ Ошибка создания инвайт-ссылки:', inviteError.message);
+            }
+        }
+        
+        res.json({
+            success: true,
+            direct_post_url: directPostUrl,
+            invite_link: inviteLink,
+            video_title: video.title,
+            debug: {
+                purchase_id: purchase.id,
+                expires_at: purchase.expires_at,
+                channel_id: video.channel_id,
+                message_id: video.message_id
+            }
+        });
+        
+    } catch (error) {
+        console.error('💥 Критическая ошибка доступа:', error);
+        res.json({ 
+            success: false, 
+            error: 'Внутренняя ошибка сервера',
+            debug: error.message 
+        });
+    }
+});
+
 // Простой endpoint для проверки доступа
 app.get('/api/webapp/private-videos/:videoId/check-access', (req, res) => {
     try {
@@ -2262,6 +2460,68 @@ app.get('/api/admin/private-videos/:id/protected-link', requireAdmin, (req, res)
         });
     }
 });
+
+// Функции для альтернативного доступа
+async function getNewInviteLink(videoId) {
+    try {
+        showMessage('⏳ Создаем новую ссылку...', 'info');
+        
+        const response = await fetch(`/api/webapp/private-videos/${videoId}/new-invite?userId=${currentUserId}`);
+        const result = await response.json();
+        
+        if (result.success && result.invite_link) {
+            await handleInviteLink(result.invite_link, result.video_title);
+        } else {
+            throw new Error(result.error || 'Не удалось создать ссылку');
+        }
+    } catch (error) {
+        console.error('Ошибка получения новой ссылки:', error);
+        showMessage(`❌ ${error.message}`, 'error');
+    }
+}
+
+async function checkAccessStatus(videoId) {
+    try {
+        const response = await fetch(`/api/webapp/private-videos/${videoId}/access-status?userId=${currentUserId}`);
+        const result = await response.json();
+        
+        let message = '📊 Статус доступа:\n\n';
+        
+        if (result.has_access) {
+            message += '✅ Доступ активен\n';
+            message += `📅 Истекает: ${new Date(result.expires_at).toLocaleDateString()}\n`;
+            message += `🔗 Канал: ${result.channel_name || 'Неизвестно'}\n`;
+            
+            if (result.in_channel) {
+                message += '👤 Вы в канале\n';
+            } else {
+                message += '❌ Вы не в канале\n';
+            }
+        } else {
+            message += '❌ Доступ отсутствует\n';
+            if (result.reason) {
+                message += `Причина: ${result.reason}\n`;
+            }
+        }
+        
+        alert(message);
+        
+    } catch (error) {
+        console.error('Ошибка проверки статуса:', error);
+        showMessage('❌ Ошибка проверки статуса доступа', 'error');
+    }
+}
+
+function contactSupport(videoId) {
+    const message = `Проблема с доступом к материалу ID: ${videoId}\nПользователь: ${currentUserId}\nВремя: ${new Date().toISOString()}`;
+    
+    // Открываем Telegram для связи с поддержкой
+    const supportUsername = 'ваш_аккаунт_поддержки'; // Замените на реальный username
+    const telegramUrl = `https://t.me/${supportUsername}?text=${encodeURIComponent(message)}`;
+    
+    window.open(telegramUrl, '_blank');
+    showMessage('💬 Открываем чат с поддержкой...', 'info');
+}
 
 // server.js - ОБНОВЛЕННАЯ ФУНКЦИЯ АВТОМАТИЧЕСКОГО ДОБАВЛЕНИЯ В КАНАЛ
 async function addUserToPrivateChannel(userId, channelId, videoTitle = '') {
