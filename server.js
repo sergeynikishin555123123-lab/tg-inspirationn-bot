@@ -819,6 +819,142 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '3gb' }));
 app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
 
+// server.js - УЛУЧШЕННАЯ ФУНКЦИЯ ПАРСИНГА ССЫЛОК TELEGRAM
+function parseTelegramUrl(url) {
+    try {
+        console.log('🔗 Парсинг ссылки Telegram:', url);
+        
+        // Убираем возможные пробелы и нормализуем URL
+        url = url.trim().replace(/\s+/g, '');
+        
+        // Добавляем https если нет протокола
+        if (!url.startsWith('http')) {
+            url = 'https://' + url;
+        }
+
+        const urlObj = new URL(url);
+        const pathParts = urlObj.pathname.split('/').filter(part => part);
+        
+        console.log('📊 Части ссылки:', pathParts);
+
+        if (pathParts.length < 2) {
+            return { 
+                success: false, 
+                error: 'Неверный формат ссылки. Пример: t.me/c/1234567890/123 или t.me/username/123' 
+            };
+        }
+
+        let channelId, postId;
+        let isPrivateChannel = false;
+        let channelUsername = null;
+
+        // ОБРАБОТКА РАЗЛИЧНЫХ ФОРМАТОВ ССЫЛОК
+        if (pathParts[0] === 'c') {
+            // ПРИВАТНЫЙ КАНАЛ: t.me/c/1234567890/123
+            if (pathParts.length < 3) {
+                return { 
+                    success: false, 
+                    error: 'Неверный формат приватной ссылки. Пример: t.me/c/1234567890/123' 
+                };
+            }
+            channelId = '-100' + pathParts[1]; // Добавляем префикс для приватных каналов
+            postId = parseInt(pathParts[2]);
+            isPrivateChannel = true;
+            
+        } else if (pathParts[0] === 's') {
+            // СЕКРЕТНЫЙ ЧАТ: t.me/s/username/123
+            if (pathParts.length < 3) {
+                return { 
+                    success: false, 
+                    error: 'Неверный формат ссылки секретного чата' 
+                };
+            }
+            channelUsername = pathParts[1];
+            postId = parseInt(pathParts[2]);
+            
+        } else if (pathParts[0] === 'joinchat') {
+            // ИНВАЙТ-ССЫЛКА: t.me/joinchat/ABCDEFG12345
+            return {
+                success: false,
+                error: 'Это инвайт-ссылка. Используйте прямую ссылку на пост.'
+            };
+            
+        } else {
+            // ПУБЛИЧНЫЙ КАНАЛ: t.me/username/123
+            channelUsername = pathParts[0];
+            postId = parseInt(pathParts[1]);
+        }
+
+        // ВАЛИДАЦИЯ
+        if ((!channelId && !channelUsername) || !postId || isNaN(postId)) {
+            return { 
+                success: false, 
+                error: 'Не удалось извлечь ID канала и поста из ссылки' 
+            };
+        }
+
+        const result = {
+            success: true,
+            channelId: channelId,
+            channelUsername: channelUsername,
+            postId: postId,
+            postUrl: url,
+            isPrivateChannel: isPrivateChannel,
+            directUrl: isPrivateChannel ? 
+                `https://t.me/c/${channelId.replace('-100', '')}/${postId}` :
+                `https://t.me/${channelUsername}/${postId}`
+        };
+        
+        console.log('✅ Успешный парсинг:', result);
+        return result;
+        
+    } catch (error) {
+        console.error('💥 Ошибка парсинга:', error);
+        return { 
+            success: false, 
+            error: 'Ошибка обработки ссылки. Проверьте формат.' 
+        };
+    }
+}
+
+// ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ ID КАНАЛА ПО USERNAME
+async function getChannelIdByUsername(username) {
+    try {
+        if (!TELEGRAM_BOT_TOKEN) {
+            return { success: false, error: 'Токен бота не настроен' };
+        }
+
+        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: '@' + username
+            })
+        });
+
+        const result = await response.json();
+        
+        if (result.ok) {
+            return {
+                success: true,
+                channelId: result.result.id,
+                title: result.result.title,
+                username: result.result.username
+            };
+        } else {
+            return {
+                success: false,
+                error: result.description
+            };
+        }
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
 // ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
 app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
 
@@ -2967,14 +3103,13 @@ app.get('/api/users/:userId', (req, res) => {
     }
 });
 
-app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
+// server.js - ОБНОВЛЕННЫЙ ENDPOINT ДОБАВЛЕНИЯ МАТЕРИАЛА
+app.post('/api/admin/private-videos', requireAdmin, async (req, res) => {
     try {
         console.log('🎬 Создание приватного материала - полученные данные:', JSON.stringify(req.body, null, 2));
         
         const { 
             post_url, 
-            channel_id,
-            message_id,
             title, 
             description, 
             duration, 
@@ -2985,31 +3120,58 @@ app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
         } = req.body;
 
         console.log('🔍 Проверка обязательных полей:', {
-            hasChannelId: !!channel_id,
-            hasMessageId: !!message_id,
-            channel_id: channel_id,
-            message_id: message_id,
+            hasPostUrl: !!post_url,
+            post_url: post_url,
             title: title,
             price: price
         });
 
         // ВАЛИДАЦИЯ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
-        if (!title || !price || !channel_id || !message_id) {
+        if (!post_url || !title || !price) {
             console.log('❌ Отсутствуют обязательные поля:', {
+                post_url: !!post_url,
                 title: !!title,
-                price: !!price,
-                channel_id: !!channel_id,
-                message_id: !!message_id
+                price: !!price
             });
             return res.status(400).json({ 
                 success: false, 
-                error: 'Заполните обязательные поля: название, цена, ID канала и сообщения' 
+                error: 'Заполните обязательные поля: ссылка на пост, название и цена' 
             });
+        }
+
+        // 🔥 АВТОМАТИЧЕСКИЙ ПАРСИНГ ССЫЛКИ
+        console.log('🔗 Автоматический парсинг ссылки...');
+        const telegramData = parseTelegramUrl(post_url);
+        
+        if (!telegramData.success) {
+            return res.status(400).json({ 
+                success: false, 
+                error: telegramData.error 
+            });
+        }
+
+        let finalChannelId = telegramData.channelId;
+        let finalMessageId = telegramData.postId;
+
+        // ЕСЛИ ЕСТЬ USERNAME, ПОПРОБУЕМ ПОЛУЧИТЬ ID КАНАЛА
+        if (telegramData.channelUsername && !telegramData.channelId) {
+            console.log('🔍 Получаем ID канала по username:', telegramData.channelUsername);
+            const channelInfo = await getChannelIdByUsername(telegramData.channelUsername);
+            
+            if (channelInfo.success) {
+                finalChannelId = channelInfo.channelId;
+                console.log('✅ ID канала получен:', finalChannelId);
+            } else {
+                console.log('⚠️ Не удалось получить ID канала, используем username');
+                // Используем username как channel_id (для публичных каналов это допустимо)
+                finalChannelId = telegramData.channelUsername;
+            }
         }
 
         // ПРОВЕРКА НА ДУБЛИКАТЫ
         const existingVideo = db.private_channel_videos.find(v => 
-            v.channel_id === channel_id && v.message_id === parseInt(message_id)
+            (v.channel_id === finalChannelId || v.channel_id === telegramData.channelUsername) && 
+            v.message_id === finalMessageId
         );
         
         if (existingVideo) {
@@ -3019,14 +3181,21 @@ app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
             });
         }
 
+        // АВТОМАТИЧЕСКОЕ ЗАПОЛНЕНИЕ ЕСЛИ НЕТ ОПИСАНИЯ
+        const autoDescription = description || `Приватный материал из Telegram канала. Ссылка: ${post_url}`;
+        
+        // АВТОМАТИЧЕСКОЕ СОЗДАНИЕ НАЗВАНИЯ ЕСЛИ НЕ УКАЗАНО
+        const autoTitle = title || `Материал из ${telegramData.isPrivateChannel ? 'приватного канала' : 'канала'} ${telegramData.channelUsername || finalChannelId}`;
+
         // СОЗДАНИЕ НОВОГО МАТЕРИАЛА
         const newVideo = {
             id: Date.now(),
-            post_url: post_url || '',
-            channel_id: channel_id,
-            message_id: parseInt(message_id),
-            title: title,
-            description: description || '',
+            post_url: post_url,
+            channel_id: finalChannelId,
+            channel_username: telegramData.channelUsername,
+            message_id: finalMessageId,
+            title: autoTitle,
+            description: autoDescription,
             duration: duration || 'Не указано',
             price: parseFloat(price),
             category: category || 'video',
@@ -3035,17 +3204,24 @@ app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
             created_at: new Date().toISOString(),
             preview_url: '',
             file_size: 'Не указан',
-            tags: []
+            tags: [],
+            parsed_data: telegramData // Сохраняем данные парсинга для отладки
         };
 
         db.private_channel_videos.push(newVideo);
 
-        console.log('✅ Приватный материал создан:', newVideo.title);
+        console.log('✅ Приватный материал создан автоматически:', {
+            title: newVideo.title,
+            channel: newVideo.channel_id,
+            post: newVideo.message_id,
+            direct_url: telegramData.directUrl
+        });
 
         res.json({
             success: true,
             video: newVideo,
-            message: 'Приватный материал успешно создан'
+            parsed_data: telegramData,
+            message: 'Приватный материал успешно создан! Данные автоматически извлечены из ссылки.'
         });
 
     } catch (error) {
@@ -3053,6 +3229,52 @@ app.post('/api/admin/private-videos', requireAdmin, (req, res) => {
         res.status(500).json({ 
             success: false, 
             error: 'Ошибка сервера при создании материала: ' + error.message 
+        });
+    }
+});
+
+// server.js - ENDPOINT ДЛЯ ПРЕДВАРИТЕЛЬНОГО ПАРСИНГА ССЫЛКИ
+app.post('/api/admin/parse-telegram-url', requireAdmin, async (req, res) => {
+    try {
+        const { url } = req.body;
+        
+        if (!url) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'URL обязателен' 
+            });
+        }
+
+        console.log('🔗 Парсинг URL:', url);
+        const telegramData = parseTelegramUrl(url);
+        
+        if (!telegramData.success) {
+            return res.json({
+                success: false,
+                error: telegramData.error
+            });
+        }
+
+        // ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ ДЛЯ ПУБЛИЧНЫХ КАНАЛОВ
+        let channelInfo = null;
+        if (telegramData.channelUsername && !telegramData.isPrivateChannel) {
+            channelInfo = await getChannelIdByUsername(telegramData.channelUsername);
+        }
+
+        res.json({
+            success: true,
+            parsed_data: telegramData,
+            channel_info: channelInfo,
+            suggested_title: `Материал из ${telegramData.isPrivateChannel ? 'приватного канала' : 'канала'} ${telegramData.channelUsername || 'Telegram'}`,
+            suggested_description: `Приватный материал из Telegram. Ссылка: ${url}`,
+            direct_url: telegramData.directUrl
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка парсинга URL:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Ошибка парсинга ссылки' 
         });
     }
 });
