@@ -693,7 +693,6 @@ let db = {
     interactive_submissions: [],
 // В объекте db добавьте эти коллекции если их нет:
 marathon_submissions: [],
-video_access: [],
 private_channel_videos: [
     {
         id: 1,
@@ -5346,39 +5345,8 @@ async function startServer() {
     }
 }
 
-// Обновленная функция graceful shutdown
-function setupGracefulShutdown(server) {
-    const pidFile = join(__dirname, 'server.pid');
-    
-    const shutdownHandlers = {
-        'SIGINT': 'Ctrl+C',
-        'SIGTERM': 'системный сигнал завершения'
-    };
-    
-    Object.keys(shutdownHandlers).forEach(signal => {
-        process.on(signal, async () => {
-            console.log(`\n🔄 Получен ${shutdownHandlers[signal]} (${signal})`);
-            
-            try {
-                // Удаляем PID файл
-                if (existsSync(pidFile)) {
-                    await fs.promises.unlink(pidFile);
-                    console.log('✅ PID файл удален');
-                }
-                
-                console.log('👋 Сервер корректно завершает работу...');
-                server.close(() => {
-                    console.log('✅ HTTP сервер остановлен');
-                    process.exit(0);
-                });
-                
-            } catch (error) {
-                console.error('❌ Ошибка при завершении:', error);
-                process.exit(1);
-            }
-        });
-    });
-}
-
-// ЗАПУСКАЕМ ПРИЛОЖЕНИЕ
-main().catch(console.error);
+// ЗАПУСКАЕМ ПРИЛОЖЕНИЕ - ИСПРАВЛЕННАЯ ВЕРСИЯ
+startServer().catch(error => {
+    console.error('💥 Критическая ошибка запуска:', error);
+    process.exit(1);
+});
