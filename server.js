@@ -1455,78 +1455,128 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
         const { userId, videoId } = req.body;
         
-        // Получаем пользователя
-        const user = await db.get('SELECT * FROM users WHERE user_id = ?', [userId]);
-        if (!user) {
-            return res.json({ success: false, error: 'Пользователь не найден' });
-        }
-        
-        // Получаем видео
-        const video = await db.get('SELECT * FROM private_videos WHERE id = ?', [videoId]);
-        if (!video) {
-            return res.json({ success: false, error: 'Материал не найден' });
-        }
-        
-        // Проверяем баланс
-        if (user.sparks < video.price) {
-            return res.json({ success: false, error: 'Недостаточно искр' });
-        }
-        
-        // Проверяем, не куплено ли уже
-        const existingPurchase = await db.get(
-            'SELECT * FROM private_video_purchases WHERE user_id = ? AND video_id = ?',
-            [userId, videoId]
-        );
-        
-        if (existingPurchase) {
-            return res.json({ success: false, error: 'Материал уже куплен' });
-        }
-        
-        // Начинаем транзакцию
-        await db.run('BEGIN TRANSACTION');
-        
-        try {
-            // Списываем искры
-            await db.run(
-                'UPDATE users SET sparks = sparks - ? WHERE user_id = ?',
-                [video.price, userId]
-            );
-            
-            // Создаем запись о покупке
-            await db.run(
-                'INSERT INTO private_video_purchases (user_id, video_id, price_paid, purchased_at) VALUES (?, ?, ?, ?)',
-                [userId, videoId, video.price, new Date().toISOString()]
-            );
-            
-            // Обновляем статистику видео
-            await db.run(
-                'UPDATE private_videos SET purchase_count = purchase_count + 1 WHERE id = ?',
-                [videoId]
-            );
-            
-            // Фиксируем транзакцию
-            await db.run('COMMIT');
-            
-            // Получаем обновленного пользователя
-            const updatedUser = await db.get('SELECT * FROM users WHERE user_id = ?', [userId]);
-            
-            res.json({
-                success: true,
-                message: 'Материал успешно приобретен! Теперь вы можете получить доступ к нему в разделе "Мои материалы"',
-                user: updatedUser
+        console.log('🛒 Покупка приватного видео:', { userId, videoId });
+
+        if (!userId || !videoId) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'User ID and video ID are required' 
             });
-            
-        } catch (error) {
-            // Откатываем транзакцию при ошибке
-            await db.run('ROLLBACK');
-            throw error;
+        }
+
+        const user = db.users.find(u => u.user_id == userId);
+        const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
+
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Пользователь не найден' 
+            });
         }
         
+        if (!video) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Видео не найдено или неактивно' 
+            });
+        }
+
+        // ПРОВЕРКА БАЛАНСА
+        if (user.sparks < video.price) {
+            return res.status(402).json({ 
+                success: false,
+                error: `Недостаточно искр. Нужно: ${video.price}, у вас: ${user.sparks.toFixed(1)}` 
+            });
+        }
+
+        // ПРОВЕРКА НА УЖЕ КУПЛЕННЫЙ ДОСТУП
+        const existingPurchase = db.purchases.find(p => 
+            p.user_id == userId && p.item_id === videoId && p.item_type === 'private_video'
+        );
+
+        if (existingPurchase) {
+            return res.status(409).json({ 
+                success: false,
+                error: 'У вас уже есть доступ к этому материалу' 
+            });
+        }
+
+        // ПРОВЕРКА АКТИВНОГО ДОСТУПА
+        const existingAccess = db.video_access.find(access => 
+            access.user_id == userId && access.video_id === videoId && access.expires_at > new Date().toISOString()
+        );
+
+        if (existingAccess) {
+            return res.status(409).json({ 
+                success: false,
+                error: 'У вас уже есть активный доступ к этому материалу' 
+            });
+        }
+
+        // СПИСАНИЕ ИСКР
+        const oldSparks = user.sparks;
+        user.sparks -= video.price;
+        
+        console.log(`💰 Списание искр: ${oldSparks} -> ${user.sparks}`);
+
+        // СОЗДАНИЕ ЗАПИСИ О ПОКУПКЕ
+        const purchase = {
+            id: Date.now(),
+            user_id: parseInt(userId),
+            item_id: videoId,
+            item_type: 'private_video',
+            item_title: video.title,
+            price_paid: video.price,
+            purchased_at: new Date().toISOString()
+        };
+        db.purchases.push(purchase);
+
+        // СОЗДАНИЕ ДОСТУПА (30 ДНЕЙ)
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+        
+        const access = {
+            id: Date.now(),
+            user_id: parseInt(userId),
+            video_id: videoId,
+            purchased_at: new Date().toISOString(),
+            expires_at: expiresAt.toISOString(),
+            telegram_message_id: null
+        };
+        db.video_access.push(access);
+
+        // ЗАПИСЬ АКТИВНОСТИ
+        addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
+
+        console.log('✅ Покупка завершена:', { 
+            purchase: purchase.id, 
+            access: access.id,
+            user: userId,
+            video: video.title
+        });
+
+        res.json({
+            success: true,
+            purchase: purchase,
+            access: access,
+            remaining_sparks: user.sparks,
+            message: `Доступ к "${video.title}" успешно приобретен! Ссылка для просмотра доступна в ваших покупках.`
+        });
+
     } catch (error) {
-        console.error('Ошибка покупки приватного видео:', error);
-        res.json({ 
-            success: false, 
-            error: 'Внутренняя ошибка сервера: ' + error.message 
+        console.error('❌ Ошибка покупки приватного видео:', error);
+        
+        // ОТКАТ СПИСАНИЯ В СЛУЧАЕ ОШИБКИ
+        if (userId) {
+            const user = db.users.find(u => u.user_id == userId);
+            if (user) {
+                user.sparks += req.body.videoId ? db.private_channel_videos.find(v => v.id == req.body.videoId)?.price || 0 : 0;
+            }
+        }
+        
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка при покупке доступа к видео' 
         });
     }
 });
