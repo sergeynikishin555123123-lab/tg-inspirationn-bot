@@ -730,65 +730,7 @@ marathon_submissions: []
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-// Функция для добавления пользователя в канал (ОБНОВЛЕННАЯ)
-async function addUserToChannel(userId, channelId) {
-    try {
-        console.log(`👤 Добавляем пользователя ${userId} в канал ${channelId}`);
-        
-        if (!TELEGRAM_BOT_TOKEN) {
-            return { success: false, error: 'Токен бота не настроен' };
-        }
-        
-        // ПРОВЕРЯЕМ, УЧАСТНИК ЛИ УЖЕ ПОЛЬЗОВАТЕЛЬ
-        const checkResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: channelId,
-                user_id: parseInt(userId)
-            })
-        });
-        
-        const checkResult = await checkResponse.json();
-        
-        // ЕСЛИ УЖЕ УЧАСТНИК - ВОЗВРАЩАЕМ УСПЕХ
-        if (checkResult.ok && ['member', 'administrator', 'creator'].includes(checkResult.result.status)) {
-            console.log('✅ Пользователь уже участник канала');
-            return { success: true, already_member: true };
-        }
-        
-        // ЕСЛИ НЕ УЧАСТНИК - ДОБАВЛЯЕМ
-        console.log('➕ Добавляем пользователя в канал...');
-        const addResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/approveChatJoinRequest`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: channelId,
-                user_id: parseInt(userId)
-            })
-        });
-        
-        const addResult = await addResponse.json();
-        
-        if (addResult.ok) {
-            console.log('✅ Пользователь успешно добавлен в канал');
-            return { success: true, added: true };
-        } else {
-            console.log('❌ Ошибка добавления в канал:', addResult.description);
-            return { 
-                success: false, 
-                error: addResult.description || 'Неизвестная ошибка Telegram API' 
-            };
-        }
-        
-    } catch (error) {
-        console.error('💥 Ошибка при добавлении в канал:', error);
-        return { 
-            success: false, 
-            error: `Ошибка сети: ${error.message}` 
-        };
-    }
-}
+
 // Функция для создания инвайт-ссылки для канала
 async function createChannelInviteLink(channelId) {
     try {
@@ -819,141 +761,6 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '3gb' }));
 app.use(bodyParser.urlencoded({ limit: '3gb', extended: true }));
 
-// server.js - УЛУЧШЕННАЯ ФУНКЦИЯ ПАРСИНГА ССЫЛОК TELEGRAM
-function parseTelegramUrl(url) {
-    try {
-        console.log('🔗 Парсинг ссылки Telegram:', url);
-        
-        // Убираем возможные пробелы и нормализуем URL
-        url = url.trim().replace(/\s+/g, '');
-        
-        // Добавляем https если нет протокола
-        if (!url.startsWith('http')) {
-            url = 'https://' + url;
-        }
-
-        const urlObj = new URL(url);
-        const pathParts = urlObj.pathname.split('/').filter(part => part);
-        
-        console.log('📊 Части ссылки:', pathParts);
-
-        if (pathParts.length < 2) {
-            return { 
-                success: false, 
-                error: 'Неверный формат ссылки. Пример: t.me/c/1234567890/123 или t.me/username/123' 
-            };
-        }
-
-        let channelId, postId;
-        let isPrivateChannel = false;
-        let channelUsername = null;
-
-        // ОБРАБОТКА РАЗЛИЧНЫХ ФОРМАТОВ ССЫЛОК
-        if (pathParts[0] === 'c') {
-            // ПРИВАТНЫЙ КАНАЛ: t.me/c/1234567890/123
-            if (pathParts.length < 3) {
-                return { 
-                    success: false, 
-                    error: 'Неверный формат приватной ссылки. Пример: t.me/c/1234567890/123' 
-                };
-            }
-            channelId = '-100' + pathParts[1]; // Добавляем префикс для приватных каналов
-            postId = parseInt(pathParts[2]);
-            isPrivateChannel = true;
-            
-        } else if (pathParts[0] === 's') {
-            // СЕКРЕТНЫЙ ЧАТ: t.me/s/username/123
-            if (pathParts.length < 3) {
-                return { 
-                    success: false, 
-                    error: 'Неверный формат ссылки секретного чата' 
-                };
-            }
-            channelUsername = pathParts[1];
-            postId = parseInt(pathParts[2]);
-            
-        } else if (pathParts[0] === 'joinchat') {
-            // ИНВАЙТ-ССЫЛКА: t.me/joinchat/ABCDEFG12345
-            return {
-                success: false,
-                error: 'Это инвайт-ссылка. Используйте прямую ссылку на пост.'
-            };
-            
-        } else {
-            // ПУБЛИЧНЫЙ КАНАЛ: t.me/username/123
-            channelUsername = pathParts[0];
-            postId = parseInt(pathParts[1]);
-        }
-
-        // ВАЛИДАЦИЯ
-        if ((!channelId && !channelUsername) || !postId || isNaN(postId)) {
-            return { 
-                success: false, 
-                error: 'Не удалось извлечь ID канала и поста из ссылки' 
-            };
-        }
-
-        const result = {
-            success: true,
-            channelId: channelId,
-            channelUsername: channelUsername,
-            postId: postId,
-            postUrl: url,
-            isPrivateChannel: isPrivateChannel,
-            directUrl: isPrivateChannel ? 
-                `https://t.me/c/${channelId.replace('-100', '')}/${postId}` :
-                `https://t.me/${channelUsername}/${postId}`
-        };
-        
-        console.log('✅ Успешный парсинг:', result);
-        return result;
-        
-    } catch (error) {
-        console.error('💥 Ошибка парсинга:', error);
-        return { 
-            success: false, 
-            error: 'Ошибка обработки ссылки. Проверьте формат.' 
-        };
-    }
-}
-
-// ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ ID КАНАЛА ПО USERNAME
-async function getChannelIdByUsername(username) {
-    try {
-        if (!TELEGRAM_BOT_TOKEN) {
-            return { success: false, error: 'Токен бота не настроен' };
-        }
-
-        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: '@' + username
-            })
-        });
-
-        const result = await response.json();
-        
-        if (result.ok) {
-            return {
-                success: true,
-                channelId: result.result.id,
-                title: result.result.title,
-                username: result.result.username
-            };
-        } else {
-            return {
-                success: false,
-                error: result.description
-            };
-        }
-    } catch (error) {
-        return {
-            success: false,
-            error: error.message
-        };
-    }
-}
 
 // ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
 app.use(express.static(join(APP_ROOT, 'public'), { maxAge: '1d' }));
@@ -1478,69 +1285,12 @@ app.post('/api/webapp/private-videos/:videoId/request-invite', async (req, res) 
     }
 });
 
-// ==================== API ДЛЯ ПРИВАТНЫХ ВИДЕО ====================
-
-// Получить все приватные видео
-app.get('/api/webapp/private-videos', (req, res) => {
-    try {
-        const userId = parseInt(req.query.userId);
-        console.log('🎬 Запрос приватных видео для пользователя:', userId);
-
-        if (!userId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Требуется авторизация' 
-            });
-        }
-
-        const videos = db.private_channel_videos.filter(video => video.is_active);
-        
-        const videosWithAccess = videos.map(video => {
-            // Проверка активного доступа
-            const hasAccess = db.video_access.some(access => 
-                access.user_id == userId && 
-                access.video_id === video.id && 
-                access.expires_at > new Date().toISOString()
-            );
-            
-            // Проверка покупки (даже если доступ истек)
-            const hasPurchase = db.purchases.some(purchase => 
-                purchase.user_id == userId && 
-                purchase.item_id === video.id && 
-                purchase.item_type === 'private_video'
-            );
-
-            return {
-                ...video,
-                has_access: hasAccess,
-                has_purchase: hasPurchase,
-                can_purchase: !hasPurchase, // Можно купить, если еще не покупал
-                access_expired: hasPurchase && !hasAccess // Покупал, но доступ истек
-            };
-        });
-
-        console.log(`✅ Найдено видео: ${videosWithAccess.length}`);
-
-        res.json({ 
-            success: true,
-            videos: videosWithAccess 
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка получения приватных видео:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка загрузки видео' 
-        });
-    }
-});
-
-// server.js - АВТОМАТИЗИРОВАННЫЙ ENDPOINT ПОКУПКИ
+// Упрощенная покупка приватного материала
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
         const { userId, videoId } = req.body;
         
-        console.log('🛒 Автоматическая покупка приватного видео:', { userId, videoId });
+        console.log('🛒 Покупка приватного материала:', { userId, videoId });
 
         if (!userId || !videoId) {
             return res.status(400).json({ 
@@ -1562,11 +1312,11 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         if (!video) {
             return res.status(404).json({ 
                 success: false,
-                error: 'Видео не найдено или неактивно' 
+                error: 'Материал не найден или неактивен' 
             });
         }
 
-        // ПРОВЕРКА БАЛАНСА
+        // Проверка баланса
         if (user.sparks < video.price) {
             return res.status(402).json({ 
                 success: false,
@@ -1574,7 +1324,7 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             });
         }
 
-        // ПРОВЕРКА НА УЖЕ КУПЛЕННЫЙ ДОСТУП
+        // Проверка на уже купленный доступ
         const existingPurchase = db.purchases.find(p => 
             p.user_id == userId && p.item_id === videoId && p.item_type === 'private_video'
         );
@@ -1586,13 +1336,13 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             });
         }
 
-        // СПИСАНИЕ ИСКР
+        // Списание искр
         const oldSparks = user.sparks;
         user.sparks -= video.price;
         
         console.log(`💰 Списание искр: ${oldSparks} -> ${user.sparks}`);
 
-        // СОЗДАНИЕ ЗАПИСИ О ПОКУПКЕ
+        // Создание записи о покупке
         const purchase = {
             id: Date.now(),
             user_id: parseInt(userId),
@@ -1604,7 +1354,7 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         };
         db.purchases.push(purchase);
 
-        // СОЗДАНИЕ ДОСТУПА (30 ДНЕЙ)
+        // Создание доступа (30 дней)
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30);
         
@@ -1613,42 +1363,36 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             user_id: parseInt(userId),
             video_id: videoId,
             purchased_at: new Date().toISOString(),
-            expires_at: expiresAt.toISOString(),
-            telegram_message_id: null
+            expires_at: expiresAt.toISOString()
         };
         db.video_access.push(access);
 
-        // ЗАПИСЬ АКТИВНОСТИ
-        addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
+        // Запись активности
+        addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к материалу: ${video.title}`);
 
-        // 🔥 АВТОМАТИЧЕСКАЯ ОТПРАВКА ССЫЛКИ В TELEGRAM
-        console.log(`🤖 Автоматически отправляем ссылку пользователю ${userId}`);
-        const telegramResult = await sendVideoAccessToUser(userId, video);
-        
         console.log('✅ Покупка завершена:', { 
             purchase: purchase.id, 
             access: access.id,
             user: userId,
-            video: video.title,
-            telegram_sent: telegramResult.success
+            video: video.title
         });
+
+        // Отправляем инвайт-ссылку пользователю
+        await sendVideoAccessToUser(userId, video);
 
         res.json({
             success: true,
             purchase: purchase,
             access: access,
             remaining_sparks: user.sparks,
-            telegram_sent: telegramResult.success,
-            direct_url: telegramResult.direct_url || `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`,
-            message: telegramResult.success ? 
-                `✅ Доступ к "${video.title}" успешно приобретен! Ссылка отправлена вам в Telegram.` :
-                `✅ Доступ к "${video.title}" успешно приобретен! Ссылка: ${telegramResult.direct_url}`
+            invite_link: video.invite_link, // Возвращаем инвайт-ссылку
+            message: `✅ Доступ к "${video.title}" успешно приобретен! Используйте инвайт-ссылку для вступления в канал.`
         });
 
     } catch (error) {
-        console.error('❌ Ошибка покупки приватного видео:', error);
+        console.error('❌ Ошибка покупки приватного материала:', error);
         
-        // ОТКАТ СПИСАНИЯ В СЛУЧАЕ ОШИБКИ
+        // Откат списания в случае ошибки
         if (userId) {
             const user = db.users.find(u => u.user_id == userId);
             if (user) {
@@ -1658,11 +1402,10 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         
         res.status(500).json({ 
             success: false,
-            error: 'Ошибка при покупке доступа к видео' 
+            error: 'Ошибка при покупке доступа к материалу' 
         });
     }
 });
-
 // Получить мои приватные видео
 app.get('/api/webapp/user/private-videos', (req, res) => {
     try {
@@ -2057,7 +1800,7 @@ app.get('/api/webapp/check-subscription', async (req, res) => {
     }
 });
 
-// Обновить приватный материал
+// Обновление приватного материала
 app.put('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
     try {
         const videoId = parseInt(req.params.id);
@@ -2071,6 +1814,7 @@ app.put('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
         }
 
         const { 
+            invite_link, 
             title, 
             description, 
             duration, 
@@ -2081,6 +1825,7 @@ app.put('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
         } = req.body;
 
         // Обновляем только переданные поля
+        if (invite_link) db.private_channel_videos[videoIndex].invite_link = invite_link;
         if (title) db.private_channel_videos[videoIndex].title = title;
         if (description !== undefined) db.private_channel_videos[videoIndex].description = description;
         if (duration !== undefined) db.private_channel_videos[videoIndex].duration = duration;
@@ -2106,7 +1851,8 @@ app.put('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
     }
 });
 
-// Удалить приватный материал
+
+// Удаление приватного материала
 app.delete('/api/admin/private-videos/:id', requireAdmin, (req, res) => {
     try {
         const videoId = parseInt(req.params.id);
@@ -2294,23 +2040,17 @@ function contactSupport(videoId) {
     showMessage('💬 Открываем чат с поддержкой...', 'info');
 }
 
-// server.js - ФУНКЦИЯ АВТОМАТИЧЕСКОЙ ОТПРАВКИ ДОСТУПА
+// Упрощенная функция отправки доступа
 async function sendVideoAccessToUser(userId, video) {
     try {
-        console.log(`📨 Отправляем доступ пользователю ${userId} на видео: ${video.title}`);
+        console.log(`📨 Отправляем доступ пользователю ${userId} на материал: ${video.title}`);
         
         if (!TELEGRAM_BOT_TOKEN) {
-            return { 
-                success: false, 
-                error: 'Токен бота не настроен',
-                direct_url: `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`
-            };
+            console.log('⚠️ Токен бота не настроен, пропускаем отправку');
+            return { success: false, error: 'Токен бота не настроен' };
         }
 
-        // Формируем прямую ссылку на пост
-        const directUrl = `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`;
-        
-        // Создаем красивое сообщение
+        // Создаем сообщение с инвайт-ссылкой
         const message = `🎬 *Вы получили доступ к приватному материалу!*
 
 📹 *${video.title}*
@@ -2320,13 +2060,13 @@ ${video.duration ? `⏱️ Длительность: ${video.duration}\\n` : ''}
 🎯 *Уровень:* ${getLevelName(video.level)}
 📚 *Категория:* ${getCategoryName(video.category)}
 
-🔗 *Ссылка для просмотра:*
-${directUrl}
+🔗 *Инвайт-ссылка в канал:*
+${video.invite_link}
 
 💡 *Инструкция:*
-1. Нажмите на ссылку выше
-2. Материал откроется в Telegram
-3. Сохраните ссылку для будущего доступа
+1. Нажмите на инвайт-ссылку выше
+2. Вступите в канал
+3. Найдите материал в канале
 
 ⏰ *Доступ активен:* 30 дней
 📅 *Истекает:* ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('ru-RU')}
@@ -2345,8 +2085,8 @@ ${directUrl}
                 reply_markup: {
                     inline_keyboard: [[
                         {
-                            text: "🎬 Смотреть материал",
-                            url: directUrl
+                            text: "🔗 Вступить в канал",
+                            url: video.invite_link
                         }
                     ]]
                 }
@@ -2359,15 +2099,13 @@ ${directUrl}
             console.log(`✅ Сообщение с доступом отправлено пользователю ${userId}`);
             return {
                 success: true,
-                message_id: result.result.message_id,
-                direct_url: directUrl
+                message_id: result.result.message_id
             };
         } else {
             console.error(`❌ Ошибка отправки сообщения:`, result.description);
             return {
                 success: false,
-                error: result.description,
-                direct_url: directUrl // Все равно возвращаем ссылку
+                error: result.description
             };
         }
 
@@ -2375,13 +2113,12 @@ ${directUrl}
         console.error(`💥 Ошибка отправки доступа пользователю ${userId}:`, error);
         return {
             success: false,
-            error: error.message,
-            direct_url: `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`
+            error: error.message
         };
     }
 }
 
-// Вспомогательные функции для форматирования
+// Вспомогательные функции для форматирования (оставляем только нужные)
 function getCategoryName(category) {
     const categories = {
         'video': '🎥 Видео',
@@ -2401,448 +2138,6 @@ function getLevelName(level) {
     };
     return levels[level] || level;
 }
-
-// Скрипт для проверки прав бота
-async function checkBotPermissions() {
-    try {
-        const chat = await bot.telegram.getChat(process.env.CHANNEL_ID);
-        const botMember = await bot.telegram.getChatMember(process.env.CHANNEL_ID, process.env.BOT_ID);
-        
-        console.log('👑 Права бота в канале:', {
-            can_invite_users: botMember.can_invite_users,
-            can_promote_members: botMember.can_promote_members,
-            can_restrict_members: botMember.can_restrict_members,
-            status: botMember.status
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка проверки прав бота:', error);
-    }
-}
-
-// server.js - ОБНОВЛЕННАЯ ФУНКЦИЯ АВТОМАТИЧЕСКОГО ДОБАВЛЕНИЯ В КАНАЛ
-async function addUserToPrivateChannel(userId, channelId, videoTitle = '') {
-    try {
-        console.log(`👤 Автоматическое добавление пользователя ${userId} в канал ${channelId}`);
-        
-        if (!TELEGRAM_BOT_TOKEN) {
-            return { 
-                success: false, 
-                error: 'Токен бота не настроен',
-                message: 'Токен бота не настроен'
-            };
-        }
-
-        // 1. ПРОВЕРЯЕМ, УЧАСТНИК ЛИ УЖЕ ПОЛЬЗОВАТЕЛЬ
-        console.log(`🔍 Проверяем участника ${userId} в канале ${channelId}`);
-        const checkResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: channelId,
-                user_id: parseInt(userId)
-            })
-        });
-        
-        const checkResult = await checkResponse.json();
-        console.log('📊 Результат проверки участника:', checkResult);
-        
-        // ЕСЛИ УЖЕ УЧАСТНИК - ВОЗВРАЩАЕМ УСПЕХ
-        if (checkResult.ok && ['member', 'administrator', 'creator'].includes(checkResult.result.status)) {
-            console.log('✅ Пользователь уже участник канала');
-            return { 
-                success: true, 
-                already_member: true,
-                message: 'Пользователь уже состоит в канале'
-            };
-        }
-
-        // 2. ПРОВЕРЯЕМ ПРАВА БОТА В КАНАЛЕ
-        console.log('🔑 Проверяем права бота в канале...');
-        const botMemberResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: channelId,
-                user_id: parseInt(TELEGRAM_BOT_TOKEN.split(':')[0])
-            })
-        });
-        
-        const botMemberResult = await botMemberResponse.json();
-        console.log('📊 Права бота:', botMemberResult);
-        
-        if (!botMemberResult.ok || !['administrator', 'creator'].includes(botMemberResult.result.status)) {
-            console.log('❌ Бот не является администратором канала');
-            return { 
-                success: false, 
-                error: 'Бот не имеет прав администратора в этом канале',
-                message: 'Бот не имеет прав для добавления в канал. Обратитесь к администратору.'
-            };
-        }
-
-        // 3. ПРОБУЕМ ДОБАВИТЬ ЧЕРЕЗ APPROVE CHAT JOIN REQUEST (для приватных каналов)
-        console.log('➕ Пробуем добавить через approveChatJoinRequest...');
-        try {
-            const addResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/approveChatJoinRequest`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: channelId,
-                    user_id: parseInt(userId)
-                })
-            });
-            
-            const addResult = await addResponse.json();
-            console.log('📊 Результат approveChatJoinRequest:', addResult);
-            
-            if (addResult.ok) {
-                console.log('✅ Пользователь успешно добавлен в канал через approveChatJoinRequest');
-                
-                // Отправляем приветственное сообщение
-                await sendTelegramNotification(userId,
-                    `🎉 Добро пожаловать в приватный канал!\n\n` +
-                    `📹 Теперь у вас есть доступ к: "${videoTitle}"\n` +
-                    `⏰ Доступ активен 30 дней\n\n` +
-                    `💡 Для просмотра материала откройте раздел "Мои материалы" в личном кабинете.`
-                );
-                
-                return { 
-                    success: true, 
-                    added: true,
-                    method: 'approve_join_request',
-                    message: 'Пользователь успешно добавлен в канал'
-                };
-            }
-        } catch (approveError) {
-            console.log('⚠️ approveChatJoinRequest не сработал:', approveError.message);
-        }
-
-        // 4. ПРОБУЕМ ДОБАВИТЬ ЧЕРЕЗ UNBAN CHAT MEMBER (если пользователь был забанен)
-        console.log('🔄 Пробуем через unbanChatMember...');
-        try {
-            const unbanResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/unbanChatMember`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: channelId,
-                    user_id: parseInt(userId),
-                    only_if_banned: true
-                })
-            });
-            
-            const unbanResult = await unbanResponse.json();
-            console.log('📊 Результат unbanChatMember:', unbanResult);
-        } catch (unbanError) {
-            console.log('⚠️ unbanChatMember не сработал:', unbanError.message);
-        }
-
-        // 5. ПРОБУЕМ ДОБАВИТЬ ЧЕРЕЗ ПРИГЛАСИТЕЛЬНУЮ ССЫЛКУ
-        console.log('🔗 Создаем инвайт-ссылку...');
-        const inviteResult = await createPrivateInviteLink(channelId, userId);
-        
-        if (inviteResult.success) {
-            console.log('✅ Создана инвайт-ссылка');
-            
-            // Отправляем ссылку пользователю
-            await sendTelegramNotification(userId,
-                `🎉 Вы приобрели доступ к: "${videoTitle}"\n\n` +
-                `🔗 Для получения доступа используйте эту ссылку:\n${inviteResult.invite_link}\n\n` +
-                `⏰ Ссылка действительна 24 часа\n` +
-                `💡 После вступления в канал материал будет доступен в разделе "Мои материалы"`
-            );
-            
-            return {
-                success: true,
-                invite_link: inviteResult.invite_link,
-                method: 'invite_link',
-                message: `Для доступа используйте пригласительную ссылку: ${inviteResult.invite_link}`
-            };
-        }
-
-        // 6. ЕСЛИ ВСЕ МЕТОДЫ НЕ СРАБОТАЛИ
-        console.log('❌ Все методы добавления не сработали');
-        return { 
-            success: false, 
-            error: 'Не удалось автоматически добавить в канал',
-            message: 'Не удалось автоматически добавить в канал. Обратитесь к администратору для получения доступа.'
-        };
-        
-    } catch (error) {
-        console.error('💥 Критическая ошибка при добавлении в канал:', error);
-        return { 
-            success: false, 
-            error: `Ошибка сети: ${error.message}`,
-            message: 'Ошибка при добавлении в канал. Обратитесь к администратору.'
-        };
-    }
-}
-// server.js - УЛУЧШЕННАЯ ФУНКЦИЯ СОЗДАНИЯ ИНВАЙТ-ССЫЛКИ
-async function createPrivateInviteLink(channelId, userId) {
-    try {
-        console.log(`🔗 Создаем инвайт-ссылку для канала ${channelId} и пользователя ${userId}`);
-        
-        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/createChatInviteLink`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: channelId,
-                member_limit: 1,
-                expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 часа
-                name: `Access for user ${userId}`,
-                creates_join_request: false // Прямое приглашение, не запрос на вступление
-            })
-        });
-
-        const result = await response.json();
-        
-        if (result.ok) {
-            console.log('✅ Инвайт-ссылка создана:', result.result.invite_link);
-            return {
-                success: true,
-                invite_link: result.result.invite_link,
-                expire_date: result.result.expire_date
-            };
-        } else {
-            console.log('❌ Ошибка создания инвайт-ссылки:', result.description);
-            return {
-                success: false,
-                error: result.description
-            };
-        }
-    } catch (error) {
-        console.error('💥 Ошибка создания инвайт-ссылки:', error);
-        return {
-            success: false,
-            error: error.message
-        };
-    }
-}
-// server.js - ENDPOINT ДЛЯ РУЧНОГО ПОЛУЧЕНИЯ ДОСТУПА
-app.post('/api/webapp/private-videos/:videoId/get-access', async (req, res) => {
-    try {
-        const videoId = parseInt(req.params.videoId);
-        const { userId } = req.body;
-        
-        console.log('🔗 Ручной запрос доступа к видео:', { userId, videoId });
-
-        if (!userId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Требуется авторизация' 
-            });
-        }
-
-        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
-        if (!video) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Видео не найдено' 
-            });
-        }
-
-        // Проверяем, есть ли доступ у пользователя
-        const hasAccess = db.video_access.some(access => 
-            access.user_id == userId && 
-            access.video_id === videoId && 
-            access.expires_at > new Date().toISOString()
-        );
-
-        if (!hasAccess) {
-            return res.status(403).json({ 
-                success: false,
-                error: 'Нет доступа к этому видео. Сначала приобретите доступ.' 
-            });
-        }
-
-        // Пытаемся добавить пользователя в канал
-        console.log(`🔄 Пытаемся добавить пользователя ${userId} в канал ${video.channel_id}`);
-        const addResult = await addUserToPrivateChannel(userId, video.channel_id, video.title);
-        
-        if (addResult.success) {
-            if (addResult.invite_link) {
-                // Возвращаем инвайт-ссылку если автоматическое добавление не удалось
-                res.json({
-                    success: true,
-                    access_type: 'invite_link',
-                    invite_link: addResult.invite_link,
-                    video_title: video.title,
-                    message: 'Используйте эту ссылку для вступления в канал. Ссылка действительна 24 часа.'
-                });
-            } else if (addResult.added || addResult.already_member) {
-                // Пользователь успешно добавлен или уже участник
-                const directUrl = `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`;
-                res.json({
-                    success: true,
-                    access_type: 'direct_access',
-                    direct_url: directUrl,
-                    video_title: video.title,
-                    message: addResult.added ? 
-                        'Вы были успешно добавлены в канал! Открываем материал...' : 
-                        'Вы уже состоите в канале. Открываем материал...'
-                });
-            }
-        } else {
-            // Если не удалось добавить, создаем новую инвайт-ссылку
-            const inviteResult = await createPrivateInviteLink(video.channel_id, userId);
-            
-            if (inviteResult.success) {
-                res.json({
-                    success: true,
-                    access_type: 'invite_link',
-                    invite_link: inviteResult.invite_link,
-                    video_title: video.title,
-                    message: 'Используйте эту ссылку для вступления в канал. Ссылка действительна 24 часа.'
-                });
-            } else {
-                res.json({
-                    success: false,
-                    error: 'Не удалось получить доступ к каналу. Обратитесь к администратору.',
-                    message: 'Не удалось получить доступ к каналу. Обратитесь к администратору.'
-                });
-            }
-        }
-
-    } catch (error) {
-        console.error('❌ Ошибка получения доступа:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка получения доступа к видео' 
-        });
-    }
-});
-
-// server.js - ОБНОВЛЕННЫЙ ENDPOINT ПРОВЕРКИ ДОСТУПА
-app.get('/api/webapp/private-videos/:videoId/check-access', async (req, res) => {
-    try {
-        const videoId = parseInt(req.params.videoId);
-        const userId = parseInt(req.query.userId);
-        
-        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
-        if (!video) {
-            return res.json({ 
-                success: false,
-                has_access: false,
-                error: 'Видео не найдено' 
-            });
-        }
-
-        const hasAccess = db.video_access.some(access => 
-            access.user_id == userId && 
-            access.video_id === videoId && 
-            access.expires_at > new Date().toISOString()
-        );
-
-        // Проверяем, состоит ли пользователь в канале
-        let isChannelMember = false;
-        if (hasAccess) {
-            try {
-                const checkResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: video.channel_id,
-                        user_id: userId
-                    })
-                });
-                
-                const checkResult = await checkResponse.json();
-                isChannelMember = checkResult.ok && ['member', 'administrator', 'creator'].includes(checkResult.result.status);
-            } catch (error) {
-                console.log('⚠️ Ошибка проверки участника канала:', error.message);
-            }
-        }
-
-        const accessInfo = hasAccess ? 
-            (isChannelMember ? 
-                'Доступ активен • В канале • Можно смотреть' : 
-                'Доступ активен • Требуется вступление в канал') : 
-            'Нет доступа';
-
-        res.json({
-            success: true,
-            has_access: hasAccess,
-            is_channel_member: isChannelMember,
-            can_watch: hasAccess && isChannelMember,
-            video: {
-                id: video.id,
-                title: video.title,
-                price: video.price,
-                channel_id: video.channel_id,
-                message_id: video.message_id
-            },
-            access_info: accessInfo,
-            actions_required: hasAccess && !isChannelMember
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка проверки доступа:', error);
-        res.json({ 
-            success: false,
-            has_access: false,
-            error: 'Ошибка сервера' 
-        });
-    }
-});
-
-// Упрощенный прокси для доступа к видео
-app.get('/api/telegram/proxy/:token', async (req, res) => {
-    try {
-        const token = req.params.token;
-        const userId = parseInt(req.query.userId);
-        const videoId = parseInt(req.query.videoId);
-        
-        console.log('🔗 Обработка прокси-запроса:', { token, userId, videoId });
-
-        if (!userId || !videoId) {
-            return res.status(401).send('Требуется авторизация');
-        }
-
-        // Проверяем валидность токена
-        if (!validateVideoToken(token, userId, videoId)) {
-            return res.status(403).send('Неверный токен доступа');
-        }
-
-        // Получаем данные видео
-        const video = db.private_channel_videos.find(v => 
-            v.id === videoId && v.is_active
-        );
-
-        if (!video) {
-            return res.status(404).send('Материал не найден');
-        }
-
-        // Проверка доступа
-        const hasAccess = db.video_access.some(access => 
-            access.user_id == userId && 
-            access.video_id === videoId && 
-            access.expires_at > new Date().toISOString()
-        );
-
-        if (!hasAccess) {
-            return res.status(403).send('Нет доступа к видео');
-        }
-
-        // Формируем ссылку на Telegram
-        let telegramUrl;
-        if (video.channel_id.startsWith('-100') || !isNaN(video.channel_id)) {
-            // Приватный канал
-            const publicChannelId = video.channel_id.replace('-100', '');
-            telegramUrl = `https://t.me/c/${publicChannelId}/${video.message_id}`;
-        } else {
-            // Публичный канал
-            telegramUrl = `https://t.me/${video.channel_id}/${video.message_id}`;
-        }
-
-        console.log('✅ Перенаправление на:', telegramUrl);
-        
-        // Простое перенаправление
-        res.redirect(telegramUrl);
-
-    } catch (error) {
-        console.error('❌ Ошибка прокси:', error);
-        res.status(500).send('Ошибка доступа к видео');
-    }
-});
 
 // Покупка приватного видео
 app.post('/api/webapp/shop/private-videos/purchase', async (req, res) => {
@@ -3023,13 +2318,13 @@ app.get('/api/webapp/user/private-videos', (req, res) => {
         });
     }
 });
-// ==================== API ДЛЯ ПРИВАТНОГО КАНАЛА ====================
+// ==================== УПРОЩЕННЫЕ API ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
 
-// ПРАВИЛЬНЫЙ endpoint для получения приватных материалов
+// Получить все приватные материалы
 app.get('/api/webapp/private-videos', (req, res) => {
     try {
         const userId = parseInt(req.query.userId);
-        console.log('🎬 Запрос приватных видео для пользователя:', userId);
+        console.log('🎬 Запрос приватных материалов для пользователя:', userId);
 
         if (!userId) {
             return res.status(401).json({ 
@@ -3041,14 +2336,12 @@ app.get('/api/webapp/private-videos', (req, res) => {
         const videos = db.private_channel_videos.filter(video => video.is_active);
         
         const videosWithAccess = videos.map(video => {
-            // ПРОВЕРКА АКТИВНОГО ДОСТУПА
             const hasAccess = db.video_access.some(access => 
                 access.user_id == userId && 
                 access.video_id === video.id && 
                 access.expires_at > new Date().toISOString()
             );
             
-            // ПРОВЕРКА ПОКУПКИ (ДАЖЕ ЕСЛИ ДОСТУП ИСТЕК)
             const hasPurchase = db.purchases.some(purchase => 
                 purchase.user_id == userId && 
                 purchase.item_id === video.id && 
@@ -3056,15 +2349,21 @@ app.get('/api/webapp/private-videos', (req, res) => {
             );
 
             return {
-                ...video,
+                id: video.id,
+                invite_link: video.invite_link, // Отдаем инвайт-ссылку
+                title: video.title,
+                description: video.description,
+                duration: video.duration,
+                price: video.price,
+                category: video.category,
+                level: video.level,
                 has_access: hasAccess,
                 has_purchase: hasPurchase,
-                can_purchase: !hasPurchase, // Можно купить, если еще не покупал
-                access_expired: hasPurchase && !hasAccess // Покупал, но доступ истек
+                can_purchase: !hasPurchase
             };
         });
 
-        console.log(`✅ Найдено видео: ${videosWithAccess.length}`);
+        console.log(`✅ Найдено материалов: ${videosWithAccess.length}`);
 
         res.json({ 
             success: true,
@@ -3072,14 +2371,13 @@ app.get('/api/webapp/private-videos', (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ Ошибка получения приватных видео:', error);
+        console.error('❌ Ошибка получения приватных материалов:', error);
         res.status(500).json({ 
             success: false,
-            error: 'Ошибка загрузки видео' 
+            error: 'Ошибка загрузки материалов' 
         });
     }
 });
-
 // server.js - Простой endpoint для информации о видео
 app.get('/api/webapp/private-videos/:videoId', (req, res) => {
     try {
@@ -3181,47 +2479,24 @@ async function grantVideoAccess(userId, videoId) {
     }
 }
 
-// Админ API для управления видео в приватном канале
+// Получить приватные материалы для админки
 app.get('/api/admin/private-videos', requireAdmin, (req, res) => {
     const videos = db.private_channel_videos.map(video => {
-        const accessCount = db.video_access.filter(access => access.video_id === video.id).length;
-        const totalRevenue = accessCount * video.price;
+        const purchaseCount = db.purchases.filter(p => 
+            p.item_id === video.id && p.item_type === 'private_video'
+        ).length;
+        
+        const totalRevenue = purchaseCount * video.price;
         
         return {
             ...video,
-            access_count: accessCount,
+            purchase_count: purchaseCount,
             total_revenue: totalRevenue
         };
     });
     
     res.json(videos);
 });
-
-
-app.put('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
-    const videoId = parseInt(req.params.videoId);
-    const { title, description, duration, file_size, price, tags, is_active } = req.body;
-    
-    const video = db.private_channel_videos.find(v => v.id === videoId);
-    if (!video) {
-        return res.status(404).json({ error: 'Video not found' });
-    }
-    
-    if (title) video.title = title;
-    if (description) video.description = description;
-    if (duration) video.duration = duration;
-    if (file_size) video.file_size = file_size;
-    if (price) video.price = parseFloat(price);
-    if (tags) video.tags = tags;
-    if (is_active !== undefined) video.is_active = is_active;
-    
-    res.json({ 
-        success: true, 
-        message: 'Видео успешно обновлено',
-        video: video
-    });
-});
-
 app.delete('/api/admin/private-videos/:videoId', requireAdmin, (req, res) => {
     const videoId = parseInt(req.params.videoId);
     const videoIndex = db.private_channel_videos.findIndex(v => v.id === videoId);
@@ -3279,13 +2554,13 @@ app.get('/api/users/:userId', (req, res) => {
     }
 });
 
-// server.js - ОБНОВЛЕННЫЙ ENDPOINT ДОБАВЛЕНИЯ МАТЕРИАЛА
+// Упрощенное создание приватного материала
 app.post('/api/admin/private-videos', requireAdmin, async (req, res) => {
     try {
         console.log('🎬 Создание приватного материала - полученные данные:', JSON.stringify(req.body, null, 2));
         
         const { 
-            post_url, 
+            invite_link, // Теперь принимаем только инвайт-ссылку
             title, 
             description, 
             duration, 
@@ -3296,108 +2571,62 @@ app.post('/api/admin/private-videos', requireAdmin, async (req, res) => {
         } = req.body;
 
         console.log('🔍 Проверка обязательных полей:', {
-            hasPostUrl: !!post_url,
-            post_url: post_url,
+            hasInviteLink: !!invite_link,
+            invite_link: invite_link,
             title: title,
             price: price
         });
 
-        // ВАЛИДАЦИЯ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
-        if (!post_url || !title || !price) {
+        // Валидация обязательных полей
+        if (!invite_link || !title || !price) {
             console.log('❌ Отсутствуют обязательные поля:', {
-                post_url: !!post_url,
+                invite_link: !!invite_link,
                 title: !!title,
                 price: !!price
             });
             return res.status(400).json({ 
                 success: false, 
-                error: 'Заполните обязательные поля: ссылка на пост, название и цена' 
+                error: 'Заполните обязательные поля: инвайт-ссылка, название и цена' 
             });
         }
 
-        // 🔥 АВТОМАТИЧЕСКИЙ ПАРСИНГ ССЫЛКИ
-        console.log('🔗 Автоматический парсинг ссылки...');
-        const telegramData = parseTelegramUrl(post_url);
-        
-        if (!telegramData.success) {
-            return res.status(400).json({ 
-                success: false, 
-                error: telegramData.error 
-            });
-        }
-
-        let finalChannelId = telegramData.channelId;
-        let finalMessageId = telegramData.postId;
-
-        // ЕСЛИ ЕСТЬ USERNAME, ПОПРОБУЕМ ПОЛУЧИТЬ ID КАНАЛА
-        if (telegramData.channelUsername && !telegramData.channelId) {
-            console.log('🔍 Получаем ID канала по username:', telegramData.channelUsername);
-            const channelInfo = await getChannelIdByUsername(telegramData.channelUsername);
-            
-            if (channelInfo.success) {
-                finalChannelId = channelInfo.channelId;
-                console.log('✅ ID канала получен:', finalChannelId);
-            } else {
-                console.log('⚠️ Не удалось получить ID канала, используем username');
-                // Используем username как channel_id (для публичных каналов это допустимо)
-                finalChannelId = telegramData.channelUsername;
-            }
-        }
-
-        // ПРОВЕРКА НА ДУБЛИКАТЫ
+        // Проверка на дубликаты
         const existingVideo = db.private_channel_videos.find(v => 
-            (v.channel_id === finalChannelId || v.channel_id === telegramData.channelUsername) && 
-            v.message_id === finalMessageId
+            v.invite_link === invite_link
         );
         
         if (existingVideo) {
             return res.status(400).json({ 
                 success: false, 
-                error: 'Материал с таким ID сообщения уже существует в этом канале' 
+                error: 'Материал с такой инвайт-ссылкой уже существует' 
             });
         }
 
-        // АВТОМАТИЧЕСКОЕ ЗАПОЛНЕНИЕ ЕСЛИ НЕТ ОПИСАНИЯ
-        const autoDescription = description || `Приватный материал из Telegram канала. Ссылка: ${post_url}`;
-        
-        // АВТОМАТИЧЕСКОЕ СОЗДАНИЕ НАЗВАНИЯ ЕСЛИ НЕ УКАЗАНО
-        const autoTitle = title || `Материал из ${telegramData.isPrivateChannel ? 'приватного канала' : 'канала'} ${telegramData.channelUsername || finalChannelId}`;
-
-        // СОЗДАНИЕ НОВОГО МАТЕРИАЛА
+        // Создание нового материала
         const newVideo = {
             id: Date.now(),
-            post_url: post_url,
-            channel_id: finalChannelId,
-            channel_username: telegramData.channelUsername,
-            message_id: finalMessageId,
-            title: autoTitle,
-            description: autoDescription,
+            invite_link: invite_link,
+            title: title,
+            description: description || `Приватный материал. Инвайт-ссылка: ${invite_link}`,
             duration: duration || 'Не указано',
             price: parseFloat(price),
             category: category || 'video',
             level: level || 'beginner',
             is_active: is_active !== undefined ? is_active : true,
-            created_at: new Date().toISOString(),
-            preview_url: '',
-            file_size: 'Не указан',
-            tags: [],
-            parsed_data: telegramData // Сохраняем данные парсинга для отладки
+            created_at: new Date().toISOString()
         };
 
         db.private_channel_videos.push(newVideo);
 
-        console.log('✅ Приватный материал создан автоматически:', {
+        console.log('✅ Приватный материал создан:', {
             title: newVideo.title,
-            channel: newVideo.channel_id,
-            post: newVideo.message_id,
-            direct_url: telegramData.directUrl
+            invite_link: newVideo.invite_link
         });
 
         res.json({
             success: true,
             video: newVideo,
-            parsed_data: telegramData,
-            message: 'Приватный материал успешно создан! Данные автоматически извлечены из ссылки.'
+            message: 'Приватный материал успешно создан!'
         });
 
     } catch (error) {
