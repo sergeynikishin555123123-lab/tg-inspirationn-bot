@@ -2379,274 +2379,271 @@ async function loadAllData() {
     }
 }
 
-        // Показать вкладку
-        function showTab(tabName) {
-            console.log('🎯 Переключение на вкладку:', tabName);
-            
-            // Проверяем существование вкладки
-            const targetTab = document.getElementById(tabName);
-            if (!targetTab) {
-                console.error('❌ Вкладка не найдена:', tabName);
-                showMessage(`❌ Вкладка "${tabName}" не найдена`, 'error');
-                return;
-            }
-            
-            // 1. Скрыть все вкладки
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // 2. Убрать активный класс со всех кнопок
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // 3. Показать выбранную вкладку
-            targetTab.classList.add('active');
-            
-            // 4. Активировать кнопку
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                const onclickAttr = tab.getAttribute('onclick');
-                if (onclickAttr && onclickAttr.includes(`showTab('${tabName}')`)) {
-                    tab.classList.add('active');
-                }
-            });
-            
-            // 5. Загружаем данные для вкладки
-            loadTabData(tabName);
-            
-            console.log('✅ Вкладка активирована:', tabName);
+      // Показать вкладку
+function showTab(tabName) {
+    console.log('🎯 Переключение на вкладку:', tabName);
+    
+    // Проверяем существование вкладки
+    const targetTab = document.getElementById(tabName);
+    if (!targetTab) {
+        console.error('❌ Вкладка не найдена:', tabName);
+        showMessage(`❌ Вкладка "${tabName}" не найдена`, 'error');
+        return;
+    }
+    
+    // 1. Скрыть все вкладки
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // 2. Убрать активный класс со всех кнопок
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // 3. Показать выбранную вкладку
+    targetTab.classList.add('active');
+    
+    // 4. Активировать кнопку
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        const onclickAttr = tab.getAttribute('onclick');
+        if (onclickAttr && onclickAttr.includes(`showTab('${tabName}')`)) {
+            tab.classList.add('active');
         }
+    });
+    
+    // 5. Загружаем данные для вкладки
+    loadTabData(tabName);
+    
+    console.log('✅ Вкладка активирована:', tabName);
+}
 
-        // Загрузка данных для вкладки
+// Загрузка данных для вкладки
 function loadTabData(tabName) {
     console.log('📥 Загрузка данных для:', tabName);
     
     switch(tabName) {
         case 'privateVideos':
-            loadPrivateVideosAdmin(); // ← ДОБАВЬ ЭТУ СТРОЧКУ
+            loadPrivateVideosAdmin();
             break;
         case 'moderation':
             loadWorksForModeration();
             break;
-                case 'privateVideos':
-                    loadPrivateVideosAdmin();
-                    break;
-                case 'admins':
-                    loadAdmins();
-                    break;
-                case 'posts':
-                    loadPosts();
-                    break;
-                case 'users':
-                    loadUsers();
-                    break;
-                case 'roles':
-                    loadRoles();
-                    break;
-                case 'quizzes':
-                    loadQuizzes();
-                    break;
-                case 'marathons':
-                    loadMarathons();
-                    break;
-                case 'interactives':
-                    loadInteractives();
-                    break;
-                case 'shop':
-                    loadShopItems();
-                    break;
-                default:
-                    console.log('ℹ️ Нет специальной загрузки для:', tabName);
-            }
-        }
+        case 'admins':
+            loadAdmins();
+            break;
+        case 'posts':
+            loadPosts();
+            break;
+        case 'users':
+            loadUsers();
+            break;
+        case 'roles':
+            loadRoles();
+            break;
+        case 'quizzes':
+            loadQuizzes();
+            break;
+        case 'marathons':
+            loadMarathons();
+            break;
+        case 'interactives':
+            loadInteractives();
+            break;
+        case 'shop':
+            loadShopItems();
+            break;
+        default:
+            console.log('ℹ️ Нет специальной загрузки для:', tabName);
+    }
+}
 
-        // Скрыть все формы
-        function hideAllForms() {
-            document.getElementById('roleForm').style.display = 'none';
-            document.getElementById('characterForm').style.display = 'none';
-            document.getElementById('quizForm').style.display = 'none';
-            document.getElementById('marathonForm').style.display = 'none';
-            document.getElementById('interactiveForm').style.display = 'none';
-            document.getElementById('shopItemForm').style.display = 'none';
-            document.getElementById('postForm').style.display = 'none';
-            document.getElementById('adminForm').style.display = 'none';
-            document.getElementById('privateVideoForm').style.display = 'none';
-            currentEditingId = null;
-        }
+// Скрыть все формы
+function hideAllForms() {
+    document.getElementById('roleForm').style.display = 'none';
+    document.getElementById('characterForm').style.display = 'none';
+    document.getElementById('quizForm').style.display = 'none';
+    document.getElementById('marathonForm').style.display = 'none';
+    document.getElementById('interactiveForm').style.display = 'none';
+    document.getElementById('shopItemForm').style.display = 'none';
+    document.getElementById('postForm').style.display = 'none';
+    document.getElementById('adminForm').style.display = 'none';
+    document.getElementById('privateVideoForm').style.display = 'none';
+    currentEditingId = null;
+}
 
-        // ==================== СТАТИСТИКА ====================
+// ==================== СТАТИСТИКА ====================
 
-        // Загрузка статистики
-        async function loadStats() {
-            try {
-                const response = await fetch(`/api/admin/stats?userId=${currentUserId}`);
-                const stats = await response.json();
-                
-                document.getElementById('statsGrid').innerHTML = `
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.totalUsers}</div>
-                        <div class="stat-label">👥 Всего пользователей</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.registeredUsers}</div>
-                        <div class="stat-label">✅ Зарегистрировано</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.activeQuizzes}</div>
-                        <div class="stat-label">🎯 Активных квизов</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.activeMarathons}</div>
-                        <div class="stat-label">🏃‍♂️ Активных марафонов</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.shopItems}</div>
-                        <div class="stat-label">🛒 Товаров в магазине</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.totalSparks.toFixed(1)}</div>
-                        <div class="stat-label">✨ Всего искр в системе</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.totalAdmins}</div>
-                        <div class="stat-label">🔧 Администраторов</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.pendingReviews}</div>
-                        <div class="stat-label">💬 Отзывов на модерации</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.pendingWorks}</div>
-                        <div class="stat-label">🖼️ Работ на модерации</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.totalPosts}</div>
-                        <div class="stat-label">📰 Постов в канале</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.totalPurchases}</div>
-                        <div class="stat-label">📦 Всего покупок</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${stats.totalActivities}</div>
-                        <div class="stat-label">📊 Всего активностей</div>
-                    </div>
-                `;
-                
-                // ДОБАВЛЯЕМ КНОПКУ ЭКСПОРТА СТАТИСТИКИ
-                const statsGrid = document.getElementById('statsGrid');
-                const exportButton = document.createElement('div');
-                exportButton.className = 'stat-card';
-                exportButton.style.cursor = 'pointer';
-                exportButton.style.background = 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)';
-                exportButton.onclick = exportFullStats;
-                exportButton.innerHTML = `
-                    <div class="stat-number" style="color: white;">📊</div>
-                    <div class="stat-label" style="color: white;">Экспорт всей статистики</div>
-                `;
-                statsGrid.appendChild(exportButton);
-                
-                // Загружаем расширенную статистику
-                await loadFullStats();
-                
-            } catch (error) {
-                document.getElementById('statsGrid').innerHTML = '<div class="message error">Ошибка загрузки статистики</div>';
-            }
-        }
+// Загрузка статистики
+async function loadStats() {
+    try {
+        const response = await fetch(`/api/admin/stats?userId=${currentUserId}`);
+        const stats = await response.json();
+        
+        document.getElementById('statsGrid').innerHTML = `
+            <div class="stat-card">
+                <div class="stat-number">${stats.totalUsers}</div>
+                <div class="stat-label">👥 Всего пользователей</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.registeredUsers}</div>
+                <div class="stat-label">✅ Зарегистрировано</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.activeQuizzes}</div>
+                <div class="stat-label">🎯 Активных квизов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.activeMarathons}</div>
+                <div class="stat-label">🏃‍♂️ Активных марафонов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.shopItems}</div>
+                <div class="stat-label">🛒 Товаров в магазине</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.totalSparks.toFixed(1)}</div>
+                <div class="stat-label">✨ Всего искр в системе</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.totalAdmins}</div>
+                <div class="stat-label">🔧 Администраторов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.pendingReviews}</div>
+                <div class="stat-label">💬 Отзывов на модерации</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.pendingWorks}</div>
+                <div class="stat-label">🖼️ Работ на модерации</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.totalPosts}</div>
+                <div class="stat-label">📰 Постов в канале</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.totalPurchases}</div>
+                <div class="stat-label">📦 Всего покупок</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.totalActivities}</div>
+                <div class="stat-label">📊 Всего активностей</div>
+            </div>
+        `;
+        
+        // ДОБАВЛЯЕМ КНОПКУ ЭКСПОРТА СТАТИСТИКИ
+        const statsGrid = document.getElementById('statsGrid');
+        const exportButton = document.createElement('div');
+        exportButton.className = 'stat-card';
+        exportButton.style.cursor = 'pointer';
+        exportButton.style.background = 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)';
+        exportButton.onclick = exportFullStats;
+        exportButton.innerHTML = `
+            <div class="stat-number" style="color: white;">📊</div>
+            <div class="stat-label" style="color: white;">Экспорт всей статистики</div>
+        `;
+        statsGrid.appendChild(exportButton);
+        
+        // Загружаем расширенную статистику
+        await loadFullStats();
+        
+    } catch (error) {
+        document.getElementById('statsGrid').innerHTML = '<div class="message error">Ошибка загрузки статистики</div>';
+    }
+}
 
-        // Экспорт полной статистики
-        async function exportFullStats() {
-            try {
-                console.log('📈 Начало экспорта полной статистики...');
-                
-                // Показываем индикатор загрузки
-                showMessage('⏳ Подготовка отчета...', 'info');
-                
-                // Создаем запрос на экспорт
-                const response = await fetch(`/api/admin/export/full-stats?userId=${currentUserId}`);
-                
-                if (!response.ok) {
-                    throw new Error(`Ошибка сервера: ${response.status}`);
-                }
-                
-                // Получаем blob данных
-                const blob = await response.blob();
-                
-                // Создаем ссылку для скачивания
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `full_stats_export_${new Date().toISOString().split('T')[0]}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                
-                // Очищаем
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                
-                console.log('✅ Экспорт статистики завершен');
-                showMessage('✅ Полный отчет статистики успешно скачан', 'success');
-                
-            } catch (error) {
-                console.error('❌ Ошибка экспорта статистики:', error);
-                showMessage(`❌ Ошибка экспорта статистики: ${error.message}`, 'error');
-            }
+// Экспорт полной статистики
+async function exportFullStats() {
+    try {
+        console.log('📈 Начало экспорта полной статистики...');
+        
+        // Показываем индикатор загрузки
+        showMessage('⏳ Подготовка отчета...', 'info');
+        
+        // Создаем запрос на экспорт
+        const response = await fetch(`/api/admin/export/full-stats?userId=${currentUserId}`);
+        
+        if (!response.ok) {
+            throw new Error(`Ошибка сервера: ${response.status}`);
         }
         
-        // Загрузка полной статистики
-        async function loadFullStats() {
-            try {
-                const response = await fetch(`/api/admin/full-stats?userId=${currentUserId}`);
-                const fullStats = await response.json();
-                
-                // Создаем простые графики
-                createActivityChart(fullStats);
-                createRolesChart(fullStats);
-                
-            } catch (error) {
-                console.error('Ошибка загрузки полной статистики:', error);
-            }
-        }
+        // Получаем blob данных
+        const blob = await response.blob();
+        
+        // Создаем ссылку для скачивания
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `full_stats_export_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Очищаем
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        console.log('✅ Экспорт статистики завершен');
+        showMessage('✅ Полный отчет статистики успешно скачан', 'success');
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта статистики:', error);
+        showMessage(`❌ Ошибка экспорта статистики: ${error.message}`, 'error');
+    }
+}
 
-        // Создание графика активности
-        function createActivityChart(stats) {
-            const chartContainer = document.getElementById('activityChart');
-            
-            // Простая HTML-заглушка вместо графика
-            chartContainer.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #718096;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
-                    <h4 style="margin-bottom: 8px;">Статистика активности</h4>
-                    <p>Активных пользователей сегодня: ${stats.users.active_today || 0}</p>
-                    <p>Всего активностей: ${stats.activities.total_activities || 0}</p>
+// Загрузка полной статистики
+async function loadFullStats() {
+    try {
+        const response = await fetch(`/api/admin/full-stats?userId=${currentUserId}`);
+        const fullStats = await response.json();
+        
+        // Создаем простые графики
+        createActivityChart(fullStats);
+        createRolesChart(fullStats);
+        
+    } catch (error) {
+        console.error('Ошибка загрузки полной статистики:', error);
+    }
+}
+
+// Создание графика активности
+function createActivityChart(stats) {
+    const chartContainer = document.getElementById('activityChart');
+    
+    // Простая HTML-заглушка вместо графика
+    chartContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #718096;">
+            <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+            <h4 style="margin-bottom: 8px;">Статистика активности</h4>
+            <p>Активных пользователей сегодня: ${stats.users.active_today || 0}</p>
+            <p>Всего активностей: ${stats.activities.total_activities || 0}</p>
+        </div>
+    `;
+}
+
+// Создание графика распределения по ролям
+function createRolesChart(stats) {
+    const chartContainer = document.getElementById('rolesChart');
+    
+    let rolesHtml = '';
+    if (stats.users && stats.users.by_role) {
+        stats.users.by_role.forEach(role => {
+            rolesHtml += `
+                <div style="display: flex; justify-content: between; margin-bottom: 8px; padding: 8px; background: #f7fafc; border-radius: 8px;">
+                    <span style="flex: 1;">${role.role}</span>
+                    <span style="font-weight: bold; color: #667eea;">${role.count}</span>
                 </div>
             `;
-        }
-
-        // Создание графика распределения по ролям
-        function createRolesChart(stats) {
-            const chartContainer = document.getElementById('rolesChart');
-            
-            let rolesHtml = '';
-            if (stats.users && stats.users.by_role) {
-                stats.users.by_role.forEach(role => {
-                    rolesHtml += `
-                        <div style="display: flex; justify-content: between; margin-bottom: 8px; padding: 8px; background: #f7fafc; border-radius: 8px;">
-                            <span style="flex: 1;">${role.role}</span>
-                            <span style="font-weight: bold; color: #667eea;">${role.count}</span>
-                        </div>
-                    `;
-                });
-            }
-            
-            chartContainer.innerHTML = `
-                <div style="text-align: center;">
-                    <h4 style="margin-bottom: 16px;">📈 Распределение по ролям</h4>
-                    ${rolesHtml || '<p>Нет данных о ролях</p>'}
-                </div>
-            `;
-        }
+        });
+    }
+    
+    chartContainer.innerHTML = `
+        <div style="text-align: center;">
+            <h4 style="margin-bottom: 16px;">📈 Распределение по ролям</h4>
+            ${rolesHtml || '<p>Нет данных о ролях</p>'}
+        </div>
+    `;
+}
 
         // ==================== ПОЛЬЗОВАТЕЛИ ====================
 
