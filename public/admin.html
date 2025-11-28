@@ -3731,66 +3731,114 @@ function loadTabData(tabName) {
             interactivesList.innerHTML = html;
         }
 
-        // Показать форму интерактива
         function showInteractiveForm() {
-            document.getElementById('interactiveForm').style.display = 'block';
-            document.getElementById('interactiveFormTitle').textContent = 'Создание нового интерактива';
-            currentEditingId = null;
-            interactiveImageData = null;
-            
-            // Сбросить форму
-            document.getElementById('interactiveTitle').value = '';
-            document.getElementById('interactiveDescription').value = '';
-            document.getElementById('interactiveType').value = 'guess_era';
-            document.getElementById('interactiveCategory').value = 'history';
-            document.getElementById('interactiveQuestion').value = '';
-            document.getElementById('interactiveCorrectAnswer').value = '0';
-            document.getElementById('interactiveSparksReward').value = '3';
-            document.getElementById('interactiveAllowRetake').checked = false;
-            document.getElementById('interactiveActive').checked = true;
-            
-            // Очистить изображение
-            clearInteractiveImage();
-            
-            // Очистить варианты
-            document.getElementById('interactiveOptions').innerHTML = '';
-            addInteractiveOption(); // Добавить первый вариант по умолчанию
-            
-            // Обновить форму в зависимости от типа
-            updateInteractiveForm();
-        }
-
-        // Обновить форму интерактива
-        function updateInteractiveForm() {
-            const type = document.getElementById('interactiveType').value;
-            const optionsSection = document.getElementById('interactiveOptionsSection');
-            
-            if (type === 'drawing_challenge') {
-                optionsSection.style.display = 'none';
-                document.getElementById('interactiveCorrectAnswer').style.display = 'none';
-                document.querySelector('label[for="interactiveCorrectAnswer"]').style.display = 'none';
+    // Сначала скрываем все формы
+    hideAllForms();
+    
+    // Показываем нужную форму
+    const form = document.getElementById('interactiveForm');
+    if (!form) {
+        console.error('Форма интерактива не найдена');
+        return;
+    }
+    
+    form.style.display = 'block';
+    document.getElementById('interactiveFormTitle').textContent = 'Создание нового интерактива';
+    currentEditingId = null;
+    interactiveImageData = null;
+    
+    // Сбросить форму
+    const titleInput = document.getElementById('interactiveTitle');
+    const descriptionInput = document.getElementById('interactiveDescription');
+    const typeInput = document.getElementById('interactiveType');
+    
+    if (titleInput) titleInput.value = '';
+    if (descriptionInput) descriptionInput.value = '';
+    if (typeInput) typeInput.value = 'guess_era';
+    
+    // Очистить остальные поля
+    const otherIds = [
+        'interactiveCategory', 'interactiveQuestion', 
+        'interactiveCorrectAnswer', 'interactiveSparksReward'
+    ];
+    
+    otherIds.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            if (element.type === 'checkbox') {
+                element.checked = id === 'interactiveActive';
+            } else if (id === 'interactiveCorrectAnswer') {
+                element.value = '0';
+            } else if (id === 'interactiveSparksReward') {
+                element.value = '3';
+            } else if (id === 'interactiveCategory') {
+                element.value = 'history';
             } else {
-                optionsSection.style.display = 'block';
-                document.getElementById('interactiveCorrectAnswer').style.display = 'block';
-                document.querySelector('label[for="interactiveCorrectAnswer"]').style.display = 'block';
+                element.value = '';
             }
         }
+    });
+    
+    // Очистить изображение
+    clearInteractiveImage();
+    
+    // Очистить варианты
+    const optionsContainer = document.getElementById('interactiveOptions');
+    if (optionsContainer) {
+        optionsContainer.innerHTML = '';
+        addInteractiveOption(); // Добавить первый вариант по умолчанию
+    }
+    
+    // Обновить форму в зависимости от типа
+    setTimeout(updateInteractiveForm, 100); // Небольшая задержка для гарантии загрузки DOM
+}
+        
+        // Обновите функцию updateInteractiveForm
+function updateInteractiveForm() {
+    const type = document.getElementById('interactiveType');
+    const optionsSection = document.getElementById('interactiveOptionsSection');
+    
+    if (!type || !optionsSection) {
+        console.log('Элементы формы интерактива еще не загружены');
+        return;
+    }
+    
+    const selectedType = type.value;
+    
+    if (selectedType === 'drawing_challenge') {
+        optionsSection.style.display = 'none';
+        const correctAnswerInput = document.getElementById('interactiveCorrectAnswer');
+        const correctAnswerLabel = document.querySelector('label[for="interactiveCorrectAnswer"]');
+        if (correctAnswerInput) correctAnswerInput.style.display = 'none';
+        if (correctAnswerLabel) correctAnswerLabel.style.display = 'none';
+    } else {
+        optionsSection.style.display = 'block';
+        const correctAnswerInput = document.getElementById('interactiveCorrectAnswer');
+        const correctAnswerLabel = document.querySelector('label[for="interactiveCorrectAnswer"]');
+        if (correctAnswerInput) correctAnswerInput.style.display = 'block';
+        if (correctAnswerLabel) correctAnswerLabel.style.display = 'block';
+    }
+}
 
         // Добавить вариант ответа
         function addInteractiveOption() {
-            const optionsContainer = document.getElementById('interactiveOptions');
-            const optionIndex = optionsContainer.children.length;
-            
-            const optionHtml = `
-                <div class="option-item">
-                    <input type="text" class="form-control interactive-option" placeholder="Вариант ответа ${optionIndex + 1}">
-                    <button class="btn btn-danger" onclick="removeInteractiveOption(this)" style="margin-left: 8px;">🗑️</button>
-                </div>
-            `;
-            
-            optionsContainer.innerHTML += optionHtml;
-        }
-
+    const optionsContainer = document.getElementById('interactiveOptions');
+    if (!optionsContainer) {
+        console.error('Контейнер опций не найден');
+        return;
+    }
+    
+    const optionIndex = optionsContainer.children.length;
+    
+    const optionHtml = `
+        <div class="option-item">
+            <input type="text" class="form-control interactive-option" placeholder="Вариант ответа ${optionIndex + 1}">
+            <button class="btn btn-danger" onclick="removeInteractiveOption(this)" style="margin-left: 8px;">🗑️</button>
+        </div>
+    `;
+    
+    optionsContainer.innerHTML += optionHtml;
+}
         // Удалить вариант ответа
         function removeInteractiveOption(button) {
             const optionItem = button.parentElement;
@@ -5489,14 +5537,15 @@ function setupTelegramUrlAutoParse() {
     }
 }
 
-// Вызовите эту функцию при загрузке страницы
+// Добавьте этот код в конец файла
 document.addEventListener('DOMContentLoaded', function() {
-    setupTelegramUrlAutoParse();
-});
-// Вызовите эту функцию при загрузке страницы
-// Добавьте в функцию initAdminPanel() или в DOMContentLoaded:
-document.addEventListener('DOMContentLoaded', function() {
-    setupTelegramUrlAutoParse();
+    // Обработка ошибок загрузки изображений
+    document.querySelectorAll('img').forEach(img => {
+        img.onerror = function() {
+            console.log('Ошибка загрузки изображения:', this.src);
+            this.style.display = 'none';
+        };
+    });
 });
         
 
