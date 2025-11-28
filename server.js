@@ -2324,8 +2324,6 @@ async function createPrivateInviteLink(channelId, userId) {
         };
     }
 }
-}
-
 // server.js - ENDPOINT ДЛЯ РУЧНОГО ПОЛУЧЕНИЯ ДОСТУПА
 app.post('/api/webapp/private-videos/:videoId/get-access', async (req, res) => {
     try {
