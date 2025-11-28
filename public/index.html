@@ -3336,51 +3336,96 @@ async function checkUserSubscription(channelId) {
     return { is_subscribed: false };
 }
 
-// Покупка приватного материала
+// Покупка приватного материала - ИСПРАВЛЕННАЯ ВЕРСИЯ
 async function purchasePrivateVideo(videoId) {
-    if (!confirm('Вы уверены, что хотите купить доступ к этому материалу?\n\nПосле покупки вы будете автоматически добавлены в канал и получите прямой доступ к материалу.')) return;
-    
     try {
+        console.log('🛒 Начинаем покупку приватного видео:', videoId);
+        
+        if (!currentUser) {
+            showMessage('❌ Ошибка: пользователь не загружен', 'error');
+            return;
+        }
+        
+        if (!confirm('Вы уверены, что хотите купить доступ к этому материалу?\n\nПосле покупки вы будете автоматически добавлены в канал и получите прямой доступ к материалу.')) {
+            return;
+        }
+        
         showMessage('⏳ Обрабатываем покупку...', 'info');
         
         const response = await fetch('/api/webapp/private-videos/purchase', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json' 
+            },
             body: JSON.stringify({
                 userId: currentUserId,
                 videoId: videoId
             })
         });
         
+        console.log('📨 Ответ сервера:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
+        console.log('📋 Результат покупки:', result);
         
         if (result.success) {
             showMessage(`✅ ${result.message}`, 'success');
             
-            // Обновляем данные пользователя
+            // ОБНОВЛЯЕМ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
             if (result.user) {
                 currentUser = result.user;
                 updateUserDisplay();
             }
             
-            // Предлагаем перейти к материалам
+            // ПРЕДЛАГАЕМ ПЕРЕЙТИ К МАТЕРИАЛАМ
             setTimeout(() => {
                 if (confirm('Покупка успешна! Хотите перейти к вашим материалам?')) {
                     showScreen('myPrivateVideosScreen');
                     loadMyPrivateVideos();
+                } else {
+                    // Обновляем список доступных материалов
+                    loadPrivateVideos();
                 }
             }, 1500);
             
         } else {
+            console.error('❌ Ошибка покупки:', result.error);
             showMessage(`❌ ${result.error}`, 'error');
         }
         
     } catch (error) {
-        console.error('❌ Ошибка покупки:', error);
-        showMessage('❌ Ошибка покупки. Попробуйте позже.', 'error');
+        console.error('💥 Критическая ошибка покупки:', error);
+        showMessage(`❌ Ошибка покупки: ${error.message}`, 'error');
     }
 }
 
+// Функция для проверки состояния покупки
+async function debugPurchase(videoId) {
+    try {
+        console.log('🐛 DEBUG: Проверка состояния покупки');
+        console.log('User ID:', currentUserId);
+        console.log('Video ID:', videoId);
+        console.log('Current User:', currentUser);
+        
+        // Проверяем баланс
+        if (currentUser && currentUser.sparks) {
+            console.log('💰 Баланс пользователя:', currentUser.sparks);
+        }
+        
+        // Проверяем доступность API
+        const testResponse = await fetch('/api/webapp/private-videos?userId=' + currentUserId);
+        const testResult = await testResponse.json();
+        console.log('🌐 API доступен:', testResult.success);
+        
+    } catch (error) {
+        console.error('🐛 DEBUG Error:', error);
+    }
+}
+    
     // Загрузка купленных приватных материалов
 async function loadMyPrivateVideos() {
     try {
