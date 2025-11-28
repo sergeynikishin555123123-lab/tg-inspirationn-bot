@@ -3080,27 +3080,46 @@ app.get('/api/webapp/private-videos', (req, res) => {
     }
 });
 
-// Получить информацию о конкретном видео
+// server.js - Простой endpoint для информации о видео
 app.get('/api/webapp/private-videos/:videoId', (req, res) => {
-    const userId = parseInt(req.query.userId);
-    const videoId = parseInt(req.params.videoId);
-    
-    const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
-    if (!video) {
-        return res.status(404).json({ error: 'Video not found' });
+    try {
+        const videoId = parseInt(req.params.videoId);
+        const userId = parseInt(req.query.userId);
+        
+        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
+        if (!video) {
+            return res.status(404).json({ error: 'Video not found' });
+        }
+        
+        // Формируем прямую ссылку
+        const directUrl = `https://t.me/c/${video.channel_id.toString().replace('-100', '')}/${video.message_id}`;
+        
+        // Проверяем доступ
+        const hasAccess = db.video_access.some(access => 
+            access.user_id === userId && 
+            access.video_id === videoId &&
+            access.expires_at > new Date().toISOString()
+        );
+        
+        res.json({
+            id: video.id,
+            title: video.title,
+            description: video.description,
+            price: video.price,
+            duration: video.duration,
+            category: video.category,
+            level: video.level,
+            channel_id: video.channel_id,
+            message_id: video.message_id,
+            direct_url: directUrl,
+            has_access: hasAccess
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения информации о видео:', error);
+        res.status(500).json({ error: 'Server error' });
     }
-    
-    const hasAccess = db.video_access.some(
-        access => access.user_id === userId && access.video_id === videoId
-    );
-    
-    res.json({
-        ...video,
-        has_access: hasAccess,
-        can_purchase: !hasAccess
-    });
 });
-
 // ФУНКЦИЯ ДЛЯ ОБНОВЛЕНИЯ СТАТИСТИКИ ВИДЕО
 function updateVideoStats(videoId) {
     const video = db.private_channel_videos.find(v => v.id === videoId);
