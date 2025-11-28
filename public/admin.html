@@ -1852,166 +1852,6 @@
         </div>
     </div>
 
-  // УМНАЯ ФОРМА ДЛЯ ДОБАВЛЕНИЯ МАТЕРИАЛОВ
-function setupSmartVideoForm() {
-    const postUrlInput = document.getElementById('privateVideoPostUrl');
-    const titleInput = document.getElementById('privateVideoTitle');
-    const descriptionInput = document.getElementById('privateVideoDescription');
-    
-    if (postUrlInput) {
-        // Автопарсинг при потере фокуса
-        postUrlInput.addEventListener('blur', async function() {
-            const url = this.value.trim();
-            if (!url) return;
-            
-            await parseAndFillForm(url);
-        });
-        
-        // Автопарсинг при вводе (с задержкой)
-        let parseTimeout;
-        postUrlInput.addEventListener('input', function() {
-            clearTimeout(parseTimeout);
-            const url = this.value.trim();
-            
-            if (url.length > 20) { // Парсим только если URL достаточно длинный
-                parseTimeout = setTimeout(async () => {
-                    await parseAndFillForm(url);
-                }, 1000);
-            }
-        });
-    }
-}
-
-// ФУНКЦИЯ АВТОМАТИЧЕСКОГО ПАРСИНГА И ЗАПОЛНЕНИЯ ФОРМЫ
-async function parseAndFillForm(url) {
-    try {
-        showMessage('🔗 Анализируем ссылку...', 'info');
-        
-        const response = await fetch('/api/admin/parse-telegram-url', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            const data = result.parsed_data;
-            
-            // ЗАПОЛНЯЕМ ФОРМУ АВТОМАТИЧЕСКИ
-            if (!document.getElementById('privateVideoTitle').value) {
-                document.getElementById('privateVideoTitle').value = result.suggested_title;
-            }
-            
-            if (!document.getElementById('privateVideoDescription').value) {
-                document.getElementById('privateVideoDescription').value = result.suggested_description;
-            }
-            
-            // ПОКАЗЫВАЕМ ИНФОРМАЦИЮ О ПАРСИНГЕ
-            showParsingResult(data, result.channel_info);
-            
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
-        }
-        
-    } catch (error) {
-        console.error('Ошибка парсинга:', error);
-        showMessage('❌ Ошибка анализа ссылки', 'error');
-    }
-}
-
-// ПОКАЗ РЕЗУЛЬТАТОВ ПАРСИНГА
-function showParsingResult(parsedData, channelInfo) {
-    const messageArea = document.getElementById('messageArea');
-    
-    let infoHtml = `
-        <div class="message success">
-            <strong>✅ Ссылка распознана!</strong><br>
-            <div style="margin-top: 8px; font-size: 14px;">
-    `;
-    
-    if (parsedData.isPrivateChannel) {
-        infoHtml += `🔒 <strong>Приватный канал</strong><br>`;
-    } else {
-        infoHtml += `🔓 <strong>Публичный канал</strong><br>`;
-    }
-    
-    infoHtml += `📋 <strong>ID канала:</strong> ${parsedData.channelId || parsedData.channelUsername}<br>`;
-    infoHtml += `📝 <strong>ID поста:</strong> ${parsedData.postId}<br>`;
-    
-    if (channelInfo && channelInfo.success) {
-        infoHtml += `🏷️ <strong>Название:</strong> ${channelInfo.title}<br>`;
-    }
-    
-    infoHtml += `🔗 <strong>Прямая ссылка:</strong> 
-        <a href="${parsedData.directUrl}" target="_blank" style="color: #007bff;">${parsedData.directUrl}</a>
-    `;
-    
-    infoHtml += `</div></div>`;
-    
-    messageArea.innerHTML = infoHtml;
-}
-
-// ФУНКЦИЯ БЫСТРОГО ДОБАВЛЕНИЯ МАТЕРИАЛА
-async function quickAddPrivateVideo() {
-    const url = document.getElementById('privateVideoPostUrl').value.trim();
-    const price = document.getElementById('privateVideoPrice').value;
-    
-    if (!url) {
-        showMessage('❌ Введите ссылку на пост Telegram', 'error');
-        return;
-    }
-    
-    try {
-        showMessage('⏳ Создаем материал...', 'info');
-        
-        // Сначала парсим URL
-        const parseResponse = await fetch('/api/admin/parse-telegram-url', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
-        });
-        
-        const parseResult = await parseResponse.json();
-        
-        if (!parseResult.success) {
-            showMessage(`❌ ${parseResult.error}`, 'error');
-            return;
-        }
-        
-        // Автоматически создаем материал
-        const videoData = {
-            post_url: url,
-            title: parseResult.suggested_title,
-            description: parseResult.suggested_description,
-            price: price || 25,
-            category: 'video',
-            level: 'beginner',
-            is_active: true
-        };
-        
-        const createResponse = await fetch('/api/admin/private-videos?userId=' + currentUserId, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(videoData)
-        });
-        
-        const createResult = await createResponse.json();
-        
-        if (createResult.success) {
-            showMessage('✅ Материал успешно создан!', 'success');
-            hidePrivateVideoForm();
-            loadPrivateVideosAdmin();
-        } else {
-            showMessage(`❌ ${createResult.error}`, 'error');
-        }
-        
-    } catch (error) {
-        console.error('Ошибка быстрого добавления:', error);
-        showMessage('❌ Ошибка создания материала', 'error');
-    }
-}
-
 <!-- УПРОЩЕННАЯ ФОРМА ДОБАВЛЕНИЯ МАТЕРИАЛА -->
 <div id="privateVideoForm" class="card" style="display: none;">
     <h3 id="privateVideoFormTitle" style="margin-bottom: 20px;">🎬 Добавление приватного материала</h3>
@@ -6107,6 +5947,166 @@ function showPrivateVideoForm() {
     document.getElementById('privateVideoActive').checked = true;
 }
 
+// УМНАЯ ФОРМА ДЛЯ ДОБАВЛЕНИЯ МАТЕРИАЛОВ
+function setupSmartVideoForm() {
+    const postUrlInput = document.getElementById('privateVideoPostUrl');
+    const titleInput = document.getElementById('privateVideoTitle');
+    const descriptionInput = document.getElementById('privateVideoDescription');
+    
+    if (postUrlInput) {
+        // Автопарсинг при потере фокуса
+        postUrlInput.addEventListener('blur', async function() {
+            const url = this.value.trim();
+            if (!url) return;
+            
+            await parseAndFillForm(url);
+        });
+        
+        // Автопарсинг при вводе (с задержкой)
+        let parseTimeout;
+        postUrlInput.addEventListener('input', function() {
+            clearTimeout(parseTimeout);
+            const url = this.value.trim();
+            
+            if (url.length > 20) { // Парсим только если URL достаточно длинный
+                parseTimeout = setTimeout(async () => {
+                    await parseAndFillForm(url);
+                }, 1000);
+            }
+        });
+    }
+}
+
+// ФУНКЦИЯ АВТОМАТИЧЕСКОГО ПАРСИНГА И ЗАПОЛНЕНИЯ ФОРМЫ
+async function parseAndFillForm(url) {
+    try {
+        showMessage('🔗 Анализируем ссылку...', 'info');
+        
+        const response = await fetch('/api/admin/parse-telegram-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const data = result.parsed_data;
+            
+            // ЗАПОЛНЯЕМ ФОРМУ АВТОМАТИЧЕСКИ
+            if (!document.getElementById('privateVideoTitle').value) {
+                document.getElementById('privateVideoTitle').value = result.suggested_title;
+            }
+            
+            if (!document.getElementById('privateVideoDescription').value) {
+                document.getElementById('privateVideoDescription').value = result.suggested_description;
+            }
+            
+            // ПОКАЗЫВАЕМ ИНФОРМАЦИЮ О ПАРСИНГЕ
+            showParsingResult(data, result.channel_info);
+            
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка парсинга:', error);
+        showMessage('❌ Ошибка анализа ссылки', 'error');
+    }
+}
+
+// ПОКАЗ РЕЗУЛЬТАТОВ ПАРСИНГА
+function showParsingResult(parsedData, channelInfo) {
+    const messageArea = document.getElementById('messageArea');
+    
+    let infoHtml = `
+        <div class="message success">
+            <strong>✅ Ссылка распознана!</strong><br>
+            <div style="margin-top: 8px; font-size: 14px;">
+    `;
+    
+    if (parsedData.isPrivateChannel) {
+        infoHtml += `🔒 <strong>Приватный канал</strong><br>`;
+    } else {
+        infoHtml += `🔓 <strong>Публичный канал</strong><br>`;
+    }
+    
+    infoHtml += `📋 <strong>ID канала:</strong> ${parsedData.channelId || parsedData.channelUsername}<br>`;
+    infoHtml += `📝 <strong>ID поста:</strong> ${parsedData.postId}<br>`;
+    
+    if (channelInfo && channelInfo.success) {
+        infoHtml += `🏷️ <strong>Название:</strong> ${channelInfo.title}<br>`;
+    }
+    
+    infoHtml += `🔗 <strong>Прямая ссылка:</strong> 
+        <a href="${parsedData.directUrl}" target="_blank" style="color: #007bff;">${parsedData.directUrl}</a>
+    `;
+    
+    infoHtml += `</div></div>`;
+    
+    messageArea.innerHTML = infoHtml;
+}
+
+// ФУНКЦИЯ БЫСТРОГО ДОБАВЛЕНИЯ МАТЕРИАЛА
+async function quickAddPrivateVideo() {
+    const url = document.getElementById('privateVideoPostUrl').value.trim();
+    const price = document.getElementById('privateVideoPrice').value;
+    
+    if (!url) {
+        showMessage('❌ Введите ссылку на пост Telegram', 'error');
+        return;
+    }
+    
+    try {
+        showMessage('⏳ Создаем материал...', 'info');
+        
+        // Сначала парсим URL
+        const parseResponse = await fetch('/api/admin/parse-telegram-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+        
+        const parseResult = await parseResponse.json();
+        
+        if (!parseResult.success) {
+            showMessage(`❌ ${parseResult.error}`, 'error');
+            return;
+        }
+        
+        // Автоматически создаем материал
+        const videoData = {
+            post_url: url,
+            title: parseResult.suggested_title,
+            description: parseResult.suggested_description,
+            price: price || 25,
+            category: 'video',
+            level: 'beginner',
+            is_active: true
+        };
+        
+        const createResponse = await fetch('/api/admin/private-videos?userId=' + currentUserId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(videoData)
+        });
+        
+        const createResult = await createResponse.json();
+        
+        if (createResult.success) {
+            showMessage('✅ Материал успешно создан!', 'success');
+            hidePrivateVideoForm();
+            loadPrivateVideosAdmin();
+        } else {
+            showMessage(`❌ ${createResult.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка быстрого добавления:', error);
+        showMessage('❌ Ошибка создания материала', 'error');
+    }
+}
+        
 // Просмотр статистики
 async function viewVideoStats(videoId) {
     try {
