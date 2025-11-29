@@ -1365,7 +1365,7 @@ app.post('/api/webapp/private-videos/:videoId/request-invite', async (req, res) 
     }
 });
 
-// Упрощенная покупка приватного материала - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// УПРОЩЕННАЯ ФУНКЦИЯ ПОКУПКИ ПРИВАТНОГО МАТЕРИАЛА (ТОЛЬКО ИНВАЙТ-ССЫЛКИ)
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
         const { userId, videoId } = req.body;
@@ -1396,39 +1396,39 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             });
         }
 
-        // Проверка баланса
+        // ТОЧНАЯ ПРОВЕРКА БАЛАНСА
         if (user.sparks < video.price) {
             return res.status(402).json({ 
                 success: false,
-                error: `Недостаточно искр. Нужно: ${video.price}, у вас: ${user.sparks.toFixed(1)}` 
+                error: `Недостаточно искр. Нужно: ${video.price}✨, у вас: ${user.sparks.toFixed(1)}✨` 
             });
         }
 
-        // Проверка на уже купленный доступ - ИСПРАВЛЕННАЯ ПРОВЕРКА
-        const existingAccess = db.video_access.some(access => 
-            access.user_id == userId && 
-            access.video_id == videoId && 
-            new Date(access.expires_at) > new Date()
+        // Проверяем, не куплен ли уже материал
+        const existingPurchase = db.purchases.find(p => 
+            p.user_id == userId && 
+            p.item_id == videoId && 
+            p.item_type === 'private_video'
         );
 
-        if (existingAccess) {
+        if (existingPurchase) {
             return res.status(409).json({ 
                 success: false,
                 error: 'У вас уже есть доступ к этому материалу' 
             });
         }
 
-        // Списание искр
+        // ТОЧНОЕ СПИСАНИЕ ИСКР
         const oldSparks = user.sparks;
-        user.sparks -= video.price;
+        user.sparks = Number((oldSparks - video.price).toFixed(1));
         
-        console.log(`💰 Списание искр: ${oldSparks} -> ${user.sparks}`);
+        console.log(`💰 Списание искр за материал: ${oldSparks} - ${video.price} = ${user.sparks}`);
 
         // Создание записи о покупке
         const purchase = {
             id: Date.now(),
             user_id: parseInt(userId),
-            item_id: parseInt(videoId), // ИСПРАВЛЕНО: преобразуем в число
+            item_id: parseInt(videoId),
             item_type: 'private_video',
             item_title: video.title,
             price_paid: video.price,
@@ -1436,39 +1436,22 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         };
         db.purchases.push(purchase);
 
-        // Создание доступа (30 дней) - ИСПРАВЛЕНО: video_id как число
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
-        
-        const access = {
-            id: Date.now(),
-            user_id: parseInt(userId),
-            video_id: parseInt(videoId), // ИСПРАВЛЕНО: преобразуем в число
-            purchased_at: new Date().toISOString(),
-            expires_at: expiresAt.toISOString()
-        };
-        
-        console.log('📝 Создаем доступ:', access);
-        db.video_access.push(access);
-
-        // Запись активности
+        // Записываем активность списания
         addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к материалу: ${video.title}`);
 
-        console.log('✅ Покупка завершена:', { 
+        console.log('✅ Покупка материала завершена:', { 
             purchase: purchase.id, 
-            access: access.id,
             user: userId,
             video: video.title,
-            videoAccessCount: db.video_access.length
+            price: video.price
         });
 
         res.json({
             success: true,
             purchase: purchase,
-            access: access,
             remaining_sparks: user.sparks,
-            invite_link: video.invite_link,
-            message: `✅ Доступ к "${video.title}" успешно приобретен! Используйте инвайт-ссылку для вступления в канал.`
+            invite_link: video.invite_link, // Прямо возвращаем инвайт-ссылку
+            message: `✅ Доступ к "${video.title}" успешно приобретен! Нажмите "Перейти к материалу" для вступления в канал.`
         });
 
     } catch (error) {
@@ -1478,7 +1461,7 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
         if (userId) {
             const user = db.users.find(u => u.user_id == userId);
             if (user) {
-                user.sparks += req.body.videoId ? db.private_channel_videos.find(v => v.id == req.body.videoId)?.price || 0 : 0;
+                user.sparks += video.price;
             }
         }
         
@@ -1558,109 +1541,8 @@ app.get('/api/webapp/user/private-videos', (req, res) => {
     }
 });
 
-// Получить приватные видео с информацией о доступе
-app.get('/api/webapp/private-videos', (req, res) => {
-    try {
-        const userId = parseInt(req.query.userId);
-        console.log('🎬 Запрос приватных материалов для пользователя:', userId);
 
-        if (!userId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Требуется авторизация' 
-            });
-        }
-
-        const videos = db.private_channel_videos.filter(video => video.is_active);
-        
-        const videosWithAccess = videos.map(video => {
-            // Проверяем доступ пользователя
-            const hasAccess = db.video_access.some(access => 
-                access.user_id === userId && 
-                access.video_id === video.id && 
-                access.expires_at > new Date().toISOString()
-            );
-            
-            const hasPurchase = db.purchases.some(purchase => 
-                purchase.user_id === userId && 
-                purchase.item_id === video.id && 
-                purchase.item_type === 'private_video'
-            );
-
-            return {
-                id: video.id,
-                invite_link: video.invite_link,
-                title: video.title,
-                description: video.description,
-                duration: video.duration,
-                price: video.price,
-                category: video.category,
-                level: video.level,
-                has_access: hasAccess,
-                has_purchase: hasPurchase,
-                can_purchase: !hasPurchase
-            };
-        });
-
-        console.log(`✅ Найдено материалов: ${videosWithAccess.length}`);
-
-        res.json({ 
-            success: true,
-            videos: videosWithAccess 
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка получения приватных материалов:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка загрузки материалов' 
-        });
-    }
-});
-
-// Простой endpoint для проверки доступа
-app.get('/api/webapp/private-videos/:videoId/check-access', (req, res) => {
-    try {
-        const videoId = parseInt(req.params.videoId);
-        const userId = parseInt(req.query.userId);
-        
-        const video = db.private_channel_videos.find(v => v.id === videoId && v.is_active);
-        if (!video) {
-            return res.json({ 
-                success: false,
-                has_access: false,
-                error: 'Видео не найдено' 
-            });
-        }
-
-        const hasAccess = db.video_access.some(access => 
-            access.user_id == userId && 
-            access.video_id === videoId && 
-            access.expires_at > new Date().toISOString()
-        );
-
-        res.json({
-            success: true,
-            has_access: hasAccess,
-            video: {
-                id: video.id,
-                title: video.title,
-                price: video.price
-            },
-            access_info: hasAccess ? 'Доступ активен' : 'Нет доступа'
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка проверки доступа:', error);
-        res.json({ 
-            success: false,
-            has_access: false,
-            error: 'Ошибка сервера' 
-        });
-    }
-});
-
-// Получить инвайт-ссылку для видео
+// ПРОСТОЙ ENDPOINT ДЛЯ ПОЛУЧЕНИЯ ИНВАЙТ-ССЫЛКИ
 app.get('/api/webapp/private-videos/:videoId/invite', async (req, res) => {
     try {
         const videoId = parseInt(req.params.videoId);
@@ -1668,25 +1550,17 @@ app.get('/api/webapp/private-videos/:videoId/invite', async (req, res) => {
         
         console.log('🔗 Запрос инвайт-ссылки:', { videoId, userId });
         
-        // Проверяем покупку - ИСПРАВЛЕННАЯ ПРОВЕРКА
-        const hasAccess = db.video_access.some(access => 
-            access.user_id === userId && 
-            access.video_id === videoId && 
-            new Date(access.expires_at) > new Date()
+        // Простая проверка покупки
+        const hasPurchase = db.purchases.some(purchase => 
+            purchase.user_id == userId && 
+            purchase.item_id == videoId && 
+            purchase.item_type === 'private_video'
         );
         
-        console.log('📊 Проверка доступа:', {
-            userId,
-            videoId,
-            hasAccess,
-            videoAccessEntries: db.video_access.filter(a => a.user_id === userId),
-            allVideoAccess: db.video_access.length
-        });
-        
-        if (!hasAccess) {
+        if (!hasPurchase) {
             return res.json({ 
                 success: false, 
-                error: 'Для получения приглашения необходимо сначала приобрести доступ к материалу' 
+                error: 'Для получения ссылки необходимо сначала приобрести материал' 
             });
         }
         
@@ -1695,23 +1569,24 @@ app.get('/api/webapp/private-videos/:videoId/invite', async (req, res) => {
             return res.json({ success: false, error: 'Материал не найден' });
         }
         
-        console.log('✅ Доступ подтвержден, возвращаем инвайт-ссылку:', video.invite_link);
+        console.log('✅ Покупка подтверждена, возвращаем инвайт-ссылку:', video.invite_link);
         
         res.json({
             success: true,
             invite_link: video.invite_link,
             video_title: video.title,
-            message: 'Используйте эту ссылку для вступления в канал'
+            message: 'Нажмите "Перейти к материалу" для вступления в канал'
         });
         
     } catch (error) {
         console.error('❌ Ошибка получения приглашения:', error);
         res.json({ 
             success: false, 
-            error: 'Не удалось получить пригласительную ссылку' 
+            error: 'Не удалось получить ссылку' 
         });
     }
 });
+
 // Получение доступа к купленному материалу
 app.get('/api/webapp/private-videos/:videoId/access', async (req, res) => {
     try {
@@ -2350,7 +2225,7 @@ app.get('/api/webapp/user/private-videos', (req, res) => {
 });
 // ==================== ИСПРАВЛЕННЫЕ API ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
 
-// Получить все приватные материалы
+// УПРОЩЕННЫЙ ENDPOINT ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ
 app.get('/api/webapp/private-videos', (req, res) => {
     try {
         const userId = parseInt(req.query.userId);
@@ -2366,12 +2241,7 @@ app.get('/api/webapp/private-videos', (req, res) => {
         const videos = db.private_channel_videos.filter(video => video.is_active);
         
         const videosWithAccess = videos.map(video => {
-            const hasAccess = db.video_access.some(access => 
-                access.user_id == userId && 
-                access.video_id === video.id && 
-                access.expires_at > new Date().toISOString()
-            );
-            
+            // Проверяем покупку (без системы доступов)
             const hasPurchase = db.purchases.some(purchase => 
                 purchase.user_id == userId && 
                 purchase.item_id === video.id && 
@@ -2387,7 +2257,7 @@ app.get('/api/webapp/private-videos', (req, res) => {
                 price: video.price,
                 category: video.category,
                 level: video.level,
-                has_access: hasAccess,
+                has_access: hasPurchase, // Просто проверяем покупку
                 has_purchase: hasPurchase,
                 can_purchase: !hasPurchase
             };
@@ -2775,6 +2645,7 @@ app.post('/api/users/change-role', (req, res) => {
     });
 });
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ РЕГИСТРАЦИИ
 app.post('/api/users/register', (req, res) => {
     const { userId, firstName, roleId, characterId } = req.body;
     
@@ -2795,13 +2666,13 @@ app.post('/api/users/register', (req, res) => {
     const isNewUser = !user;
     
     if (!user) {
-        // Создаем нового пользователя
+        // СОЗДАЕМ НОВОГО ПОЛЬЗОВАТЕЛЯ С ПРАВИЛЬНЫМИ ДАННЫМИ
         user = {
             id: Date.now(),
             user_id: parseInt(userId),
             tg_first_name: firstName,
             tg_username: 'user_' + userId,
-            sparks: 0,
+            sparks: 10, // Стартовый бонус
             level: 'Ученик',
             is_registered: false,
             class: null,
@@ -2812,9 +2683,10 @@ app.post('/api/users/register', (req, res) => {
             last_active: new Date().toISOString()
         };
         db.users.push(user);
+        console.log(`✅ Новый пользователь создан: ${firstName} (ID: ${userId})`);
     }
     
-    // Обновляем данные пользователя
+    // ОБНОВЛЯЕМ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
     user.tg_first_name = firstName;
     user.class = role.name;
     user.character_id = characterId;
@@ -2827,25 +2699,32 @@ app.post('/api/users/register', (req, res) => {
     let sparksAdded = 0;
     
     if (isNewUser) {
-        sparksAdded = SPARKS_SYSTEM.REGISTRATION_BONUS;
-        addSparks(userId, sparksAdded, 'registration', 'Регистрация');
-        message = `Регистрация успешна! +${sparksAdded}✨`;
+        sparksAdded = 10; // Стартовый бонус
+        addSparks(userId, sparksAdded, 'registration', 'Регистрация и стартовый бонус');
+        message = `Регистрация успешна! +${sparksAdded}✨ стартового бонуса`;
         
-        // Автоматически добавляем пользователя как модератора для тестирования
-        const adminExists = db.admins.find(a => a.user_id == userId);
-        if (!adminExists) {
-            db.admins.push({
-                id: Date.now(),
-                user_id: parseInt(userId),
-                username: 'user_' + userId,
-                role: 'moderator',
-                created_at: new Date().toISOString()
-            });
-            console.log('✅ Пользователь добавлен как модератор');
+        // АВТОМАТИЧЕСКИ ДОБАВЛЯЕМ АДМИНА ЕСЛИ ЭТО АДМИН
+        if (userId == 898508164) { // Ваш ID
+            const adminExists = db.admins.find(a => a.user_id == userId);
+            if (!adminExists) {
+                db.admins.push({
+                    id: Date.now(),
+                    user_id: parseInt(userId),
+                    username: 'admin',
+                    role: 'super_admin',
+                    created_at: new Date().toISOString()
+                });
+                console.log('✅ Пользователь добавлен как супер-админ');
+            }
         }
     }
     
-    console.log('✅ Успешная регистрация:', user);
+    console.log('✅ Успешная регистрация:', {
+        id: user.user_id,
+        name: user.tg_first_name,
+        role: user.class,
+        sparks: user.sparks
+    });
     
     res.json({ 
         success: true, 
@@ -3144,43 +3023,48 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
         return res.status(400).json({ error: 'Вы уже купили этот товар' });
     }
     
+    // ТОЧНОЕ СПИСАНИЕ - проверяем баланс
     if (user.sparks < item.price) {
-        return res.status(400).json({ error: 'Недостаточно искр' });
+        return res.status(400).json({ 
+            error: `Недостаточно искр. Нужно: ${item.price}✨, у вас: ${user.sparks.toFixed(1)}✨` 
+        });
     }
     
     try {
-        // ПРАВИЛЬНОЕ СПИСАНИЕ ИСКР
+        // ТОЧНОЕ СПИСАНИЕ БЕЗ ОКРУГЛЕНИЯ
         const oldSparks = user.sparks;
-        user.sparks = oldSparks - item.price;
+        user.sparks = Number((oldSparks - item.price).toFixed(1));
         
-        console.log(`💰 Списание искр: ${oldSparks} - ${item.price} = ${user.sparks}`);
+        console.log(`💰 Точное списание искр: ${oldSparks} - ${item.price} = ${user.sparks}`);
 
         const purchase = {
             id: Date.now(),
             user_id: userId,
             item_id: itemId,
+            item_type: 'shop_item',
+            item_title: item.title,
             price_paid: item.price,
             purchased_at: new Date().toISOString()
         };
         
         db.purchases.push(purchase);
         
-        // Записываем активность списания
+        // Записываем активность списания с отрицательным значением
         addSparks(userId, -item.price, 'shop_purchase', `Покупка товара: ${item.title}`);
         
-        console.log(`✅ Покупка товара: пользователь ${userId}, товар ${itemId}, цена ${item.price}, осталось искр: ${user.sparks}`);
+        console.log(`✅ Покупка товара завершена: пользователь ${userId}, товар ${itemId}, цена ${item.price}, осталось искр: ${user.sparks}`);
         
         res.json({
             success: true,
             message: `Покупка успешна! Куплено: ${item.title}`,
             remainingSparks: user.sparks,
+            sparksSpent: item.price,
             purchase: purchase
         });
         
     } catch (error) {
         console.error('❌ Ошибка при покупке товара:', error);
         // Откатываем списание искр в случае ошибки
-        const user = db.users.find(u => u.user_id == userId);
         if (user) {
             user.sparks += item.price;
         }
@@ -4756,56 +4640,62 @@ function setupBotHandlers() {
         return;
     }
 
-    // Обработчик команды /start
-    bot.onText(/\/start/, async (msg) => {
-        try {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
-            const firstName = msg.from.first_name || 'Друг';
-            const username = msg.from.username || `user_${userId}`;
+    // ОБНОВЛЕННЫЙ ОБРАБОТЧИК /start
+bot.onText(/\/start/, async (msg) => {
+    try {
+        const chatId = msg.chat.id;
+        const userId = msg.from.id;
+        const firstName = msg.from.first_name || 'Друг';
+        const chatType = msg.chat.type; // 'private', 'group', 'supergroup', 'channel'
 
-            console.log(`👋 Команда /start от ${firstName} (${userId})`);
+        console.log(`👋 Команда /start от ${firstName} (${userId}) в чате типа: ${chatType}`);
 
-            // Сохраняем/обновляем пользователя
-            let user = db.users.find(u => u.user_id === userId);
-            if (!user) {
-                user = {
-                    id: Date.now(),
-                    user_id: userId,
-                    tg_first_name: firstName,
-                    tg_username: username,
-                    sparks: 10, // Бонус за старт
-                    level: 'Ученик',
-                    is_registered: false,
-                    class: null,
-                    character_id: null,
-                    character_name: null,
-                    available_buttons: [],
-                    registration_date: new Date().toISOString(),
-                    last_active: new Date().toISOString()
-                };
-                db.users.push(user);
-                
-                // Начисляем бонус за старт
-                addSparks(userId, 10, 'welcome_bonus', 'Бонус за начало работы с ботом');
-                
-                console.log(`✅ Новый пользователь создан: ${firstName}`);
-            } else {
-                user.last_active = new Date().toISOString();
-                user.tg_first_name = firstName;
-                user.tg_username = username;
-                console.log(`✅ Пользователь обновлен: ${firstName}`);
-            }
+        // РАЗНЫЕ СООБЩЕНИЯ ДЛЯ РАЗНЫХ КОНТЕКСТОВ
+        if (chatType === 'private') {
+            // ЛИЧНЫЕ СООБЩЕНИЯ - ПОЛНАЯ ФУНКЦИОНАЛЬНОСТЬ
+            await handlePrivateStart(chatId, userId, firstName, msg);
+        } else {
+            // ГРУППЫ И КАНАЛЫ - ТОЛЬКО КНОПКА ПРИЛОЖЕНИЯ
+            await handleChannelStart(chatId, userId, firstName, msg);
+        }
 
-            // Создаем приветственное сообщение
-            const welcomeText = `🎨 Привет, ${firstName}!
+    } catch (error) {
+        console.error('❌ Ошибка обработки /start:', error);
+    }
+});
+
+// ДЛЯ ЛИЧНЫХ СООБЩЕНИЙ
+async function handlePrivateStart(chatId, userId, firstName, msg) {
+    // Сохраняем/обновляем пользователя
+    let user = db.users.find(u => u.user_id === userId);
+    if (!user) {
+        user = {
+            id: Date.now(),
+            user_id: userId,
+            tg_first_name: firstName,
+            tg_username: msg.from.username || `user_${userId}`,
+            sparks: 10,
+            level: 'Ученик',
+            is_registered: false,
+            class: null,
+            character_id: null,
+            character_name: null,
+            available_buttons: [],
+            registration_date: new Date().toISOString(),
+            last_active: new Date().toISOString()
+        };
+        db.users.push(user);
+        addSparks(userId, 10, 'welcome_bonus', 'Бонус за начало работы с ботом');
+    }
+
+    const welcomeText = `🎨 Привет, ${firstName}!
 
 Добро пожаловать в **Мастерскую Вдохновения**!
 
 ✨ Я ваш помощник в мире творчества. Вот что я умею:
 
 • 🎯 Открыть личный кабинет
-• 📊 Показать статистику
+• 📊 Показать статистику  
 • 🛒 Помочь с покупками
 • 🎬 Предоставить доступ к материалам
 
@@ -4813,34 +4703,47 @@ function setupBotHandlers() {
 /start - Начать работу
 /profile - Мой профиль
 /stats - Статистика
+/admin - Админ панель (для админов)
 /help - Помощь
 
 Нажмите кнопку ниже чтобы открыть личный кабинет!`;
 
-            // Создаем клавиатуру
-            const keyboard = {
-                inline_keyboard: [[
-                    {
-                        text: "📱 Открыть Личный Кабинет",
-                        web_app: { 
-                            url: `${process.env.APP_URL || 'http://localhost:3000'}?tgWebAppStartParam=${userId}`
-                        }
-                    }
-                ]]
-            };
+    const keyboard = {
+        inline_keyboard: [[
+            {
+                text: "📱 Открыть Личный Кабинет",
+                web_app: { 
+                    url: `${process.env.APP_URL || 'http://localhost:3000'}?tgWebAppStartParam=${userId}`
+                }
+            }
+        ]]
+    };
 
-            await bot.sendMessage(chatId, welcomeText, {
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            });
-
-            console.log(`✅ Приветственное сообщение отправлено пользователю ${userId}`);
-
-        } catch (error) {
-            console.error('❌ Ошибка обработки /start:', error);
-        }
+    await bot.sendMessage(chatId, welcomeText, {
+        parse_mode: 'Markdown',
+        reply_markup: keyboard
     });
+}
 
+// ДЛЯ КАНАЛОВ И ГРУПП
+async function handleChannelStart(chatId, userId, firstName, msg) {
+    const appUrl = `${process.env.APP_URL || 'http://localhost:3000'}?tgWebAppStartParam=${userId}`;
+    
+    const keyboard = {
+        inline_keyboard: [[
+            {
+                text: "🎨 Открыть Мастерскую Вдохновения",
+                web_app: { url: appUrl }
+            }
+        ]]
+    };
+
+    await bot.sendMessage(chatId, 
+        `🎨 *Мастерская Вдохновения*\n\nПривет, ${firstName}! Нажмите кнопку ниже чтобы открыть творческое приложение:`, {
+        parse_mode: 'Markdown',
+        reply_markup: keyboard
+    });
+}
     // Обработчик команды /profile
     bot.onText(/\/profile/, async (msg) => {
         try {
@@ -5019,52 +4922,60 @@ function setupBotHandlers() {
         }
     });
 
-    // Обработчик команды /доступ
-    bot.onText(/\/доступ/, async (msg) => {
-        try {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
-            const firstName = msg.from.first_name || 'Пользователь';
+// ОБРАБОТЧИК ДЛЯ КНОПКИ "ОТКРЫТЬ ПРИЛОЖЕНИЕ" ИЗ КАНАЛА
+bot.onText(/\/app/, async (msg) => {
+    try {
+        const chatId = msg.chat.id;
+        const userId = msg.from.id;
+        const firstName = msg.from.first_name || 'Друг';
 
-            console.log(`🎬 Команда /доступ от ${firstName} (${userId})`);
+        console.log(`📱 Команда /app от ${firstName} (${userId})`);
 
-            const userAccess = db.video_access.filter(access => 
-                access.user_id === userId && 
-                access.expires_at > new Date().toISOString()
-            );
-
-            if (userAccess.length === 0) {
-                await bot.sendMessage(chatId, 
-                    `🎬 *Доступ к материалам*\n\nУ вас нет активного доступа к приватным видео.\n\n📹 Приобрести доступ можно в разделе "Приватные видео" в вашем личном кабинете.`, {
-                    parse_mode: 'Markdown'
-                });
-                return;
-            }
-
-            let message = `🎬 *Ваши активные доступы к видео:*\n\n`;
-
-            for (const access of userAccess) {
-                const video = db.private_channel_videos.find(v => v.id === access.video_id);
-                if (video && video.is_active) {
-                    const expiresDate = new Date(access.expires_at);
-                    const daysLeft = Math.ceil((expiresDate - new Date()) / (1000 * 60 * 60 * 24));
-                    
-                    message += `📹 *${video.title}*\n`;
-                    message += `⏰ Доступен еще: ${daysLeft} дней\n`;
-                    message += `📅 Истекает: ${expiresDate.toLocaleDateString('ru-RU')}\n\n`;
-                }
-            }
-
-            message += `💡 *Для просмотра материалов откройте личный кабинет и перейдите в раздел "Мои материалы".*`;
-
-            await bot.sendMessage(chatId, message, {
-                parse_mode: 'Markdown'
-            });
-
-        } catch (error) {
-            console.error('❌ Ошибка обработки /доступ:', error);
+        // СОЗДАЕМ ИЛИ ОБНОВЛЯЕМ ПОЛЬЗОВАТЕЛЯ
+        let user = db.users.find(u => u.user_id === userId);
+        if (!user) {
+            user = {
+                id: Date.now(),
+                user_id: userId,
+                tg_first_name: firstName,
+                tg_username: msg.from.username || `user_${userId}`,
+                sparks: 10,
+                level: 'Ученик',
+                is_registered: false,
+                class: null,
+                character_id: null,
+                character_name: null,
+                available_buttons: [],
+                registration_date: new Date().toISOString(),
+                last_active: new Date().toISOString()
+            };
+            db.users.push(user);
+            console.log(`✅ Новый пользователь из канала: ${firstName}`);
         }
-    });
+
+        const appUrl = `${process.env.APP_URL || 'http://localhost:3000'}?tgWebAppStartParam=${userId}`;
+        
+        const keyboard = {
+            inline_keyboard: [[
+                {
+                    text: "🚀 Открыть Приложение",
+                    web_app: { url: appUrl }
+                }
+            ]]
+        };
+
+        await bot.sendMessage(chatId, 
+            `🎨 *Добро пожаловать в Мастерскую Вдохновения!*\n\nПривет, ${firstName}! Нажмите кнопку ниже чтобы открыть приложение и начать творческий путь:`, {
+            parse_mode: 'Markdown',
+            reply_markup: keyboard
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка обработки /app:', error);
+    }
+});
+
+// ... остальной код бота ...
 
     // Обработчик текстовых сообщений (не команд)
     bot.on('message', async (msg) => {
