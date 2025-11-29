@@ -4469,7 +4469,9 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
     res.json(stats);
 });
 
-// Статистика пользователя
+// ==================== ЭНДПОИНТЫ СТАТИСТИКИ ПОЛЬЗОВАТЕЛЯ ====================
+
+// ✅ СТАТИСТИКА ПОЛЬЗОВАТЕЛЯ
 app.get('/api/users/:userId/stats', (req, res) => {
     try {
         const userId = parseInt(req.params.userId);
@@ -4477,24 +4479,159 @@ app.get('/api/users/:userId/stats', (req, res) => {
 
         const user = db.users.find(u => u.user_id === userId);
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+            return res.status(404).json({ 
+                success: false,
+                error: 'User not found' 
+            });
         }
 
+        // Собираем полную статистику
         const stats = {
             totalQuizzesCompleted: db.quiz_completions.filter(q => q.user_id === userId).length,
             totalWorks: db.user_works.filter(w => w.user_id === userId).length,
+            approvedWorks: db.user_works.filter(w => w.user_id === userId && w.status === 'approved').length,
             totalMarathonsCompleted: db.marathon_completions.filter(m => m.user_id === userId && m.completed).length,
             totalInteractivesCompleted: db.interactive_completions.filter(i => i.user_id === userId).length,
             totalActivities: db.activities.filter(a => a.user_id === userId).length,
-            totalPurchases: db.purchases.filter(p => p.user_id === userId).length
+            totalPurchases: db.purchases.filter(p => p.user_id === userId).length,
+            totalSparksEarned: db.activities
+                .filter(a => a.user_id === userId && a.sparks_earned > 0)
+                .reduce((sum, a) => sum + a.sparks_earned, 0),
+            totalSparksSpent: Math.abs(db.activities
+                .filter(a => a.user_id === userId && a.sparks_earned < 0)
+                .reduce((sum, a) => sum + a.sparks_earned, 0)),
+            registrationDate: user.registration_date,
+            lastActive: user.last_active
         };
 
-        console.log('✅ Статистика отправлена:', stats);
-        res.json(stats);
+        console.log('✅ Статистика отправлена для пользователя:', userId);
+        res.json({
+            success: true,
+            stats: stats
+        });
 
     } catch (error) {
         console.error('❌ Ошибка получения статистики:', error);
-        res.status(500).json({ error: 'Ошибка сервера' });
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка сервера',
+            stats: {}
+        });
+    }
+});
+
+// ✅ ДЕТАЛЬНАЯ СТАТИСТИКА С АКТИВНОСТЯМИ
+app.get('/api/users/:userId/detailed-stats', (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        
+        const user = db.users.find(u => u.user_id === userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Статистика по типам активностей
+        const activitiesByType = {};
+        db.activities
+            .filter(a => a.user_id === userId)
+            .forEach(activity => {
+                if (!activitiesByType[activity.activity_type]) {
+                    activitiesByType[activity.activity_type] = {
+                        count: 0,
+                        totalSparks: 0
+                    };
+                }
+                activitiesByType[activity.activity_type].count++;
+                activitiesByType[activity.activity_type].totalSparks += activity.sparks_earned;
+            });
+
+        // Последние активности
+        const recentActivities = db.activities
+            .filter(a => a.user_id === userId)
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            .slice(0, 20)
+            .map(a => ({
+                type: a.activity_type,
+                description: a.description,
+                sparks: a.sparks_earned,
+                date: a.created_at
+            }));
+
+        const detailedStats = {
+            user: {
+                name: user.tg_first_name,
+                level: user.level,
+                sparks: user.sparks,
+                role: user.class,
+                character: user.character_name
+            },
+            activities: activitiesByType,
+            recentActivities: recentActivities,
+            totals: {
+                quizzes: db.quiz_completions.filter(q => q.user_id === userId).length,
+                marathons: db.marathon_completions.filter(m => m.user_id === userId && m.completed).length,
+                works: db.user_works.filter(w => w.user_id === userId).length,
+                purchases: db.purchases.filter(p => p.user_id === userId).length
+            }
+        };
+
+        res.json({
+            success: true,
+            stats: detailedStats
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения детальной статистики:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка сервера' 
+        });
+    }
+});
+
+// ✅ АКТИВНОСТИ ПОЛЬЗОВАТЕЛЯ
+app.get('/api/users/:userId/activities', (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const { limit = 50, offset = 0 } = req.query;
+        
+        console.log('📈 Запрос активностей пользователя:', userId);
+
+        const userActivities = db.activities
+            .filter(a => a.user_id === userId)
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            .slice(parseInt(offset), parseInt(offset) + parseInt(limit))
+            .map(activity => ({
+                id: activity.id,
+                type: activity.activity_type,
+                description: activity.description,
+                sparks_earned: activity.sparks_earned,
+                old_balance: activity.old_balance,
+                new_balance: activity.new_balance,
+                created_at: activity.created_at,
+                operation_id: activity.operation_id
+            }));
+
+        const totalActivities = db.activities.filter(a => a.user_id === userId).length;
+
+        res.json({
+            success: true,
+            activities: userActivities,
+            pagination: {
+                total: totalActivities,
+                limit: parseInt(limit),
+                offset: parseInt(offset),
+                hasMore: (parseInt(offset) + parseInt(limit)) < totalActivities
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка получения активностей:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка сервера',
+            activities: []
+        });
     }
 });
 
