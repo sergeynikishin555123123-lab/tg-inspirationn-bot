@@ -7,18 +7,88 @@ import { dirname, join } from 'path';
 import { readdirSync, existsSync } from 'fs';
 import dotenv from 'dotenv';
 
+// ==================== СИСТЕМА УПРАВЛЕНИЯ ПРОЦЕССАМИ ====================
+import { exec } from 'child_process';
+import { promisify } from 'util';
+const execAsync = promisify(exec);
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// ✅ ПЕРВЫЙ ПУНКТ - СИСТЕМА ЗАЩИТЫ ОТ ДУБЛИРОВАНИЯ
+const pendingTransactions = new Map();
+
+// ✅ ВТОРОЙ ПУНКТ - ФУНКЦИЯ БЕЗОПАСНЫХ ОПЕРАЦИЙ (ДОБАВИТЬ ЗДЕСЬ)
+async function safeSparksOperation(userId, operationType, operationId, callback) {
+    const transactionKey = `${userId}_${operationType}_${operationId}`;
+    
+    // Проверяем, не выполняется ли уже эта операция
+    if (pendingTransactions.has(transactionKey)) {
+        throw new Error('Операция уже выполняется');
+    }
+    
+    try {
+        // Помечаем операцию как выполняющуюся
+        pendingTransactions.set(transactionKey, true);
+        
+        // Выполняем callback функцию
+        const result = await callback();
+        
+        return result;
+    } finally {
+        // Всегда снимаем блокировку
+        pendingTransactions.delete(transactionKey);
+    }
+}
+
+// ✅ ТРЕТИЙ ПУНКТ - УЛУЧШЕННАЯ ФУНКЦИЯ addSparks (ДОБАВИТЬ ЗДЕСЬ)
+function addSparks(userId, sparks, activityType, description, operationId = null) {
+    const user = db.users.find(u => u.user_id == userId);
+    if (!user) {
+        console.error('❌ Пользователь не найден для начисления искр:', userId);
+        return null;
+    }
+    
+    // Генерируем ID операции если не передан
+    const opId = operationId || `${activityType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    return safeSparksOperation(userId, activityType, opId, () => {
+        // Сохраняем старое значение для лога
+        const oldSparks = user.sparks;
+        
+        // Вычисляем новое значение
+        user.sparks = Number((user.sparks + sparks).toFixed(1));
+        user.level = calculateLevel(user.sparks);
+        user.last_active = new Date().toISOString();
+        
+        // Создаем запись активности
+        const activity = {
+            id: Date.now(),
+            user_id: userId,
+            activity_type: activityType,
+            sparks_earned: sparks,
+            description: description,
+            operation_id: opId, // Добавляем ID операции для отслеживания
+            old_balance: oldSparks,
+            new_balance: user.sparks,
+            created_at: new Date().toISOString()
+        };
+        
+        db.activities.push(activity);
+        
+        console.log(`💰 Операция с искрами: ${description}`);
+        console.log(`   Пользователь: ${userId}, Изменение: ${sparks > 0 ? '+' : ''}${sparks}✨`);
+        console.log(`   Баланс: ${oldSparks} → ${user.sparks}✨`);
+        console.log(`   ID операции: ${opId}`);
+        
+        return activity;
+    });
+}
+
+// ✅ ТЕПЕРЬ ИНИЦИАЛИЗИРУЕМ EXPRESS APP
 const app = express();
-
-// ==================== СИСТЕМА УПРАВЛЕНИЯ ПРОЦЕССАМИ ====================
-
-import { exec } from 'child_process';
-import { promisify } from 'util';
-const execAsync = promisify(exec);
 
 // Функция для освобождения порта и управления процессами
 async function setupProcessManagement() {
