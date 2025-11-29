@@ -31,7 +31,6 @@ async function safeSparksOperation(userId, operationType, operationId, callback)
         return completedOp.result;
     }
     
-    ry {
         // Помечаем операцию как выполняющуюся
         pendingTransactions.set(transactionKey, {
             timestamp: Date.now(),
