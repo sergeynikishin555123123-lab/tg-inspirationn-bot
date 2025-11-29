@@ -3832,6 +3832,7 @@ function optimizeMobileInterface() {
 }
 
 // ==================== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ====================
+// ==================== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ====================
 async function initApp() {
     try {
         console.log('🚀 Инициализация приложения...');
@@ -5741,12 +5742,23 @@ function initDrawingCanvas() {
     drawingCanvas.addEventListener('mouseup', stopDrawing);
     drawingCanvas.addEventListener('mouseout', stopDrawing);
     
+    // Инициализация инструментов рисования
     document.querySelectorAll('.drawing-tool').forEach(tool => {
         tool.addEventListener('click', function() {
             document.querySelectorAll('.drawing-tool').forEach(t => t.classList.remove('active'));
             this.classList.add('active');
             currentTool = this.dataset.tool;
-            updateDrawingTool();
+            updateDrawingTool(); // Теперь функция определена
+        });
+    });
+    
+    // Инициализация цветовых пикеров
+    document.querySelectorAll('.color-picker').forEach(picker => {
+        picker.addEventListener('click', function() {
+            document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
+            this.classList.add('active');
+            currentColor = this.dataset.color;
+            updateDrawingTool(); // Обновляем инструмент с новым цветом
         });
     });
 }
@@ -6767,18 +6779,13 @@ function setupTouchEvents() {
 
 // Инициализация при загрузке DOM
 document.addEventListener('DOMContentLoaded', function() {
-    initApp();
-    setupDragAndDrop();
-    
-    // Инициализация цветовых пикеров для рисования
-    document.querySelectorAll('.color-picker').forEach(picker => {
-        picker.addEventListener('click', function() {
-            document.querySelectorAll('.color-picker').forEach(p => p.classList.remove('active'));
-            this.classList.add('active');
-            currentColor = this.dataset.color;
-            updateDrawingTool();
-        });
-    });
+    // Обернуть в асинхронную функцию
+    (async function() {
+        await initApp();
+        setupDragAndDrop();
+        
+        // Инициализация уже происходит в initDrawingCanvas, так что здесь не нужно дублировать
+    })();
 });
 
 // Закрытие модального окна по ESC
