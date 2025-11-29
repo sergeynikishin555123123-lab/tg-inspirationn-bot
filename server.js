@@ -1415,6 +1415,127 @@ app.post('/api/webapp/private-videos/:videoId/request-invite', async (req, res) 
     }
 });
 
+// ✅ ДОБАВЛЯЕМ ЭНДПОИНТ ДЛЯ ПОКУПКИ ТОВАРА (если его нет)
+app.post('/api/webapp/shop/purchase', (req, res) => {
+    try {
+        const { userId, itemId } = req.body;
+        
+        console.log('🛒 Запрос на покупку товара:', { userId, itemId });
+        
+        if (!userId || !itemId) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'User ID and item ID are required' 
+            });
+        }
+
+        const user = db.users.find(u => u.user_id == userId);
+        const item = db.shop_items.find(i => i.id == itemId && i.is_active);
+
+        if (!user) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Пользователь не найден' 
+            });
+        }
+        
+        if (!item) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Товар не найден или неактивен' 
+            });
+        }
+
+        // Генерируем уникальный ID операции
+        const operationId = `shop_purchase_${userId}_${itemId}_${Date.now()}`;
+
+        return safeSparksOperation(userId, 'shop_purchase', operationId, () => {
+            // Проверяем, не куплен ли уже товар
+            const existingPurchase = db.purchases.find(
+                p => p.user_id === userId && 
+                     p.item_id === itemId && 
+                     p.item_type === 'shop_item'
+            );
+
+            if (existingPurchase) {
+                throw new Error('У вас уже есть этот товар');
+            }
+
+            // Проверяем баланс
+            if (user.sparks < item.price) {
+                throw new Error(`Недостаточно искр. Нужно: ${item.price}✨, у вас: ${user.sparks.toFixed(1)}✨`);
+            }
+
+            // ВСЕ ОПЕРАЦИИ В ОДНОЙ БЕЗОПАСНОЙ ТРАНЗАКЦИИ
+            const oldSparks = user.sparks;
+            user.sparks = Number((user.sparks - item.price).toFixed(1));
+            
+            // Создаем запись о покупке
+            const purchase = {
+                id: Date.now(),
+                user_id: parseInt(userId),
+                item_id: parseInt(itemId),
+                item_type: 'shop_item',
+                item_title: item.title,
+                price_paid: item.price,
+                operation_id: operationId,
+                purchased_at: new Date().toISOString()
+            };
+            db.purchases.push(purchase);
+
+            // Запись активности списания
+            const activity = {
+                id: Date.now(),
+                user_id: userId,
+                activity_type: 'shop_purchase',
+                sparks_earned: -item.price,
+                description: `Покупка товара: ${item.title}`,
+                operation_id: operationId,
+                old_balance: oldSparks,
+                new_balance: user.sparks,
+                created_at: new Date().toISOString()
+            };
+            db.activities.push(activity);
+
+            console.log(`✅ ПОКУПКА ТОВАРА УСПЕШНА: ${item.title}`);
+            console.log(`   Пользователь: ${userId}`);
+            console.log(`   Списано: ${item.price}✨`);
+            console.log(`   Баланс: ${oldSparks} → ${user.sparks}✨`);
+            console.log(`   ID операции: ${operationId}`);
+
+            return { 
+                purchase, 
+                activity, 
+                remainingSparks: user.sparks 
+            };
+        })
+        .then(result => {
+            res.json({
+                success: true,
+                purchase: result.purchase,
+                remaining_sparks: result.remainingSparks,
+                message: `✅ "${item.title}" успешно приобретен!`
+            });
+        })
+        .catch(error => {
+            console.error('❌ Ошибка покупки товара:', error);
+            res.status(400).json({ 
+                success: false,
+                error: error.message === 'Операция уже выполняется' 
+                    ? 'Покупка уже обрабатывается' 
+                    : error.message 
+            });
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка покупки товара:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка при покупке товара' 
+        });
+    }
+});
+
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
         const { userId, videoId } = req.body;
