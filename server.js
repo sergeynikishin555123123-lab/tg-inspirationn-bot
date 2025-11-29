@@ -17,24 +17,40 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// ✅ ПЕРВЫЙ ПУНКТ - СИСТЕМА ЗАЩИТЫ ОТ ДУБЛИРОВАНИЯ
+// ✅ УЛУЧШЕННАЯ СИСТЕМА ЗАЩИТЫ ОТ ДУБЛИРОВАНИЯ
 const pendingTransactions = new Map();
+const completedTransactions = new Map(); // Кэш завершенных операций
 
-// ✅ ВТОРОЙ ПУНКТ - ФУНКЦИЯ БЕЗОПАСНЫХ ОПЕРАЦИЙ (ДОБАВИТЬ ЗДЕСЬ)
+// ✅ УЛУЧШЕННАЯ ФУНКЦИЯ БЕЗОПАСНЫХ ОПЕРАЦИЙ
 async function safeSparksOperation(userId, operationType, operationId, callback) {
     const transactionKey = `${userId}_${operationType}_${operationId}`;
     
-    // Проверяем, не выполняется ли уже эта операция
-    if (pendingTransactions.has(transactionKey)) {
-        throw new Error('Операция уже выполняется');
+     const completedOp = completedTransactions.get(transactionKey);
+    if (completedOp && (Date.now() - completedOp.timestamp) < 5 * 60 * 1000) {
+        console.log('⚠️ Операция уже была выполнена ранее:', transactionKey);
+        return completedOp.result;
     }
     
-    try {
+    ry {
         // Помечаем операцию как выполняющуюся
-        pendingTransactions.set(transactionKey, true);
+        pendingTransactions.set(transactionKey, {
+            timestamp: Date.now(),
+            userId,
+            operationType,
+            operationId
+        });;
         
-        // Выполняем callback функцию
+// Выполняем callback функцию
         const result = await callback();
+        
+        // Сохраняем в кэш завершенных операций
+        completedTransactions.set(transactionKey, {
+            timestamp: Date.now(),
+            result: result
+        });
+        
+        // Очищаем старые записи (старше 5 минут)
+        cleanupCompletedTransactions();
         
         return result;
     } finally {
@@ -42,8 +58,16 @@ async function safeSparksOperation(userId, operationType, operationId, callback)
         pendingTransactions.delete(transactionKey);
     }
 }
-
-// ✅ ТРЕТИЙ ПУНКТ - УЛУЧШЕННАЯ ФУНКЦИЯ addSparks (ДОБАВИТЬ ЗДЕСЬ)
+// Очистка старых записей
+function cleanupCompletedTransactions() {
+    const now = Date.now();
+    for (const [key, value] of completedTransactions.entries()) {
+        if (now - value.timestamp > 5 * 60 * 1000) { // 5 минут
+            completedTransactions.delete(key);
+        }
+    }
+}
+// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ addSparks
 function addSparks(userId, sparks, activityType, description, operationId = null) {
     const user = db.users.find(u => u.user_id == userId);
     if (!user) {
@@ -52,9 +76,20 @@ function addSparks(userId, sparks, activityType, description, operationId = null
     }
     
     // Генерируем ID операции если не передан
-    const opId = operationId || `${activityType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const opId = operationId || `${activityType}_${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     return safeSparksOperation(userId, activityType, opId, () => {
+        // Проверяем, не существует ли уже активности с таким operation_id
+        const existingActivity = db.activities.find(a => 
+            a.user_id == userId && 
+            a.operation_id === opId
+        );
+        
+        if (existingActivity) {
+            console.log('🔄 Возвращаем существующую операцию:', opId);
+            return existingActivity;
+        }
+        
         // Сохраняем старое значение для лога
         const oldSparks = user.sparks;
         
@@ -70,7 +105,7 @@ function addSparks(userId, sparks, activityType, description, operationId = null
             activity_type: activityType,
             sparks_earned: sparks,
             description: description,
-            operation_id: opId, // Добавляем ID операции для отслеживания
+            operation_id: opId,
             old_balance: oldSparks,
             new_balance: user.sparks,
             created_at: new Date().toISOString()
@@ -1973,136 +2008,6 @@ function getLevelName(level) {
     return levels[level] || level;
 }
 
-// Покупка приватного видео
-app.post('/api/webapp/shop/private-videos/purchase', async (req, res) => {
-    try {
-        const { userId, videoId } = req.body;
-        
-        console.log('🛒 Покупка приватного видео:', { userId, videoId });
-
-        if (!userId || !videoId) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'User ID and video ID are required' 
-            });
-        }
-
-        const user = db.users.find(u => u.user_id == userId);
-        const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
-
-        if (!user) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Пользователь не найден' 
-            });
-        }
-        
-        if (!video) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Видео не найдено или неактивно' 
-            });
-        }
-
-        // ПРОВЕРКА БАЛАНСА
-        if (user.sparks < video.price) {
-            return res.status(402).json({ 
-                success: false,
-                error: `Недостаточно искр. Нужно: ${video.price}, у вас: ${user.sparks.toFixed(1)}` 
-            });
-        }
-
-        // ПРОВЕРКА НА УЖЕ КУПЛЕННЫЙ ДОСТУП
-        const existingPurchase = db.purchases.find(p => 
-            p.user_id == userId && p.item_id === videoId && p.item_type === 'private_video'
-        );
-
-        if (existingPurchase) {
-            return res.status(409).json({ 
-                success: false,
-                error: 'У вас уже есть доступ к этому материалу' 
-            });
-        }
-
-        // ПРОВЕРКА АКТИВНОГО ДОСТУПА
-        const existingAccess = db.video_access.find(access => 
-            access.user_id == userId && access.video_id === videoId && access.expires_at > new Date().toISOString()
-        );
-
-        if (existingAccess) {
-            return res.status(409).json({ 
-                success: false,
-                error: 'У вас уже есть активный доступ к этому материалу' 
-            });
-        }
-
-        // СПИСАНИЕ ИСКР
-        const oldSparks = user.sparks;
-        user.sparks -= video.price;
-        
-        console.log(`💰 Списание искр: ${oldSparks} -> ${user.sparks}`);
-
-        // СОЗДАНИЕ ЗАПИСИ О ПОКУПКЕ
-        const purchase = {
-            id: Date.now(),
-            user_id: parseInt(userId),
-            item_id: videoId,
-            item_type: 'private_video',
-            item_title: video.title,
-            price_paid: video.price,
-            purchased_at: new Date().toISOString()
-        };
-        db.purchases.push(purchase);
-
-        // СОЗДАНИЕ ДОСТУПА (30 ДНЕЙ)
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
-        
-        const access = {
-            id: Date.now(),
-            user_id: parseInt(userId),
-            video_id: videoId,
-            purchased_at: new Date().toISOString(),
-            expires_at: expiresAt.toISOString(),
-            telegram_message_id: null
-        };
-
-        // ЗАПИСЬ АКТИВНОСТИ
-        addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
-
-        console.log('✅ Покупка завершена:', { 
-            purchase: purchase.id, 
-            access: access.id,
-            user: userId,
-            video: video.title
-        });
-
-        res.json({
-            success: true,
-            purchase: purchase,
-            access: access,
-            remaining_sparks: user.sparks,
-            message: `Доступ к "${video.title}" успешно приобретен! Ссылка для просмотра доступна в ваших покупках.`
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка покупки приватного видео:', error);
-        
-        // ОТКАТ СПИСАНИЯ В СЛУЧАЕ ОШИБКИ
-        if (userId) {
-            const user = db.users.find(u => u.user_id == userId);
-            if (user) {
-                user.sparks += req.body.videoId ? db.private_channel_videos.find(v => v.id == req.body.videoId)?.price || 0 : 0;
-            }
-        }
-        
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка при покупке доступа к видео' 
-        });
-    }
-});
-
 // Получить приватные видео пользователя
 app.get('/api/webapp/user/private-videos', (req, res) => {
     try {
@@ -2928,12 +2833,16 @@ app.get('/api/webapp/shop/items', (req, res) => {
     res.json(items);
 });
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ ПОКУПКИ ТОВАРА
 app.post('/api/webapp/shop/purchase', (req, res) => {
     const { userId, itemId } = req.body;
     
-    if (!userId || !itemId) {
-        return res.status(400).json({ error: 'User ID and item ID are required' });
+    // ПРОБЛЕМА: Проверка на существующую покупку НЕ использует operationId
+    const existingPurchase = db.purchases.find(
+        p => p.user_id === userId && p.item_id === itemId
+    );
+    
+    if (existingPurchase) {
+        return res.status(400).json({ error: 'Вы уже купили этот товар' });
     }
     
     const user = db.users.find(u => u.user_id == userId);
