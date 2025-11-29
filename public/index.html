@@ -4600,6 +4600,8 @@ function selectAnswer(answerIndex) {
 
 async function submitQuiz() {
     try {
+        console.log('📤 Отправка результатов квиза...');
+        
         const response = await fetch(`/api/webapp/quizzes/${currentQuiz.id}/submit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -4609,6 +4611,11 @@ async function submitQuiz() {
             })
         });
         
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
+        }
+        
         const result = await response.json();
         
         if (result.success) {
@@ -4617,10 +4624,11 @@ async function submitQuiz() {
             showMessage(`❌ ${result.error}`, 'error');
         }
     } catch (error) {
-        showMessage('❌ Ошибка отправки результатов', 'error');
+        console.error('❌ Ошибка отправки результатов:', error);
+        showMessage(`❌ Ошибка отправки результатов: ${error.message}`, 'error');
     }
 }
-
+    
 function showQuizResult(result) {
     const resultContent = document.getElementById('quizResultContent');
     
