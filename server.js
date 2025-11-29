@@ -1255,45 +1255,6 @@ app.get('/api/mobile/lazy-load', (req, res) => {
     }
 });
 
-// GET /api/admin/private-videos/:videoId/generate-invite
-app.get('/api/admin/private-videos/:videoId/generate-invite', async (req, res) => {
-    try {
-        const { videoId } = req.params;
-        const { userId } = req.query;
-        
-        // Проверка прав администратора
-        const isAdmin = await checkAdminPermissions(userId);
-        if (!isAdmin) {
-            return res.json({ success: false, error: 'Недостаточно прав' });
-        }
-        
-        // Получаем данные видео
-        const video = await getPrivateVideoById(videoId);
-        if (!video) {
-            return res.json({ success: false, error: 'Видео не найдено' });
-        }
-        
-        // Генерируем пригласительную ссылку через Telegram API
-        const inviteLink = await telegramBot.createChatInviteLink(video.channel_id, {
-            member_limit: 1,
-            expire_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
-        });
-        
-        // Сохраняем ссылку в базе данных
-        await saveInviteLink(videoId, inviteLink.invite_link, userId);
-        
-        res.json({
-            success: true,
-            invite_link: inviteLink.invite_link,
-            expires_at: inviteLink.expire_date
-        });
-        
-    } catch (error) {
-        console.error('Ошибка генерации ссылки:', error);
-        res.json({ success: false, error: 'Ошибка генерации пригласительной ссылки' });
-    }
-});
-
 // GET /api/webapp/private-videos/:videoId/access
 app.get('/api/webapp/private-videos/:videoId/access', async (req, res) => {
     try {
@@ -1489,55 +1450,6 @@ app.get('/api/webapp/debug/video-access', (req, res) => {
     } catch (error) {
         console.error('❌ Ошибка отладки:', error);
         res.status(500).json({ error: 'Ошибка отладки' });
-    }
-});
-
-// Получить мои приватные видео
-app.get('/api/webapp/user/private-videos', (req, res) => {
-    try {
-        const { userId } = req.query;
-
-        if (!userId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Требуется авторизация' 
-            });
-        }
-
-        const userAccess = db.video_access.filter(access => 
-            access.user_id == userId && access.expires_at > new Date().toISOString()
-        );
-
-        const accessibleVideos = userAccess.map(access => {
-            const video = db.private_channel_videos.find(v => v.id === access.video_id && v.is_active);
-            if (!video) return null;
-            
-            return {
-                ...video,
-                access_id: access.id,
-                purchased_at: access.purchased_at,
-                expires_at: access.expires_at,
-                days_remaining: Math.ceil((new Date(access.expires_at) - new Date()) / (1000 * 60 * 60 * 24))
-            };
-        }).filter(video => video !== null);
-
-        // Также возвращаем доступные для покупки видео
-        const availableVideos = db.private_channel_videos.filter(video => 
-            video.is_active && 
-            !userAccess.some(access => access.video_id === video.id)
-        );
-
-        res.json({
-            accessible_videos: accessibleVideos,
-            available_videos: availableVideos
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка получения приватных видео:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка сервера' 
-        });
     }
 });
 
@@ -1844,45 +1756,6 @@ app.get('/api/admin/private-videos/:id/stats', requireAdmin, (req, res) => {
     }
 });
 
-// Получить защищенную ссылку для просмотра
-app.get('/api/admin/private-videos/:id/protected-link', requireAdmin, (req, res) => {
-    try {
-        const videoId = parseInt(req.params.id);
-        const video = db.private_channel_videos.find(v => v.id === videoId);
-        
-        if (!video) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Материал не найден' 
-            });
-        }
-
-        // Генерируем временную ссылку
-        const token = btoa(`${video.channel_id}_${video.message_id}_${Date.now()}`)
-            .replace(/=/g, '')
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_');
-            
-        const protectedLink = `/api/telegram/proxy/${token}`;
-        
-        const fullUrl = `${process.env.APP_URL || 'http://localhost:3000'}${protectedLink}`;
-        
-        console.log('🔗 Сгенерирована защищенная ссылка:', fullUrl);
-
-        res.json({
-            success: true,
-            protected_link: fullUrl
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка получения защищенной ссылки:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Ошибка сервера' 
-        });
-    }
-});
-
 // Функции для альтернативного доступа
 async function getNewInviteLink(videoId) {
     try {
@@ -2137,7 +2010,6 @@ app.post('/api/webapp/shop/private-videos/purchase', async (req, res) => {
             expires_at: expiresAt.toISOString(),
             telegram_message_id: null
         };
-        db.video_access.push(access);
 
         // ЗАПИСЬ АКТИВНОСТИ
         addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к видео: ${video.title}`);
