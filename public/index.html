@@ -3896,25 +3896,7 @@ async function loadUserData() {
         
     } catch (error) {
         console.error('❌ Ошибка загрузки пользователя:', error);
-        
-        // Fallback для демонстрации
-        currentUser = {
-            user_id: currentUserId,
-            tg_first_name: 'Тестовый Пользователь',
-            tg_username: 'test_user',
-            sparks: 45.5,
-            level: 'Искатель',
-            is_registered: true,
-            class: 'Художники',
-            character_id: 1,
-            character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
-        };
-        
-        showUserData();
-        loadAvailableButtons();
+        showWelcomeScreen(); // Всегда показываем регистрацию при ошибке
     }
 }
 
