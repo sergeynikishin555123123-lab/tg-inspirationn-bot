@@ -3849,26 +3849,29 @@ async function initApp() {
         
         console.log('👤 User ID:', currentUserId);
         
-        // === ВСТАВКА ЗДЕСЬ ===
         // Оптимизируем интерфейс для мобильных
         optimizeMobileInterface();
-        // =====================
         
         // Показываем загрузку
         showLoadingState();
         
-        // Загружаем данные пользователя
-        await loadUserData();
+        // Загружаем данные пользователя с таймаутом
+        await Promise.race([
+            loadUserData(),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout')), 10000)
+            )
+        ]);
         
         console.log('✅ Приложение инициализировано');
         
     } catch (error) {
         console.error('💥 Ошибка инициализации:', error);
-        showErrorState('Ошибка загрузки приложения');
+        // Всегда показываем экран приветствия при ошибке
+        showWelcomeScreen();
     }
 }
 
-// ==================== СИСТЕМА ПОЛЬЗОВАТЕЛЯ ====================
 async function loadUserData() {
     try {
         console.log('🔄 Загрузка данных пользователя:', currentUserId);
@@ -3896,7 +3899,8 @@ async function loadUserData() {
         
     } catch (error) {
         console.error('❌ Ошибка загрузки пользователя:', error);
-        showWelcomeScreen(); // Всегда показываем регистрацию при ошибке
+        // Показываем экран приветствия даже при ошибке
+        showWelcomeScreen();
     }
 }
 
@@ -4046,6 +4050,12 @@ function showWelcomeScreen() {
     if (userContent) userContent.style.display = 'none';
     if (welcomeBlock) welcomeBlock.style.display = 'block';
     if (actionsBlock) actionsBlock.style.display = 'none';
+    
+    // Скрываем loading state
+    const loadingElement = document.querySelector('.loading');
+    if (loadingElement) {
+        loadingElement.style.display = 'none';
+    }
 }
 
 function loadAvailableButtons() {
@@ -5994,8 +6004,8 @@ async function loadActivities() {
 }
 
 // ==================== ПРИВАТНЫЕ МАТЕРИАЛЫ ====================
+// ИСПРАВЛЕННЫЙ КОД - удалите дублирующееся объявление result
 async function loadPrivateVideos() {
-    // ДОБАВЬТЕ ЭТИ СТРОКИ В НАЧАЛО ФУНКЦИИ:
     console.log('🔍 DEBUG: Начало loadPrivateVideos');
     console.log('🔍 DEBUG: currentUserId =', currentUserId);
     console.log('🔍 DEBUG: URL =', `/api/webapp/private-videos?userId=${currentUserId}`);
@@ -6005,7 +6015,6 @@ async function loadPrivateVideos() {
         
         const response = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
         
-        // ДОБАВЬТЕ ЭТУ ПРОВЕРКУ:
         console.log('🔍 DEBUG: Response status =', response.status);
         console.log('🔍 DEBUG: Response ok =', response.ok);
         
@@ -6015,23 +6024,20 @@ async function loadPrivateVideos() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const result = await response.json();
-        console.log('🔍 DEBUG: Response data =', result);
-        // ... остальной код
-        
-        const result = await response.json();
-        console.log('✅ Данные приватных материалов:', result);
+        // УДАЛИТЬ ЭТУ СТРОКУ: const result = await response.json();
+        const data = await response.json(); // ИСПОЛЬЗУЕМ data вместо result
+        console.log('🔍 DEBUG: Response data =', data);
         
         // ПРОСТАЯ ПРОВЕРКА ФОРМАТА ДАННЫХ
         let videos = [];
-        if (Array.isArray(result)) {
-            videos = result;
-        } else if (result && Array.isArray(result.videos)) {
-            videos = result.videos;
-        } else if (result && result.success && Array.isArray(result.videos)) {
-            videos = result.videos;
+        if (Array.isArray(data)) {
+            videos = data;
+        } else if (data && Array.isArray(data.videos)) {
+            videos = data.videos;
+        } else if (data && data.success && Array.isArray(data.videos)) {
+            videos = data.videos;
         } else {
-            console.error('❌ Неизвестный формат данных:', result);
+            console.error('❌ Неизвестный формат данных:', data);
             videos = [];
         }
         
@@ -6449,12 +6455,21 @@ function getLevelName(level) {
 
 // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 function showLoadingState() {
-    document.getElementById('userData').innerHTML = `
-        <div class="loading">
-            <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-            Загрузка данных...
-        </div>
-    `;
+    const userDataElement = document.getElementById('userData');
+    if (userDataElement) {
+        userDataElement.innerHTML = `
+            <div class="loading">
+                <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                Загрузка данных...
+            </div>
+        `;
+    }
+    
+    // Скрываем другие блоки
+    const welcomeBlock = document.getElementById('welcomeBlock');
+    const actionsBlock = document.getElementById('actionsBlock');
+    if (welcomeBlock) welcomeBlock.style.display = 'none';
+    if (actionsBlock) actionsBlock.style.display = 'none';
 }
 
 function showErrorState(message) {
