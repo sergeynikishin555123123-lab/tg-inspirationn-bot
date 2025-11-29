@@ -5104,8 +5104,6 @@ function setupBotHandlers() {
         console.error('❌ Общая ошибка бота:', error);
     });
 
-               // ... предыдущий код ...
-
         console.log('✅ Все обработчики команд настроены');
     }); // Закрытие setupBotHandlers
 
