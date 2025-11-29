@@ -5091,7 +5091,7 @@ function setupBotHandlers() {
         }
     });
 
-       // Обработчик ошибок бота
+    // Обработчик ошибок бота
     bot.on('polling_error', (error) => {
         console.error('❌ Ошибка polling бота:', error.code, error.message);
     });
@@ -5106,11 +5106,7 @@ function setupBotHandlers() {
 
     console.log('✅ Все обработчики команд настроены');
     console.log('🎯 Бот готов к работе!');
-
-    } catch (error) {
-        console.error('💥 Ошибка инициализации бота:', error);
-    }
-} // Закрытие initializeBot
+}
 
 // Функция отправки уведомлений
 async function sendTelegramNotification(userId, message, options = {}) {
