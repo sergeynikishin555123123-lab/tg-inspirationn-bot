@@ -2345,34 +2345,6 @@ app.get('/api/test', (req, res) => {
     });
 });
 
-// Упрощенный эндпоинт для пользователя
-app.get('/api/users/:userId', (req, res) => {
-    const userId = parseInt(req.params.userId);
-    console.log('👤 Запрос пользователя:', userId);
-    
-    // Всегда возвращаем тестового пользователя
-    const user = {
-        id: 1,
-        user_id: userId,
-        tg_first_name: 'Тестовый Пользователь',
-        tg_username: 'test_user',
-        sparks: 45.5,
-        level: 'Искатель',
-        is_registered: true,
-        class: 'Художники',
-        character_id: 1,
-        character_name: 'Лука Цветной',
-        available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-        registration_date: new Date().toISOString(),
-        last_active: new Date().toISOString()
-    };
-    
-    res.json({ 
-        exists: true, 
-        user: user
-    });
-});
-
 // Упрощенное создание приватного материала
 app.post('/api/admin/private-videos', requireAdmin, async (req, res) => {
     try {
@@ -4119,7 +4091,111 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
         work: work
     });
 });
+// ✅ ИСПРАВЛЕННЫЙ ENDPOINT ДЛЯ ПОКУПКИ ПРИВАТНЫХ ВИДЕО
+app.post('/api/webapp/private-videos/purchase', (req, res) => {
+    try {
+        const { userId, videoId } = req.body;
+        
+        console.log('🛒 Покупка приватного материала:', { userId, videoId });
 
+        if (!userId || !videoId) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'User ID and video ID are required' 
+            });
+        }
+
+        const user = db.users.find(u => u.user_id == userId);
+        const video = db.private_channel_videos.find(v => v.id == videoId && v.is_active);
+
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Пользователь не найден' 
+            });
+        }
+        
+        if (!video) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Материал не найден или неактивен' 
+            });
+        }
+
+        // Проверяем баланс
+        if (user.sparks < video.price) {
+            return res.status(400).json({ 
+                success: false,
+                error: `Недостаточно искр. Нужно: ${video.price}✨, у вас: ${user.sparks.toFixed(1)}✨` 
+            });
+        }
+
+        // Проверяем, не куплен ли уже материал
+        const existingPurchase = db.purchases.find(p => 
+            p.user_id == userId && 
+            p.item_id == videoId && 
+            p.item_type === 'private_video'
+        );
+
+        if (existingPurchase) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'У вас уже есть доступ к этому материалу' 
+            });
+        }
+
+        // ВСЕ ОПЕРАЦИИ В ОДНОЙ ТРАНЗАКЦИИ
+        const oldSparks = user.sparks;
+        
+        // 1. Списание искр
+        user.sparks = Number((user.sparks - video.price).toFixed(1));
+        
+        // 2. Создание записи о покупке
+        const purchase = {
+            id: Date.now(),
+            user_id: parseInt(userId),
+            item_id: parseInt(videoId),
+            item_type: 'private_video',
+            item_title: video.title,
+            price_paid: video.price,
+            purchased_at: new Date().toISOString()
+        };
+        db.purchases.push(purchase);
+
+        // 3. Запись активности списания
+        const activity = {
+            id: Date.now(),
+            user_id: userId,
+            activity_type: 'private_video_purchase',
+            sparks_earned: -video.price,
+            description: `Покупка доступа к материалу: ${video.title}`,
+            old_balance: oldSparks,
+            new_balance: user.sparks,
+            created_at: new Date().toISOString()
+        };
+        db.activities.push(activity);
+
+        console.log(`✅ ПОКУПКА МАТЕРИАЛА УСПЕШНА: ${video.title}`);
+        console.log(`   Пользователь: ${userId}`);
+        console.log(`   Списано: ${video.price}✨`);
+        console.log(`   Баланс: ${oldSparks} → ${user.sparks}✨`);
+
+        res.json({
+            success: true,
+            purchase: purchase,
+            remaining_sparks: user.sparks,
+            invite_link: video.invite_link,
+            message: `✅ Доступ к "${video.title}" успешно приобретен! Нажмите "Перейти к материалу" для вступления в канал.`
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка покупки приватного материала:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка при покупке доступа к материалу' 
+        });
+    }
+});
 // GET /api/webapp/private-videos/:videoId/new-invite
 app.get('/api/webapp/private-videos/:videoId/new-invite', async (req, res) => {
     try {
@@ -4448,7 +4524,8 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
 app.get('/api/users/:userId/stats', (req, res) => {
     try {
         const userId = parseInt(req.params.userId);
-        
+        console.log('📊 Запрос статистики для пользователя:', userId);
+
         const user = db.users.find(u => u.user_id === userId);
         if (!user) {
             return res.status(404).json({ 
@@ -4457,7 +4534,7 @@ app.get('/api/users/:userId/stats', (req, res) => {
             });
         }
 
-        // Собираем статистику
+        // Собираем полную статистику
         const stats = {
             totalQuizzesCompleted: db.quiz_completions.filter(q => q.user_id === userId).length,
             totalWorks: db.user_works.filter(w => w.user_id === userId).length,
@@ -4476,6 +4553,7 @@ app.get('/api/users/:userId/stats', (req, res) => {
             lastActive: user.last_active
         };
 
+        console.log('✅ Статистика отправлена для пользователя:', userId);
         res.json({
             success: true,
             stats: stats
@@ -4506,6 +4584,7 @@ app.post('/api/analytics/track', (req, res) => {
     console.log('📊 Analytics:', req.body);
     res.json({ success: true });
 });
+
 // ==================== ЭКСПОРТ ОТЧЕТОВ ====================
 
 // Экспорт пользователей в CSV
