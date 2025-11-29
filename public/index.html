@@ -5994,16 +5994,30 @@ async function loadActivities() {
 }
 
 // ==================== ПРИВАТНЫЕ МАТЕРИАЛЫ ====================
-// ✅ УПРОЩЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ ПРИВАТНЫХ ВИДЕО
 async function loadPrivateVideos() {
+    // ДОБАВЬТЕ ЭТИ СТРОКИ В НАЧАЛО ФУНКЦИИ:
+    console.log('🔍 DEBUG: Начало loadPrivateVideos');
+    console.log('🔍 DEBUG: currentUserId =', currentUserId);
+    console.log('🔍 DEBUG: URL =', `/api/webapp/private-videos?userId=${currentUserId}`);
+    
     try {
         console.log('🎬 Загрузка приватных материалов для пользователя:', currentUserId);
         
         const response = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
         
+        // ДОБАВЬТЕ ЭТУ ПРОВЕРКУ:
+        console.log('🔍 DEBUG: Response status =', response.status);
+        console.log('🔍 DEBUG: Response ok =', response.ok);
+        
         if (!response.ok) {
+            const errorText = await response.text();
+            console.log('🔍 DEBUG: Error response =', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        const result = await response.json();
+        console.log('🔍 DEBUG: Response data =', result);
+        // ... остальной код
         
         const result = await response.json();
         console.log('✅ Данные приватных материалов:', result);
