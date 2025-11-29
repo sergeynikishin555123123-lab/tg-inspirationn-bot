@@ -1005,29 +1005,6 @@ function calculateLevel(sparks) {
     return 'Ученик';
 }
 
-function addSparks(userId, sparks, activityType, description) {
-    const user = db.users.find(u => u.user_id == userId);
-    if (user) {
-        user.sparks = Math.max(0, user.sparks + sparks);
-        user.level = calculateLevel(user.sparks);
-        user.last_active = new Date().toISOString();
-        
-        // Создаем запись активности для ВСЕХ операций (положительных и отрицательных)
-        const activity = {
-            id: Date.now(),
-            user_id: userId,
-            activity_type: activityType,
-            sparks_earned: sparks, // Может быть отрицательным для списаний
-            description: description,
-            created_at: new Date().toISOString()
-        };
-        
-        db.activities.push(activity);
-        return activity;
-    }
-    return null;
-}
-
 function getUserStats(userId) {
     const user = db.users.find(u => u.user_id == userId);
     if (!user) return null;
@@ -1396,7 +1373,6 @@ app.post('/api/webapp/private-videos/:videoId/request-invite', async (req, res) 
     }
 });
 
-// УПРОЩЕННАЯ ФУНКЦИЯ ПОКУПКИ ПРИВАТНОГО МАТЕРИАЛА (ТОЛЬКО ИНВАЙТ-ССЫЛКИ)
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
         const { userId, videoId } = req.body;
@@ -1427,7 +1403,10 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             });
         }
 
-        // ТОЧНАЯ ПРОВЕРКА БАЛАНСА
+        // Генерируем уникальный ID операции
+        const operationId = `video_purchase_${userId}_${videoId}_${Date.now()}`;
+
+        // Проверяем баланс
         if (user.sparks < video.price) {
             return res.status(402).json({ 
                 success: false,
@@ -1449,56 +1428,63 @@ app.post('/api/webapp/private-videos/purchase', async (req, res) => {
             });
         }
 
-        // ТОЧНОЕ СПИСАНИЕ ИСКР
-        const oldSparks = user.sparks;
-        user.sparks = Number((oldSparks - video.price).toFixed(1));
-        
-        console.log(`💰 Списание искр за материал: ${oldSparks} - ${video.price} = ${user.sparks}`);
+        // ВСЕ ОПЕРАЦИИ В ОДНОЙ БЕЗОПАСНОЙ ТРАНЗАКЦИИ
+        const result = await safeSparksOperation(userId, 'video_purchase', operationId, () => {
+            // 1. Списание искр
+            const oldSparks = user.sparks;
+            user.sparks = Number((user.sparks - video.price).toFixed(1));
+            
+            // 2. Создание записи о покупке
+            const purchase = {
+                id: Date.now(),
+                user_id: parseInt(userId),
+                item_id: parseInt(videoId),
+                item_type: 'private_video',
+                item_title: video.title,
+                price_paid: video.price,
+                operation_id: operationId,
+                purchased_at: new Date().toISOString()
+            };
+            db.purchases.push(purchase);
 
-        // Создание записи о покупке
-        const purchase = {
-            id: Date.now(),
-            user_id: parseInt(userId),
-            item_id: parseInt(videoId),
-            item_type: 'private_video',
-            item_title: video.title,
-            price_paid: video.price,
-            purchased_at: new Date().toISOString()
-        };
-        db.purchases.push(purchase);
+            // 3. Запись активности списания
+            const activity = {
+                id: Date.now(),
+                user_id: userId,
+                activity_type: 'private_video_purchase',
+                sparks_earned: -video.price,
+                description: `Покупка доступа к материалу: ${video.title}`,
+                operation_id: operationId,
+                old_balance: oldSparks,
+                new_balance: user.sparks,
+                created_at: new Date().toISOString()
+            };
+            db.activities.push(activity);
 
-        // Записываем активность списания
-        addSparks(userId, -video.price, 'private_video_purchase', `Покупка доступа к материалу: ${video.title}`);
+            console.log(`✅ ПОКУПКА МАТЕРИАЛА УСПЕШНА: ${video.title}`);
+            console.log(`   Пользователь: ${userId}`);
+            console.log(`   Списано: ${video.price}✨`);
+            console.log(`   Баланс: ${oldSparks} → ${user.sparks}✨`);
+            console.log(`   ID операции: ${operationId}`);
 
-        console.log('✅ Покупка материала завершена:', { 
-            purchase: purchase.id, 
-            user: userId,
-            video: video.title,
-            price: video.price
+            return { purchase, activity, remainingSparks: user.sparks };
         });
 
         res.json({
             success: true,
-            purchase: purchase,
-            remaining_sparks: user.sparks,
-            invite_link: video.invite_link, // Прямо возвращаем инвайт-ссылку
+            purchase: result.purchase,
+            remaining_sparks: result.remainingSparks,
+            invite_link: video.invite_link,
             message: `✅ Доступ к "${video.title}" успешно приобретен! Нажмите "Перейти к материалу" для вступления в канал.`
         });
 
     } catch (error) {
         console.error('❌ Ошибка покупки приватного материала:', error);
-        
-        // Откат списания в случае ошибки
-        if (userId) {
-            const user = db.users.find(u => u.user_id == userId);
-            if (user) {
-                user.sparks += video.price;
-            }
-        }
-        
         res.status(500).json({ 
             success: false,
-            error: 'Ошибка при покупке доступа к материалу' 
+            error: error.message === 'Операция уже выполняется' 
+                ? 'Покупка уже обрабатывается' 
+                : 'Ошибка при покупке доступа к материалу' 
         });
     }
 });
@@ -3186,11 +3172,14 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
 
 // ==================== ДОПОЛНИТЕЛЬНЫЕ API ДЛЯ АДМИНКИ ====================
 
-// Получить работы для модерации
+// ✅ ИСПРАВИТЬ СУЩЕСТВУЮЩИЙ ENDPOINT - добавить правильную логику
 app.get('/api/admin/user-works', requireAdmin, (req, res) => {
     try {
         const { status = 'pending' } = req.query;
         
+        console.log(`🖼️ Админ запросил работы со статусом: ${status}`);
+        
+        // ПРАВИЛЬНО ФИЛЬТРУЕМ РАБОТЫ ПО СТАТУСУ
         const works = db.user_works
             .filter(w => w.status === status)
             .map(work => {
@@ -3198,15 +3187,36 @@ app.get('/api/admin/user-works', requireAdmin, (req, res) => {
                 return {
                     ...work,
                     user_name: user?.tg_first_name || 'Неизвестно',
-                    user_username: user?.tg_username
+                    user_username: user?.tg_username || 'нет username',
+                    user_id: work.user_id // Добавляем ID пользователя
                 };
             })
-            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Сначала новые
         
-        res.json({ works });
+        console.log(`✅ Найдено работ со статусом ${status}: ${works.length}`);
+        
+        // ЛОГ ДЛЯ ОТЛАДКИ
+        if (works.length === 0) {
+            console.log('📋 Все работы в базе:', db.user_works.map(w => ({
+                id: w.id,
+                title: w.title,
+                status: w.status,
+                user_id: w.user_id
+            })));
+        }
+        
+        res.json({ 
+            success: true,
+            works: works 
+        });
+        
     } catch (error) {
         console.error('❌ Ошибка получения работ:', error);
-        res.status(500).json({ error: 'Ошибка сервера' });
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка сервера',
+            works: []
+        });
     }
 });
 
@@ -3239,6 +3249,44 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
     } catch (error) {
         console.error('❌ Ошибка модерации работы:', error);
         res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// ✅ ДОБАВИТЬ НОВЫЙ ENDPOINT ДЛЯ ПРОВЕРКИ РАБОТ
+app.get('/api/admin/debug/user-works', requireAdmin, (req, res) => {
+    try {
+        const allWorks = db.user_works.map(work => {
+            const user = db.users.find(u => u.user_id === work.user_id);
+            return {
+                id: work.id,
+                title: work.title,
+                status: work.status,
+                user_id: work.user_id,
+                user_name: user?.tg_first_name || 'Неизвестно',
+                created_at: work.created_at,
+                image_url: work.image_url ? 'Есть' : 'Нет'
+            };
+        });
+        
+        const stats = {
+            total: db.user_works.length,
+            pending: db.user_works.filter(w => w.status === 'pending').length,
+            approved: db.user_works.filter(w => w.status === 'approved').length,
+            rejected: db.user_works.filter(w => w.status === 'rejected').length
+        };
+        
+        res.json({
+            success: true,
+            stats: stats,
+            works: allWorks
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка отладки работ:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка отладки' 
+        });
     }
 });
 
@@ -3969,25 +4017,6 @@ app.delete('/api/admin/marathons/:marathonId', requireAdmin, (req, res) => {
     
     db.marathons.splice(marathonIndex, 1);
     res.json({ success: true, message: 'Марафон удален' });
-});
-
-// Управление работами пользователей
-app.get('/api/admin/user-works', requireAdmin, (req, res) => {
-    const { status = 'pending' } = req.query;
-    
-    const works = db.user_works
-        .filter(w => w.status === status)
-        .map(work => {
-            const user = db.users.find(u => u.user_id === work.user_id);
-            return {
-                ...work,
-                user_name: user?.tg_first_name || 'Неизвестно',
-                user_username: user?.tg_username
-            };
-        })
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    
-    res.json({ works });
 });
 
 app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
