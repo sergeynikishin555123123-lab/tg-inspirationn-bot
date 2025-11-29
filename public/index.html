@@ -5994,6 +5994,7 @@ async function loadActivities() {
 }
 
 // ==================== ПРИВАТНЫЕ МАТЕРИАЛЫ ====================
+// ✅ УПРОЩЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ ПРИВАТНЫХ ВИДЕО
 async function loadPrivateVideos() {
     try {
         console.log('🎬 Загрузка приватных материалов для пользователя:', currentUserId);
@@ -6007,11 +6008,21 @@ async function loadPrivateVideos() {
         const result = await response.json();
         console.log('✅ Данные приватных материалов:', result);
         
-        if (result.success) {
-            displayPrivateVideos(result.videos);
+        // ПРОСТАЯ ПРОВЕРКА ФОРМАТА ДАННЫХ
+        let videos = [];
+        if (Array.isArray(result)) {
+            videos = result;
+        } else if (result && Array.isArray(result.videos)) {
+            videos = result.videos;
+        } else if (result && result.success && Array.isArray(result.videos)) {
+            videos = result.videos;
         } else {
-            throw new Error(result.error || 'Ошибка загрузки материалов');
+            console.error('❌ Неизвестный формат данных:', result);
+            videos = [];
         }
+        
+        console.log('📦 Видео для отображения:', videos);
+        renderVideosList(videos);
         
     } catch (error) {
         console.error('❌ Ошибка загрузки приватных материалов:', error);
@@ -6027,6 +6038,60 @@ async function loadPrivateVideos() {
     }
 }
 
+// ✅ СУПЕР-ПРОСТАЯ ФУНКЦИЯ ОТОБРАЖЕНИЯ
+function renderVideosList(videos) {
+    const videosList = document.getElementById('privateVideosList');
+    
+    if (!videos || videos.length === 0) {
+        videosList.innerHTML = `
+            <div class="info" style="text-align: center; padding: 40px;">
+                <div style="font-size: 64px; margin-bottom: 16px;">🎬</div>
+                <h3 style="margin-bottom: 12px;">Пока нет доступных материалов</h3>
+                <p style="color: #718096;">Новые материалы появятся здесь позже</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    
+    videos.forEach(video => {
+        const hasAccess = video.has_access || video.has_purchase;
+        const canAfford = currentUser && currentUser.sparks >= (video.price || 0);
+        
+        html += `
+            <div class="shop-item">
+                <h3>🎬 ${video.title || 'Без названия'}</h3>
+                <p style="color: #718096; margin-bottom: 15px;">${video.description || ''}</p>
+                
+                <div style="display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <span class="badge badge-info">${video.category || 'Материал'}</span>
+                    <span class="badge badge-success">${video.price || 0}✨</span>
+                    ${hasAccess ? '<span class="badge badge-success">✅ Куплено</span>' : ''}
+                </div>
+                
+                <div style="text-align: center;">
+                    ${hasAccess ? 
+                        `<button class="btn btn-success" onclick="openPrivateVideo(${video.id})">
+                            🔗 Перейти в канал
+                         </button>` :
+                        (canAfford ?
+                            `<button class="btn btn-primary" onclick="purchasePrivateVideo(${video.id})">
+                                 🛒 Купить за ${video.price}✨
+                             </button>` :
+                            `<button class="btn btn-secondary" disabled>
+                                 🔒 Недостаточно искр
+                             </button>`
+                        )
+                    }
+                </div>
+            </div>
+        `;
+    });
+    
+    videosList.innerHTML = html;
+}
+    
 function displayPrivateVideos(videos) {
     const videosList = document.getElementById('privateVideosList');
     
@@ -6135,55 +6200,46 @@ function renderVideosList(videosArray) {
     });
 }
 
-// ✅ ПРОСТАЯ ФУНКЦИЯ ОТКРЫТИЯ ПРИВАТНОГО ВИДЕО
+// ✅ ПРОСТЕЙШАЯ ФУНКЦИЯ ОТКРЫТИЯ ВИДЕО
 async function openPrivateVideo(videoId) {
     try {
-        console.log('🎬 Открываем приватное видео:', videoId);
-        showMessage('⏳ Получаем доступ к каналу...', 'info');
+        console.log('🔗 Открываем видео:', videoId);
         
-        // Сначала пробуем получить инвайт-ссылку через API
+        // ПРОБУЕМ ПОЛУЧИТЬ ССЫЛКУ ЧЕРЕЗ API
         const response = await fetch(`/api/webapp/private-videos/${videoId}/invite?userId=${currentUserId}`);
         
         if (response.ok) {
-            const result = await response.json();
-            
-            if (result.success && result.invite_link) {
-                // НЕМЕДЛЕННО ОТКРЫВАЕМ ССЫЛКУ
-                console.log('🔗 Открываем инвайт-ссылку:', result.invite_link);
-                window.open(result.invite_link, '_blank', 'noopener,noreferrer');
+            const data = await response.json();
+            if (data.success && data.invite_link) {
+                window.open(data.invite_link, '_blank');
                 showMessage('✅ Открываем канал...', 'success');
                 return;
             }
         }
         
-        // Если API не сработало, пробуем найти видео в списке
-        console.log('🔄 Пробуем альтернативный способ...');
+        // ЕСЛИ API НЕ СРАБОТАЛО - ИЩЕМ В СПИСКЕ
         const videosResponse = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
-        const videosResult = await videosResponse.json();
+        const videosData = await videosResponse.json();
         
         let videos = [];
-        if (Array.isArray(videosResult)) {
-            videos = videosResult;
-        } else if (videosResult && Array.isArray(videosResult.videos)) {
-            videos = videosResult.videos;
-        }
+        if (Array.isArray(videosData)) videos = videosData;
+        else if (videosData.videos) videos = videosData.videos;
+        else if (videosData.success && videosData.videos) videos = videosData.videos;
         
         const video = videos.find(v => v.id == videoId);
         if (video && video.invite_link) {
-            console.log('🔗 Нашли ссылку в данных видео:', video.invite_link);
-            window.open(video.invite_link, '_blank', 'noopener,noreferrer');
+            window.open(video.invite_link, '_blank');
             showMessage('✅ Открываем канал...', 'success');
             return;
         }
         
-        throw new Error('Не удалось получить ссылку на канал');
+        throw new Error('Ссылка не найдена');
         
     } catch (error) {
-        console.error('❌ Ошибка открытия видео:', error);
-        showMessage('❌ Не удалось открыть канал. Обратитесь к администратору.', 'error');
+        console.error('❌ Ошибка:', error);
+        showMessage('❌ Не удалось открыть канал', 'error');
     }
 }
-
 async function usePrivateVideoAccess(videoId) {
     // ЗАМЕНИТЬ НА ПРОСТУЮ ВЕРСИЮ
     try {
