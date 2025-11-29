@@ -5100,20 +5100,17 @@ function setupBotHandlers() {
         console.error('❌ Ошибка webhook бота:', error);
     });
 
-    bot.on('error', (error) => {
+      bot.on('error', (error) => {
         console.error('❌ Общая ошибка бота:', error);
     });
 
-        console.log('✅ Все обработчики команд настроены');
-    }); // Закрытие setupBotHandlers
-
+    console.log('✅ Все обработчики команд настроены');
     console.log('✅ Обработчики команд настроены');
     console.log('🎯 Бот готов к работе!');
 
     } catch (error) {
         console.error('💥 Ошибка инициализации бота:', error);
     }
-} // Закрытие initializeBot
 
 // Функция отправки уведомлений
 async function sendTelegramNotification(userId, message, options = {}) {
