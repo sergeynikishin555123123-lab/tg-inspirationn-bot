@@ -2716,7 +2716,6 @@ app.get('/api/users/:userId', (req, res) => {
         });
     }
 });
-});
 
 app.get('/api/webapp/roles', (req, res) => {
     try {
