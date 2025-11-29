@@ -4465,7 +4465,6 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
 
 // ==================== ЭНДПОИНТЫ СТАТИСТИКИ ПОЛЬЗОВАТЕЛЯ ====================
 
-// ✅ ENDPOINT ДЛЯ СТАТИСТИКИ ПОЛЬЗОВАТЕЛЯ
 app.get('/api/users/:userId/stats', (req, res) => {
     try {
         const userId = parseInt(req.params.userId);
@@ -4508,8 +4507,7 @@ app.get('/api/users/:userId/stats', (req, res) => {
         console.error('❌ Ошибка получения статистики:', error);
         res.status(500).json({ 
             success: false,
-            error: 'Ошибка сервера',
-            stats: {}
+            error: 'Ошибка сервера'
         });
     }
 });
