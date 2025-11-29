@@ -3916,55 +3916,7 @@ function showUserData() {
         return;
     }
     
-  loadUserStats().then(stats => {
-    userDataElement.innerHTML = `
-        <div id="userContent">
-            <div class="user-info-grid">
-                <div class="user-info-item">
-                    <span class="user-info-label">Имя:</span>
-                    <span id="userName" class="user-info-value">${currentUser.tg_first_name || 'Неизвестно'}</span>
-                </div>
-                <div class="user-info-item">
-                    <span class="user-info-label">Уровень:</span>
-                    <span id="userLevel" class="user-info-value">${currentUser.level || 'Ученик'}</span>
-                </div>
-                <div class="user-info-item">
-                    <span class="user-info-label">Роль:</span>
-                    <span id="userRole" class="user-info-value">${currentUser.class || 'Не выбрана'}</span>
-                </div>
-                <div class="user-info-item">
-                    <span class="user-info-label">Персонаж:</span>
-                    <span id="userCharacter" class="user-info-value">${currentUser.character_name || 'Не выбран'}</span>
-                </div>
-            </div>
-            
-            <div class="sparks pulse">✨ ${currentUser.sparks || 0}</div>
-            
-            <div id="userStats">
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-number" id="statQuizzes">${stats.totalQuizzesCompleted || 0}</div>
-                        <div class="stat-label">Квизов</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="statWorks">${stats.totalWorks || 0}</div>
-                        <div class="stat-label">Работ</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="statMarathons">${stats.totalMarathonsCompleted || 0}</div>
-                        <div class="stat-label">Марафонов</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="statInteractives">${stats.totalInteractivesCompleted || 0}</div>
-                        <div class="stat-label">Интерактивов</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}).catch(error => {
-    console.error('❌ Ошибка загрузки статистики:', error);
-    // Показываем статистику с нулевыми значениями при ошибке
+    // Сначала показываем основную информацию без статистики
     userDataElement.innerHTML = `
         <div id="userContent">
             <div class="user-info-grid">
@@ -3989,28 +3941,71 @@ function showUserData() {
             <div class="sparks pulse">✨ ${(currentUser.sparks || 0).toFixed(1)}</div>
             
             <div id="userStats">
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-number">0</div>
-                        <div class="stat-label">Квизов</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">0</div>
-                        <div class="stat-label">Работ</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">0</div>
-                        <div class="stat-label">Марафонов</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">0</div>
-                        <div class="stat-label">Интерактивов</div>
-                    </div>
+                <div class="loading">
+                    <div style="font-size: 24px; margin-bottom: 8px;">⏳</div>
+                    Загрузка статистики...
                 </div>
             </div>
         </div>
     `;
-});
+    
+    // Затем загружаем и отображаем статистику
+    loadUserStats().then(stats => {
+        console.log('📊 Статистика загружена:', stats);
+        
+        const statsHTML = `
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">${stats.totalQuizzesCompleted || 0}</div>
+                    <div class="stat-label">Квизов пройдено</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">${stats.totalWorks || 0}</div>
+                    <div class="stat-label">Работ загружено</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">${stats.totalMarathonsCompleted || 0}</div>
+                    <div class="stat-label">Марафонов завершено</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">${stats.totalInteractivesCompleted || 0}</div>
+                    <div class="stat-label">Интерактивов пройдено</div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('userStats').innerHTML = statsHTML;
+        
+    }).catch(error => {
+        console.error('❌ Ошибка отображения статистики:', error);
+        // Показываем статистику по умолчанию при ошибке
+        document.getElementById('userStats').innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Квизов пройдено</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Работ загружено</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Марафонов завершено</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Интерактивов пройдено</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('welcomeBlock').style.display = 'none';
+    document.getElementById('actionsBlock').style.display = 'block';
+    
+    console.log('✅ Данные пользователя отображены');
+}
 
 async function loadUserStats() {
     try {
@@ -4022,18 +4017,26 @@ async function loadUserStats() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const stats = await response.json();
-        console.log('📈 Статистика пользователя:', stats);
+        const result = await response.json();
+        console.log('📈 Статистика пользователя от сервера:', result);
         
-        return stats;
+        if (result.success && result.stats) {
+            return result.stats;
+        } else {
+            throw new Error('Неверный формат ответа от сервера');
+        }
         
     } catch (error) {
         console.error('❌ Ошибка загрузки статистики:', error);
+        // Возвращаем статистику по умолчанию
         return {
             totalQuizzesCompleted: 0,
             totalWorks: 0,
             totalMarathonsCompleted: 0,
-            totalInteractivesCompleted: 0
+            totalInteractivesCompleted: 0,
+            approvedWorks: 0,
+            totalActivities: 0,
+            totalPurchases: 0
         };
     }
 }
