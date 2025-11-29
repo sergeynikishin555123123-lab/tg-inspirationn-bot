@@ -2127,60 +2127,6 @@ app.get('/api/webapp/user/private-videos', (req, res) => {
 });
 // ==================== ИСПРАВЛЕННЫЕ API ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
 
-// УПРОЩЕННЫЙ ENDPOINT ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ
-app.get('/api/webapp/private-videos', (req, res) => {
-    try {
-        const userId = parseInt(req.query.userId);
-        console.log('🎬 Запрос приватных материалов для пользователя:', userId);
-
-        if (!userId) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Требуется авторизация' 
-            });
-        }
-
-        const videos = db.private_channel_videos.filter(video => video.is_active);
-        
-        const videosWithAccess = videos.map(video => {
-            // Проверяем покупку (без системы доступов)
-            const hasPurchase = db.purchases.some(purchase => 
-                purchase.user_id == userId && 
-                purchase.item_id === video.id && 
-                purchase.item_type === 'private_video'
-            );
-
-            return {
-                id: video.id,
-                invite_link: video.invite_link,
-                title: video.title,
-                description: video.description,
-                duration: video.duration,
-                price: video.price,
-                category: video.category,
-                level: video.level,
-                has_access: hasPurchase, // Просто проверяем покупку
-                has_purchase: hasPurchase,
-                can_purchase: !hasPurchase
-            };
-        });
-
-        console.log(`✅ Найдено материалов: ${videosWithAccess.length}`);
-
-        res.json({ 
-            success: true,
-            videos: videosWithAccess 
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка получения приватных материалов:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка загрузки материалов' 
-        });
-    }
-});
-
 // server.js - Простой endpoint для информации о видео
 app.get('/api/webapp/private-videos/:videoId', (req, res) => {
     try {
@@ -4090,7 +4036,7 @@ app.post('/api/admin/user-works/:workId/moderate', requireAdmin, (req, res) => {
         work: work
     });
 });
-// ✅ ИСПРАВЛЕННЫЙ ENDPOINT ДЛЯ ПОКУПКИ ПРИВАТНЫХ ВИДЕО
+// ✅ УПРОЩЕННАЯ ФУНКЦИЯ ПОКУПКИ ПРИВАТНОГО ВИДЕО
 app.post('/api/webapp/private-videos/purchase', (req, res) => {
     try {
         const { userId, videoId } = req.body;
@@ -4183,7 +4129,7 @@ app.post('/api/webapp/private-videos/purchase', (req, res) => {
             success: true,
             purchase: purchase,
             remaining_sparks: user.sparks,
-            invite_link: video.invite_link,
+            invite_link: video.invite_link, // Возвращаем прямую ссылку
             message: `✅ Доступ к "${video.title}" успешно приобретен! Нажмите "Перейти к материалу" для вступления в канал.`
         });
 
@@ -4734,7 +4680,7 @@ app.get('/api/webapp/private-videos', (req, res) => {
 
             return {
                 id: video.id,
-                invite_link: video.invite_link,
+                invite_link: video.invite_link, // Убедитесь, что ссылка передается
                 title: video.title,
                 description: video.description,
                 duration: video.duration,
@@ -4748,6 +4694,7 @@ app.get('/api/webapp/private-videos', (req, res) => {
         });
 
         console.log(`✅ Найдено материалов: ${videosWithAccess.length}`);
+        console.log('🔗 Первая ссылка:', videosWithAccess[0]?.invite_link);
 
         res.json({ 
             success: true,
