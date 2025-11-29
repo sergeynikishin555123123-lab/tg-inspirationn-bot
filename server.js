@@ -2956,38 +2956,157 @@ app.post('/api/webapp/marathons/:marathonId/submit-day', (req, res) => {
     });
 });
 
+// Получение товаров магазина
 app.get('/api/webapp/shop/items', (req, res) => {
-    const items = db.shop_items.filter(item => item.is_active);
-    res.json(items);
+    try {
+        console.log('🛒 Запрос товаров магазина');
+        const items = db.shop_items.filter(item => item.is_active);
+        
+        // Форматируем ответ для клиента
+        const formattedItems = items.map(item => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            type: item.type,
+            price: item.price,
+            preview_url: item.preview_url,
+            content_text: item.content_text,
+            embed_html: item.embed_html,
+            is_active: item.is_active,
+            created_at: item.created_at
+        }));
+        
+        console.log(`✅ Отправлено товаров: ${formattedItems.length}`);
+        res.json(formattedItems);
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки товаров:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка загрузки товаров' 
+        });
+    }
 });
 
+// Получение покупок пользователя
 app.get('/api/webapp/users/:userId/purchases', (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const userPurchases = db.purchases
-        .filter(p => p.user_id === userId)
-        .map(purchase => {
-            const item = db.shop_items.find(i => i.id === purchase.item_id);
-            return { 
-                ...purchase, 
-                title: item?.title,
-                description: item?.description,
-                type: item?.type,
-                file_url: item?.file_url,
-                content_text: item?.content_text,
-                preview_url: item?.preview_url,
-                // ВАЖНО: Добавляем embed_html для embed-товаров
-                embed_html: item?.embed_html,
-                html_content: item?.embed_html, // альтернативное поле
-                content_html: item?.embed_html, // альтернативное поле
-                content: item?.embed_html, // альтернативное поле
-                file_data: item?.file_url?.startsWith('data:') ? item.file_url : null,
-                preview_data: item?.preview_url?.startsWith('data:') ? item.preview_url : null
-            };
-        })
-        .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
+    try {
+        const userId = parseInt(req.params.userId);
+        console.log('📦 Запрос покупок пользователя:', userId);
         
-    res.json({ purchases: userPurchases });
+        const userPurchases = db.purchases
+            .filter(p => p.user_id === userId && p.item_type === 'shop_item')
+            .map(purchase => {
+                const item = db.shop_items.find(i => i.id === purchase.item_id);
+                return { 
+                    ...purchase, 
+                    title: item?.title,
+                    description: item?.description,
+                    type: item?.type,
+                    file_url: item?.file_url,
+                    content_text: item?.content_text,
+                    preview_url: item?.preview_url,
+                    embed_html: item?.embed_html
+                };
+            })
+            .sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
+            
+        console.log(`✅ Найдено покупок: ${userPurchases.length}`);
+        res.json({ 
+            success: true,
+            purchases: userPurchases 
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения покупок:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка загрузки покупок',
+            purchases: []
+        });
+    }
 });
+
+// ==================== БАЗОВЫЕ МАРШРУТЫ ДЛЯ ПРОВЕРКИ ====================
+
+// Проверка всех API маршрутов
+app.get('/api/debug/routes', (req, res) => {
+    const routes = [
+        '/api/health',
+        '/api/test', 
+        '/api/users/:userId',
+        '/api/webapp/shop/items',
+        '/api/webapp/shop/purchase',
+        '/api/webapp/users/:userId/purchases',
+        '/api/webapp/quizzes',
+        '/api/webapp/marathons',
+        '/api/webapp/interactives',
+        '/api/webapp/roles',
+        '/api/webapp/characters/:roleId'
+    ];
+    
+    res.json({
+        success: true,
+        routes: routes,
+        message: 'Доступные API маршруты'
+    });
+});
+
+// Простой тестовый эндпоинт
+app.get('/api/test-shop', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Магазин работает!',
+        shop_items_count: db.shop_items.filter(i => i.is_active).length,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// ✅ УЛУЧШЕННАЯ ФУНКЦИЯ ПОКУПКИ НА КЛИЕНТЕ
+async function purchaseItem(itemId) {
+    try {
+        showMessage('🛒 Обрабатываем покупку...', 'info');
+        
+        const response = await fetch('/api/webapp/shop/purchase', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: currentUserId,
+                itemId: itemId
+            })
+        });
+
+        // Проверяем, что ответ JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('❌ Сервер вернул не JSON:', text.substring(0, 200));
+            throw new Error('Ошибка сервера: неверный формат ответа');
+        }
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        if (result.success) {
+            showMessage(result.message, 'success');
+            // Обновляем баланс
+            await loadUserData();
+            // Перезагружаем магазин
+            loadShopItems();
+        } else {
+            throw new Error(result.error || 'Неизвестная ошибка');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка покупки:', error);
+        showMessage(`❌ ${error.message}`, 'error');
+    }
+}
 
 app.get('/api/webapp/users/:userId/activities', (req, res) => {
     const userId = parseInt(req.params.userId);
