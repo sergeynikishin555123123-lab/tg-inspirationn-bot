@@ -6065,7 +6065,7 @@ function displayPrivateVideos(videos) {
     `;
 }
 
-// ОБНОВЛЕННАЯ ФУНКЦИЯ ОТОБРАЖЕНИЯ ПРИВАТНЫХ МАТЕРИАЛОВ
+// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТОБРАЖЕНИЯ ПРИВАТНЫХ МАТЕРИАЛОВ
 function renderVideosList(videosArray) {
     const videosList = document.getElementById('privateVideosList');
     
@@ -6114,11 +6114,11 @@ function renderVideosList(videosArray) {
             
             <div style="text-align: center;">
                 ${hasAccess ? `
-                    <button class="btn btn-success" onclick="openVideoLink(${video.id})" style="margin-bottom: 8px;">
-                        🔗 Перейти к материалу
+                    <button class="btn btn-success" onclick="openPrivateVideo(${video.id})" style="margin-bottom: 8px;">
+                        🔗 Перейти в канал
                     </button>
                     <div style="color: #718096; font-size: 12px; margin-top: 8px;">
-                        Нажмите чтобы перейти в канал с материалом
+                        Нажмите чтобы перейти в приватный канал с материалом
                     </div>
                 ` : canAfford ? 
                     `<button class="btn btn-success" onclick="purchasePrivateVideo(${video.id})">
@@ -6135,25 +6135,52 @@ function renderVideosList(videosArray) {
     });
 }
 
-// ФУНКЦИЯ ДЛЯ ОТКРЫТИЯ ССЫЛКИ НА МАТЕРИАЛ
-async function openVideoLink(videoId) {
+// ✅ ПРОСТАЯ ФУНКЦИЯ ОТКРЫТИЯ ПРИВАТНОГО ВИДЕО
+async function openPrivateVideo(videoId) {
     try {
-        showMessage('⏳ Получаем ссылку на материал...', 'info');
+        console.log('🎬 Открываем приватное видео:', videoId);
+        showMessage('⏳ Получаем доступ к каналу...', 'info');
         
+        // Сначала пробуем получить инвайт-ссылку через API
         const response = await fetch(`/api/webapp/private-videos/${videoId}/invite?userId=${currentUserId}`);
-        const result = await response.json();
         
-        if (result.success && result.invite_link) {
-            // ПРЯМОЕ ОТКРЫТИЕ ССЫЛКИ
-            window.open(result.invite_link, '_blank');
-            showMessage('✅ Переходим к материалу...', 'success');
-        } else {
-            throw new Error(result.error || 'Не удалось получить ссылку');
+        if (response.ok) {
+            const result = await response.json();
+            
+            if (result.success && result.invite_link) {
+                // НЕМЕДЛЕННО ОТКРЫВАЕМ ССЫЛКУ
+                console.log('🔗 Открываем инвайт-ссылку:', result.invite_link);
+                window.open(result.invite_link, '_blank', 'noopener,noreferrer');
+                showMessage('✅ Открываем канал...', 'success');
+                return;
+            }
         }
         
+        // Если API не сработало, пробуем найти видео в списке
+        console.log('🔄 Пробуем альтернативный способ...');
+        const videosResponse = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
+        const videosResult = await videosResponse.json();
+        
+        let videos = [];
+        if (Array.isArray(videosResult)) {
+            videos = videosResult;
+        } else if (videosResult && Array.isArray(videosResult.videos)) {
+            videos = videosResult.videos;
+        }
+        
+        const video = videos.find(v => v.id == videoId);
+        if (video && video.invite_link) {
+            console.log('🔗 Нашли ссылку в данных видео:', video.invite_link);
+            window.open(video.invite_link, '_blank', 'noopener,noreferrer');
+            showMessage('✅ Открываем канал...', 'success');
+            return;
+        }
+        
+        throw new Error('Не удалось получить ссылку на канал');
+        
     } catch (error) {
-        console.error('❌ Ошибка открытия материала:', error);
-        showMessage(`❌ ${error.message}`, 'error');
+        console.error('❌ Ошибка открытия видео:', error);
+        showMessage('❌ Не удалось открыть канал. Обратитесь к администратору.', 'error');
     }
 }
 
@@ -6233,17 +6260,12 @@ async function handleInviteLink(inviteLink, videoTitle) {
     }
 }
 
+// ✅ УПРОЩЕННАЯ ФУНКЦИЯ ПОКУПКИ ПРИВАТНОГО ВИДЕО
 async function purchasePrivateVideo(videoId) {
     try {
         console.log('🛒 Начало покупки видео:', videoId);
         
-        const video = await getVideoInfo(videoId);
-        if (!video) {
-            showMessage('❌ Материал не найден', 'error');
-            return;
-        }
-        
-        if (!confirm(`Купить доступ к "${video.title}" за ${video.price}✨?\n\nПосле покупки вы получите пригласительную ссылку в приватный канал.`)) {
+        if (!confirm(`Вы уверены, что хотите купить доступ к этому материалу?`)) {
             return;
         }
         
@@ -6268,28 +6290,24 @@ async function purchasePrivateVideo(videoId) {
         if (result.success) {
             showMessage(`✅ ${result.message}`, 'success');
             
+            // Обновляем баланс
             if (result.remaining_sparks !== undefined) {
                 currentUser.sparks = result.remaining_sparks;
                 updateUserDisplay();
             }
             
+            // ПЕРЕЗАГРУЖАЕМ СПИСОК ВИДЕО ЧЕРЕЗ 1 СЕКУНДУ
             setTimeout(async () => {
-                console.log('🔄 Обновляем данные после покупки...');
-                await loadPrivateVideos(true);
+                await loadPrivateVideos();
                 
-                const hasAccess = await checkLocalVideoAccess(videoId);
-                console.log('✅ Проверка доступа после покупки:', hasAccess);
+                // ПРЕДЛАГАЕМ ПЕРЕЙТИ В КАНАЛ
+                setTimeout(() => {
+                    if (confirm('Покупка успешно завершена! Хотите перейти в канал сейчас?')) {
+                        openPrivateVideo(videoId);
+                    }
+                }, 500);
                 
-                if (hasAccess) {
-                    setTimeout(() => {
-                        if (confirm('Покупка успешна! Хотите получить пригласительную ссылку сейчас?')) {
-                            usePrivateVideoAccess(videoId);
-                        }
-                    }, 1000);
-                } else {
-                    showMessage('⚠️ Покупка завершена, но доступ не активирован. Попробуйте обновить страницу.', 'info');
-                }
-            }, 1500);
+            }, 1000);
             
         } else {
             showMessage(`❌ ${result.error}`, 'error');
