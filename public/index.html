@@ -6050,8 +6050,9 @@ function copyToClipboard(text) {
             }, 5000);
         }
 
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', initApp);
+          document.addEventListener('DOMContentLoaded', initApp);
+
+}); 
 
         // Обработка перетаскивания файлов
         document.addEventListener('DOMContentLoaded', function() {
@@ -6115,7 +6116,7 @@ function copyToClipboard(text) {
         // Вызов анимации при загрузке
         setTimeout(animateElements, 500);
 
-    // ==================== БЫСТРОЕ ОБНОВЛЕНИЕ ДАННЫХ ====================
+      // ==================== БЫСТРОЕ ОБНОВЛЕНИЕ ДАННЫХ ====================
 
 // Быстрое обновление отображения пользователя без запросов к серверу
 function updateUserDisplay() {
@@ -6151,6 +6152,12 @@ function updateUserDisplay() {
     
     // Можно добавить обновление статистики если нужно
 }
-    </script>
+
+    // ==================== ИНИЦИАЛИЗАЦИЯ ====================
+
+    // Инициализация при загрузке страницы
+    document.addEventListener('DOMContentLoaded', initApp);
+
+</script>
 </body>
 </html>
