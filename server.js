@@ -74,67 +74,48 @@ function cleanupCompletedTransactions() {
         }
     }
 }
-// ✅ УЛУЧШЕННАЯ ФУНКЦИЯ НАЧИСЛЕНИЯ/СПИСАНИЯ ИСКР
-function addSparks(userId, sparks, activityType, description, operationId = null) {
+// ✅ УПРОЩЕННАЯ ФУНКЦИЯ НАЧИСЛЕНИЯ/СПИСАНИЯ ИСКР
+function addSparks(userId, sparks, activityType, description) {
     const user = db.users.find(u => u.user_id == userId);
     if (!user) {
         console.error('❌ Пользователь не найден для начисления искр:', userId);
-        throw new Error('Пользователь не найден');
+        return;
     }
     
-    // Генерируем ID операции если не передан
-    const opId = operationId || `${activityType}_${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Сохраняем старое значение для лога
+    const oldSparks = user.sparks;
     
-    return safeSparksOperation(userId, activityType, opId, () => {
-        // Проверяем, не существует ли уже активности с таким operation_id
-        const existingActivity = db.activities.find(a => 
-            a.user_id == userId && 
-            a.operation_id === opId
-        );
-        
-        if (existingActivity) {
-            console.log('🔄 Возвращаем существующую операцию:', opId);
-            return existingActivity;
-        }
-        
-        // Сохраняем старое значение для лога
-        const oldSparks = user.sparks;
-        
-        // ПРОВЕРКА БАЛАНСА ПРИ СПИСАНИИ
-        if (sparks < 0 && user.sparks < Math.abs(sparks)) {
-            throw new Error(`Недостаточно искр. Нужно: ${Math.abs(sparks)}✨, у вас: ${user.sparks}✨`);
-        }
-        
-        // ВЫЧИСЛЯЕМ НОВОЕ ЗНАЧЕНИЕ
-        const newSparks = Number((user.sparks + sparks).toFixed(1));
-        user.sparks = newSparks;
-        user.level = calculateLevel(user.sparks);
-        user.last_active = new Date().toISOString();
-        
-        // СОЗДАЕМ ЗАПИСЬ АКТИВНОСТИ
-        const activity = {
-            id: Date.now(),
-            user_id: userId,
-            activity_type: activityType,
-            sparks_earned: sparks,
-            description: description,
-            operation_id: opId,
-            old_balance: oldSparks,
-            new_balance: user.sparks,
-            created_at: new Date().toISOString()
-        };
-        
-        db.activities.push(activity);
-        
-        console.log(`💰 ОПЕРАЦИЯ С ИСКРАМИ: ${description}`);
-        console.log(`   Пользователь: ${userId} (${user.tg_first_name})`);
-        console.log(`   Изменение: ${sparks > 0 ? '+' : ''}${sparks}✨`);
-        console.log(`   Баланс: ${oldSparks} → ${user.sparks}✨`);
-        console.log(`   Уровень: ${user.level}`);
-        console.log(`   ID операции: ${opId}`);
-        
-        return activity;
-    });
+    // ПРОВЕРКА БАЛАНСА ПРИ СПИСАНИИ
+    if (sparks < 0 && user.sparks < Math.abs(sparks)) {
+        console.error(`❌ Недостаточно искр. Нужно: ${Math.abs(sparks)}✨, у вас: ${user.sparks}✨`);
+        return;
+    }
+    
+    // ВЫЧИСЛЯЕМ НОВОЕ ЗНАЧЕНИЕ
+    const newSparks = Number((user.sparks + sparks).toFixed(1));
+    user.sparks = newSparks;
+    user.level = calculateLevel(user.sparks);
+    user.last_active = new Date().toISOString();
+    
+    // СОЗДАЕМ ЗАПИСЬ АКТИВНОСТИ
+    const activity = {
+        id: Date.now(),
+        user_id: userId,
+        activity_type: activityType,
+        sparks_earned: sparks,
+        description: description,
+        old_balance: oldSparks,
+        new_balance: user.sparks,
+        created_at: new Date().toISOString()
+    };
+    
+    db.activities.push(activity);
+    
+    console.log(`💰 ОПЕРАЦИЯ С ИСКРАМИ: ${description}`);
+    console.log(`   Пользователь: ${userId} (${user.tg_first_name})`);
+    console.log(`   Изменение: ${sparks > 0 ? '+' : ''}${sparks}✨`);
+    console.log(`   Баланс: ${oldSparks} → ${user.sparks}✨`);
+    console.log(`   Уровень: ${user.level}`);
 }
 // ✅ ТЕПЕРЬ ИНИЦИАЛИЗИРУЕМ EXPRESS APP
 const app = express();
@@ -1392,7 +1373,7 @@ app.post('/api/webapp/private-videos/:videoId/request-invite', async (req, res) 
     }
 });
 
-// ✅ РАБОЧИЙ ЭНДПОИНТ ПОКУПКИ ТОВАРА
+// ✅ ИСПРАВЛЕННЫЙ ENDPOINT ДЛЯ ПОКУПКИ ТОВАРА
 app.post('/api/webapp/shop/purchase', (req, res) => {
     try {
         const { userId, itemId } = req.body;
@@ -1423,86 +1404,69 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
             });
         }
 
-        // Генерируем уникальный ID операции
-        const operationId = `shop_purchase_${userId}_${itemId}_${Date.now()}`;
-
-        // Используем безопасную операцию
-        safeSparksOperation(userId, 'shop_purchase', operationId, () => {
-            // Проверяем, не куплен ли уже товар
-            const existingPurchase = db.purchases.find(
-                p => p.user_id === userId && 
-                     p.item_id === itemId && 
-                     p.item_type === 'shop_item'
-            );
-
-            if (existingPurchase) {
-                throw new Error('У вас уже есть этот товар');
-            }
-
-            // Проверяем баланс
-            if (user.sparks < item.price) {
-                throw new Error(`Недостаточно искр. Нужно: ${item.price}✨, у вас: ${user.sparks.toFixed(1)}✨`);
-            }
-
-            // ВСЕ ОПЕРАЦИИ В ОДНОЙ БЕЗОПАСНОЙ ТРАНЗАКЦИИ
-            const oldSparks = user.sparks;
-            
-            // СПИСЫВАЕМ ИСКРЫ
-            user.sparks = Number((user.sparks - item.price).toFixed(1));
-            
-            // СОЗДАЕМ ЗАПИСЬ О ПОКУПКЕ
-            const purchase = {
-                id: Date.now(),
-                user_id: parseInt(userId),
-                item_id: parseInt(itemId),
-                item_type: 'shop_item',
-                item_title: item.title,
-                price_paid: item.price,
-                operation_id: operationId,
-                purchased_at: new Date().toISOString()
-            };
-            db.purchases.push(purchase);
-
-            // ЗАПИСЫВАЕМ АКТИВНОСТЬ СПИСАНИЯ
-            const activity = {
-                id: Date.now(),
-                user_id: userId,
-                activity_type: 'shop_purchase',
-                sparks_earned: -item.price,
-                description: `Покупка товара: ${item.title}`,
-                operation_id: operationId,
-                old_balance: oldSparks,
-                new_balance: user.sparks,
-                created_at: new Date().toISOString()
-            };
-            db.activities.push(activity);
-
-            console.log(`✅ ПОКУПКА ТОВАРА УСПЕШНА: ${item.title}`);
-            console.log(`   Пользователь: ${userId} (${user.tg_first_name})`);
-            console.log(`   Списано: ${item.price}✨`);
-            console.log(`   Баланс: ${oldSparks} → ${user.sparks}✨`);
-            console.log(`   ID операции: ${operationId}`);
-
-            return { 
-                purchase, 
-                activity, 
-                remainingSparks: user.sparks 
-            };
-        })
-        .then(result => {
-            res.json({
-                success: true,
-                purchase: result.purchase,
-                remaining_sparks: result.remainingSparks,
-                message: `✅ "${item.title}" успешно приобретен!`
+        // Проверяем баланс
+        if (user.sparks < item.price) {
+            return res.status(400).json({ 
+                success: false, 
+                error: `Недостаточно искр. Нужно: ${item.price}✨, у вас: ${user.sparks.toFixed(1)}✨`
             });
-        })
-        .catch(error => {
-            console.error('❌ Ошибка покупки товара:', error);
-            res.status(400).json({ 
-                success: false,
-                error: error.message
+        }
+
+        // Проверяем, не куплен ли уже товар
+        const existingPurchase = db.purchases.find(
+            p => p.user_id === userId && 
+                 p.item_id === itemId && 
+                 p.item_type === 'shop_item'
+        );
+
+        if (existingPurchase) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'У вас уже есть этот товар' 
             });
+        }
+
+        // ВСЕ ОПЕРАЦИИ В ОДНОЙ ТРАНЗАКЦИИ
+        const oldSparks = user.sparks;
+        
+        // СПИСЫВАЕМ ИСКРЫ
+        user.sparks = Number((user.sparks - item.price).toFixed(1));
+        
+        // СОЗДАЕМ ЗАПИСЬ О ПОКУПКЕ
+        const purchase = {
+            id: Date.now(),
+            user_id: parseInt(userId),
+            item_id: parseInt(itemId),
+            item_type: 'shop_item',
+            item_title: item.title,
+            price_paid: item.price,
+            purchased_at: new Date().toISOString()
+        };
+        db.purchases.push(purchase);
+
+        // ЗАПИСЫВАЕМ АКТИВНОСТЬ СПИСАНИЯ
+        const activity = {
+            id: Date.now(),
+            user_id: userId,
+            activity_type: 'shop_purchase',
+            sparks_earned: -item.price,
+            description: `Покупка товара: ${item.title}`,
+            old_balance: oldSparks,
+            new_balance: user.sparks,
+            created_at: new Date().toISOString()
+        };
+        db.activities.push(activity);
+
+        console.log(`✅ ПОКУПКА ТОВАРА УСПЕШНА: ${item.title}`);
+        console.log(`   Пользователь: ${userId} (${user.tg_first_name})`);
+        console.log(`   Списано: ${item.price}✨`);
+        console.log(`   Баланс: ${oldSparks} → ${user.sparks}✨`);
+
+        res.json({
+            success: true,
+            purchase: purchase,
+            remaining_sparks: user.sparks,
+            message: `✅ "${item.title}" успешно приобретен!`
         });
 
     } catch (error) {
@@ -1513,7 +1477,6 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
         });
     }
 });
-
 app.post('/api/webapp/private-videos/purchase', async (req, res) => {
     try {
         const { userId, videoId } = req.body;
@@ -2777,94 +2740,104 @@ app.get('/api/webapp/quizzes', (req, res) => {
     res.json(quizzesWithStatus);
 });
 
-// ИСПРАВЛЕННОЕ ОТПРАВЛЕНИЕ РЕЗУЛЬТАТОВ КВИЗА
+// ✅ ИСПРАВЛЕННЫЙ ENDPOINT ДЛЯ ОТПРАВКИ КВИЗА
 app.post('/api/webapp/quizzes/:quizId/submit', (req, res) => {
-    const quizId = parseInt(req.params.quizId);
-    const { userId, answers } = req.body;
-    
-    if (!userId) {
-        return res.status(400).json({ error: 'User ID is required' });
-    }
-    
-    const quiz = db.quizzes.find(q => q.id === quizId);
-    if (!quiz) {
-        return res.status(404).json({ error: 'Quiz not found' });
-    }
-    
-    const existingCompletion = db.quiz_completions.find(
-        qc => qc.user_id === userId && qc.quiz_id === quizId
-    );
-    
-    if (existingCompletion && !quiz.allow_retake) {
-        return res.status(400).json({ error: 'Этот квиз нельзя пройти повторно' });
-    }
-    
-    if (existingCompletion && quiz.cooldown_hours > 0) {
-        const lastCompletion = new Date(existingCompletion.completed_at);
-        const now = new Date();
-        const hoursSinceCompletion = (now - lastCompletion) / (1000 * 60 * 60);
+    try {
+        const quizId = parseInt(req.params.quizId);
+        const { userId, answers } = req.body;
         
-        if (hoursSinceCompletion < quiz.cooldown_hours) {
-            const hoursLeft = Math.ceil(quiz.cooldown_hours - hoursSinceCompletion);
-            return res.status(400).json({ 
-                error: `Квиз можно пройти повторно через ${hoursLeft} часов` 
+        console.log('📝 Отправка результатов квиза:', { quizId, userId, answers });
+        
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID is required' });
+        }
+        
+        const quiz = db.quizzes.find(q => q.id === quizId);
+        if (!quiz) {
+            return res.status(404).json({ error: 'Quiz not found' });
+        }
+        
+        const existingCompletion = db.quiz_completions.find(
+            qc => qc.user_id === userId && qc.quiz_id === quizId
+        );
+        
+        if (existingCompletion && !quiz.allow_retake) {
+            return res.status(400).json({ error: 'Этот квиз нельзя пройти повторно' });
+        }
+        
+        if (existingCompletion && quiz.cooldown_hours > 0) {
+            const lastCompletion = new Date(existingCompletion.completed_at);
+            const now = new Date();
+            const hoursSinceCompletion = (now - lastCompletion) / (1000 * 60 * 60);
+            
+            if (hoursSinceCompletion < quiz.cooldown_hours) {
+                const hoursLeft = Math.ceil(quiz.cooldown_hours - hoursSinceCompletion);
+                return res.status(400).json({ 
+                    error: `Квиз можно пройти повторно через ${hoursLeft} часов` 
+                });
+            }
+        }
+        
+        let correctAnswers = 0;
+        quiz.questions.forEach((question, index) => {
+            if (answers[index] === question.correctAnswer) {
+                correctAnswers++;
+            }
+        });
+        
+        // НАЧИСЛЕНИЕ ИСКР
+        let sparksEarned = 0;
+        const perfectScore = correctAnswers === quiz.questions.length;
+        
+        // Начисляем искры за правильные ответы
+        sparksEarned = correctAnswers * quiz.sparks_per_correct;
+        
+        // Добавляем бонус за идеальный результат
+        if (perfectScore) {
+            sparksEarned += quiz.sparks_perfect_bonus;
+        }
+        
+        if (existingCompletion) {
+            existingCompletion.score = correctAnswers;
+            existingCompletion.sparks_earned = sparksEarned;
+            existingCompletion.perfect_score = perfectScore;
+            existingCompletion.completed_at = new Date().toISOString();
+        } else {
+            db.quiz_completions.push({
+                id: Date.now(),
+                user_id: userId,
+                quiz_id: quizId,
+                completed_at: new Date().toISOString(),
+                score: correctAnswers,
+                sparks_earned: sparksEarned,
+                perfect_score: perfectScore
             });
         }
-    }
-    
-    let correctAnswers = 0;
-    quiz.questions.forEach((question, index) => {
-        if (answers[index] === question.correctAnswer) {
-            correctAnswers++;
+        
+        if (sparksEarned > 0) {
+            addSparks(userId, sparksEarned, 'quiz', `Квиз: ${quiz.title}`);
         }
-    });
-    
-    // ИСПРАВЛЕННОЕ НАЧИСЛЕНИЕ ИСКР
-    let sparksEarned = 0;
-    const perfectScore = correctAnswers === quiz.questions.length;
-    
-    // Начисляем искры за правильные ответы
-    sparksEarned = correctAnswers * quiz.sparks_per_correct;
-    
-    // Добавляем бонус за идеальный результат
-    if (perfectScore) {
-        sparksEarned += quiz.sparks_perfect_bonus;
-    }
-    
-    if (existingCompletion) {
-        existingCompletion.score = correctAnswers;
-        existingCompletion.sparks_earned = sparksEarned;
-        existingCompletion.perfect_score = perfectScore;
-        existingCompletion.completed_at = new Date().toISOString();
-    } else {
-        db.quiz_completions.push({
-            id: Date.now(),
-            user_id: userId,
-            quiz_id: quizId,
-            completed_at: new Date().toISOString(),
-            score: correctAnswers,
-            sparks_earned: sparksEarned,
-            perfect_score: perfectScore
+        
+        res.json({
+            success: true,
+            correctAnswers,
+            totalQuestions: quiz.questions.length,
+            sparksEarned,
+            perfectScore,
+            scorePercentage: Math.round((correctAnswers / quiz.questions.length) * 100),
+            message: perfectScore ? 
+                `Идеально! 🎉 +${sparksEarned}✨ (${correctAnswers}×${quiz.sparks_per_correct} + ${quiz.sparks_perfect_bonus} бонус)` : 
+                `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨ (${correctAnswers}×${quiz.sparks_per_correct})`
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка отправки результатов квиза:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка сервера при обработке результатов' 
         });
     }
-    
-    if (sparksEarned > 0) {
-        addSparks(userId, sparksEarned, 'quiz', `Квиз: ${quiz.title}`);
-    }
-    
-    res.json({
-        success: true,
-        correctAnswers,
-        totalQuestions: quiz.questions.length,
-        sparksEarned,
-        perfectScore,
-        scorePercentage: Math.round((correctAnswers / quiz.questions.length) * 100),
-        message: perfectScore ? 
-            `Идеально! 🎉 +${sparksEarned}✨ (${correctAnswers}×${quiz.sparks_per_correct} + ${quiz.sparks_perfect_bonus} бонус)` : 
-            `Правильно: ${correctAnswers}/${quiz.questions.length}. +${sparksEarned}✨ (${correctAnswers}×${quiz.sparks_per_correct})`
-    });
 });
-
 app.get('/api/webapp/marathons', (req, res) => {
     const userId = parseInt(req.query.userId);
     const marathons = db.marathons.filter(m => m.is_active);
@@ -4471,12 +4444,11 @@ app.get('/api/admin/full-stats', requireAdmin, (req, res) => {
 
 // ==================== ЭНДПОИНТЫ СТАТИСТИКИ ПОЛЬЗОВАТЕЛЯ ====================
 
-// ✅ СТАТИСТИКА ПОЛЬЗОВАТЕЛЯ
+// ✅ ENDPOINT ДЛЯ СТАТИСТИКИ ПОЛЬЗОВАТЕЛЯ
 app.get('/api/users/:userId/stats', (req, res) => {
     try {
         const userId = parseInt(req.params.userId);
-        console.log('📊 Запрос статистики для пользователя:', userId);
-
+        
         const user = db.users.find(u => u.user_id === userId);
         if (!user) {
             return res.status(404).json({ 
@@ -4485,7 +4457,7 @@ app.get('/api/users/:userId/stats', (req, res) => {
             });
         }
 
-        // Собираем полную статистику
+        // Собираем статистику
         const stats = {
             totalQuizzesCompleted: db.quiz_completions.filter(q => q.user_id === userId).length,
             totalWorks: db.user_works.filter(w => w.user_id === userId).length,
@@ -4504,7 +4476,6 @@ app.get('/api/users/:userId/stats', (req, res) => {
             lastActive: user.last_active
         };
 
-        console.log('✅ Статистика отправлена для пользователя:', userId);
         res.json({
             success: true,
             stats: stats
@@ -4520,121 +4491,21 @@ app.get('/api/users/:userId/stats', (req, res) => {
     }
 });
 
-// ✅ ДЕТАЛЬНАЯ СТАТИСТИКА С АКТИВНОСТЯМИ
-app.get('/api/users/:userId/detailed-stats', (req, res) => {
-    try {
-        const userId = parseInt(req.params.userId);
-        
-        const user = db.users.find(u => u.user_id === userId);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        // Статистика по типам активностей
-        const activitiesByType = {};
-        db.activities
-            .filter(a => a.user_id === userId)
-            .forEach(activity => {
-                if (!activitiesByType[activity.activity_type]) {
-                    activitiesByType[activity.activity_type] = {
-                        count: 0,
-                        totalSparks: 0
-                    };
-                }
-                activitiesByType[activity.activity_type].count++;
-                activitiesByType[activity.activity_type].totalSparks += activity.sparks_earned;
-            });
-
-        // Последние активности
-        const recentActivities = db.activities
-            .filter(a => a.user_id === userId)
-            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-            .slice(0, 20)
-            .map(a => ({
-                type: a.activity_type,
-                description: a.description,
-                sparks: a.sparks_earned,
-                date: a.created_at
-            }));
-
-        const detailedStats = {
-            user: {
-                name: user.tg_first_name,
-                level: user.level,
-                sparks: user.sparks,
-                role: user.class,
-                character: user.character_name
-            },
-            activities: activitiesByType,
-            recentActivities: recentActivities,
-            totals: {
-                quizzes: db.quiz_completions.filter(q => q.user_id === userId).length,
-                marathons: db.marathon_completions.filter(m => m.user_id === userId && m.completed).length,
-                works: db.user_works.filter(w => w.user_id === userId).length,
-                purchases: db.purchases.filter(p => p.user_id === userId).length
-            }
-        };
-
-        res.json({
-            success: true,
-            stats: detailedStats
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка получения детальной статистики:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка сервера' 
-        });
-    }
+// ✅ ENDPOINT ДЛЯ ВЕРСИИ ПРИЛОЖЕНИЯ
+app.get('/api/app/version', (req, res) => {
+    res.json({
+        version: '1.0.0',
+        changelog: 'Первоначальный релиз',
+        timestamp: new Date().toISOString()
+    });
 });
 
-// ✅ АКТИВНОСТИ ПОЛЬЗОВАТЕЛЯ
-app.get('/api/users/:userId/activities', (req, res) => {
-    try {
-        const userId = parseInt(req.params.userId);
-        const { limit = 50, offset = 0 } = req.query;
-        
-        console.log('📈 Запрос активностей пользователя:', userId);
-
-        const userActivities = db.activities
-            .filter(a => a.user_id === userId)
-            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-            .slice(parseInt(offset), parseInt(offset) + parseInt(limit))
-            .map(activity => ({
-                id: activity.id,
-                type: activity.activity_type,
-                description: activity.description,
-                sparks_earned: activity.sparks_earned,
-                old_balance: activity.old_balance,
-                new_balance: activity.new_balance,
-                created_at: activity.created_at,
-                operation_id: activity.operation_id
-            }));
-
-        const totalActivities = db.activities.filter(a => a.user_id === userId).length;
-
-        res.json({
-            success: true,
-            activities: userActivities,
-            pagination: {
-                total: totalActivities,
-                limit: parseInt(limit),
-                offset: parseInt(offset),
-                hasMore: (parseInt(offset) + parseInt(limit)) < totalActivities
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка получения активностей:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Ошибка сервера',
-            activities: []
-        });
-    }
+// ✅ ENDPOINT ДЛЯ АНАЛИТИКИ
+app.post('/api/analytics/track', (req, res) => {
+    // Просто логируем аналитику, но не сохраняем в базу
+    console.log('📊 Analytics:', req.body);
+    res.json({ success: true });
 });
-
 // ==================== ЭКСПОРТ ОТЧЕТОВ ====================
 
 // Экспорт пользователей в CSV
