@@ -1918,6 +1918,1893 @@ let currentTool = 'brush';
 let uploadedImage = null;
 let marathonUploadedImage = null;
 
+// ==================== СИСТЕМА УПРАВЛЕНИЯ СОСТОЯНИЕМ ====================
+let appState = {
+    currentScreen: 'mainScreen',
+    previousScreen: null,
+    loading: false,
+    errors: []
+};
+
+// Система навигации
+function navigateTo(screenName) {
+    appState.previousScreen = appState.currentScreen;
+    appState.currentScreen = screenName;
+    showScreen(screenName);
+}
+
+function navigateBack() {
+    if (appState.previousScreen) {
+        showScreen(appState.previousScreen);
+    } else {
+        showScreen('mainScreen');
+    }
+}
+
+// Система загрузки
+function setLoading(loading) {
+    appState.loading = loading;
+    if (loading) {
+        document.body.style.opacity = '0.7';
+        document.body.style.pointerEvents = 'none';
+    } else {
+        document.body.style.opacity = '1';
+        document.body.style.pointerEvents = 'auto';
+    }
+}
+
+    // ==================== СИСТЕМА КЭШИРОВАНИЯ ====================
+let cache = {
+    userData: null,
+    quizzes: null,
+    marathons: null,
+    shopItems: null,
+    privateVideos: null,
+    timestamp: null
+};
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 минут
+
+function getCachedData(key) {
+    if (cache[key] && cache.timestamp && (Date.now() - cache.timestamp) < CACHE_DURATION) {
+        return cache[key];
+    }
+    return null;
+}
+
+function setCachedData(key, data) {
+    cache[key] = data;
+    cache.timestamp = Date.now();
+}
+
+function clearCache() {
+    cache = {
+        userData: null,
+        quizzes: null,
+        marathons: null,
+        shopItems: null,
+        privateVideos: null,
+        timestamp: null
+    };
+}
+
+// ==================== СИСТЕМА ОЧЕРЕДЕЙ ====================
+class RequestQueue {
+    constructor() {
+        this.queue = [];
+        this.processing = false;
+    }
+
+    async add(requestFn) {
+        return new Promise((resolve, reject) => {
+            this.queue.push({ requestFn, resolve, reject });
+            if (!this.processing) {
+                this.process();
+            }
+        });
+    }
+
+    async process() {
+        if (this.processing || this.queue.length === 0) return;
+        
+        this.processing = true;
+        
+        while (this.queue.length > 0) {
+            const { requestFn, resolve, reject } = this.queue.shift();
+            try {
+                const result = await requestFn();
+                resolve(result);
+                // Задержка между запросами
+                await new Promise(resolve => setTimeout(resolve, 100));
+            } catch (error) {
+                reject(error);
+            }
+        }
+        
+        this.processing = false;
+    }
+}
+
+const requestQueue = new RequestQueue();
+
+    // ==================== РАСШИРЕННАЯ СИСТЕМА ПОЛЬЗОВАТЕЛЯ ====================
+class UserManager {
+    constructor() {
+        this.user = null;
+        this.listeners = [];
+    }
+
+    setUser(userData) {
+        this.user = userData;
+        this.notifyListeners();
+    }
+
+    updateUser(updates) {
+        if (this.user) {
+            this.user = { ...this.user, ...updates };
+            this.notifyListeners();
+        }
+    }
+
+    addListener(listener) {
+        this.listeners.push(listener);
+    }
+
+    removeListener(listener) {
+        this.listeners = this.listeners.filter(l => l !== listener);
+    }
+
+    notifyListeners() {
+        this.listeners.forEach(listener => listener(this.user));
+    }
+
+    // Обновление баланса искр
+    addSparks(amount) {
+        if (this.user) {
+            this.user.sparks = (this.user.sparks || 0) + amount;
+            this.notifyListeners();
+            return this.user.sparks;
+        }
+        return 0;
+    }
+
+    // Проверка возможности покупки
+    canAfford(price) {
+        return this.user && this.user.sparks >= price;
+    }
+
+    // Списание искр
+    deductSparks(amount) {
+        if (this.canAfford(amount)) {
+            this.user.sparks -= amount;
+            this.notifyListeners();
+            return true;
+        }
+        return false;
+    }
+}
+
+const userManager = new UserManager();
+
+    // ==================== СИСТЕМА АНИМАЦИЙ ====================
+class AnimationManager {
+    constructor() {
+        this.animations = new Map();
+    }
+
+    // Анимация появления элемента
+    fadeIn(element, duration = 300) {
+        return new Promise(resolve => {
+            element.style.opacity = '0';
+            element.style.display = 'block';
+            
+            let start = null;
+            function step(timestamp) {
+                if (!start) start = timestamp;
+                const progress = timestamp - start;
+                const opacity = Math.min(progress / duration, 1);
+                
+                element.style.opacity = opacity.toString();
+                
+                if (progress < duration) {
+                    requestAnimationFrame(step);
+                } else {
+                    resolve();
+                }
+            }
+            requestAnimationFrame(step);
+        });
+    }
+
+    // Анимация исчезновения
+    fadeOut(element, duration = 300) {
+        return new Promise(resolve => {
+            let start = null;
+            function step(timestamp) {
+                if (!start) start = timestamp;
+                const progress = timestamp - start;
+                const opacity = Math.max(1 - progress / duration, 0);
+                
+                element.style.opacity = opacity.toString();
+                
+                if (progress < duration) {
+                    requestAnimationFrame(step);
+                } else {
+                    element.style.display = 'none';
+                    resolve();
+                }
+            }
+            requestAnimationFrame(step);
+        });
+    }
+
+    // Анимация дрожания (для ошибок)
+    shake(element) {
+        element.style.transform = 'translateX(0)';
+        const keyframes = [
+            { transform: 'translateX(0)' },
+            { transform: 'translateX(-10px)' },
+            { transform: 'translateX(10px)' },
+            { transform: 'translateX(-10px)' },
+            { transform: 'translateX(10px)' },
+            { transform: 'translateX(0)' }
+        ];
+        
+        element.animate(keyframes, {
+            duration: 500,
+            iterations: 1
+        });
+    }
+
+    // Пульсирующая анимация
+    pulse(element) {
+        const animation = element.animate([
+            { transform: 'scale(1)' },
+            { transform: 'scale(1.05)' },
+            { transform: 'scale(1)' }
+        ], {
+            duration: 1000,
+            iterations: Infinity
+        });
+        
+        this.animations.set(element, animation);
+        return animation;
+    }
+
+    // Остановка анимации
+    stopPulse(element) {
+        const animation = this.animations.get(element);
+        if (animation) {
+            animation.cancel();
+            this.animations.delete(element);
+        }
+    }
+}
+
+const animationManager = new AnimationManager();
+
+    // ==================== СИСТЕМА УВЕДОМЛЕНИЙ ====================
+class NotificationSystem {
+    constructor() {
+        this.container = document.getElementById('messageArea');
+        if (!this.container) {
+            this.createContainer();
+        }
+        this.notifications = new Set();
+    }
+
+    createContainer() {
+        this.container = document.createElement('div');
+        this.container.id = 'messageArea';
+        this.container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            max-width: 400px;
+        `;
+        document.body.appendChild(this.container);
+    }
+
+    show(message, type = 'info', duration = 5000) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.style.cssText = `
+            background: ${this.getBackgroundColor(type)};
+            color: white;
+            padding: 16px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            animation: slideInRight 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        `;
+
+        notification.innerHTML = `
+            <span style="font-size: 20px;">${this.getIcon(type)}</span>
+            <div style="flex: 1;">
+                <div style="font-weight: 600; margin-bottom: 4px;">${this.getTitle(type)}</div>
+                <div style="font-size: 14px; opacity: 0.9;">${message}</div>
+            </div>
+            <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 4px;">✕</button>
+        `;
+
+        this.container.appendChild(notification);
+        this.notifications.add(notification);
+
+        // Автоматическое закрытие
+        if (duration > 0) {
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    this.hide(notification);
+                }
+            }, duration);
+        }
+
+        return notification;
+    }
+
+    hide(notification) {
+        notification.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.parentElement.removeChild(notification);
+            }
+            this.notifications.delete(notification);
+        }, 300);
+    }
+
+    getBackgroundColor(type) {
+        const colors = {
+            success: '#48bb78',
+            error: '#f56565',
+            warning: '#ed8936',
+            info: '#4299e1'
+        };
+        return colors[type] || colors.info;
+    }
+
+    getIcon(type) {
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+        return icons[type] || icons.info;
+    }
+
+    getTitle(type) {
+        const titles = {
+            success: 'Успех',
+            error: 'Ошибка',
+            warning: 'Внимание',
+            info: 'Информация'
+        };
+        return titles[type] || titles.info;
+    }
+
+    clearAll() {
+        this.notifications.forEach(notification => {
+            this.hide(notification);
+        });
+    }
+}
+
+const notificationSystem = new NotificationSystem();
+
+// Переопределяем старую функцию showMessage
+function showMessage(message, type = 'info') {
+    return notificationSystem.show(message, type);
+}
+
+    // ==================== СИСТЕМА РАБОТЫ С ФАЙЛАМИ ====================
+class FileManager {
+    constructor() {
+        this.maxFileSize = 10 * 1024 * 1024; // 10MB
+        this.allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        this.allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+    }
+
+    // Валидация файла
+    validateFile(file, allowedTypes = this.allowedImageTypes) {
+        if (!file) {
+            throw new Error('Файл не выбран');
+        }
+
+        if (file.size > this.maxFileSize) {
+            throw new Error(`Размер файла не должен превышать ${this.formatFileSize(this.maxFileSize)}`);
+        }
+
+        if (!allowedTypes.includes(file.type)) {
+            throw new Error(`Недопустимый формат файла. Разрешены: ${allowedTypes.join(', ')}`);
+        }
+
+        return true;
+    }
+
+    // Конвертация файла в Base64
+    fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Сжатие изображения
+    compressImage(file, maxWidth = 1200, quality = 0.8) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            img.onload = () => {
+                let { width, height } = img;
+
+                // Масштабирование если нужно
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(
+                    blob => resolve(blob),
+                    file.type,
+                    quality
+                );
+            };
+
+            img.onerror = reject;
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
+    // Предпросмотр изображения
+    createImagePreview(file, maxHeight = 300) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    let { width, height } = img;
+
+                    // Масштабирование для предпросмотра
+                    if (height > maxHeight) {
+                        width = (width * maxHeight) / height;
+                        height = maxHeight;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL(file.type));
+                };
+
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Скачивание файла
+    downloadFile(data, filename, type = 'application/octet-stream') {
+        const blob = new Blob([data], { type });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+}
+
+const fileManager = new FileManager();
+
+    // ==================== СИСТЕМА ОФФЛАЙН-РЕЖИМА ====================
+class OfflineManager {
+    constructor() {
+        this.isOnline = navigator.onLine;
+        this.pendingActions = [];
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        window.addEventListener('online', () => {
+            this.isOnline = true;
+            this.handleConnectionRestored();
+        });
+
+        window.addEventListener('offline', () => {
+            this.isOnline = false;
+            this.handleConnectionLost();
+        });
+    }
+
+    handleConnectionLost() {
+        showMessage('Отсутствует подключение к интернету', 'warning');
+        document.body.classList.add('offline');
+    }
+
+    handleConnectionRestored() {
+        showMessage('Подключение восстановлено', 'success');
+        document.body.classList.remove('offline');
+        this.processPendingActions();
+    }
+
+    addPendingAction(action) {
+        this.pendingActions.push(action);
+        this.savePendingActions();
+    }
+
+    async processPendingActions() {
+        while (this.pendingActions.length > 0) {
+            const action = this.pendingActions.shift();
+            try {
+                await action();
+            } catch (error) {
+                console.error('Ошибка выполнения отложенного действия:', error);
+            }
+        }
+        this.savePendingActions();
+    }
+
+    savePendingActions() {
+        localStorage.setItem('pendingActions', JSON.stringify(this.pendingActions));
+    }
+
+    loadPendingActions() {
+        const saved = localStorage.getItem('pendingActions');
+        if (saved) {
+            this.pendingActions = JSON.parse(saved);
+        }
+    }
+
+    canMakeRequest() {
+        return this.isOnline;
+    }
+
+    // Обертка для запросов с поддержкой оффлайн-режима
+    async makeRequest(requestFn, fallbackData = null) {
+        if (this.canMakeRequest()) {
+            try {
+                return await requestFn();
+            } catch (error) {
+                if (fallbackData !== null) {
+                    return fallbackData;
+                }
+                throw error;
+            }
+        } else {
+            this.addPendingAction(requestFn);
+            if (fallbackData !== null) {
+                return fallbackData;
+            }
+            throw new Error('Отсутствует подключение к интернету');
+        }
+    }
+}
+
+const offlineManager = new OfflineManager();
+
+    // ==================== СИСТЕМА АНАЛИТИКИ ====================
+class AnalyticsManager {
+    constructor() {
+        this.sessionId = this.generateSessionId();
+        this.startTime = Date.now();
+        this.events = [];
+        this.trackInitialEvents();
+    }
+
+    generateSessionId() {
+        return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    trackInitialEvents() {
+        this.track('app_loaded', {
+            user_agent: navigator.userAgent,
+            screen_resolution: `${screen.width}x${screen.height}`,
+            language: navigator.language,
+            platform: navigator.platform
+        });
+
+        // Отслеживание изменений видимости страницы
+        document.addEventListener('visibilitychange', () => {
+            this.track('visibility_change', {
+                visible: !document.hidden
+            });
+        });
+    }
+
+    track(eventName, properties = {}) {
+        const event = {
+            event_name: eventName,
+            session_id: this.sessionId,
+            user_id: currentUserId,
+            timestamp: new Date().toISOString(),
+            properties: {
+                ...properties,
+                current_screen: appState.currentScreen,
+                session_duration: Date.now() - this.startTime
+            }
+        };
+
+        this.events.push(event);
+        this.sendEvent(event);
+
+        console.log(`📊 Analytics: ${eventName}`, properties);
+    }
+
+    async sendEvent(event) {
+        try {
+            // Отправка на сервер аналитики
+            await fetch('/api/analytics/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(event)
+            });
+        } catch (error) {
+            console.warn('Не удалось отправить аналитику:', error);
+            // Сохраняем события для последующей отправки
+            this.saveEvents();
+        }
+    }
+
+    saveEvents() {
+        localStorage.setItem('pending_analytics', JSON.stringify(this.events));
+    }
+
+    loadEvents() {
+        const saved = localStorage.getItem('pending_analytics');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+        return [];
+    }
+
+    // Трекинг экранов
+    trackScreenView(screenName) {
+        this.track('screen_view', {
+            screen_name: screenName,
+            previous_screen: appState.previousScreen
+        });
+    }
+
+    // Трекинг действий пользователя
+    trackUserAction(action, target, value = null) {
+        this.track('user_action', {
+            action,
+            target,
+            value,
+            screen: appState.currentScreen
+        });
+    }
+
+    // Трекинг ошибок
+    trackError(error, context = {}) {
+        this.track('error_occurred', {
+            error_message: error.message,
+            error_stack: error.stack,
+            context
+        });
+    }
+
+    // Трекинг покупок
+    trackPurchase(itemId, price, itemType) {
+        this.track('purchase_completed', {
+            item_id: itemId,
+            price,
+            item_type: itemType,
+            user_balance: currentUser?.sparks || 0
+        });
+    }
+}
+
+const analyticsManager = new AnalyticsManager();
+
+    // ==================== СИСТЕМА ТЕМ ====================
+class ThemeManager {
+    constructor() {
+        this.currentTheme = this.getSavedTheme() || 'light';
+        this.applyTheme(this.currentTheme);
+    }
+
+    getSavedTheme() {
+        return localStorage.getItem('app_theme');
+    }
+
+    saveTheme(theme) {
+        localStorage.setItem('app_theme', theme);
+    }
+
+    applyTheme(theme) {
+        this.currentTheme = theme;
+        document.body.setAttribute('data-theme', theme);
+        this.saveTheme(theme);
+
+        // Применяем CSS переменные для темы
+        const root = document.documentElement;
+        if (theme === 'dark') {
+            root.style.setProperty('--bg-primary', '#1a202c');
+            root.style.setProperty('--bg-secondary', '#2d3748');
+            root.style.setProperty('--text-primary', '#f7fafc');
+            root.style.setProperty('--text-secondary', '#e2e8f0');
+        } else {
+            root.style.setProperty('--bg-primary', '#ffffff');
+            root.style.setProperty('--bg-secondary', '#f7fafc');
+            root.style.setProperty('--text-primary', '#2d3748');
+            root.style.setProperty('--text-secondary', '#4a5568');
+        }
+    }
+
+    toggleTheme() {
+        const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+        this.applyTheme(newTheme);
+        return newTheme;
+    }
+
+    // Системные настройки
+    getSettings() {
+        const saved = localStorage.getItem('app_settings');
+        return saved ? JSON.parse(saved) : {
+            notifications: true,
+            sounds: true,
+            autoSave: true,
+            language: 'ru'
+        };
+    }
+
+    saveSettings(settings) {
+        localStorage.setItem('app_settings', JSON.stringify(settings));
+    }
+
+    updateSetting(key, value) {
+        const settings = this.getSettings();
+        settings[key] = value;
+        this.saveSettings(settings);
+        return settings;
+    }
+}
+
+const themeManager = new ThemeManager();
+
+  // ==================== СИСТЕМА ДОСТИЖЕНИЙ ====================
+class AchievementSystem {
+    constructor() {
+        this.achievements = new Map();
+        this.unlockedAchievements = new Set();
+        this.loadAchievements();
+        this.loadUnlocked();
+    }
+
+    loadAchievements() {
+        // Базовые достижения
+        this.achievements.set('first_quiz', {
+            id: 'first_quiz',
+            name: 'Первый квиз',
+            description: 'Пройдите свой первый квиз',
+            icon: '🎯',
+            points: 10,
+            condition: (user) => user.stats?.totalQuizzesCompleted >= 1
+        });
+
+        this.achievements.set('marathon_master', {
+            id: 'marathon_master',
+            name: 'Мастер марафонов',
+            description: 'Завершите 3 марафона',
+            icon: '🏃‍♂️',
+            points: 30,
+            condition: (user) => user.stats?.totalMarathonsCompleted >= 3
+        });
+
+        this.achievements.set('creative_soul', {
+            id: 'creative_soul',
+            name: 'Творческая душа',
+            description: 'Загрузите 5 работ',
+            icon: '🎨',
+            points: 25,
+            condition: (user) => user.stats?.totalWorks >= 5
+        });
+
+        this.achievements.set('spark_collector', {
+            id: 'spark_collector',
+            name: 'Собиратель искр',
+            description: 'Накопите 100 искр',
+            icon: '✨',
+            points: 20,
+            condition: (user) => user.sparks >= 100
+        });
+
+        this.achievements.set('social_butterfly', {
+            id: 'social_butterfly',
+            name: 'Социальная бабочка',
+            description: 'Пригласите 3 друзей',
+            icon: '👥',
+            points: 15,
+            condition: (user) => user.stats?.invitesCount >= 3
+        });
+    }
+
+    loadUnlocked() {
+        const saved = localStorage.getItem('unlocked_achievements');
+        if (saved) {
+            this.unlockedAchievements = new Set(JSON.parse(saved));
+        }
+    }
+
+    saveUnlocked() {
+        localStorage.setItem('unlocked_achievements', JSON.stringify([...this.unlockedAchievements]));
+    }
+
+    checkAchievements(userData) {
+        const newlyUnlocked = [];
+
+        for (const [id, achievement] of this.achievements) {
+            if (!this.unlockedAchievements.has(id) && achievement.condition(userData)) {
+                this.unlockedAchievements.add(id);
+                newlyUnlocked.push(achievement);
+                this.showAchievementNotification(achievement);
+            }
+        }
+
+        if (newlyUnlocked.length > 0) {
+            this.saveUnlocked();
+        }
+
+        return newlyUnlocked;
+    }
+
+    showAchievementNotification(achievement) {
+        const notification = document.createElement('div');
+        notification.className = 'achievement-notification';
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 10001;
+            animation: slideInDown 0.5s ease;
+            text-align: center;
+            max-width: 300px;
+        `;
+
+        notification.innerHTML = `
+            <div style="font-size: 48px; margin-bottom: 12px;">${achievement.icon}</div>
+            <div style="font-weight: 700; font-size: 18px; margin-bottom: 8px;">Достижение разблокировано!</div>
+            <div style="font-weight: 600; margin-bottom: 4px;">${achievement.name}</div>
+            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 12px;">${achievement.description}</div>
+            <div style="font-size: 12px; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; display: inline-block;">
+                +${achievement.points} очков
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Автоматическое скрытие
+        setTimeout(() => {
+            notification.style.animation = 'slideOutUp 0.5s ease';
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.parentElement.removeChild(notification);
+                }
+            }, 500);
+        }, 4000);
+    }
+
+    getUnlockedAchievements() {
+        return [...this.unlockedAchievements].map(id => this.achievements.get(id));
+    }
+
+    getProgress(userData) {
+        const progress = {};
+        
+        for (const [id, achievement] of this.achievements) {
+            progress[id] = {
+                unlocked: this.unlockedAchievements.has(id),
+                progress: this.calculateProgress(achievement, userData)
+            };
+        }
+        
+        return progress;
+    }
+
+    calculateProgress(achievement, userData) {
+        // Здесь можно добавить логику расчета прогресса для каждого достижения
+        return achievement.condition(userData) ? 100 : 0;
+    }
+}
+
+const achievementSystem = new AchievementSystem();
+
+    // ==================== ПОЛИФИЛЛЫ И СОВМЕСТИМОСТЬ ====================
+class CompatibilityLayer {
+    constructor() {
+        this.setupPolyfills();
+        this.checkCompatibility();
+    }
+
+    setupPolyfills() {
+        // Promise.finally полифилл
+        if (!Promise.prototype.finally) {
+            Promise.prototype.finally = function(callback) {
+                const promise = this.constructor;
+                return this.then(
+                    value => promise.resolve(callback()).then(() => value),
+                    reason => promise.resolve(callback()).then(() => { throw reason; })
+                );
+            };
+        }
+
+        // Object.entries полифилл
+        if (!Object.entries) {
+            Object.entries = function(obj) {
+                const ownProps = Object.keys(obj);
+                let i = ownProps.length;
+                const resArray = new Array(i);
+                
+                while (i--) {
+                    resArray[i] = [ownProps[i], obj[ownProps[i]]];
+                }
+                
+                return resArray;
+            };
+        }
+
+        // Array.includes полифилл
+        if (!Array.prototype.includes) {
+            Array.prototype.includes = function(searchElement, fromIndex) {
+                if (this == null) {
+                    throw new TypeError('"this" is null or not defined');
+                }
+
+                const o = Object(this);
+                const len = o.length >>> 0;
+
+                if (len === 0) {
+                    return false;
+                }
+
+                const n = fromIndex | 0;
+                let k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
+
+                while (k < len) {
+                    if (o[k] === searchElement) {
+                        return true;
+                    }
+                    k++;
+                }
+
+                return false;
+            };
+        }
+    }
+
+    checkCompatibility() {
+        const issues = [];
+
+        // Проверка современных API
+        if (!window.fetch) {
+            issues.push('Ваш браузер не поддерживает Fetch API');
+        }
+
+        if (!window.Promise) {
+            issues.push('Ваш браузер не поддерживает Promises');
+        }
+
+        if (!localStorage) {
+            issues.push('Ваш браузер не поддерживает Local Storage');
+        }
+
+        if (issues.length > 0) {
+            this.showCompatibilityWarning(issues);
+        }
+
+        return issues.length === 0;
+    }
+
+    showCompatibilityWarning(issues) {
+        const warning = document.createElement('div');
+        warning.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #f56565;
+            color: white;
+            padding: 16px;
+            text-align: center;
+            z-index: 10002;
+            font-size: 14px;
+        `;
+
+        warning.innerHTML = `
+            <strong>Внимание:</strong> Ваш браузер может не поддерживать все функции приложения.
+            <br>Рекомендуем обновить браузер до последней версии.
+            <button onclick="this.parentElement.remove()" style="margin-left: 12px; background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer;">
+                Понятно
+            </button>
+        `;
+
+        document.body.appendChild(warning);
+    }
+
+    // Fallback для Clipboard API
+    async copyToClipboard(text) {
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } else {
+                // Fallback для старых браузеров
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                return successful;
+            }
+        } catch (error) {
+            console.error('Ошибка копирования:', error);
+            return false;
+        }
+    }
+}
+
+const compatibilityLayer = new CompatibilityLayer();
+
+    // ==================== СИСТЕМА ОБНОВЛЕНИЙ ====================
+class UpdateManager {
+    constructor() {
+        this.currentVersion = '1.0.0';
+        this.lastUpdateCheck = localStorage.getItem('last_update_check');
+        this.setupUpdateChecks();
+    }
+
+    setupUpdateChecks() {
+        // Проверка обновлений при загрузке
+        this.checkForUpdates();
+
+        // Периодическая проверка каждые 30 минут
+        setInterval(() => {
+            this.checkForUpdates();
+        }, 30 * 60 * 1000);
+
+        // Проверка при возвращении на вкладку
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                this.checkForUpdates();
+            }
+        });
+    }
+
+    async checkForUpdates() {
+        try {
+            const response = await fetch('/api/app/version');
+            const data = await response.json();
+            
+            if (data.version && data.version !== this.currentVersion) {
+                this.showUpdateNotification(data.version, data.changelog);
+            }
+            
+            this.lastUpdateCheck = Date.now();
+            localStorage.setItem('last_update_check', this.lastUpdateCheck);
+        } catch (error) {
+            console.warn('Не удалось проверить обновления:', error);
+        }
+    }
+
+    showUpdateNotification(newVersion, changelog) {
+        const notification = document.createElement('div');
+        notification.className = 'update-notification';
+        notification.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #4299e1;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 10001;
+            max-width: 400px;
+            animation: slideInUp 0.5s ease;
+        `;
+
+        notification.innerHTML = `
+            <div style="font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <span>🔄</span>
+                <span>Доступно обновление!</span>
+            </div>
+            <div style="font-size: 14px; margin-bottom: 12px; opacity: 0.9;">
+                Версия ${newVersion} готова к установке.
+            </div>
+            ${changelog ? `
+                <div style="font-size: 12px; margin-bottom: 12px; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px;">
+                    ${changelog}
+                </div>
+            ` : ''}
+            <div style="display: flex; gap: 8px;">
+                <button onclick="this.closest('.update-notification').remove()" style="flex: 1; background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px; border-radius: 6px; cursor: pointer;">
+                    Позже
+                </button>
+                <button onclick="location.reload()" style="flex: 1; background: white; border: none; color: #4299e1; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    Обновить
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+    }
+
+    // Принудительная синхронизация данных
+    async syncAllData() {
+        setLoading(true);
+        
+        try {
+            await Promise.all([
+                this.syncUserData(),
+                this.syncQuizzes(),
+                this.syncMarathons(),
+                this.syncPurchases()
+            ]);
+            
+            showMessage('Данные синхронизированы', 'success');
+        } catch (error) {
+            showMessage('Ошибка синхронизации', 'error');
+            console.error('Sync error:', error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async syncUserData() {
+        const response = await fetch(`/api/users/${currentUserId}`);
+        const data = await response.json();
+        
+        if (data.user) {
+            userManager.setUser(data.user);
+            setCachedData('userData', data.user);
+        }
+    }
+
+    async syncQuizzes() {
+        const response = await fetch(`/api/webapp/quizzes?userId=${currentUserId}`);
+        const quizzes = await response.json();
+        setCachedData('quizzes', quizzes);
+    }
+
+    async syncMarathons() {
+        const response = await fetch(`/api/webapp/marathons?userId=${currentUserId}`);
+        const marathons = await response.json();
+        setCachedData('marathons', marathons);
+    }
+
+    async syncPurchases() {
+        const response = await fetch(`/api/webapp/users/${currentUserId}/purchases`);
+        const data = await response.json();
+        setCachedData('purchases', data.purchases);
+    }
+}
+
+const updateManager = new UpdateManager();
+
+   // ==================== СИСТЕМА ГОРЯЧИХ КЛАВИШ ====================
+class KeyboardManager {
+    constructor() {
+        this.shortcuts = new Map();
+        this.setupGlobalShortcuts();
+        this.setupScreenSpecificShortcuts();
+    }
+
+    setupGlobalShortcuts() {
+        // Глобальные сочетания клавиш
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+/ или Cmd+/ - помощь
+            if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+                e.preventDefault();
+                this.showHelpModal();
+            }
+
+            // Escape - назад или закрытие модальных окон
+            if (e.key === 'Escape') {
+                this.handleEscape();
+            }
+
+            // Цифры для быстрой навигации
+            if (e.altKey && e.key >= '1' && e.key <= '9') {
+                e.preventDefault();
+                this.handleNumberShortcut(parseInt(e.key));
+            }
+        });
+
+        // Предотвращение стандартного поведения браузера
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'r': case 'R': // Предотвращение перезагрузки
+                    case 'n': case 'N': // Предотвращение нового окна
+                        e.preventDefault();
+                        break;
+                }
+            }
+        });
+    }
+
+    setupScreenSpecificShortcuts() {
+        // Сочетания для конкретных экранов
+        this.shortcuts.set('quizScreen', [
+            { key: '1', action: () => this.selectQuizAnswer(0), description: 'Выбрать вариант 1' },
+            { key: '2', action: () => this.selectQuizAnswer(1), description: 'Выбрать вариант 2' },
+            { key: '3', action: () => this.selectQuizAnswer(2), description: 'Выбрать вариант 3' },
+            { key: '4', action: () => this.selectQuizAnswer(3), description: 'Выбрать вариант 4' },
+            { key: 'Enter', action: () => this.submitQuizOrNext(), description: 'Следующий вопрос' }
+        ]);
+
+        this.shortcuts.set('drawingChallengeScreen', [
+            { key: 'b', action: () => this.setDrawingTool('brush'), description: 'Кисть' },
+            { key: 'e', action: () => this.setDrawingTool('eraser'), description: 'Ластик' },
+            { key: 'c', action: () => this.clearCanvas(), description: 'Очистить холст' },
+            { key: 'z', action: () => this.undoDrawing(), description: 'Отменить' }
+        ]);
+    }
+
+    handleEscape() {
+        const modal = document.getElementById('mediaModal');
+        if (modal && modal.style.display !== 'none') {
+            closeMediaModal();
+            return;
+        }
+
+        const helpModal = document.querySelector('.help-modal');
+        if (helpModal) {
+            helpModal.remove();
+            return;
+        }
+
+        // Навигация назад
+        navigateBack();
+    }
+
+    handleNumberShortcut(number) {
+        const screens = [
+            'mainScreen', 'quizzesScreen', 'marathonsScreen', 'worksScreen', 
+            'interactivesScreen', 'shopScreen', 'postsScreen', 'activitiesScreen'
+        ];
+        
+        if (screens[number - 1]) {
+            showScreen(screens[number - 1]);
+        }
+    }
+
+    selectQuizAnswer(index) {
+        if (appState.currentScreen === 'quizScreen' && currentQuiz) {
+            const options = document.querySelectorAll('.option');
+            if (options[index]) {
+                options[index].click();
+            }
+        }
+    }
+
+    submitQuizOrNext() {
+        if (appState.currentScreen === 'quizScreen') {
+            const submitBtn = document.getElementById('submitQuizBtn');
+            const nextQuestion = currentQuestionIndex < currentQuiz.questions.length - 1;
+            
+            if (submitBtn && submitBtn.style.display !== 'none') {
+                submitQuiz();
+            } else if (nextQuestion) {
+                currentQuestionIndex++;
+                showQuestion();
+            }
+        }
+    }
+
+    setDrawingTool(tool) {
+        if (appState.currentScreen === 'drawingChallengeScreen') {
+            const toolElement = document.querySelector(`[data-tool="${tool}"]`);
+            if (toolElement) {
+                toolElement.click();
+            }
+        }
+    }
+
+    clearCanvas() {
+        if (appState.currentScreen === 'drawingChallengeScreen') {
+            clearCanvas();
+        }
+    }
+
+    undoDrawing() {
+        // Реализация отмены последнего действия в рисовании
+        console.log('Undo drawing action');
+    }
+
+    showHelpModal() {
+        const modal = document.createElement('div');
+        modal.className = 'help-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10002;
+            padding: 20px;
+        `;
+
+        const currentShortcuts = this.shortcuts.get(appState.currentScreen) || [];
+        
+        modal.innerHTML = `
+            <div style="background: white; padding: 30px; border-radius: 16px; max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">⌨️ Горячие клавиши</h2>
+                    <button onclick="this.closest('.help-modal').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">✕</button>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <h3 style="margin-bottom: 12px; color: #4a5568;">Глобальные сочетания</h3>
+                    <div style="display: grid; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                            <span><kbd style="background: #f7fafc; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">Esc</kbd></span>
+                            <span>Назад / Закрыть</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                            <span><kbd style="background: #f7fafc; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">Ctrl</kbd> + <kbd style="background: #f7fafc; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">/</kbd></span>
+                            <span>Помощь</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                            <span><kbd style="background: #f7fafc; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">Alt</kbd> + <kbd style="background: #f7fafc; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">1-9</kbd></span>
+                            <span>Быстрая навигация</span>
+                        </div>
+                    </div>
+                </div>
+                
+                ${currentShortcuts.length > 0 ? `
+                    <div>
+                        <h3 style="margin-bottom: 12px; color: #4a5568;">Сочетания для текущего экрана</h3>
+                        <div style="display: grid; gap: 8px;">
+                            ${currentShortcuts.map(shortcut => `
+                                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                                    <span><kbd style="background: #f7fafc; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">${shortcut.key}</kbd></span>
+                                    <span>${shortcut.description}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Закрытие по клику вне модального окна
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+}
+
+const keyboardManager = new KeyboardManager(); 
+
+    // ==================== СИСТЕМА ЛОГГИНГА ====================
+class Logger {
+    constructor() {
+        this.levels = {
+            ERROR: 0,
+            WARN: 1,
+            INFO: 2,
+            DEBUG: 3
+        };
+        this.currentLevel = this.levels.DEBUG;
+        this.logs = [];
+        this.setupConsoleOverrides();
+    }
+
+    setupConsoleOverrides() {
+        if (console.originalLog) return; // Уже переопределен
+
+        // Сохраняем оригинальные методы
+        console.originalLog = console.log;
+        console.originalError = console.error;
+        console.originalWarn = console.warn;
+        console.originalInfo = console.info;
+
+        // Переопределяем console.log
+        console.log = (...args) => {
+            this.log('DEBUG', ...args);
+            console.originalLog(...args);
+        };
+
+        console.error = (...args) => {
+            this.log('ERROR', ...args);
+            console.originalError(...args);
+        };
+
+        console.warn = (...args) => {
+            this.log('WARN', ...args);
+            console.originalWarn(...args);
+        };
+
+        console.info = (...args) => {
+            this.log('INFO', ...args);
+            console.originalInfo(...args);
+        };
+    }
+
+    log(level, ...args) {
+        if (this.levels[level] <= this.currentLevel) {
+            const timestamp = new Date().toISOString();
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+            ).join(' ');
+
+            const logEntry = {
+                level,
+                timestamp,
+                message,
+                screen: appState.currentScreen,
+                user: currentUserId
+            };
+
+            this.logs.push(logEntry);
+
+            // Ограничиваем размер логов
+            if (this.logs.length > 1000) {
+                this.logs = this.logs.slice(-500);
+            }
+
+            // Сохраняем ошибки в localStorage
+            if (level === 'ERROR') {
+                this.saveError(logEntry);
+            }
+        }
+    }
+
+    saveError(logEntry) {
+        const errors = JSON.parse(localStorage.getItem('app_errors') || '[]');
+        errors.push(logEntry);
+        
+        // Ограничиваем количество сохраняемых ошибок
+        if (errors.length > 50) {
+            errors = errors.slice(-25);
+        }
+        
+        localStorage.setItem('app_errors', JSON.stringify(errors));
+    }
+
+    getLogs(level = null) {
+        if (level) {
+            return this.logs.filter(log => log.level === level);
+        }
+        return this.logs;
+    }
+
+    clearLogs() {
+        this.logs = [];
+    }
+
+    downloadLogs() {
+        const logText = this.logs.map(log => 
+            `[${log.timestamp}] ${log.level}: ${log.message} (Screen: ${log.screen})`
+        ).join('\n');
+
+        fileManager.downloadFile(logText, `app-logs-${new Date().toISOString()}.txt`, 'text/plain');
+    }
+
+    // Методы для удобства
+    error(...args) { this.log('ERROR', ...args); }
+    warn(...args) { this.log('WARN', ...args); }
+    info(...args) { this.log('INFO', ...args); }
+    debug(...args) { this.log('DEBUG', ...args); }
+}
+
+const logger = new Logger();
+
+    // ==================== СИСТЕМА ВАЛИДАЦИИ ====================
+class Validator {
+    constructor() {
+        this.rules = {
+            email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+            phone: /^\+?[\d\s\-\(\)]{10,}$/,
+            username: /^[a-zA-Z0-9_]{3,20}$/,
+            password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+        };
+    }
+
+    // Валидация текстовых полей
+    validateText(value, options = {}) {
+        const {
+            minLength = 1,
+            maxLength = 1000,
+            required = true,
+            allowEmpty = false,
+            trim = true
+        } = options;
+
+        let processedValue = value;
+
+        if (trim && typeof processedValue === 'string') {
+            processedValue = processedValue.trim();
+        }
+
+        if (required && (!processedValue || processedValue.length === 0)) {
+            return { isValid: false, error: 'Это поле обязательно для заполнения' };
+        }
+
+        if (!allowEmpty && processedValue.length === 0) {
+            return { isValid: false, error: 'Поле не может быть пустым' };
+        }
+
+        if (processedValue.length < minLength) {
+            return { isValid: false, error: `Минимальная длина: ${minLength} символов` };
+        }
+
+        if (processedValue.length > maxLength) {
+            return { isValid: false, error: `Максимальная длина: ${maxLength} символов` };
+        }
+
+        return { isValid: true, value: processedValue };
+    }
+
+    // Валидация чисел
+    validateNumber(value, options = {}) {
+        const {
+            min = -Infinity,
+            max = Infinity,
+            integer = false,
+            required = true
+        } = options;
+
+        if (required && (value === null || value === undefined || value === '')) {
+            return { isValid: false, error: 'Это поле обязательно для заполнения' };
+        }
+
+        const numValue = parseFloat(value);
+        
+        if (isNaN(numValue)) {
+            return { isValid: false, error: 'Введите корректное число' };
+        }
+
+        if (integer && !Number.isInteger(numValue)) {
+            return { isValid: false, error: 'Число должно быть целым' };
+        }
+
+        if (numValue < min) {
+            return { isValid: false, error: `Значение не может быть меньше ${min}` };
+        }
+
+        if (numValue > max) {
+            return { isValid: false, error: `Значение не может быть больше ${max}` };
+        }
+
+        return { isValid: true, value: numValue };
+    }
+
+    // Валидация email
+    validateEmail(email) {
+        const textValidation = this.validateText(email, { minLength: 3, maxLength: 255 });
+        if (!textValidation.isValid) {
+            return textValidation;
+        }
+
+        if (!this.rules.email.test(email)) {
+            return { isValid: false, error: 'Введите корректный email адрес' };
+        }
+
+        return { isValid: true, value: email.trim().toLowerCase() };
+    }
+
+    // Валидация файлов
+    validateFile(file, options = {}) {
+        const {
+            maxSize = 10 * 1024 * 1024, // 10MB
+            allowedTypes = ['image/jpeg', 'image/png', 'image/gif'],
+            allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif']
+        } = options;
+
+        if (!file) {
+            return { isValid: false, error: 'Файл не выбран' };
+        }
+
+        if (file.size > maxSize) {
+            return { isValid: false, error: `Размер файла не должен превышать ${fileManager.formatFileSize(maxSize)}` };
+        }
+
+        if (!allowedTypes.includes(file.type)) {
+            return { isValid: false, error: `Недопустимый тип файла. Разрешены: ${allowedTypes.join(', ')}` };
+        }
+
+        const extension = '.' + file.name.split('.').pop().toLowerCase();
+        if (!allowedExtensions.includes(extension)) {
+            return { isValid: false, error: `Недопустимое расширение файла. Разрешены: ${allowedExtensions.join(', ')}` };
+        }
+
+        return { isValid: true, value: file };
+    }
+
+    // Санитизация HTML (предотвращение XSS)
+    sanitizeHTML(html) {
+        const temp = document.createElement('div');
+        temp.textContent = html;
+        return temp.innerHTML;
+    }
+
+    // Санитизация текста (удаление опасных символов)
+    sanitizeText(text) {
+        return text
+            .replace(/[<>]/g, '') // Удаляем угловые скобки
+            .replace(/javascript:/gi, '') // Удаляем javascript:
+            .replace(/on\w+=/gi, ''); // Удаляем обработчики событий
+    }
+
+    // Валидация формы
+    validateForm(formData, rules) {
+        const errors = {};
+        const validatedData = {};
+
+        for (const [field, rule] of Object.entries(rules)) {
+            const value = formData[field];
+            let validationResult;
+
+            switch (rule.type) {
+                case 'text':
+                    validationResult = this.validateText(value, rule.options);
+                    break;
+                case 'number':
+                    validationResult = this.validateNumber(value, rule.options);
+                    break;
+                case 'email':
+                    validationResult = this.validateEmail(value);
+                    break;
+                case 'file':
+                    validationResult = this.validateFile(value, rule.options);
+                    break;
+                default:
+                    validationResult = this.validateText(value);
+            }
+
+            if (!validationResult.isValid) {
+                errors[field] = validationResult.error;
+            } else {
+                validatedData[field] = validationResult.value;
+            }
+        }
+
+        return {
+            isValid: Object.keys(errors).length === 0,
+            errors,
+            data: validatedData
+        };
+    }
+}
+
+const validator = new Validator();
+
+  // ==================== СИСТЕМА ШАБЛОНИЗАЦИИ ====================
+class TemplateEngine {
+    constructor() {
+        this.templates = new Map();
+        this.partials = new Map();
+        this.loadTemplates();
+    }
+
+    loadTemplates() {
+        // Базовые шаблоны для переиспользования
+        this.templates.set('loadingState', `
+            <div class="loading">
+                <div style="font-size: 48px; margin-bottom: 16px;">{{icon}}</div>
+                <div>{{message}}</div>
+            </div>
+        `);
+
+        this.templates.set('errorState', `
+            <div class="error">
+                <div style="font-size: 48px; margin-bottom: 16px;">{{icon}}</div>
+                <h3 style="margin-bottom: 12px;">{{title}}</h3>
+                <p style="margin-bottom: 20px; color: #718096;">{{message}}</p>
+                {{#if button}}
+                    <button class="btn" onclick="{{action}}">{{button}}</button>
+                {{/if}}
+            </div>
+        `);
+
+        this.templates.set('emptyState', `
+            <div class="info">
+                <div style="text-align: center; padding: 40px;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">{{icon}}</div>
+                    <h3 style="margin-bottom: 12px;">{{title}}</h3>
+                    <p style="color: #718096; margin-bottom: 20px;">{{message}}</p>
+                    {{#if button}}
+                        <button class="btn" onclick="{{action}}">{{button}}</button>
+                    {{/if}}
+                </div>
+            </div>
+        `);
+    }
+
+    // Простой шаблонизатор с поддержкой условий и циклов
+    render(templateName, data = {}) {
+        let template = this.templates.get(templateName);
+        
+        if (!template) {
+            console.error(`Шаблон '${templateName}' не найден`);
+            return '';
+        }
+
+        // Замена переменных {{variable}}
+        template = template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+            return data[key] !== undefined ? data[key] : match;
+        });
+
+        // Условия {{#if condition}}...{{/if}}
+        template = template.replace(/\{\{#if (\w+)\}\}(.*?)\{\{\/if\}\}/gs, (match, condition, content) => {
+            return data[condition] ? content : '';
+        });
+
+        // Циклы {{#each array}}...{{/each}}
+        template = template.replace(/\{\{#each (\w+)\}\}(.*?)\{\{\/each\}\}/gs, (match, arrayName, content) => {
+            const array = data[arrayName];
+            if (!Array.isArray(array)) return '';
+            
+            return array.map(item => {
+                let itemContent = content;
+                itemContent = itemContent.replace(/\{\{\.\}\}/g, item);
+                itemContent = itemContent.replace(/\{\{@index\}\}/g, array.indexOf(item));
+                return itemContent;
+            }).join('');
+        });
+
+        return template;
+    }
+
+    // Создание элемента из шаблона
+    createElement(templateName, data = {}) {
+        const html = this.render(templateName, data);
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        return container.firstElementChild;
+    }
+
+    // Рендеринг списка элементов
+    renderList(container, items, templateName, dataKey = 'items') {
+        if (!container) return;
+
+        const templateData = { [dataKey]: items };
+        const html = this.render(templateName, templateData);
+        
+        container.innerHTML = html;
+        
+        // Добавляем анимации появления
+        Array.from(container.children).forEach((child, index) => {
+            child.style.animationDelay = `${index * 50}ms`;
+            child.classList.add('slide-in');
+        });
+    }
+
+    // Динамическая загрузка шаблонов
+    async loadTemplate(url, name) {
+        try {
+            const response = await fetch(url);
+            const template = await response.text();
+            this.templates.set(name, template);
+            return true;
+        } catch (error) {
+            console.error(`Не удалось загрузить шаблон '${name}':`, error);
+            return false;
+        }
+    }
+
+    // Утилиты для создания стандартных элементов UI
+    createButton(text, onClick, options = {}) {
+        const {
+            type = 'primary',
+            size = 'medium',
+            disabled = false,
+            loading = false,
+            icon = null
+        } = options;
+
+        const button = document.createElement('button');
+        button.className = `btn btn-${type} ${size === 'large' ? 'btn-large' : ''}`;
+        button.textContent = text;
+        button.onclick = onClick;
+        button.disabled = disabled || loading;
+
+        if (icon) {
+            button.innerHTML = `${icon} ${text}`;
+        }
+
+        if (loading) {
+            button.innerHTML = `⏳ ${text}`;
+            button.disabled = true;
+        }
+
+        return button;
+    }
+
+    createCard(content, options = {}) {
+        const {
+            title = null,
+            subtitle = null,
+            image = null,
+            actions = [],
+            variant = 'default'
+        } = options;
+
+        const card = document.createElement('div');
+        card.className = `card card-${variant}`;
+
+        let html = '';
+
+        if (image) {
+            html += `<img src="${image}" class="card-image">`;
+        }
+
+        if (title) {
+            html += `<h3 class="card-title">${title}</h3>`;
+        }
+
+        if (subtitle) {
+            html += `<p class="card-subtitle">${subtitle}</p>`;
+        }
+
+        html += `<div class="card-content">${content}</div>`;
+
+        if (actions.length > 0) {
+            html += `<div class="card-actions">${actions.join('')}</div>`;
+        }
+
+        card.innerHTML = html;
+        return card;
+    }
+}
+
+const templateEngine = new TemplateEngine();  
+    
 // ==================== МОБИЛЬНАЯ ОПТИМИЗАЦИЯ ====================
 const isMobileDevice = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
