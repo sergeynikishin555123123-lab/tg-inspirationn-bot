@@ -1614,14 +1614,14 @@ app.get('/api/webapp/debug/video-access', (req, res) => {
 });
 
 
-// ПРОСТОЙ ENDPOINT ДЛЯ ПОЛУЧЕНИЯ ИНВАЙТ-ССЫЛКИ
+// ✅ ENDPOINT ДЛЯ ПОЛУЧЕНИЯ ИНВАЙТ-ССЫЛКИ
 app.get('/api/webapp/private-videos/:videoId/invite', async (req, res) => {
     try {
         const videoId = parseInt(req.params.videoId);
         const userId = parseInt(req.query.userId);
         
         console.log('🔗 Запрос инвайт-ссылки:', { videoId, userId });
-        
+
         // Простая проверка покупки
         const hasPurchase = db.purchases.some(purchase => 
             purchase.user_id == userId && 
