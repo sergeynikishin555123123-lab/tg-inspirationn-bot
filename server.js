@@ -74,12 +74,12 @@ function cleanupCompletedTransactions() {
         }
     }
 }
-// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ addSparks
+// ✅ УЛУЧШЕННАЯ ФУНКЦИЯ НАЧИСЛЕНИЯ/СПИСАНИЯ ИСКР
 function addSparks(userId, sparks, activityType, description, operationId = null) {
     const user = db.users.find(u => u.user_id == userId);
     if (!user) {
         console.error('❌ Пользователь не найден для начисления искр:', userId);
-        return null;
+        throw new Error('Пользователь не найден');
     }
     
     // Генерируем ID операции если не передан
@@ -100,12 +100,18 @@ function addSparks(userId, sparks, activityType, description, operationId = null
         // Сохраняем старое значение для лога
         const oldSparks = user.sparks;
         
-        // Вычисляем новое значение
-        user.sparks = Number((user.sparks + sparks).toFixed(1));
+        // ПРОВЕРКА БАЛАНСА ПРИ СПИСАНИИ
+        if (sparks < 0 && user.sparks < Math.abs(sparks)) {
+            throw new Error(`Недостаточно искр. Нужно: ${Math.abs(sparks)}✨, у вас: ${user.sparks}✨`);
+        }
+        
+        // ВЫЧИСЛЯЕМ НОВОЕ ЗНАЧЕНИЕ
+        const newSparks = Number((user.sparks + sparks).toFixed(1));
+        user.sparks = newSparks;
         user.level = calculateLevel(user.sparks);
         user.last_active = new Date().toISOString();
         
-        // Создаем запись активности
+        // СОЗДАЕМ ЗАПИСЬ АКТИВНОСТИ
         const activity = {
             id: Date.now(),
             user_id: userId,
@@ -120,15 +126,16 @@ function addSparks(userId, sparks, activityType, description, operationId = null
         
         db.activities.push(activity);
         
-        console.log(`💰 Операция с искрами: ${description}`);
-        console.log(`   Пользователь: ${userId}, Изменение: ${sparks > 0 ? '+' : ''}${sparks}✨`);
+        console.log(`💰 ОПЕРАЦИЯ С ИСКРАМИ: ${description}`);
+        console.log(`   Пользователь: ${userId} (${user.tg_first_name})`);
+        console.log(`   Изменение: ${sparks > 0 ? '+' : ''}${sparks}✨`);
         console.log(`   Баланс: ${oldSparks} → ${user.sparks}✨`);
+        console.log(`   Уровень: ${user.level}`);
         console.log(`   ID операции: ${opId}`);
         
         return activity;
     });
 }
-
 // ✅ ТЕПЕРЬ ИНИЦИАЛИЗИРУЕМ EXPRESS APP
 const app = express();
 
@@ -251,40 +258,9 @@ const APP_ROOT = process.cwd();
 console.log('🎨 Мастерская Вдохновения - Запуск системы...');
 console.log('📁 Текущая рабочая директория:', APP_ROOT);
 
-// In-memory база данных с улучшенной структурой
+// ==================== ПРОДАКШЕН БАЗА ДАННЫХ ====================
 let db = {
-    users: [
-        {
-            id: 1,
-            user_id: 12345,
-            tg_first_name: 'Тестовый Пользователь',
-            tg_username: 'test_user',
-            sparks: 45.5,
-            level: 'Искатель',
-            is_registered: true,
-            class: 'Художники',
-            character_id: 1,
-            character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
-        },
-        {
-            id: 2,
-            user_id: 898508164,
-            tg_first_name: 'Администратор',
-            tg_username: 'admin',
-            sparks: 250.0,
-            level: 'Мастер',
-            is_registered: true,
-            class: 'Художники',
-            character_id: 1,
-            character_name: 'Лука Цветной',
-            available_buttons: ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
-        }
-    ],
+    users: [], // Начинаем с пустого массива - реальные пользователи
     roles: [
         {
             id: 1,
@@ -375,6 +351,7 @@ let db = {
             created_at: new Date().toISOString()
         }
     ],
+    
     quizzes: [
         {
             id: 1,
@@ -1415,7 +1392,7 @@ app.post('/api/webapp/private-videos/:videoId/request-invite', async (req, res) 
     }
 });
 
-// ✅ ДОБАВЛЯЕМ ЭНДПОИНТ ДЛЯ ПОКУПКИ ТОВАРА (если его нет)
+// ✅ РАБОЧИЙ ЭНДПОИНТ ПОКУПКИ ТОВАРА
 app.post('/api/webapp/shop/purchase', (req, res) => {
     try {
         const { userId, itemId } = req.body;
@@ -1449,7 +1426,8 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
         // Генерируем уникальный ID операции
         const operationId = `shop_purchase_${userId}_${itemId}_${Date.now()}`;
 
-        return safeSparksOperation(userId, 'shop_purchase', operationId, () => {
+        // Используем безопасную операцию
+        safeSparksOperation(userId, 'shop_purchase', operationId, () => {
             // Проверяем, не куплен ли уже товар
             const existingPurchase = db.purchases.find(
                 p => p.user_id === userId && 
@@ -1468,9 +1446,11 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
 
             // ВСЕ ОПЕРАЦИИ В ОДНОЙ БЕЗОПАСНОЙ ТРАНЗАКЦИИ
             const oldSparks = user.sparks;
+            
+            // СПИСЫВАЕМ ИСКРЫ
             user.sparks = Number((user.sparks - item.price).toFixed(1));
             
-            // Создаем запись о покупке
+            // СОЗДАЕМ ЗАПИСЬ О ПОКУПКЕ
             const purchase = {
                 id: Date.now(),
                 user_id: parseInt(userId),
@@ -1483,7 +1463,7 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
             };
             db.purchases.push(purchase);
 
-            // Запись активности списания
+            // ЗАПИСЫВАЕМ АКТИВНОСТЬ СПИСАНИЯ
             const activity = {
                 id: Date.now(),
                 user_id: userId,
@@ -1498,7 +1478,7 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
             db.activities.push(activity);
 
             console.log(`✅ ПОКУПКА ТОВАРА УСПЕШНА: ${item.title}`);
-            console.log(`   Пользователь: ${userId}`);
+            console.log(`   Пользователь: ${userId} (${user.tg_first_name})`);
             console.log(`   Списано: ${item.price}✨`);
             console.log(`   Баланс: ${oldSparks} → ${user.sparks}✨`);
             console.log(`   ID операции: ${operationId}`);
@@ -1521,9 +1501,7 @@ app.post('/api/webapp/shop/purchase', (req, res) => {
             console.error('❌ Ошибка покупки товара:', error);
             res.status(400).json({ 
                 success: false,
-                error: error.message === 'Операция уже выполняется' 
-                    ? 'Покупка уже обрабатывается' 
-                    : error.message 
+                error: error.message
             });
         });
 
@@ -2606,93 +2584,138 @@ app.post('/api/users/change-role', (req, res) => {
     });
 });
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ РЕГИСТРАЦИИ
+// ✅ ПРАВИЛЬНАЯ РЕГИСТРАЦИЯ ПОЛЬЗОВАТЕЛЯ
 app.post('/api/users/register', (req, res) => {
-    const { userId, firstName, roleId, characterId } = req.body;
-    
-    console.log('📝 Регистрация пользователя:', { userId, firstName, roleId, characterId });
-    
-    if (!userId || !firstName || !roleId) {
-        return res.status(400).json({ error: 'User ID, first name and role are required' });
-    }
-    
-    let user = db.users.find(u => u.user_id == userId);
-    const role = db.roles.find(r => r.id == roleId);
-    const character = db.characters.find(c => c.id == characterId);
-    
-    if (!role) {
-        return res.status(404).json({ error: 'Role not found' });
-    }
-    
-    const isNewUser = !user;
-    
-    if (!user) {
-        // СОЗДАЕМ НОВОГО ПОЛЬЗОВАТЕЛЯ С ПРАВИЛЬНЫМИ ДАННЫМИ
-        user = {
-            id: Date.now(),
-            user_id: parseInt(userId),
-            tg_first_name: firstName,
-            tg_username: 'user_' + userId,
-            sparks: 10, // Стартовый бонус
-            level: 'Ученик',
-            is_registered: false,
-            class: null,
-            character_id: null,
-            character_name: null,
-            available_buttons: [],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
-        };
-        db.users.push(user);
-        console.log(`✅ Новый пользователь создан: ${firstName} (ID: ${userId})`);
-    }
-    
-    // ОБНОВЛЯЕМ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
-    user.tg_first_name = firstName;
-    user.class = role.name;
-    user.character_id = characterId;
-    user.character_name = character ? character.name : null;
-    user.is_registered = true;
-    user.available_buttons = role.available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'];
-    user.last_active = new Date().toISOString();
-    
-    let message = 'Регистрация успешна!';
-    let sparksAdded = 0;
-    
-    if (isNewUser) {
-        sparksAdded = 10; // Стартовый бонус
-        addSparks(userId, sparksAdded, 'registration', 'Регистрация и стартовый бонус');
-        message = `Регистрация успешна! +${sparksAdded}✨ стартового бонуса`;
+    try {
+        const { userId, firstName, username, roleId, characterId } = req.body;
+        
+        console.log('📝 Регистрация пользователя:', { userId, firstName, username, roleId, characterId });
+        
+        if (!userId || !firstName || !roleId) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'User ID, first name and role are required' 
+            });
+        }
+        
+        // Проверяем существующего пользователя
+        let user = db.users.find(u => u.user_id == userId);
+        const role = db.roles.find(r => r.id == roleId);
+        const character = db.characters.find(c => c.id == characterId);
+        
+        if (!role) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Role not found' 
+            });
+        }
+        
+        const isNewUser = !user;
+        
+        if (!user) {
+            // СОЗДАЕМ НОВОГО РЕАЛЬНОГО ПОЛЬЗОВАТЕЛЯ
+            user = {
+                id: Date.now(),
+                user_id: parseInt(userId),
+                tg_first_name: firstName,
+                tg_username: username || `user_${userId}`,
+                sparks: 10, // Стартовый бонус
+                level: 'Ученик',
+                is_registered: true,
+                class: role.name,
+                character_id: characterId || 1,
+                character_name: character ? character.name : 'Лука Цветной',
+                available_buttons: role.available_buttons || ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'],
+                registration_date: new Date().toISOString(),
+                last_active: new Date().toISOString()
+            };
+            db.users.push(user);
+            
+            // НАЧИСЛЯЕМ СТАРТОВЫЕ ИСКРЫ
+            addSparks(userId, 10, 'registration_bonus', 'Стартовый бонус за регистрацию');
+            
+            console.log(`✅ Новый реальный пользователь создан: ${firstName} (ID: ${userId})`);
+        } else {
+            // ОБНОВЛЯЕМ СУЩЕСТВУЮЩЕГО ПОЛЬЗОВАТЕЛЯ
+            user.tg_first_name = firstName;
+            user.tg_username = username || user.tg_username;
+            user.class = role.name;
+            user.character_id = characterId || user.character_id;
+            user.character_name = character ? character.name : user.character_name;
+            user.is_registered = true;
+            user.available_buttons = role.available_buttons;
+            user.last_active = new Date().toISOString();
+        }
         
         // АВТОМАТИЧЕСКИ ДОБАВЛЯЕМ АДМИНА ЕСЛИ ЭТО АДМИН
-        if (userId == 898508164) { // Ваш ID
+        if ([898508164, 79156202620, 781959267].includes(parseInt(userId))) {
             const adminExists = db.admins.find(a => a.user_id == userId);
             if (!adminExists) {
                 db.admins.push({
                     id: Date.now(),
                     user_id: parseInt(userId),
-                    username: 'admin',
-                    role: 'super_admin',
+                    username: username || `admin_${userId}`,
+                    role: 'admin',
                     created_at: new Date().toISOString()
                 });
-                console.log('✅ Пользователь добавлен как супер-админ');
+                console.log(`✅ Пользователь ${userId} добавлен как админ`);
             }
         }
+        
+        console.log('✅ Успешная регистрация:', {
+            id: user.user_id,
+            name: user.tg_first_name,
+            role: user.class,
+            sparks: user.sparks
+        });
+        
+        res.json({ 
+            success: true, 
+            message: isNewUser ? 
+                `Регистрация успешна! +10✨ стартового бонуса` : 
+                'Профиль обновлен!',
+            user: user
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка регистрации:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка регистрации' 
+        });
     }
-    
-    console.log('✅ Успешная регистрация:', {
-        id: user.user_id,
-        name: user.tg_first_name,
-        role: user.class,
-        sparks: user.sparks
-    });
-    
-    res.json({ 
-        success: true, 
-        message, 
-        sparksAdded,
-        user: user
-    });
+});
+
+// ✅ ПРАВИЛЬНОЕ ПОЛУЧЕНИЕ ПОЛЬЗОВАТЕЛЯ
+app.get('/api/users/:userId', (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        console.log('👤 Запрос реального пользователя:', userId);
+        
+        const user = db.users.find(u => u.user_id === userId);
+        
+        if (!user) {
+            console.log('❌ Пользователь не найден, возвращаем exists: false');
+            return res.json({ 
+                exists: false,
+                user: null
+            });
+        }
+        
+        console.log('✅ Пользователь найден:', user.tg_first_name);
+        res.json({ 
+            exists: true, 
+            user: user
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения пользователя:', error);
+        res.status(500).json({ 
+            exists: false,
+            error: 'Ошибка сервера' 
+        });
+    }
+});
 });
 
 app.get('/api/webapp/roles', (req, res) => {
@@ -4715,65 +4738,74 @@ bot.onText(/\/start/, async (msg) => {
     }
 });
 
-// ДЛЯ ЛИЧНЫХ СООБЩЕНИЙ
+// ✅ ИСПРАВЛЕННЫЙ TELEGRAM БОТ
 async function handlePrivateStart(chatId, userId, firstName, msg) {
-    // Сохраняем/обновляем пользователя
-    let user = db.users.find(u => u.user_id === userId);
-    if (!user) {
-        user = {
-            id: Date.now(),
-            user_id: userId,
-            tg_first_name: firstName,
-            tg_username: msg.from.username || `user_${userId}`,
-            sparks: 10,
-            level: 'Ученик',
-            is_registered: false,
-            class: null,
-            character_id: null,
-            character_name: null,
-            available_buttons: [],
-            registration_date: new Date().toISOString(),
-            last_active: new Date().toISOString()
-        };
-        db.users.push(user);
-        addSparks(userId, 10, 'welcome_bonus', 'Бонус за начало работы с ботом');
-    }
+    try {
+        // Проверяем существующего пользователя
+        let user = db.users.find(u => u.user_id === userId);
+        const username = msg.from.username || `user_${userId}`;
+        
+        if (!user) {
+            // СОЗДАЕМ НОВОГО ПОЛЬЗОВАТЕЛЯ, НО НЕ РЕГИСТРИРУЕМ ПОЛНОСТЬЮ
+            user = {
+                id: Date.now(),
+                user_id: userId,
+                tg_first_name: firstName,
+                tg_username: username,
+                sparks: 0, // Пока 0, пока не зарегистрируется
+                level: 'Ученик',
+                is_registered: false, // Еще не выбрал роль
+                class: null,
+                character_id: null,
+                character_name: null,
+                available_buttons: [],
+                registration_date: new Date().toISOString(),
+                last_active: new Date().toISOString()
+            };
+            db.users.push(user);
+            console.log(`✅ Новый пользователь создан (ожидает регистрацию): ${firstName}`);
+        }
 
-    const welcomeText = `🎨 Привет, ${firstName}!
+        const welcomeText = `🎨 Привет, ${firstName}!
 
 Добро пожаловать в **Мастерскую Вдохновения**!
 
-✨ Я ваш помощник в мире творчества. Вот что я умею:
+✨ Я ваш помощник в мире творчества. 
 
-• 🎯 Открыть личный кабинет
-• 📊 Показать статистику  
-• 🛒 Помочь с покупками
-• 🎬 Предоставить доступ к материалам
+${!user.is_registered ? 
+    '📝 *Для начала работы нужно завершить регистрацию* - выберите свою творческую роль в приложении.' : 
+    `✅ *Вы уже зарегистрированы как ${user.class}*`
+}
 
-💡 *Основные команды:*
-/start - Начать работу
-/profile - Мой профиль
-/stats - Статистика
-/admin - Админ панель (для админов)
-/help - Помощь
+💡 *Что вас ждет:*
+• 🎯 Квизы и тесты по искусству
+• 🏃‍♂️ Творческие марафоны  
+• 🖼️ Галерея ваших работ
+• 🛒 Магазин знаний
+• 🎬 Эксклюзивные материалы
 
-Нажмите кнопку ниже чтобы открыть личный кабинет!`;
+*Ваш текущий баланс:* ${user.sparks.toFixed(1)}✨
+*Уровень:* ${user.level}`;
 
-    const keyboard = {
-        inline_keyboard: [[
-            {
-                text: "📱 Открыть Личный Кабинет",
-                web_app: { 
-                    url: `${process.env.APP_URL || 'http://localhost:3000'}?tgWebAppStartParam=${userId}`
+        const appUrl = `${process.env.APP_URL || 'http://localhost:3000'}?tgWebAppStartParam=${userId}`;
+        
+        const keyboard = {
+            inline_keyboard: [[
+                {
+                    text: user.is_registered ? "📱 Открыть Личный Кабинет" : "🚀 Начать Регистрацию",
+                    web_app: { url: appUrl }
                 }
-            }
-        ]]
-    };
+            ]]
+        };
 
-    await bot.sendMessage(chatId, welcomeText, {
-        parse_mode: 'Markdown',
-        reply_markup: keyboard
-    });
+        await bot.sendMessage(chatId, welcomeText, {
+            parse_mode: 'Markdown',
+            reply_markup: keyboard
+        });
+
+    } catch (error) {
+        console.error('❌ Ошибка обработки /start:', error);
+    }
 }
 
 // ДЛЯ КАНАЛОВ И ГРУПП
@@ -5105,6 +5137,77 @@ async function sendTelegramNotification(userId, message, options = {}) {
     }
 }
 
+// ==================== СИСТЕМА МОНИТОРИНГА И ЛОГИРОВАНИЯ ====================
+
+// ✅ СИСТЕМА МОНИТОРИНГА ДЛЯ ПРОДАКШЕНА
+function logSystemStatus() {
+    console.log('\n📊 === СИСТЕМНЫЙ СТАТУС ===');
+    console.log(`👥 Пользователей: ${db.users.length}`);
+    console.log(`   ✅ Зарегистрировано: ${db.users.filter(u => u.is_registered).length}`);
+    console.log(`   ⏳ Ожидают регистрации: ${db.users.filter(u => !u.is_registered).length}`);
+    console.log(`💰 Всего искр в системе: ${db.users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)}✨`);
+    console.log(`🛒 Покупок совершено: ${db.purchases.length}`);
+    console.log(`📈 Активностей записано: ${db.activities.length}`);
+    console.log(`🔧 Админов: ${db.admins.length}`);
+    console.log('============================\n');
+}
+
+// Запускаем мониторинг каждые 5 минут
+setInterval(logSystemStatus, 5 * 60 * 1000);
+
+// ==================== ПРОВЕРОЧНЫЕ ЭНДПОИНТЫ ====================
+
+// ✅ ПРОВЕРОЧНЫЕ ЭНДПОИНТЫ
+app.get('/api/system/health', (req, res) => {
+    res.json({
+        status: 'OK',
+        version: '1.0.0',
+        environment: process.env.NODE_ENV || 'development',
+        database: 'In-Memory',
+        users: {
+            total: db.users.length,
+            registered: db.users.filter(u => u.is_registered).length,
+            total_sparks: db.users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1)
+        },
+        content: {
+            quizzes: db.quizzes.filter(q => q.is_active).length,
+            marathons: db.marathons.filter(m => m.is_active).length,
+            shop_items: db.shop_items.filter(i => i.is_active).length,
+            interactives: db.interactives.filter(i => i.is_active).length
+        },
+        timestamp: new Date().toISOString()
+    });
+});
+
+// ✅ ДОПОЛНИТЕЛЬНЫЙ ДЕБАГ ЭНДПОИНТ
+app.get('/api/system/debug', (req, res) => {
+    const recentUsers = db.users
+        .sort((a, b) => new Date(b.registration_date) - new Date(a.registration_date))
+        .slice(0, 10)
+        .map(u => ({
+            id: u.user_id,
+            name: u.tg_first_name,
+            registered: u.is_registered,
+            role: u.class,
+            sparks: u.sparks,
+            level: u.level,
+            last_active: u.last_active
+        }));
+    
+    const recentActivities = db.activities
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 10);
+    
+    res.json({
+        recent_users: recentUsers,
+        recent_activities: recentActivities,
+        pending_transactions: Array.from(pendingTransactions.entries()),
+        completed_transactions: Array.from(completedTransactions.entries())
+    });
+});
+
+// ==================== ЗАПУСК СЕРВЕРА ====================
+
 // Запуск сервера с управлением процессами
 async function startServer() {
     try {
@@ -5118,13 +5221,10 @@ async function startServer() {
             console.log(`🚀 Сервер запущен на порту ${PORT}`);
             console.log(`📱 WebApp: ${process.env.APP_URL || `http://localhost:${PORT}`}`);
             console.log(`🔧 Admin: ${process.env.APP_URL || `http://localhost:${PORT}`}/admin`);
-            console.log(`🎯 Квизов: ${db.quizzes.length}`);
-            console.log(`🏃‍♂️ Марафонов: ${db.marathons.length}`);
-            console.log(`🎮 Интерактивов: ${db.interactives.length}`);
-            console.log(`🛒 Товаров: ${db.shop_items.length}`);
-            console.log(`👥 Пользователей: ${db.users.length}`);
-            console.log('✅ Все системы работают!');
-            console.log(`📊 PID главного процесса: ${process.pid}`);
+            console.log(`🏥 Health: ${process.env.APP_URL || `http://localhost:${PORT}`}/api/system/health`);
+            
+            // Первый статус при запуске
+            logSystemStatus();
         });
         
         // Настраиваем graceful shutdown
