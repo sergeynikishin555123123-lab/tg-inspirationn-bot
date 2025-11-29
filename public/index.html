@@ -6168,49 +6168,22 @@ async function openVideoLink(videoId) {
 }
 
 async function usePrivateVideoAccess(videoId) {
+    // ЗАМЕНИТЬ НА ПРОСТУЮ ВЕРСИЮ
     try {
-        showMessage('⏳ Получаем пригласительную ссылку...', 'info');
-        
-        console.log('🔗 Запрос инвайт-ссылки для видео:', videoId, 'пользователь:', currentUserId);
-        
-        const hasLocalAccess = await checkLocalVideoAccess(videoId);
-        if (!hasLocalAccess) {
-            console.log('🔄 Локально доступ не найден, обновляем данные...');
-            await loadPrivateVideos(true);
-            
-            const hasAccessAfterRefresh = await checkLocalVideoAccess(videoId);
-            if (!hasAccessAfterRefresh) {
-                throw new Error('У вас нет доступа к этому материалу. Возможно, покупка не завершена.');
-            }
-        }
-        
         const response = await fetch(`/api/webapp/private-videos/${videoId}/invite?userId=${currentUserId}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
         const result = await response.json();
-        console.log('📋 Результат запроса инвайт-ссылки:', result);
         
         if (result.success && result.invite_link) {
-            await handleInviteLink(result.invite_link, result.video_title);
+            window.open(result.invite_link, '_blank');
+            showMessage('✅ Переходим к материалу...', 'success');
         } else {
             throw new Error(result.error || 'Не удалось получить ссылку');
         }
-        
     } catch (error) {
-        console.error('❌ Ошибка получения доступа:', error);
         showMessage(`❌ ${error.message}`, 'error');
-        
-        setTimeout(() => {
-            if (confirm('Попробовать обновить страницу и проверить доступ?')) {
-                location.reload();
-            }
-        }, 2000);
     }
 }
-
+    
 async function checkLocalVideoAccess(videoId) {
     try {
         const response = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
