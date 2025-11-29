@@ -4717,6 +4717,53 @@ app.get('/api/webapp/mobile/shop/items', async (req, res) => {
     }
 });
 
+// ✅ ПРОСТОЙ ENDPOINT ДЛЯ ПРИВАТНЫХ ВИДЕО
+app.get('/api/webapp/private-videos', (req, res) => {
+    try {
+        const userId = parseInt(req.query.userId);
+        console.log('🎬 Запрос приватных материалов для пользователя:', userId);
+
+        const videos = db.private_channel_videos.filter(video => video.is_active);
+        
+        const videosWithAccess = videos.map(video => {
+            // Проверяем покупку
+            const hasPurchase = db.purchases.some(purchase => 
+                purchase.user_id == userId && 
+                purchase.item_id === video.id && 
+                purchase.item_type === 'private_video'
+            );
+
+            return {
+                id: video.id,
+                invite_link: video.invite_link,
+                title: video.title,
+                description: video.description,
+                duration: video.duration,
+                price: video.price,
+                category: video.category,
+                level: video.level,
+                has_access: hasPurchase,
+                has_purchase: hasPurchase,
+                can_purchase: !hasPurchase
+            };
+        });
+
+        console.log(`✅ Найдено материалов: ${videosWithAccess.length}`);
+
+        res.json({ 
+            success: true,
+            videos: videosWithAccess 
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения приватных материалов:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Ошибка загрузки материалов' 
+        });
+    }
+});
+
 // Оптимизированные интерактивы для мобильных
 app.get('/api/webapp/mobile/interactives', async (req, res) => {
     try {
