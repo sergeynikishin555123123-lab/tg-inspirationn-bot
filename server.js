@@ -21,25 +21,32 @@ const __dirname = dirname(__filename);
 const pendingTransactions = new Map();
 const completedTransactions = new Map(); // Кэш завершенных операций
 
-// ✅ УЛУЧШЕННАЯ ФУНКЦИЯ БЕЗОПАСНЫХ ОПЕРАЦИЙ
+// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ БЕЗОПАСНЫХ ОПЕРАЦИЙ
 async function safeSparksOperation(userId, operationType, operationId, callback) {
     const transactionKey = `${userId}_${operationType}_${operationId}`;
     
-     const completedOp = completedTransactions.get(transactionKey);
+    // Проверяем, не выполняется ли уже эта операция
+    if (pendingTransactions.has(transactionKey)) {
+        throw new Error('Операция уже выполняется');
+    }
+    
+    // Проверяем, не была ли операция уже завершена (TTL 5 минут)
+    const completedOp = completedTransactions.get(transactionKey);
     if (completedOp && (Date.now() - completedOp.timestamp) < 5 * 60 * 1000) {
         console.log('⚠️ Операция уже была выполнена ранее:', transactionKey);
         return completedOp.result;
     }
     
+    try {
         // Помечаем операцию как выполняющуюся
         pendingTransactions.set(transactionKey, {
             timestamp: Date.now(),
             userId,
             operationType,
             operationId
-        });;
+        }); // ← УБРАЛ ЛИШНЮЮ ТОЧКУ С ЗАПЯТОЙ
         
-// Выполняем callback функцию
+        // Выполняем callback функцию
         const result = await callback();
         
         // Сохраняем в кэш завершенных операций
@@ -57,6 +64,7 @@ async function safeSparksOperation(userId, operationType, operationId, callback)
         pendingTransactions.delete(transactionKey);
     }
 }
+
 // Очистка старых записей
 function cleanupCompletedTransactions() {
     const now = Date.now();
