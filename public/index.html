@@ -6075,6 +6075,7 @@ function displayPrivateVideos(videos) {
     `;
 }
 
+// ОБНОВЛЕННАЯ ФУНКЦИЯ ОТОБРАЖЕНИЯ ПРИВАТНЫХ МАТЕРИАЛОВ
 function renderVideosList(videosArray) {
     const videosList = document.getElementById('privateVideosList');
     
@@ -6097,10 +6098,7 @@ function renderVideosList(videosArray) {
     
     videosArray.forEach(video => {
         const canAfford = currentUser && currentUser.sparks >= video.price;
-        const hasAccess = video.has_access || video.has_purchase || 
-                         (video.access_id !== undefined);
-        
-        console.log(`📊 Видео ${video.id}: hasAccess=${hasAccess}, price=${video.price}, userSparks=${currentUser?.sparks}`);
+        const hasAccess = video.has_access || video.has_purchase;
         
         const videoCard = document.createElement('div');
         videoCard.className = 'shop-item';
@@ -6126,11 +6124,11 @@ function renderVideosList(videosArray) {
             
             <div style="text-align: center;">
                 ${hasAccess ? `
-                    <button class="btn btn-success" onclick="usePrivateVideoAccess(${video.id})" style="margin-bottom: 8px;">
-                        🔗 Получить ссылку в канал
+                    <button class="btn btn-success" onclick="openVideoLink(${video.id})" style="margin-bottom: 8px;">
+                        🔗 Перейти к материалу
                     </button>
                     <div style="color: #718096; font-size: 12px; margin-top: 8px;">
-                        Нажмите чтобы получить пригласительную ссылку
+                        Нажмите чтобы перейти в канал с материалом
                     </div>
                 ` : canAfford ? 
                     `<button class="btn btn-success" onclick="purchasePrivateVideo(${video.id})">
@@ -6145,6 +6143,28 @@ function renderVideosList(videosArray) {
         
         videosList.appendChild(videoCard);
     });
+}
+
+// ФУНКЦИЯ ДЛЯ ОТКРЫТИЯ ССЫЛКИ НА МАТЕРИАЛ
+async function openVideoLink(videoId) {
+    try {
+        showMessage('⏳ Получаем ссылку на материал...', 'info');
+        
+        const response = await fetch(`/api/webapp/private-videos/${videoId}/invite?userId=${currentUserId}`);
+        const result = await response.json();
+        
+        if (result.success && result.invite_link) {
+            // ПРЯМОЕ ОТКРЫТИЕ ССЫЛКИ
+            window.open(result.invite_link, '_blank');
+            showMessage('✅ Переходим к материалу...', 'success');
+        } else {
+            throw new Error(result.error || 'Не удалось получить ссылку');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка открытия материала:', error);
+        showMessage(`❌ ${error.message}`, 'error');
+    }
 }
 
 async function usePrivateVideoAccess(videoId) {
@@ -6234,10 +6254,8 @@ async function handleInviteLink(inviteLink, videoTitle) {
         
         const userAction = confirm(
             `🎬 Доступ к "${videoTitle || 'материалу'}"\n\n` +
-            `1. Пригласительная ссылка скопирована в буфер обмена\n` +
-            `2. Перейдите по ссылке в Telegram\n` +
-            `3. Вступите в приватный канал\n` +
-            `4. Найдите материал в канале\n\n` +
+            `1. Вступите в приватный канал\n` +
+            `2. Найдите материал в канале\n\n` +
             `Хотите перейти по ссылке сейчас?`
         );
         
