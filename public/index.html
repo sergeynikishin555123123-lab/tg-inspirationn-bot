@@ -6150,7 +6150,7 @@ function displayPrivateVideos(videos) {
     `;
 }
 
-// ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТОБРАЖЕНИЯ ПРИВАТНЫХ МАТЕРИАЛОВ
+// ✅ ПРОСТАЯ ФУНКЦИЯ ОТОБРАЖЕНИЯ ПРИВАТНЫХ МАТЕРИАЛОВ
 function renderVideosList(videosArray) {
     const videosList = document.getElementById('privateVideosList');
     
@@ -6220,22 +6220,37 @@ function renderVideosList(videosArray) {
     });
 }
 
-// ✅ ПРОСТЕЙШАЯ ФУНКЦИЯ ОТКРЫТИЯ ВИДЕО
+// ✅ ПРОСТАЯ ФУНКЦИЯ ОТКРЫТИЯ ПРИВАТНОГО ВИДЕО
 async function openPrivateVideo(videoId) {
     try {
         console.log('🔗 Открываем видео:', videoId);
         
-        // ПРОБУЕМ ПОЛУЧИТЬ ССЫЛКУ ЧЕРЕЗ API
-        const response = await fetch(`/api/webapp/private-videos/${videoId}/invite?userId=${currentUserId}`);
+        // ПРОСТО ИЩЕМ ВИДЕО В БАЗЕ И ОТКРЫВАЕМ ССЫЛКУ
+        const videosResponse = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
+        const videosData = await videosResponse.json();
         
-        if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.invite_link) {
-                window.open(data.invite_link, '_blank');
-                showMessage('✅ Открываем канал...', 'success');
-                return;
-            }
+        let videos = [];
+        if (Array.isArray(videosData)) videos = videosData;
+        else if (videosData.videos) videos = videosData.videos;
+        else if (videosData.success && videosData.videos) videos = videosData.videos;
+        
+        const video = videos.find(v => v.id == videoId);
+        
+        if (video && video.invite_link) {
+            console.log('✅ Открываем инвайт-ссылку:', video.invite_link);
+            
+            // ПРОСТО ОТКРЫВАЕМ ССЫЛКУ В НОВОЙ ВКЛАДКЕ
+            window.open(video.invite_link, '_blank');
+            showMessage('✅ Открываем канал...', 'success');
+        } else {
+            throw new Error('Ссылка не найдена');
         }
+        
+    } catch (error) {
+        console.error('❌ Ошибка:', error);
+        showMessage('❌ Не удалось открыть канал', 'error');
+    }
+}
         
         // ЕСЛИ API НЕ СРАБОТАЛО - ИЩЕМ В СПИСКЕ
         const videosResponse = await fetch(`/api/webapp/private-videos?userId=${currentUserId}`);
