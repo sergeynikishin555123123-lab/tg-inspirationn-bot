@@ -1232,55 +1232,62 @@
                 </div>
             </div>
 
-            <!-- Форма создания/редактирования персонажа -->
-            <div id="characterForm" class="card" style="display: none;">
-                <h3 id="characterFormTitle" style="margin-bottom: 20px;">Добавление нового персонажа</h3>
-                
-                <div class="form-group">
-                    <label class="form-label">Роль:</label>
-                    <select id="characterRole" class="form-control">
-                        <option value="">Выберите роль</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Имя персонажа:</label>
-                    <input type="text" id="characterName" class="form-control" placeholder="Например: Лука Цветной">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Описание:</label>
-                    <textarea id="characterDescription" class="form-control" rows="3" placeholder="Описание персонажа..."></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Тип бонуса:</label>
-                    <select id="characterBonusType" class="form-control">
-                        <option value="percent_bonus">Процентный бонус к наградам</option>
-                        <option value="forgiveness">Право на ошибку</option>
-                        <option value="random_gift">Случайный подарок</option>
-                        <option value="secret_advice">Секретные советы</option>
-                        <option value="series_bonus">Бонус к серийным наградам</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Значение бонуса:</label>
-                    <input type="text" id="characterBonusValue" class="form-control" placeholder="Например: 10">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">
-                        <input type="checkbox" id="characterActive" checked> Активный персонаж
-                    </label>
-                </div>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" onclick="saveCharacter()">💾 Сохранить персонажа</button>
-                    <button class="btn btn-danger" onclick="hideCharacterForm()">❌ Отмена</button>
-                </div>
-            </div>
+          <!-- Форма создания/редактирования персонажа -->
+<div id="characterForm" class="card" style="display: none;">
+    <h3 id="characterFormTitle" style="margin-bottom: 20px;">Добавление нового персонажа</h3>
+    
+    <div class="form-group">
+        <label class="form-label">Роль:</label>
+        <select id="characterRole" class="form-control">
+            <option value="">Выберите роль</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">Имя персонажа:</label>
+        <input type="text" id="characterName" class="form-control" placeholder="Например: Лука Цветной">
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">Описание:</label>
+        <textarea id="characterDescription" class="form-control" rows="3" placeholder="Описание персонажа..."></textarea>
+    </div>
+    
+    <!-- ДОБАВЛЕНА СЕКЦИЯ ВЫБОРА КНОПОК -->
+    <div class="form-group">
+        <label class="form-label">Доступные кнопки:</label>
+        <div class="buttons-grid" id="characterButtons">
+            <!-- Кнопки загружаются динамически -->
         </div>
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">Тип бонуса:</label>
+        <select id="characterBonusType" class="form-control">
+            <option value="percent_bonus">Процентный бонус к наградам</option>
+            <option value="forgiveness">Право на ошибку</option>
+            <option value="random_gift">Случайный подарок</option>
+            <option value="secret_advice">Секретные советы</option>
+            <option value="series_bonus">Бонус к серийным наградам</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">Значение бонуса:</label>
+        <input type="text" id="characterBonusValue" class="form-control" placeholder="Например: 10">
+    </div>
+    
+    <div class="form-group">
+        <label class="form-label">
+            <input type="checkbox" id="characterActive" checked> Активный персонаж
+        </label>
+    </div>
+    
+    <div class="action-buttons">
+        <button class="btn btn-success" onclick="saveCharacter()">💾 Сохранить персонажа</button>
+        <button class="btn btn-danger" onclick="hideCharacterForm()">❌ Отмена</button>
+    </div>
+</div>
 
         <!-- Квизы -->
         <div id="quizzes" class="tab-content">
@@ -2786,120 +2793,195 @@ function loadTabData(tabName) {
         }
 
         // Заполнение ролей для формы персонажа
-        function populateCharacterRoles(characters) {
-            const roleSelect = document.getElementById('characterRole');
-            const roles = [...new Set(characters.map(char => char.role_id).filter(id => id))];
-            
-            // В реальном приложении здесь был бы запрос к API ролей
-            roleSelect.innerHTML = '<option value="">Выберите роль</option>';
-            roles.forEach(roleId => {
-                const character = characters.find(c => c.role_id === roleId);
-                if (character) {
-                    const option = document.createElement('option');
-                    option.value = roleId;
-                    option.textContent = character.role_name;
-                    roleSelect.appendChild(option);
+async function populateCharacterRoles() {
+    const roleSelect = document.getElementById('characterRole');
+    
+    try {
+        const response = await fetch(`/api/admin/roles?userId=${currentUserId}`);
+        const roles = await response.json();
+        
+        roleSelect.innerHTML = '<option value="">Выберите роль</option>';
+        
+        roles.forEach(role => {
+            const option = document.createElement('option');
+            option.value = role.id;
+            option.textContent = `${role.icon} ${role.name}`;
+            roleSelect.appendChild(option);
+        });
+        
+    } catch (error) {
+        console.error('Ошибка загрузки ролей:', error);
+        roleSelect.innerHTML = '<option value="">Ошибка загрузки ролей</option>';
+    }
+}
+
+        // Показать форму персонажа
+async function showCharacterForm() {
+    document.getElementById('characterForm').style.display = 'block';
+    document.getElementById('characterFormTitle').textContent = 'Добавление нового персонажа';
+    currentEditingId = null;
+    
+    // Сбросить форму
+    document.getElementById('characterName').value = '';
+    document.getElementById('characterDescription').value = '';
+    document.getElementById('characterBonusType').value = 'percent_bonus';
+    document.getElementById('characterBonusValue').value = '';
+    document.getElementById('characterActive').checked = true;
+    
+    // Загрузить список ролей
+    await populateCharacterRoles();
+    
+    // Заполнить кнопки
+    populateCharacterButtons();
+}
+
+// Заполнение кнопок для персонажа
+function populateCharacterButtons() {
+    const buttonsGrid = document.getElementById('characterButtons');
+    if (!buttonsGrid) return;
+    
+    const availableButtons = [
+        { id: 'quiz', label: '🎯 Квизы', checked: true },
+        { id: 'marathon', label: '🏃‍♂️ Марафоны', checked: true },
+        { id: 'works', label: '🖼️ Работы', checked: true },
+        { id: 'activities', label: '📊 Активности', checked: true },
+        { id: 'posts', label: '📰 Посты', checked: true },
+        { id: 'shop', label: '🛒 Магазин', checked: true },
+        { id: 'invite', label: '👥 Приглашения', checked: true },
+        { id: 'interactives', label: '🎮 Интерактивы', checked: true },
+        { id: 'private_videos', label: '🎬 Приватные материалы', checked: true },
+        { id: 'change_role', label: '🔄 Смена роли', checked: true }
+    ];
+    
+    buttonsGrid.innerHTML = '';
+    
+    availableButtons.forEach(button => {
+        const buttonHtml = `
+            <div class="button-checkbox ${button.checked ? 'checked' : ''}">
+                <input type="checkbox" id="char_btn_${button.id}" ${button.checked ? 'checked' : ''}>
+                <label for="char_btn_${button.id}">${button.label}</label>
+            </div>
+        `;
+        buttonsGrid.innerHTML += buttonHtml;
+    });
+    
+    // Добавить обработчики для чекбоксов
+    document.querySelectorAll('#characterButtons .button-checkbox input').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            this.parentElement.classList.toggle('checked', this.checked);
+        });
+    });
+}
+        
+       // Сохранение персонажа
+async function saveCharacter() {
+    const role_id = document.getElementById('characterRole').value;
+    const name = document.getElementById('characterName').value.trim();
+    const description = document.getElementById('characterDescription').value.trim();
+    const bonus_type = document.getElementById('characterBonusType').value;
+    const bonus_value = document.getElementById('characterBonusValue').value.trim();
+    const is_active = document.getElementById('characterActive').checked;
+    
+    if (!role_id || !name || !bonus_value) {
+        alert('Заполните все обязательные поля');
+        return;
+    }
+    
+    // Собираем выбранные кнопки
+    const available_buttons = [];
+    document.querySelectorAll('#characterButtons input:checked').forEach(checkbox => {
+        available_buttons.push(checkbox.id.replace('char_btn_', ''));
+    });
+    
+    try {
+        const characterData = {
+            role_id: parseInt(role_id),
+            name,
+            description,
+            available_buttons,
+            bonus_type,
+            bonus_value,
+            is_active
+        };
+        
+        console.log('Сохранение персонажа:', characterData);
+        
+        let response;
+        if (currentEditingId) {
+            response = await fetch(`/api/admin/characters/${currentEditingId}?userId=${currentUserId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(characterData)
+            });
+        } else {
+            response = await fetch(`/api/admin/characters?userId=${currentUserId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(characterData)
+            });
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('✅ Персонаж успешно сохранен', 'success');
+            hideCharacterForm();
+            loadCharacters();
+        } else {
+            showMessage(`❌ ${result.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка сохранения персонажа:', error);
+        showMessage('❌ Ошибка сохранения персонажа', 'error');
+    }
+}
+       // Редактирование персонажа
+async function editCharacter(characterId) {
+    try {
+        const response = await fetch(`/api/admin/characters?userId=${currentUserId}`);
+        const characters = await response.json();
+        const character = characters.find(c => c.id === characterId);
+        
+        if (!character) {
+            showMessage('❌ Персонаж не найден', 'error');
+            return;
+        }
+        
+        document.getElementById('characterForm').style.display = 'block';
+        document.getElementById('characterFormTitle').textContent = 'Редактирование персонажа';
+        currentEditingId = characterId;
+        
+        // Заполнить форму
+        document.getElementById('characterRole').value = character.role_id;
+        document.getElementById('characterName').value = character.name;
+        document.getElementById('characterDescription').value = character.description;
+        document.getElementById('characterBonusType').value = character.bonus_type;
+        document.getElementById('characterBonusValue').value = character.bonus_value;
+        document.getElementById('characterActive').checked = character.is_active;
+        
+        // Загрузить список ролей
+        await populateCharacterRoles();
+        
+        // Заполнить кнопки
+        populateCharacterButtons();
+        
+        // Отметить выбранные кнопки
+        if (character.available_buttons && character.available_buttons.length > 0) {
+            character.available_buttons.forEach(buttonId => {
+                const checkbox = document.getElementById(`char_btn_${buttonId}`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    checkbox.parentElement.classList.add('checked');
                 }
             });
         }
-
-        // Показать форму персонажа
-        function showCharacterForm() {
-            document.getElementById('characterForm').style.display = 'block';
-            document.getElementById('characterFormTitle').textContent = 'Добавление нового персонажа';
-            currentEditingId = null;
-            
-            // Сбросить форму
-            document.getElementById('characterRole').value = '';
-            document.getElementById('characterName').value = '';
-            document.getElementById('characterDescription').value = '';
-            document.getElementById('characterBonusType').value = 'percent_bonus';
-            document.getElementById('characterBonusValue').value = '';
-            document.getElementById('characterActive').checked = true;
-        }
-
-        // Сохранение персонажа
-        async function saveCharacter() {
-            const role_id = document.getElementById('characterRole').value;
-            const name = document.getElementById('characterName').value.trim();
-            const description = document.getElementById('characterDescription').value.trim();
-            const bonus_type = document.getElementById('characterBonusType').value;
-            const bonus_value = document.getElementById('characterBonusValue').value.trim();
-            const is_active = document.getElementById('characterActive').checked;
-            
-            if (!role_id || !name || !bonus_value) {
-                alert('Заполните все обязательные поля');
-                return;
-            }
-            
-            try {
-                const characterData = {
-                    role_id: parseInt(role_id),
-                    name,
-                    description,
-                    bonus_type,
-                    bonus_value,
-                    is_active
-                };
-                
-                let response;
-                if (currentEditingId) {
-                    response = await fetch(`/api/admin/characters/${currentEditingId}?userId=${currentUserId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(characterData)
-                    });
-                } else {
-                    response = await fetch(`/api/admin/characters?userId=${currentUserId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(characterData)
-                    });
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('✅ Персонаж успешно сохранен', 'success');
-                    hideCharacterForm();
-                    loadCharacters();
-                } else {
-                    showMessage(`❌ ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                showMessage('❌ Ошибка сохранения персонажа', 'error');
-            }
-        }
-
-        // Редактирование персонажа
-        async function editCharacter(characterId) {
-            try {
-                const response = await fetch(`/api/admin/characters?userId=${currentUserId}`);
-                const characters = await response.json();
-                const character = characters.find(c => c.id === characterId);
-                
-                if (!character) {
-                    showMessage('❌ Персонаж не найден', 'error');
-                    return;
-                }
-                
-                document.getElementById('characterForm').style.display = 'block';
-                document.getElementById('characterFormTitle').textContent = 'Редактирование персонажа';
-                currentEditingId = characterId;
-                
-                // Заполнить форму
-                document.getElementById('characterRole').value = character.role_id;
-                document.getElementById('characterName').value = character.name;
-                document.getElementById('characterDescription').value = character.description;
-                document.getElementById('characterBonusType').value = character.bonus_type;
-                document.getElementById('characterBonusValue').value = character.bonus_value;
-                document.getElementById('characterActive').checked = character.is_active;
-                
-            } catch (error) {
-                showMessage('❌ Ошибка загрузки персонажа', 'error');
-            }
-        }
+        
+    } catch (error) {
+        console.error('Ошибка загрузки персонажа:', error);
+        showMessage('❌ Ошибка загрузки персонажа', 'error');
+    }
+}
 
         // Удаление персонажа
         async function deleteCharacter(characterId) {
