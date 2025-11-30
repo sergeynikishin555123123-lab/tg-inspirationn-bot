@@ -3891,6 +3891,13 @@ async function loadUserData() {
         if (data.exists && data.user) {
             currentUser = data.user;
             console.log('✅ Пользователь загружен:', currentUser);
+            
+            // Проверяем, что available_buttons существует
+            if (!currentUser.available_buttons) {
+                console.log('⚠️ available_buttons отсутствует, устанавливаем по умолчанию');
+                currentUser.available_buttons = ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'];
+            }
+            
             showUserData();
             loadAvailableButtons();
         } else {
@@ -3900,11 +3907,10 @@ async function loadUserData() {
         
     } catch (error) {
         console.error('❌ Ошибка загрузки пользователя:', error);
-        // Показываем экран приветствия даже при ошибке
         showWelcomeScreen();
     }
 }
-
+    
 function showUserData() {
     console.log('🎯 Показываем данные пользователя:', currentUser);
     
@@ -4063,6 +4069,7 @@ function loadAvailableButtons() {
     
     console.log('🔄 Загрузка кнопок для пользователя:', currentUser.tg_first_name);
     console.log('📋 Доступные кнопки:', availableButtons);
+    console.log('👤 Статус регистрации:', currentUser.is_registered);
     
     const allButtons = {
         'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary', icon: '🎯' },
@@ -4080,22 +4087,40 @@ function loadAvailableButtons() {
     buttonsContainer.innerHTML = '';
     
     if (currentUser.is_registered) {
-        Object.keys(allButtons).forEach(buttonKey => {
-            const buttonInfo = allButtons[buttonKey];
-            const featureCard = document.createElement('div');
-            featureCard.className = 'feature-card';
-            featureCard.style.cursor = 'pointer';
-            featureCard.innerHTML = `
-                <div class="feature-icon">${buttonInfo.icon}</div>
-                <div class="feature-title">${buttonInfo.text}</div>
-            `;
-            featureCard.onclick = () => {
-                console.log('🎯 Нажата кнопка:', buttonInfo.text);
-                showScreen(buttonInfo.screen);
-            };
-            buttonsContainer.appendChild(featureCard);
+        // Показываем только доступные кнопки для зарегистрированного пользователя
+        availableButtons.forEach(buttonKey => {
+            if (allButtons[buttonKey]) {
+                const buttonInfo = allButtons[buttonKey];
+                const featureCard = document.createElement('div');
+                featureCard.className = 'feature-card';
+                featureCard.style.cursor = 'pointer';
+                featureCard.innerHTML = `
+                    <div class="feature-icon">${buttonInfo.icon}</div>
+                    <div class="feature-title">${buttonInfo.text}</div>
+                `;
+                featureCard.onclick = () => {
+                    console.log('🎯 Нажата кнопка:', buttonInfo.text);
+                    showScreen(buttonInfo.screen);
+                };
+                buttonsContainer.appendChild(featureCard);
+            }
         });
+        
+        // Всегда показываем кнопку смены роли для зарегистрированных пользователей
+        if (!availableButtons.includes('change_role')) {
+            const changeRoleCard = document.createElement('div');
+            changeRoleCard.className = 'feature-card';
+            changeRoleCard.style.cursor = 'pointer';
+            changeRoleCard.innerHTML = `
+                <div class="feature-icon">🔄</div>
+                <div class="feature-title">🔄 Сменить роль</div>
+            `;
+            changeRoleCard.onclick = () => showScreen('changeRoleScreen');
+            buttonsContainer.appendChild(changeRoleCard);
+        }
+        
     } else {
+        // Для незарегистрированных пользователей показываем только кнопку регистрации
         const featureCard = document.createElement('div');
         featureCard.className = 'feature-card';
         featureCard.style.cursor = 'pointer';
@@ -4107,7 +4132,7 @@ function loadAvailableButtons() {
         buttonsContainer.appendChild(featureCard);
     }
     
-    console.log('✅ Кнопки загружены');
+    console.log('✅ Кнопки загружены, всего: ', buttonsContainer.children.length);
 }
 
 // ==================== СИСТЕМА ЭКРАНОВ ====================
@@ -4235,15 +4260,17 @@ function selectRole(role) {
     
     selectedRole = role;
     
+    // Снимаем выделение со всех карточек ролей
     document.querySelectorAll('.role-card').forEach(card => {
         card.classList.remove('selected');
     });
     
+    // Добавляем выделение к выбранной карточке
     event.currentTarget.classList.add('selected');
     
+    // Загружаем персонажей для выбранной роли
     loadCharacters(role.id);
 }
-
 async function loadCharacters(roleId) {
     try {
         console.log('🔄 Загрузка персонажей для роли:', roleId);
@@ -4304,17 +4331,28 @@ function getBonusDescription(character) {
 }
 
 function selectCharacter(character) {
+    console.log('🎭 Выбран персонаж:', character);
+    
     selectedCharacter = character;
     
+    // Снимаем выделение со всех карточек
     document.querySelectorAll('.character-card').forEach(card => {
         card.classList.remove('selected');
     });
     
+    // Добавляем выделение к выбранной карточке
     event.currentTarget.classList.add('selected');
     
-    document.getElementById('completeBtn').disabled = false;
+    // Включаем кнопку завершения
+    const completeBtn = document.getElementById('completeBtn');
+    const completeRoleChangeBtn = document.getElementById('completeRoleChangeBtn');
+    
+    if (completeBtn) completeBtn.disabled = false;
+    if (completeRoleChangeBtn) completeRoleChangeBtn.disabled = false;
+    
+    console.log('✅ Персонаж выбран, кнопки активированы');
 }
-
+    
 async function completeRegistration() {
     console.log('📝 Начало регистрации...');
     console.log('👤 Выбранная роль:', selectedRole);
@@ -4340,6 +4378,7 @@ async function completeRegistration() {
             body: JSON.stringify({
                 userId: currentUserId,
                 firstName: firstName,
+                username: currentUser?.tg_username || `user_${currentUserId}`,
                 roleId: selectedRole.id,
                 characterId: selectedCharacter.id
             })
