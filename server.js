@@ -5205,6 +5205,51 @@ async function handleChannelStart(chatId, userId, firstName, msg) {
         }
     });
 
+// Простая команда для публикации в конкретный канал
+bot.onText(/\/publish_to_channel/, async (msg) => {
+    try {
+        const userId = msg.from.id;
+        const admin = db.admins.find(a => a.user_id == userId);
+        if (!admin) return;
+
+        // Укажите ваш ID канала здесь
+        const CHANNEL_ID = process.env.CHANNEL_ID || '-1003448309846';
+        const appUrl = `${process.env.APP_URL}?tgWebAppStartParam=channel`;
+
+        const publishedMessage = await bot.sendMessage(CHANNEL_ID,
+            `🎨 *Мастерская Вдохновения* ✨\n\n*Добро пожаловать в ваше творческое пространство!*\n\n🖌️ Рисуйте и творите\n📚 Участвуйте в марафонах\n💫 Зарабатывайте искры\n🏆 Повышайте уровень\n\n*Нажмите кнопку ниже чтобы начать:*`,
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [[
+                        {
+                            text: "🚀 ОТКРЫТЬ МАСТЕРСКУЮ",
+                            web_app: { url: appUrl }
+                        }
+                    ]]
+                }
+            }
+        );
+
+        await bot.sendMessage(userId, 
+            `✅ Готово! Сообщение опубликовано.\n\n📌 Теперь закрепите его в канале. Ссылка для быстрого перехода:`,
+            {
+                reply_markup: {
+                    inline_keyboard: [[
+                        {
+                            text: "📌 Перейти к сообщению",
+                            url: `https://t.me/c/${CHANNEL_ID.toString().replace('-100', '')}/${publishedMessage.message_id}`
+                        }
+                    ]]
+                }
+            }
+        );
+
+    } catch (error) {
+        console.error('❌ Ошибка публикации:', error);
+    }
+});
+    
 // ОБРАБОТЧИК ДЛЯ КНОПКИ "ОТКРЫТЬ ПРИЛОЖЕНИЕ" ИЗ КАНАЛА
 bot.onText(/\/app/, async (msg) => {
     try {
