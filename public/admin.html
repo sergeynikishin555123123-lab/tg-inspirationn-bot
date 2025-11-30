@@ -2057,44 +2057,45 @@
     }
 }
 
-        // Показать вкладку
-        function showTab(tabName) {
-            console.log('🎯 Переключение на вкладку:', tabName);
-            
-            // Проверяем существование вкладки
-            const targetTab = document.getElementById(tabName);
-            if (!targetTab) {
-                console.error('❌ Вкладка не найдена:', tabName);
-                showMessage(`❌ Вкладка "${tabName}" не найдена`, 'error');
-                return;
-            }
-            
-            // 1. Скрыть все вкладки
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // 2. Убрать активный класс со всех кнопок
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // 3. Показать выбранную вкладку
+      function showTab(tabName) {
+    console.log('🎯 Переключение на вкладку:', tabName);
+    
+    try {
+        // 1. Скрыть все вкладки
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // 2. Убрать активный класс со всех кнопок
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // 3. Показать выбранную вкладку
+        const targetTab = document.getElementById(tabName);
+        if (targetTab) {
             targetTab.classList.add('active');
-            
-            // 4. Активировать кнопку
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                const onclickAttr = tab.getAttribute('onclick');
-                if (onclickAttr && onclickAttr.includes(`showTab('${tabName}')`)) {
-                    tab.classList.add('active');
-                }
-            });
-            
-            // 5. Загружаем данные для вкладки
-            loadTabData(tabName);
-            
-            console.log('✅ Вкладка активирована:', tabName);
         }
+        
+        // 4. Активировать кнопку
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            if (tab.getAttribute('onclick')?.includes(`showTab('${tabName}')`)) {
+                tab.classList.add('active');
+            }
+        });
+        
+        // 5. Загружаем данные для вкладки с обработкой ошибок
+        try {
+            loadTabData(tabName);
+        } catch (error) {
+            console.error(`Ошибка загрузки данных для вкладки ${tabName}:`, error);
+        }
+        
+    } catch (error) {
+        console.error('Ошибка переключения вкладки:', error);
+        showMessage(`❌ Ошибка переключения на вкладку "${tabName}"`, 'error');
+    }
+}
 
         // Загрузка данных для вкладки
 function loadTabData(tabName) {
@@ -5677,12 +5678,16 @@ async function deletePrivateVideo(videoId) {
 }       
 // ==================== УПРОЩЕННОЕ УПРАВЛЕНИЕ ПРИВАТНЫМИ МАТЕРИАЛАМИ ====================
 
-// Загрузка приватных материалов
 async function loadPrivateVideosAdmin() {
     try {
         console.log('🔄 Загрузка приватных материалов...');
         
         const videosList = document.getElementById('privateVideosList');
+        if (!videosList) {
+            console.error('❌ Элемент privateVideosList не найден');
+            return;
+        }
+        
         videosList.innerHTML = '<div class="loading">Загрузка материалов...</div>';
         
         const response = await fetch(`/api/admin/private-videos?userId=${currentUserId}`);
@@ -5698,14 +5703,17 @@ async function loadPrivateVideosAdmin() {
         
     } catch (error) {
         console.error('❌ Ошибка загрузки материалов:', error);
-        document.getElementById('privateVideosList').innerHTML = `
-            <div class="message error">
-                Ошибка загрузки материалов: ${error.message}
-                <button class="btn" onclick="loadPrivateVideosAdmin()" style="margin-top: 10px;">
-                    🔄 Повторить
-                </button>
-            </div>
-        `;
+        const videosList = document.getElementById('privateVideosList');
+        if (videosList) {
+            videosList.innerHTML = `
+                <div class="message error">
+                    Ошибка загрузки материалов: ${error.message}
+                    <button class="btn" onclick="loadPrivateVideosAdmin()" style="margin-top: 10px;">
+                        🔄 Повторить
+                    </button>
+                </div>
+            `;
+        }
     }
 }
 
