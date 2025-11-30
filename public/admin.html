@@ -2838,7 +2838,10 @@ async function showCharacterForm() {
 // Заполнение кнопок для персонажа
 function populateCharacterButtons() {
     const buttonsGrid = document.getElementById('characterButtons');
-    if (!buttonsGrid) return;
+    if (!buttonsGrid) {
+        console.error('❌ Контейнер characterButtons не найден в DOM');
+        return;
+    }
     
     const availableButtons = [
         { id: 'quiz', label: '🎯 Квизы', checked: true },
@@ -2865,12 +2868,14 @@ function populateCharacterButtons() {
         buttonsGrid.innerHTML += buttonHtml;
     });
     
-    // Добавить обработчики для чекбоксов
+    // Добавляем обработчики для чекбоксов
     document.querySelectorAll('#characterButtons .button-checkbox input').forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             this.parentElement.classList.toggle('checked', this.checked);
         });
     });
+    
+    console.log('✅ Кнопки персонажа заполнены');
 }
         
        // Сохранение персонажа
@@ -3796,120 +3801,131 @@ async function editCharacter(characterId) {
         }
 
         function showInteractiveForm() {
-    // Сначала скрываем все формы
+    console.log('🎮 Показ формы интерактива');
+    
+    // Скрываем все формы
     hideAllForms();
     
-    // Показываем нужную форму
+    // Находим форму
     const form = document.getElementById('interactiveForm');
     if (!form) {
-        console.error('Форма интерактива не найдена');
+        console.error('❌ Форма интерактива не найдена в DOM');
+        showMessage('❌ Ошибка: форма не найдена', 'error');
         return;
     }
     
+    // Показываем форму
     form.style.display = 'block';
     document.getElementById('interactiveFormTitle').textContent = 'Создание нового интерактива';
     currentEditingId = null;
     interactiveImageData = null;
     
-    // Сбросить форму
-    const titleInput = document.getElementById('interactiveTitle');
-    const descriptionInput = document.getElementById('interactiveDescription');
-    const typeInput = document.getElementById('interactiveType');
+    // Сбрасываем значения полей
+    document.getElementById('interactiveTitle').value = '';
+    document.getElementById('interactiveDescription').value = '';
+    document.getElementById('interactiveQuestion').value = '';
+    document.getElementById('interactiveType').value = 'guess_era';
+    document.getElementById('interactiveCategory').value = 'history';
+    document.getElementById('interactiveCorrectAnswer').value = '0';
+    document.getElementById('interactiveSparksReward').value = '3';
+    document.getElementById('interactiveAllowRetake').checked = false;
+    document.getElementById('interactiveActive').checked = true;
     
-    if (titleInput) titleInput.value = '';
-    if (descriptionInput) descriptionInput.value = '';
-    if (typeInput) typeInput.value = 'guess_era';
-    
-    // Очистить остальные поля
-    const otherIds = [
-        'interactiveCategory', 'interactiveQuestion', 
-        'interactiveCorrectAnswer', 'interactiveSparksReward'
-    ];
-    
-    otherIds.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            if (element.type === 'checkbox') {
-                element.checked = id === 'interactiveActive';
-            } else if (id === 'interactiveCorrectAnswer') {
-                element.value = '0';
-            } else if (id === 'interactiveSparksReward') {
-                element.value = '3';
-            } else if (id === 'interactiveCategory') {
-                element.value = 'history';
-            } else {
-                element.value = '';
-            }
-        }
-    });
-    
-    // Очистить изображение
+    // Очищаем изображение
     clearInteractiveImage();
     
-    // Очистить варианты
+    // Очищаем и добавляем варианты ответов
     const optionsContainer = document.getElementById('interactiveOptions');
     if (optionsContainer) {
         optionsContainer.innerHTML = '';
-        addInteractiveOption(); // Добавить первый вариант по умолчанию
+        // Добавляем 4 варианта по умолчанию
+        for (let i = 0; i < 4; i++) {
+            addInteractiveOption();
+        }
+    } else {
+        console.error('❌ Контейнер вариантов ответов не найден');
     }
     
-    // Обновить форму в зависимости от типа
-    setTimeout(updateInteractiveForm, 100); // Небольшая задержка для гарантии загрузки DOM
+    // Обновляем форму в зависимости от типа
+    setTimeout(updateInteractiveForm, 100);
+    
+    console.log('✅ Форма интерактива успешно показана');
 }
         
-        // Обновите функцию updateInteractiveForm
-function updateInteractiveForm() {
-    const type = document.getElementById('interactiveType');
+       function updateInteractiveForm() {
+    const typeSelect = document.getElementById('interactiveType');
     const optionsSection = document.getElementById('interactiveOptionsSection');
+    const correctAnswerInput = document.getElementById('interactiveCorrectAnswer');
+    const correctAnswerLabel = document.querySelector('label[for="interactiveCorrectAnswer"]');
     
-    if (!type || !optionsSection) {
-        console.log('Элементы формы интерактива еще не загружены');
+    if (!typeSelect || !optionsSection) {
+        console.error('❌ Элементы формы интерактива не найдены');
         return;
     }
     
-    const selectedType = type.value;
+    const selectedType = typeSelect.value;
+    console.log(`🔄 Обновление формы для типа: ${selectedType}`);
     
     if (selectedType === 'drawing_challenge') {
         optionsSection.style.display = 'none';
-        const correctAnswerInput = document.getElementById('interactiveCorrectAnswer');
-        const correctAnswerLabel = document.querySelector('label[for="interactiveCorrectAnswer"]');
         if (correctAnswerInput) correctAnswerInput.style.display = 'none';
         if (correctAnswerLabel) correctAnswerLabel.style.display = 'none';
     } else {
         optionsSection.style.display = 'block';
-        const correctAnswerInput = document.getElementById('interactiveCorrectAnswer');
-        const correctAnswerLabel = document.querySelector('label[for="interactiveCorrectAnswer"]');
         if (correctAnswerInput) correctAnswerInput.style.display = 'block';
         if (correctAnswerLabel) correctAnswerLabel.style.display = 'block';
     }
 }
 
-        // Добавить вариант ответа
-        function addInteractiveOption() {
+function addInteractiveOption() {
     const optionsContainer = document.getElementById('interactiveOptions');
     if (!optionsContainer) {
-        console.error('Контейнер опций не найден');
+        console.error('❌ Контейнер interactiveOptions не найжен в DOM');
         return;
     }
     
     const optionIndex = optionsContainer.children.length;
     
     const optionHtml = `
-        <div class="option-item">
+        <div class="option-item" data-index="${optionIndex}">
+            <input type="radio" name="correct_option" value="${optionIndex}" ${optionIndex === 0 ? 'checked' : ''}>
             <input type="text" class="form-control interactive-option" placeholder="Вариант ответа ${optionIndex + 1}">
-            <button class="btn btn-danger" onclick="removeInteractiveOption(this)" style="margin-left: 8px;">🗑️</button>
+            <button type="button" class="btn btn-danger" onclick="removeInteractiveOption(${optionIndex})" style="margin-left: 10px;">🗑️</button>
         </div>
     `;
     
-    optionsContainer.innerHTML += optionHtml;
+    optionsContainer.insertAdjacentHTML('beforeend', optionHtml);
+    
+    // Обновляем правильный ответ
+    updateCorrectAnswerInput();
 }
-        // Удалить вариант ответа
-        function removeInteractiveOption(button) {
-            const optionItem = button.parentElement;
-            if (document.getElementById('interactiveOptions').children.length > 1) {
-                optionItem.remove();
-            }
-        }
+        function removeInteractiveOption(index) {
+    const optionItem = document.querySelector(`.option-item[data-index="${index}"]`);
+    if (optionItem && document.querySelectorAll('.option-item').length > 1) {
+        optionItem.remove();
+        
+        // Перенумеровываем оставшиеся варианты
+        const remainingOptions = document.querySelectorAll('.option-item');
+        remainingOptions.forEach((item, newIndex) => {
+            item.setAttribute('data-index', newIndex);
+            const radio = item.querySelector('input[type="radio"]');
+            const textInput = item.querySelector('.interactive-option');
+            radio.value = newIndex;
+            radio.name = 'correct_option';
+            textInput.placeholder = `Вариант ответа ${newIndex + 1}`;
+        });
+        
+        updateCorrectAnswerInput();
+    }
+}
+
+function updateCorrectAnswerInput() {
+    const correctAnswerInput = document.getElementById('interactiveCorrectAnswer');
+    const checkedRadio = document.querySelector('input[name="correct_option"]:checked');
+    if (checkedRadio && correctAnswerInput) {
+        correctAnswerInput.value = checkedRadio.value;
+    }
+}
 
         // Обработка загрузки изображения для интерактива
         function handleInteractiveImageUpload(file) {
