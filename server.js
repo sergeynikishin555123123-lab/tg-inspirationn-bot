@@ -4530,42 +4530,45 @@ app.post('/api/analytics/track', (req, res) => {
 
 // ==================== ЭКСПОРТ ОТЧЕТОВ ====================
 
-// Экспорт пользователей в CSV
+// Экспорт пользователей в CSV с правильной кодировкой
 app.get('/api/admin/export/users', requireAdmin, (req, res) => {
     try {
-        console.log('📊 Экспорт пользователей в CSV');
+        console.log('👥 Экспорт пользователей в CSV');
         
         const users = db.users.filter(u => u.is_registered);
         
-        // Заголовки CSV
-        let csv = 'ID;Имя;Username;Роль;Персонаж;Уровень;Искры;Зарегистрирован;Последняя активность\n';
+        // Создаем CSV с BOM для правильной кодировки
+        let csv = '\uFEFF'; // BOM для UTF-8
+        
+        // Заголовки на русском
+        csv += 'ID;Имя;Username;Роль;Персонаж;Уровень;Искры;Зарегистрирован;Последняя активность\n';
         
         // Данные пользователей
         users.forEach(user => {
             const row = [
                 user.user_id,
-                user.tg_first_name || '',
-                user.tg_username || '',
-                user.class || '',
-                user.character_name || '',
-                user.level || '',
+                `"${user.tg_first_name || 'Неизвестно'}"`,
+                `"${user.tg_username || 'нет'}"`,
+                `"${user.class || 'Не выбрана'}"`,
+                `"${user.character_name || 'Не выбран'}"`,
+                `"${user.level || 'Ученик'}"`,
                 user.sparks.toFixed(1),
-                new Date(user.registration_date).toLocaleDateString('ru-RU'),
-                new Date(user.last_active).toLocaleDateString('ru-RU')
-            ].map(field => `"${field}"`).join(';');
+                `"${new Date(user.registration_date).toLocaleDateString('ru-RU')}"`,
+                `"${new Date(user.last_active).toLocaleDateString('ru-RU')}"`
+            ].join(';');
             
             csv += row + '\n';
         });
         
-        // Устанавливаем заголовки для скачивания
+        // Устанавливаем правильные заголовки
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', 'attachment; filename="users_export.csv"');
         res.send(csv);
         
-        console.log('✅ CSV экспортирован, пользователей:', users.length);
+        console.log('✅ Пользователи экспортированы с правильной кодировкой');
         
     } catch (error) {
-        console.error('❌ Ошибка экспорта:', error);
+        console.error('❌ Ошибка экспорта пользователей:', error);
         res.status(500).json({ error: 'Ошибка экспорта данных' });
     }
 });
