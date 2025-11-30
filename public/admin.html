@@ -1232,62 +1232,55 @@
                 </div>
             </div>
 
-          <!-- Форма создания/редактирования персонажа -->
-<div id="characterForm" class="card" style="display: none;">
-    <h3 id="characterFormTitle" style="margin-bottom: 20px;">Добавление нового персонажа</h3>
-    
-    <div class="form-group">
-        <label class="form-label">Роль:</label>
-        <select id="characterRole" class="form-control">
-            <option value="">Выберите роль</option>
-        </select>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Имя персонажа:</label>
-        <input type="text" id="characterName" class="form-control" placeholder="Например: Лука Цветной">
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Описание:</label>
-        <textarea id="characterDescription" class="form-control" rows="3" placeholder="Описание персонажа..."></textarea>
-    </div>
-    
-    <!-- ДОБАВЛЕНА СЕКЦИЯ ВЫБОРА КНОПОК -->
-    <div class="form-group">
-        <label class="form-label">Доступные кнопки:</label>
-        <div class="buttons-grid" id="characterButtons">
-            <!-- Кнопки загружаются динамически -->
+            <!-- Форма создания/редактирования персонажа -->
+            <div id="characterForm" class="card" style="display: none;">
+                <h3 id="characterFormTitle" style="margin-bottom: 20px;">Добавление нового персонажа</h3>
+                
+                <div class="form-group">
+                    <label class="form-label">Роль:</label>
+                    <select id="characterRole" class="form-control">
+                        <option value="">Выберите роль</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Имя персонажа:</label>
+                    <input type="text" id="characterName" class="form-control" placeholder="Например: Лука Цветной">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Описание:</label>
+                    <textarea id="characterDescription" class="form-control" rows="3" placeholder="Описание персонажа..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Тип бонуса:</label>
+                    <select id="characterBonusType" class="form-control">
+                        <option value="percent_bonus">Процентный бонус к наградам</option>
+                        <option value="forgiveness">Право на ошибку</option>
+                        <option value="random_gift">Случайный подарок</option>
+                        <option value="secret_advice">Секретные советы</option>
+                        <option value="series_bonus">Бонус к серийным наградам</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Значение бонуса:</label>
+                    <input type="text" id="characterBonusValue" class="form-control" placeholder="Например: 10">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="characterActive" checked> Активный персонаж
+                    </label>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="saveCharacter()">💾 Сохранить персонажа</button>
+                    <button class="btn btn-danger" onclick="hideCharacterForm()">❌ Отмена</button>
+                </div>
+            </div>
         </div>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Тип бонуса:</label>
-        <select id="characterBonusType" class="form-control">
-            <option value="percent_bonus">Процентный бонус к наградам</option>
-            <option value="forgiveness">Право на ошибку</option>
-            <option value="random_gift">Случайный подарок</option>
-            <option value="secret_advice">Секретные советы</option>
-            <option value="series_bonus">Бонус к серийным наградам</option>
-        </select>
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">Значение бонуса:</label>
-        <input type="text" id="characterBonusValue" class="form-control" placeholder="Например: 10">
-    </div>
-    
-    <div class="form-group">
-        <label class="form-label">
-            <input type="checkbox" id="characterActive" checked> Активный персонаж
-        </label>
-    </div>
-    
-    <div class="action-buttons">
-        <button class="btn btn-success" onclick="saveCharacter()">💾 Сохранить персонажа</button>
-        <button class="btn btn-danger" onclick="hideCharacterForm()">❌ Отмена</button>
-    </div>
-</div>
 
         <!-- Квизы -->
         <div id="quizzes" class="tab-content">
@@ -2034,11 +2027,10 @@
         }
 
         // Загрузка всех данных
-      async function loadAllData() {
+       async function loadAllData() {
     console.log('🔄 Начало загрузки всех данных...');
     
     try {
-        // Загружаем основные данные
         await loadStats();
         await loadUsers();
         await loadRoles();
@@ -2050,10 +2042,7 @@
         await loadPosts();
         await loadAdmins();
         await loadModerationData();
-        await loadPrivateVideosAdmin();
-        
-        // Инициализируем обработчики после загрузки данных
-        setTimeout(initializeButtonHandlers, 500);
+        await loadPrivateVideosAdmin(); // ← ЭТА СТРОЧКА ДОЛЖНА БЫТЬ
         
         console.log('✅ Все данные успешно загружены');
     } catch (error) {
@@ -2061,89 +2050,87 @@
     }
 }
 
-     function showTab(tabName) {
-    console.log('🎯 Переключение на вкладку:', tabName);
-    
-    // Проверяем существование вкладки
-    const targetTab = document.getElementById(tabName);
-    if (!targetTab) {
-        console.error('❌ Вкладка не найдена:', tabName);
-        showMessage(`❌ Вкладка "${tabName}" не найдена`, 'error');
-        return;
-    }
-    
-    // 1. Скрыть все вкладки
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // 2. Убрать активный класс со всех кнопок
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // 3. Показать выбранную вкладку
-    targetTab.classList.add('active');
-    
-    // 4. Активировать кнопку - ИСПРАВЛЕННАЯ ЛОГИКА
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        // Получаем текст onclick атрибута и сравниваем с нужной вкладкой
-        const onclickAttr = tab.getAttribute('onclick');
-        if (onclickAttr && onclickAttr.includes(`'${tabName}'`)) {
-            tab.classList.add('active');
+        // Показать вкладку
+        function showTab(tabName) {
+            console.log('🎯 Переключение на вкладку:', tabName);
+            
+            // Проверяем существование вкладки
+            const targetTab = document.getElementById(tabName);
+            if (!targetTab) {
+                console.error('❌ Вкладка не найдена:', tabName);
+                showMessage(`❌ Вкладка "${tabName}" не найдена`, 'error');
+                return;
+            }
+            
+            // 1. Скрыть все вкладки
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 2. Убрать активный класс со всех кнопок
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 3. Показать выбранную вкладку
+            targetTab.classList.add('active');
+            
+            // 4. Активировать кнопку
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                const onclickAttr = tab.getAttribute('onclick');
+                if (onclickAttr && onclickAttr.includes(`showTab('${tabName}')`)) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // 5. Загружаем данные для вкладки
+            loadTabData(tabName);
+            
+            console.log('✅ Вкладка активирована:', tabName);
         }
-    });
-    
-    // 5. Загружаем данные для вкладки
-    loadTabData(tabName);
-    
-    console.log('✅ Вкладка активирована:', tabName);
-}
 
-        function loadTabData(tabName) {
+        // Загрузка данных для вкладки
+function loadTabData(tabName) {
     console.log('📥 Загрузка данных для:', tabName);
     
     switch(tabName) {
         case 'privateVideos':
-            loadPrivateVideosAdmin();
+            loadPrivateVideosAdmin(); // ← ДОБАВЬ ЭТУ СТРОЧКУ
             break;
         case 'moderation':
             loadWorksForModeration();
             break;
-        case 'admins':
-            loadAdmins();
-            break;
-        case 'posts':
-            loadPosts();
-            break;
-        case 'users':
-            loadUsers();
-            break;
-        case 'roles':
-            loadRoles();
-            break;
-        case 'characters':
-            loadCharacters(); // ← ДОБАВЛЕНО
-            break;
-        case 'quizzes':
-            loadQuizzes();
-            break;
-        case 'marathons':
-            loadMarathons();
-            break;
-        case 'interactives':
-            loadInteractives();
-            break;
-        case 'shop':
-            loadShopItems();
-            break;
-        case 'dashboard':
-            // Для дашборда данные уже загружены
-            break;
-        default:
-            console.log('ℹ️ Нет специальной загрузки для:', tabName);
-    }
-}
+                case 'privateVideos':
+                    loadPrivateVideosAdmin();
+                    break;
+                case 'admins':
+                    loadAdmins();
+                    break;
+                case 'posts':
+                    loadPosts();
+                    break;
+                case 'users':
+                    loadUsers();
+                    break;
+                case 'roles':
+                    loadRoles();
+                    break;
+                case 'quizzes':
+                    loadQuizzes();
+                    break;
+                case 'marathons':
+                    loadMarathons();
+                    break;
+                case 'interactives':
+                    loadInteractives();
+                    break;
+                case 'shop':
+                    loadShopItems();
+                    break;
+                default:
+                    console.log('ℹ️ Нет специальной загрузки для:', tabName);
+            }
+        }
 
         // Скрыть все формы
         function hideAllForms() {
@@ -2444,57 +2431,56 @@
             loadUsers();
         }
 
-        // Экспорт пользователей
-        async function exportUsers() {
-            try {
-                console.log('📤 Начало экспорта пользователей...');
-                
-                // Показываем индикатор загрузки
-                const exportBtn = document.querySelector('.export-btn');
-                const originalText = exportBtn.innerHTML;
-                exportBtn.innerHTML = '⏳ Экспорт...';
-                exportBtn.disabled = true;
-                
-                // Создаем запрос на экспорт
-                const response = await fetch(`/api/admin/export/users?userId=${currentUserId}`);
-                
-                if (!response.ok) {
-                    throw new Error(`Ошибка сервера: ${response.status}`);
-                }
-                
-                // Получаем blob данных
-                const blob = await response.blob();
-                
-                // Создаем ссылку для скачивания
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                
-                // Очищаем
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                
-                // Восстанавливаем кнопку
-                exportBtn.innerHTML = originalText;
-                exportBtn.disabled = false;
-                
-                console.log('✅ Экспорт пользователей завершен');
-                showMessage('✅ Отчет пользователей успешно скачан', 'success');
-                
-            } catch (error) {
-                console.error('❌ Ошибка экспорта:', error);
-                
-                // Восстанавливаем кнопку
-                const exportBtn = document.querySelector('.export-btn');
-                exportBtn.innerHTML = '📊 Экспорт в CSV';
-                exportBtn.disabled = false;
-                
-                showMessage(`❌ Ошибка экспорта: ${error.message}`, 'error');
-            }
+        // Функция экспорта пользователей
+async function exportUsers() {
+    try {
+        console.log('📤 Начало экспорта пользователей...');
+        
+        const exportBtn = document.querySelector('.export-btn');
+        const originalText = exportBtn.innerHTML;
+        exportBtn.innerHTML = '⏳ Экспорт...';
+        exportBtn.disabled = true;
+        
+        // Используем обновленный endpoint
+        const response = await fetch(`/api/admin/export/users?userId=${currentUserId}`);
+        
+        if (!response.ok) {
+            throw new Error(`Ошибка сервера: ${response.status}`);
         }
+        
+        // Получаем blob данных
+        const blob = await response.blob();
+        
+        // Создаем ссылку для скачивания
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Очищаем
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Восстанавливаем кнопку
+        exportBtn.innerHTML = originalText;
+        exportBtn.disabled = false;
+        
+        console.log('✅ Экспорт пользователей завершен');
+        showMessage('✅ Отчет пользователей успешно скачан', 'success');
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта:', error);
+        
+        // Восстанавливаем кнопку
+        const exportBtn = document.querySelector('.export-btn');
+        exportBtn.innerHTML = '📊 Экспорт в CSV';
+        exportBtn.disabled = false;
+        
+        showMessage(`❌ Ошибка экспорта: ${error.message}`, 'error');
+    }
+}
 
         // ==================== РОЛИ ====================
 
@@ -2799,200 +2785,120 @@
         }
 
         // Заполнение ролей для формы персонажа
-async function populateCharacterRoles() {
-    const roleSelect = document.getElementById('characterRole');
-    
-    try {
-        const response = await fetch(`/api/admin/roles?userId=${currentUserId}`);
-        const roles = await response.json();
-        
-        roleSelect.innerHTML = '<option value="">Выберите роль</option>';
-        
-        roles.forEach(role => {
-            const option = document.createElement('option');
-            option.value = role.id;
-            option.textContent = `${role.icon} ${role.name}`;
-            roleSelect.appendChild(option);
-        });
-        
-    } catch (error) {
-        console.error('Ошибка загрузки ролей:', error);
-        roleSelect.innerHTML = '<option value="">Ошибка загрузки ролей</option>';
-    }
-}
-
-        // Показать форму персонажа
-async function showCharacterForm() {
-    document.getElementById('characterForm').style.display = 'block';
-    document.getElementById('characterFormTitle').textContent = 'Добавление нового персонажа';
-    currentEditingId = null;
-    
-    // Сбросить форму
-    document.getElementById('characterName').value = '';
-    document.getElementById('characterDescription').value = '';
-    document.getElementById('characterBonusType').value = 'percent_bonus';
-    document.getElementById('characterBonusValue').value = '';
-    document.getElementById('characterActive').checked = true;
-    
-    // Загрузить список ролей
-    await populateCharacterRoles();
-    
-    // Заполнить кнопки
-    populateCharacterButtons();
-}
-
-// Заполнение кнопок для персонажа
-function populateCharacterButtons() {
-    const buttonsGrid = document.getElementById('characterButtons');
-    if (!buttonsGrid) {
-        console.error('❌ Контейнер characterButtons не найден в DOM');
-        return;
-    }
-    
-    const availableButtons = [
-        { id: 'quiz', label: '🎯 Квизы', checked: true },
-        { id: 'marathon', label: '🏃‍♂️ Марафоны', checked: true },
-        { id: 'works', label: '🖼️ Работы', checked: true },
-        { id: 'activities', label: '📊 Активности', checked: true },
-        { id: 'posts', label: '📰 Посты', checked: true },
-        { id: 'shop', label: '🛒 Магазин', checked: true },
-        { id: 'invite', label: '👥 Приглашения', checked: true },
-        { id: 'interactives', label: '🎮 Интерактивы', checked: true },
-        { id: 'private_videos', label: '🎬 Приватные материалы', checked: true },
-        { id: 'change_role', label: '🔄 Смена роли', checked: true }
-    ];
-    
-    buttonsGrid.innerHTML = '';
-    
-    availableButtons.forEach(button => {
-        const buttonHtml = `
-            <div class="button-checkbox ${button.checked ? 'checked' : ''}">
-                <input type="checkbox" id="char_btn_${button.id}" ${button.checked ? 'checked' : ''}>
-                <label for="char_btn_${button.id}">${button.label}</label>
-            </div>
-        `;
-        buttonsGrid.innerHTML += buttonHtml;
-    });
-    
-    // Добавляем обработчики для чекбоксов
-    document.querySelectorAll('#characterButtons .button-checkbox input').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            this.parentElement.classList.toggle('checked', this.checked);
-        });
-    });
-    
-    console.log('✅ Кнопки персонажа заполнены');
-}
-        
-       // Сохранение персонажа
-async function saveCharacter() {
-    const role_id = document.getElementById('characterRole').value;
-    const name = document.getElementById('characterName').value.trim();
-    const description = document.getElementById('characterDescription').value.trim();
-    const bonus_type = document.getElementById('characterBonusType').value;
-    const bonus_value = document.getElementById('characterBonusValue').value.trim();
-    const is_active = document.getElementById('characterActive').checked;
-    
-    if (!role_id || !name || !bonus_value) {
-        alert('Заполните все обязательные поля');
-        return;
-    }
-    
-    // Собираем выбранные кнопки
-    const available_buttons = [];
-    document.querySelectorAll('#characterButtons input:checked').forEach(checkbox => {
-        available_buttons.push(checkbox.id.replace('char_btn_', ''));
-    });
-    
-    try {
-        const characterData = {
-            role_id: parseInt(role_id),
-            name,
-            description,
-            available_buttons,
-            bonus_type,
-            bonus_value,
-            is_active
-        };
-        
-        console.log('Сохранение персонажа:', characterData);
-        
-        let response;
-        if (currentEditingId) {
-            response = await fetch(`/api/admin/characters/${currentEditingId}?userId=${currentUserId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(characterData)
-            });
-        } else {
-            response = await fetch(`/api/admin/characters?userId=${currentUserId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(characterData)
-            });
-        }
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage('✅ Персонаж успешно сохранен', 'success');
-            hideCharacterForm();
-            loadCharacters();
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
-        }
-        
-    } catch (error) {
-        console.error('Ошибка сохранения персонажа:', error);
-        showMessage('❌ Ошибка сохранения персонажа', 'error');
-    }
-}
-       // Редактирование персонажа
-async function editCharacter(characterId) {
-    try {
-        const response = await fetch(`/api/admin/characters?userId=${currentUserId}`);
-        const characters = await response.json();
-        const character = characters.find(c => c.id === characterId);
-        
-        if (!character) {
-            showMessage('❌ Персонаж не найден', 'error');
-            return;
-        }
-        
-        document.getElementById('characterForm').style.display = 'block';
-        document.getElementById('characterFormTitle').textContent = 'Редактирование персонажа';
-        currentEditingId = characterId;
-        
-        // Заполнить форму
-        document.getElementById('characterRole').value = character.role_id;
-        document.getElementById('characterName').value = character.name;
-        document.getElementById('characterDescription').value = character.description;
-        document.getElementById('characterBonusType').value = character.bonus_type;
-        document.getElementById('characterBonusValue').value = character.bonus_value;
-        document.getElementById('characterActive').checked = character.is_active;
-        
-        // Загрузить список ролей
-        await populateCharacterRoles();
-        
-        // Заполнить кнопки
-        populateCharacterButtons();
-        
-        // Отметить выбранные кнопки
-        if (character.available_buttons && character.available_buttons.length > 0) {
-            character.available_buttons.forEach(buttonId => {
-                const checkbox = document.getElementById(`char_btn_${buttonId}`);
-                if (checkbox) {
-                    checkbox.checked = true;
-                    checkbox.parentElement.classList.add('checked');
+        function populateCharacterRoles(characters) {
+            const roleSelect = document.getElementById('characterRole');
+            const roles = [...new Set(characters.map(char => char.role_id).filter(id => id))];
+            
+            // В реальном приложении здесь был бы запрос к API ролей
+            roleSelect.innerHTML = '<option value="">Выберите роль</option>';
+            roles.forEach(roleId => {
+                const character = characters.find(c => c.role_id === roleId);
+                if (character) {
+                    const option = document.createElement('option');
+                    option.value = roleId;
+                    option.textContent = character.role_name;
+                    roleSelect.appendChild(option);
                 }
             });
         }
-        
-    } catch (error) {
-        console.error('Ошибка загрузки персонажа:', error);
-        showMessage('❌ Ошибка загрузки персонажа', 'error');
-    }
-}
+
+        // Показать форму персонажа
+        function showCharacterForm() {
+            document.getElementById('characterForm').style.display = 'block';
+            document.getElementById('characterFormTitle').textContent = 'Добавление нового персонажа';
+            currentEditingId = null;
+            
+            // Сбросить форму
+            document.getElementById('characterRole').value = '';
+            document.getElementById('characterName').value = '';
+            document.getElementById('characterDescription').value = '';
+            document.getElementById('characterBonusType').value = 'percent_bonus';
+            document.getElementById('characterBonusValue').value = '';
+            document.getElementById('characterActive').checked = true;
+        }
+
+        // Сохранение персонажа
+        async function saveCharacter() {
+            const role_id = document.getElementById('characterRole').value;
+            const name = document.getElementById('characterName').value.trim();
+            const description = document.getElementById('characterDescription').value.trim();
+            const bonus_type = document.getElementById('characterBonusType').value;
+            const bonus_value = document.getElementById('characterBonusValue').value.trim();
+            const is_active = document.getElementById('characterActive').checked;
+            
+            if (!role_id || !name || !bonus_value) {
+                alert('Заполните все обязательные поля');
+                return;
+            }
+            
+            try {
+                const characterData = {
+                    role_id: parseInt(role_id),
+                    name,
+                    description,
+                    bonus_type,
+                    bonus_value,
+                    is_active
+                };
+                
+                let response;
+                if (currentEditingId) {
+                    response = await fetch(`/api/admin/characters/${currentEditingId}?userId=${currentUserId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(characterData)
+                    });
+                } else {
+                    response = await fetch(`/api/admin/characters?userId=${currentUserId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(characterData)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('✅ Персонаж успешно сохранен', 'success');
+                    hideCharacterForm();
+                    loadCharacters();
+                } else {
+                    showMessage(`❌ ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('❌ Ошибка сохранения персонажа', 'error');
+            }
+        }
+
+        // Редактирование персонажа
+        async function editCharacter(characterId) {
+            try {
+                const response = await fetch(`/api/admin/characters?userId=${currentUserId}`);
+                const characters = await response.json();
+                const character = characters.find(c => c.id === characterId);
+                
+                if (!character) {
+                    showMessage('❌ Персонаж не найден', 'error');
+                    return;
+                }
+                
+                document.getElementById('characterForm').style.display = 'block';
+                document.getElementById('characterFormTitle').textContent = 'Редактирование персонажа';
+                currentEditingId = characterId;
+                
+                // Заполнить форму
+                document.getElementById('characterRole').value = character.role_id;
+                document.getElementById('characterName').value = character.name;
+                document.getElementById('characterDescription').value = character.description;
+                document.getElementById('characterBonusType').value = character.bonus_type;
+                document.getElementById('characterBonusValue').value = character.bonus_value;
+                document.getElementById('characterActive').checked = character.is_active;
+                
+            } catch (error) {
+                showMessage('❌ Ошибка загрузки персонажа', 'error');
+            }
+        }
 
         // Удаление персонажа
         async function deleteCharacter(characterId) {
@@ -3807,131 +3713,120 @@ async function editCharacter(characterId) {
         }
 
         function showInteractiveForm() {
-    console.log('🎮 Показ формы интерактива');
-    
-    // Скрываем все формы
+    // Сначала скрываем все формы
     hideAllForms();
     
-    // Находим форму
+    // Показываем нужную форму
     const form = document.getElementById('interactiveForm');
     if (!form) {
-        console.error('❌ Форма интерактива не найдена в DOM');
-        showMessage('❌ Ошибка: форма не найдена', 'error');
+        console.error('Форма интерактива не найдена');
         return;
     }
     
-    // Показываем форму
     form.style.display = 'block';
     document.getElementById('interactiveFormTitle').textContent = 'Создание нового интерактива';
     currentEditingId = null;
     interactiveImageData = null;
     
-    // Сбрасываем значения полей
-    document.getElementById('interactiveTitle').value = '';
-    document.getElementById('interactiveDescription').value = '';
-    document.getElementById('interactiveQuestion').value = '';
-    document.getElementById('interactiveType').value = 'guess_era';
-    document.getElementById('interactiveCategory').value = 'history';
-    document.getElementById('interactiveCorrectAnswer').value = '0';
-    document.getElementById('interactiveSparksReward').value = '3';
-    document.getElementById('interactiveAllowRetake').checked = false;
-    document.getElementById('interactiveActive').checked = true;
+    // Сбросить форму
+    const titleInput = document.getElementById('interactiveTitle');
+    const descriptionInput = document.getElementById('interactiveDescription');
+    const typeInput = document.getElementById('interactiveType');
     
-    // Очищаем изображение
+    if (titleInput) titleInput.value = '';
+    if (descriptionInput) descriptionInput.value = '';
+    if (typeInput) typeInput.value = 'guess_era';
+    
+    // Очистить остальные поля
+    const otherIds = [
+        'interactiveCategory', 'interactiveQuestion', 
+        'interactiveCorrectAnswer', 'interactiveSparksReward'
+    ];
+    
+    otherIds.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            if (element.type === 'checkbox') {
+                element.checked = id === 'interactiveActive';
+            } else if (id === 'interactiveCorrectAnswer') {
+                element.value = '0';
+            } else if (id === 'interactiveSparksReward') {
+                element.value = '3';
+            } else if (id === 'interactiveCategory') {
+                element.value = 'history';
+            } else {
+                element.value = '';
+            }
+        }
+    });
+    
+    // Очистить изображение
     clearInteractiveImage();
     
-    // Очищаем и добавляем варианты ответов
+    // Очистить варианты
     const optionsContainer = document.getElementById('interactiveOptions');
     if (optionsContainer) {
         optionsContainer.innerHTML = '';
-        // Добавляем 4 варианта по умолчанию
-        for (let i = 0; i < 4; i++) {
-            addInteractiveOption();
-        }
-    } else {
-        console.error('❌ Контейнер вариантов ответов не найден');
+        addInteractiveOption(); // Добавить первый вариант по умолчанию
     }
     
-    // Обновляем форму в зависимости от типа
-    setTimeout(updateInteractiveForm, 100);
-    
-    console.log('✅ Форма интерактива успешно показана');
+    // Обновить форму в зависимости от типа
+    setTimeout(updateInteractiveForm, 100); // Небольшая задержка для гарантии загрузки DOM
 }
         
-       function updateInteractiveForm() {
-    const typeSelect = document.getElementById('interactiveType');
+        // Обновите функцию updateInteractiveForm
+function updateInteractiveForm() {
+    const type = document.getElementById('interactiveType');
     const optionsSection = document.getElementById('interactiveOptionsSection');
-    const correctAnswerInput = document.getElementById('interactiveCorrectAnswer');
-    const correctAnswerLabel = document.querySelector('label[for="interactiveCorrectAnswer"]');
     
-    if (!typeSelect || !optionsSection) {
-        console.error('❌ Элементы формы интерактива не найдены');
+    if (!type || !optionsSection) {
+        console.log('Элементы формы интерактива еще не загружены');
         return;
     }
     
-    const selectedType = typeSelect.value;
-    console.log(`🔄 Обновление формы для типа: ${selectedType}`);
+    const selectedType = type.value;
     
     if (selectedType === 'drawing_challenge') {
         optionsSection.style.display = 'none';
+        const correctAnswerInput = document.getElementById('interactiveCorrectAnswer');
+        const correctAnswerLabel = document.querySelector('label[for="interactiveCorrectAnswer"]');
         if (correctAnswerInput) correctAnswerInput.style.display = 'none';
         if (correctAnswerLabel) correctAnswerLabel.style.display = 'none';
     } else {
         optionsSection.style.display = 'block';
+        const correctAnswerInput = document.getElementById('interactiveCorrectAnswer');
+        const correctAnswerLabel = document.querySelector('label[for="interactiveCorrectAnswer"]');
         if (correctAnswerInput) correctAnswerInput.style.display = 'block';
         if (correctAnswerLabel) correctAnswerLabel.style.display = 'block';
     }
 }
 
-function addInteractiveOption() {
+        // Добавить вариант ответа
+        function addInteractiveOption() {
     const optionsContainer = document.getElementById('interactiveOptions');
     if (!optionsContainer) {
-        console.error('❌ Контейнер interactiveOptions не найжен в DOM');
+        console.error('Контейнер опций не найден');
         return;
     }
     
     const optionIndex = optionsContainer.children.length;
     
     const optionHtml = `
-        <div class="option-item" data-index="${optionIndex}">
-            <input type="radio" name="correct_option" value="${optionIndex}" ${optionIndex === 0 ? 'checked' : ''}>
+        <div class="option-item">
             <input type="text" class="form-control interactive-option" placeholder="Вариант ответа ${optionIndex + 1}">
-            <button type="button" class="btn btn-danger" onclick="removeInteractiveOption(${optionIndex})" style="margin-left: 10px;">🗑️</button>
+            <button class="btn btn-danger" onclick="removeInteractiveOption(this)" style="margin-left: 8px;">🗑️</button>
         </div>
     `;
     
-    optionsContainer.insertAdjacentHTML('beforeend', optionHtml);
-    
-    // Обновляем правильный ответ
-    updateCorrectAnswerInput();
+    optionsContainer.innerHTML += optionHtml;
 }
-        function removeInteractiveOption(index) {
-    const optionItem = document.querySelector(`.option-item[data-index="${index}"]`);
-    if (optionItem && document.querySelectorAll('.option-item').length > 1) {
-        optionItem.remove();
-        
-        // Перенумеровываем оставшиеся варианты
-        const remainingOptions = document.querySelectorAll('.option-item');
-        remainingOptions.forEach((item, newIndex) => {
-            item.setAttribute('data-index', newIndex);
-            const radio = item.querySelector('input[type="radio"]');
-            const textInput = item.querySelector('.interactive-option');
-            radio.value = newIndex;
-            radio.name = 'correct_option';
-            textInput.placeholder = `Вариант ответа ${newIndex + 1}`;
-        });
-        
-        updateCorrectAnswerInput();
-    }
-}
-
-function updateCorrectAnswerInput() {
-    const correctAnswerInput = document.getElementById('interactiveCorrectAnswer');
-    const checkedRadio = document.querySelector('input[name="correct_option"]:checked');
-    if (checkedRadio && correctAnswerInput) {
-        correctAnswerInput.value = checkedRadio.value;
-    }
-}
+        // Удалить вариант ответа
+        function removeInteractiveOption(button) {
+            const optionItem = button.parentElement;
+            if (document.getElementById('interactiveOptions').children.length > 1) {
+                optionItem.remove();
+            }
+        }
 
         // Обработка загрузки изображения для интерактива
         function handleInteractiveImageUpload(file) {
@@ -5683,16 +5578,12 @@ async function deletePrivateVideo(videoId) {
 }       
 // ==================== УПРОЩЕННОЕ УПРАВЛЕНИЕ ПРИВАТНЫМИ МАТЕРИАЛАМИ ====================
 
+// Загрузка приватных материалов
 async function loadPrivateVideosAdmin() {
     try {
         console.log('🔄 Загрузка приватных материалов...');
         
         const videosList = document.getElementById('privateVideosList');
-        if (!videosList) {
-            console.error('❌ Элемент privateVideosList не найден');
-            return;
-        }
-        
         videosList.innerHTML = '<div class="loading">Загрузка материалов...</div>';
         
         const response = await fetch(`/api/admin/private-videos?userId=${currentUserId}`);
@@ -5708,17 +5599,14 @@ async function loadPrivateVideosAdmin() {
         
     } catch (error) {
         console.error('❌ Ошибка загрузки материалов:', error);
-        const videosList = document.getElementById('privateVideosList');
-        if (videosList) {
-            videosList.innerHTML = `
-                <div class="message error">
-                    Ошибка загрузки материалов: ${error.message}
-                    <button class="btn" onclick="loadPrivateVideosAdmin()" style="margin-top: 10px;">
-                        🔄 Повторить
-                    </button>
-                </div>
-            `;
-        }
+        document.getElementById('privateVideosList').innerHTML = `
+            <div class="message error">
+                Ошибка загрузки материалов: ${error.message}
+                <button class="btn" onclick="loadPrivateVideosAdmin()" style="margin-top: 10px;">
+                    🔄 Повторить
+                </button>
+            </div>
+        `;
     }
 }
 
@@ -6084,149 +5972,6 @@ function simpleParseTelegramUrl(url) {
             }
         });
 
-// ==================== ИСПРАВЛЕНИЕ ОБРАБОТЧИКОВ КНОПОК ====================
-
-// Функция для привязки обработчиков ко всем кнопкам
-function initializeButtonHandlers() {
-    console.log('🔧 Инициализация обработчиков кнопок...');
-    
-    // Обработчики для кнопок персонажей
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.btn-warning') && e.target.closest('.character-card')) {
-            const characterCard = e.target.closest('.character-card');
-            const editBtn = characterCard.querySelector('.btn-warning');
-            const onclickAttr = editBtn.getAttribute('onclick');
-            if (onclickAttr && onclickAttr.includes('editCharacter')) {
-                const match = onclickAttr.match(/editCharacter\((\d+)\)/);
-                if (match) {
-                    const characterId = parseInt(match[1]);
-                    editCharacter(characterId);
-                }
-            }
-        }
-    });
-    
-    // Обработчики для кнопок ролей
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.btn-warning') && e.target.closest('.role-card')) {
-            const roleCard = e.target.closest('.role-card');
-            const editBtn = roleCard.querySelector('.btn-warning');
-            const onclickAttr = editBtn.getAttribute('onclick');
-            if (onclickAttr && onclickAttr.includes('editRole')) {
-                const match = onclickAttr.match(/editRole\((\d+)\)/);
-                if (match) {
-                    const roleId = parseInt(match[1]);
-                    editRole(roleId);
-                }
-            }
-        }
-    });
-    
-    // Обработчики для кнопок квизов
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.btn-warning') && e.target.closest('.quiz-card')) {
-            const quizCard = e.target.closest('.quiz-card');
-            const editBtn = quizCard.querySelector('.btn-warning');
-            const onclickAttr = editBtn.getAttribute('onclick');
-            if (onclickAttr && onclickAttr.includes('editQuiz')) {
-                const match = onclickAttr.match(/editQuiz\((\d+)\)/);
-                if (match) {
-                    const quizId = parseInt(match[1]);
-                    editQuiz(quizId);
-                }
-            }
-        }
-        
-    // Обработчики для кнопок удаления
-document.addEventListener('click', function(e) {
-    if (e.target.closest('.btn-danger') && !e.target.closest('.action-buttons .btn-danger')) {
-        const deleteBtn = e.target.closest('.btn-danger');
-        const onclickAttr = deleteBtn.getAttribute('onclick');
-        
-        if (onclickAttr) {
-            if (onclickAttr.includes('deleteCharacter')) {
-                const match = onclickAttr.match(/deleteCharacter\((\d+)\)/);
-                if (match) {
-                    const characterId = parseInt(match[1]);
-                    deleteCharacter(characterId);
-                }
-            }
-            else if (onclickAttr.includes('deleteRole')) {
-                const match = onclickAttr.match(/deleteRole\((\d+)\)/);
-                if (match) {
-                    const roleId = parseInt(match[1]);
-                    deleteRole(roleId);
-                }
-            }
-            else if (onclickAttr.includes('deleteQuiz')) {
-                const match = onclickAttr.match(/deleteQuiz\((\d+)\)/);
-                if (match) {
-                    const quizId = parseInt(match[1]);
-                    deleteQuiz(quizId);
-                }
-            }
-            else if (onclickAttr.includes('deleteMarathon')) {
-                const match = onclickAttr.match(/deleteMarathon\((\d+)\)/);
-                if (match) {
-                    const marathonId = parseInt(match[1]);
-                    deleteMarathon(marathonId);
-                }
-            }
-            else if (onclickAttr.includes('deleteInteractive')) {
-                const match = onclickAttr.match(/deleteInteractive\((\d+)\)/);
-                if (match) {
-                    const interactiveId = parseInt(match[1]);
-                    deleteInteractive(interactiveId);
-                }
-            }
-            else if (onclickAttr.includes('deleteShopItem')) {
-                const match = onclickAttr.match(/deleteShopItem\((\d+)\)/);
-                if (match) {
-                    const itemId = parseInt(match[1]);
-                    deleteShopItem(itemId);
-                }
-            }
-            else if (onclickAttr.includes('deletePost')) {
-                const match = onclickAttr.match(/deletePost\((\d+)\)/);
-                if (match) {
-                    const postId = parseInt(match[1]);
-                    deletePost(postId);
-                }
-            }
-            else if (onclickAttr.includes('deleteAdmin')) {
-                const match = onclickAttr.match(/deleteAdmin\((\d+)\)/);
-                if (match) {
-                    const adminId = parseInt(match[1]);
-                    deleteAdmin(adminId);
-                }
-            }
-            else if (onclickAttr.includes('deletePrivateVideo')) {
-                const match = onclickAttr.match(/deletePrivateVideo\((\d+)\)/);
-                if (match) {
-                    const videoId = parseInt(match[1]);
-                    deletePrivateVideo(videoId);
-                }
-            }
-        }
-    }
-});
-    
-    console.log('✅ Обработчики кнопок инициализированы');
-}
-
-// Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Инициализация админ-панели...');
-    
-    // Инициализируем админ-панель
-    initAdminPanel();
-    
-    // Инициализируем обработчики кнопок
-    setTimeout(initializeButtonHandlers, 1000);
-    
-    console.log('✅ Админ-панель инициализирована');
-});
-        
         // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПРИВАТНЫХ МАТЕРИАЛОВ ====================
 
 // Получение названия категории для админки
@@ -6252,4 +5997,4 @@ function getLevelName(level) {
 }
     </script>
 </body>
-</html>
+</html> 
