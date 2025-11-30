@@ -4813,6 +4813,7 @@ app.get('/api/mobile/health', (req, res) => {
 
 let bot;
 
+// Функция инициализации бота
 async function initializeBot() {
     try {
         if (!process.env.BOT_TOKEN) {
@@ -4848,7 +4849,14 @@ async function initializeBot() {
     }
 }
 
-function setupWebAppHandlers() {
+// Настройка обработчиков команд
+function setupBotHandlers() {
+    if (!bot) {
+        console.error('❌ Бот не инициализирован');
+        return;
+    }
+
+    function setupWebAppHandlers() {
     // Обработчик /start - сразу открывает приложение
     bot.onText(/\/start/, async (msg) => {
         try {
@@ -4874,70 +4882,6 @@ function setupWebAppHandlers() {
         }
     });
 }
-
-// Настройка обработчиков команд
-function setupBotHandlers() {
-    if (!bot) {
-        console.error('❌ Бот не инициализирован');
-        return;
-    }
-
-    // ОБНОВЛЕННЫЙ ОБРАБОТЧИК /start
-bot.onText(/\/start/, async (msg) => {
-    try {
-        const chatId = msg.chat.id;
-        const userId = msg.from.id;
-        const firstName = msg.from.first_name || 'Друг';
-        const chatType = msg.chat.type; // 'private', 'group', 'supergroup', 'channel'
-
-        console.log(`👋 Команда /start от ${firstName} (${userId}) в чате типа: ${chatType}`);
-
-        // РАЗНЫЕ СООБЩЕНИЯ ДЛЯ РАЗНЫХ КОНТЕКСТОВ
-        if (chatType === 'private') {
-            // ЛИЧНЫЕ СООБЩЕНИЯ - ПОЛНАЯ ФУНКЦИОНАЛЬНОСТЬ
-            await handlePrivateStart(chatId, userId, firstName, msg);
-        } else {
-            // ГРУППЫ И КАНАЛЫ - ТОЛЬКО КНОПКА ПРИЛОЖЕНИЯ
-            await handleChannelStart(chatId, userId, firstName, msg);
-        }
-
-    } catch (error) {
-        console.error('❌ Ошибка обработки /start:', error);
-    }
-});
-
-// Функция настройки Web App кнопки
-async function setupWebAppButton() {
-    try {
-        if (!TELEGRAM_BOT_TOKEN) return;
-
-        // Устанавливаем Web App как основную кнопку меню
-        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setChatMenuButton`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                menu_button: {
-                    type: 'web_app',
-                    text: '🎨 Мастерская',
-                    web_app: {
-                        url: process.env.APP_URL || 'https://yourdomain.com'
-                    }
-                }
-            })
-        });
-        
-        const result = await response.json();
-        if (result.ok) {
-            console.log('✅ Web App кнопка установлена для всех чатов');
-        } else {
-            console.log('⚠️ Не удалось установить Web App кнопку:', result.description);
-        }
-
-    } catch (error) {
-        console.error('❌ Ошибка настройки Web App кнопки:', error);
-    }
-}
-    
 // ✅ ИСПРАВЛЕННЫЙ TELEGRAM БОТ
 async function handlePrivateStart(chatId, userId, firstName, msg) {
     try {
@@ -5129,43 +5073,58 @@ async function handleChannelStart(chatId, userId, firstName, msg) {
         }
     });
 
-    // Обработчик команды /admin
-    bot.onText(/\/admin/, async (msg) => {
-        try {
-            const chatId = msg.chat.id;
-            const userId = msg.from.id;
+   // Команда для админ панели
+bot.onText(/\/admin/, async (msg) => {
+    try {
+        const userId = msg.from.id;
+        const chatId = msg.chat.id;
+        
+        console.log(`🔧 Запрос админ панели от пользователя ${userId}`);
 
-            console.log(`🔧 Команда /admin от пользователя ${userId}`);
-
-            const admin = db.admins.find(a => a.user_id == userId);
-            if (!admin) {
-                await bot.sendMessage(chatId, 
-                    '❌ У вас нет прав доступа к админ панели.'
-                );
-                return;
-            }
-
-            const adminUrl = `${process.env.APP_URL || 'http://localhost:3000'}/admin.html?userId=${userId}`;
-            
-            const keyboard = {
-                inline_keyboard: [[
-                    {
-                        text: "🔧 Открыть Админ Панель",
-                        url: adminUrl
-                    }
-                ]]
-            };
-            
+        // Проверяем права администратора
+        const admin = db.admins.find(a => a.user_id == userId);
+        if (!admin) {
             await bot.sendMessage(chatId, 
-                `🔧 *Панель администратора*\n\nНажмите кнопку ниже чтобы открыть админ панель:`, {
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            });
-
-        } catch (error) {
-            console.error('❌ Ошибка обработки /admin:', error);
+                '❌ У вас нет прав доступа к админ панели.\n\n' +
+                'Обратитесь к главному администратору для получения доступа.'
+            );
+            return;
         }
-    });
+
+        // Создаем ссылку на админ панель
+        const adminUrl = `${process.env.APP_URL || 'http://localhost:3000'}/admin?userId=${userId}&admin=true`;
+        
+        const keyboard = {
+            inline_keyboard: [[
+                {
+                    text: "🔧 Открыть Админ Панель",
+                    web_app: { url: adminUrl }
+                }
+            ], [
+                {
+                    text: "📊 Статистика",
+                    callback_data: 'admin_stats'
+                },
+                {
+                    text: "👥 Пользователи", 
+                    callback_data: 'admin_users'
+                }
+            ]]
+        };
+
+        await bot.sendMessage(chatId, 
+            `🔧 *Панель администратора*\n\n*Добро пожаловать, ${admin.username || 'Администратор'}!*\n\n` +
+            `Выберите действие или откройте полную админ панель:`, {
+            parse_mode: 'Markdown',
+            reply_markup: keyboard
+        });
+
+        console.log(`✅ Админ панель предложена пользователю ${userId}`);
+
+    } catch (error) {
+        console.error('❌ Ошибка команды /admin:', error);
+    }
+});
 
     // Обработчик команды /help
     bot.onText(/\/help/, async (msg) => {
@@ -5205,50 +5164,81 @@ async function handleChannelStart(chatId, userId, firstName, msg) {
         }
     });
 
-// Простая команда для публикации в конкретный канал
-bot.onText(/\/publish_to_channel/, async (msg) => {
+// Обработчик callback кнопок админки
+bot.on('callback_query', async (callbackQuery) => {
     try {
-        const userId = msg.from.id;
+        const userId = callbackQuery.from.id;
+        const data = callbackQuery.data;
+        const messageId = callbackQuery.message.message_id;
+        
+        // Проверяем права
         const admin = db.admins.find(a => a.user_id == userId);
-        if (!admin) return;
+        if (!admin) {
+            await bot.answerCallbackQuery(callbackQuery.id, { text: '❌ Нет прав доступа' });
+            return;
+        }
 
-        // Укажите ваш ID канала здесь
-        const CHANNEL_ID = process.env.CHANNEL_ID || '-1003448309846';
-        const appUrl = `${process.env.APP_URL}?tgWebAppStartParam=channel`;
-
-        const publishedMessage = await bot.sendMessage(CHANNEL_ID,
-            `🎨 *Мастерская Вдохновения* ✨\n\n*Добро пожаловать в ваше творческое пространство!*\n\n🖌️ Рисуйте и творите\n📚 Участвуйте в марафонах\n💫 Зарабатывайте искры\n🏆 Повышайте уровень\n\n*Нажмите кнопку ниже чтобы начать:*`,
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [[
-                        {
-                            text: "🚀 ОТКРЫТЬ МАСТЕРСКУЮ",
-                            web_app: { url: appUrl }
-                        }
-                    ]]
-                }
-            }
-        );
-
-        await bot.sendMessage(userId, 
-            `✅ Готово! Сообщение опубликовано.\n\n📌 Теперь закрепите его в канале. Ссылка для быстрого перехода:`,
-            {
-                reply_markup: {
-                    inline_keyboard: [[
-                        {
-                            text: "📌 Перейти к сообщению",
-                            url: `https://t.me/c/${CHANNEL_ID.toString().replace('-100', '')}/${publishedMessage.message_id}`
-                        }
-                    ]]
-                }
-            }
-        );
+        switch(data) {
+            case 'admin_stats':
+                await showAdminStats(callbackQuery);
+                break;
+                
+            case 'admin_users':
+                await showUsersStats(callbackQuery);
+                break;
+                
+            case 'admin_moderation':
+                await showModerationQueue(callbackQuery);
+                break;
+        }
 
     } catch (error) {
-        console.error('❌ Ошибка публикации:', error);
+        console.error('❌ Ошибка callback админки:', error);
     }
 });
+
+// Функция показа статистики
+async function showAdminStats(callbackQuery) {
+    const stats = {
+        totalUsers: db.users.length,
+        registeredUsers: db.users.filter(u => u.is_registered).length,
+        activeToday: db.users.filter(u => {
+            const today = new Date();
+            const lastActive = new Date(u.last_active);
+            return lastActive.toDateString() === today.toDateString();
+        }).length,
+        totalSparks: db.users.reduce((sum, user) => sum + user.sparks, 0).toFixed(1),
+        pendingWorks: db.user_works.filter(w => w.status === 'pending').length,
+        pendingReviews: db.post_reviews.filter(r => r.status === 'pending').length
+    };
+
+    const statsText = `📊 *Статистика системы*\n\n` +
+        `👥 Пользователи: ${stats.totalUsers}\n` +
+        `✅ Зарегистрировано: ${stats.registeredUsers}\n` +
+        `🟢 Активных сегодня: ${stats.activeToday}\n` +
+        `💰 Искр в системе: ${stats.totalSparks}✨\n` +
+        `⏳ Ожидают модерации:\n` +
+        `  • Работ: ${stats.pendingWorks}\n` +
+        `  • Отзывов: ${stats.pendingReviews}`;
+
+    await bot.editMessageText(statsText, {
+        chat_id: callbackQuery.message.chat.id,
+        message_id: callbackQuery.message.message_id,
+        parse_mode: 'Markdown',
+        reply_markup: {
+            inline_keyboard: [[
+                { text: "🔄 Обновить", callback_data: 'admin_stats' },
+                { text: "📋 Подробнее", web_app: { 
+                    url: `${process.env.APP_URL}/admin?userId=${callbackQuery.from.id}&section=stats` 
+                }}
+            ], [
+                { text: "🔙 Назад", callback_data: 'admin_back' }
+            ]]
+        }
+    });
+
+    await bot.answerCallbackQuery(callbackQuery.id);
+}
     
 // ОБРАБОТЧИК ДЛЯ КНОПКИ "ОТКРЫТЬ ПРИЛОЖЕНИЕ" ИЗ КАНАЛА
 bot.onText(/\/app/, async (msg) => {
@@ -5302,8 +5292,6 @@ bot.onText(/\/app/, async (msg) => {
         console.error('❌ Ошибка обработки /app:', error);
     }
 });
-
-// ... остальной код бота ...
 
     // Обработчик текстовых сообщений (не команд)
     bot.on('message', async (msg) => {
@@ -5450,6 +5438,38 @@ app.get('/api/system/debug', (req, res) => {
         completed_transactions: Array.from(completedTransactions.entries())
     });
 });
+
+// Функция настройки Web App кнопки
+async function setupWebAppButton() {
+    try {
+        if (!TELEGRAM_BOT_TOKEN) return;
+
+        // Устанавливаем Web App как основную кнопку меню
+        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setChatMenuButton`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                menu_button: {
+                    type: 'web_app',
+                    text: '🎨 Мастерская',
+                    web_app: {
+                        url: process.env.APP_URL || 'https://yourdomain.com'
+                    }
+                }
+            })
+        });
+        
+        const result = await response.json();
+        if (result.ok) {
+            console.log('✅ Web App кнопка установлена для всех чатов');
+        } else {
+            console.log('⚠️ Не удалось установить Web App кнопку:', result.description);
+        }
+
+    } catch (error) {
+        console.error('❌ Ошибка настройки Web App кнопки:', error);
+    }
+}
 
 // ==================== ЗАПУСК СЕРВЕРА ====================
 
