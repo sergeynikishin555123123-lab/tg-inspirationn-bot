@@ -4570,7 +4570,7 @@ app.get('/api/admin/export/users', requireAdmin, (req, res) => {
     }
 });
 
-// Экспорт статистики в CSV
+// Экспорт статистики в CSV с правильной кодировкой
 app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
     try {
         console.log('📈 Экспорт полной статистики в CSV');
@@ -4588,7 +4588,9 @@ app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
             roleStats[role.name] = users.filter(u => u.class === role.name).length;
         });
         
-        let csv = 'Раздел;Показатель;Значение\n';
+        // Создаем CSV с BOM для правильного отображения кириллицы в Excel
+        let csv = '\uFEFF'; // BOM для UTF-8
+        csv += 'Раздел;Показатель;Значение\n';
         
         // Основная статистика
         csv += `Пользователи;Всего пользователей;${users.length}\n`;
@@ -4622,11 +4624,13 @@ app.get('/api/admin/export/full-stats', requireAdmin, (req, res) => {
         csv += `Контент;Постов в канале;${db.channel_posts.filter(p => p.is_active).length}\n`;
         csv += `Контент;Интерактивов;${db.interactives.filter(i => i.is_active).length}\n`;
         
+        // Устанавливаем правильные заголовки для CSV с кириллицей
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename="full_stats_export.csv"');
+        res.setHeader('Content-Disposition', `attachment; filename="full_stats_${new Date().toISOString().split('T')[0]}.csv"`);
+        
         res.send(csv);
         
-        console.log('✅ Статистика экспортирована');
+        console.log('✅ Статистика экспортирована с правильной кодировкой');
         
     } catch (error) {
         console.error('❌ Ошибка экспорта статистики:', error);
