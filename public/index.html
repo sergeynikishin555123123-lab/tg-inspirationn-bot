@@ -4449,7 +4449,7 @@ async function calculateAvailableButtons() {
     let availableButtons = [];
     
     // Базовые кнопки по умолчанию
-    const defaultButtons = ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role'];
+    const defaultButtons = ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role', 'private_videos'];
     
     // Если есть данные роли, используем кнопки из роли
     if (currentUser.role_data && currentUser.role_data.available_buttons) {
@@ -4470,6 +4470,12 @@ async function calculateAvailableButtons() {
             characterButtons.includes(button)
         );
         console.log('✅ Итоговые кнопки после фильтрации:', availableButtons);
+    }
+    
+    // ВСЕГДА добавляем приватные материалы, даже если их нет в настройках
+    if (!availableButtons.includes('private_videos')) {
+        availableButtons.push('private_videos');
+        console.log('🎬 Принудительно добавлена кнопка приватных материалов');
     }
     
     // Всегда добавляем кнопку смены роли для зарегистрированных пользователей
