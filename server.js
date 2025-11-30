@@ -3162,6 +3162,62 @@ app.post('/api/webapp/posts/:postId/review', (req, res) => {
     });
 });
 
+// GET /api/webapp/roles/:roleId
+app.get('/api/webapp/roles/:roleId', async (req, res) => {
+    try {
+        const { roleId } = req.params;
+        const role = await db.get('SELECT * FROM roles WHERE id = ?', [roleId]);
+        
+        if (!role) {
+            return res.status(404).json({ error: 'Роль не найдена' });
+        }
+        
+        // Парсим available_buttons из JSON строки
+        if (role.available_buttons) {
+            try {
+                role.available_buttons = JSON.parse(role.available_buttons);
+            } catch (e) {
+                role.available_buttons = [];
+            }
+        } else {
+            role.available_buttons = [];
+        }
+        
+        res.json(role);
+    } catch (error) {
+        console.error('Ошибка получения роли:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// GET /api/webapp/characters/:characterId
+app.get('/api/webapp/characters/:characterId', async (req, res) => {
+    try {
+        const { characterId } = req.params;
+        const character = await db.get('SELECT * FROM characters WHERE id = ?', [characterId]);
+        
+        if (!character) {
+            return res.status(404).json({ error: 'Персонаж не найден' });
+        }
+        
+        // Парсим available_buttons из JSON строки
+        if (character.available_buttons) {
+            try {
+                character.available_buttons = JSON.parse(character.available_buttons);
+            } catch (e) {
+                character.available_buttons = [];
+            }
+        } else {
+            character.available_buttons = [];
+        }
+        
+        res.json(character);
+    } catch (error) {
+        console.error('Ошибка получения персонажа:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
 // ==================== ДОПОЛНИТЕЛЬНЫЕ API ДЛЯ АДМИНКИ ====================
 
 // ✅ ИСПРАВИТЬ СУЩЕСТВУЮЩИЙ ENDPOINT - добавить правильную логику
