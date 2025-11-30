@@ -4067,11 +4067,13 @@ function showWelcomeScreen() {
 
 function loadAvailableButtons() {
     const buttonsContainer = document.getElementById('actionButtons');
+    
+    // ВАЖНО: используем ТОЛЬКО те кнопки, которые прошли фильтрацию
     const availableButtons = currentUser.available_buttons || [];
     
-    console.log('🔄 Загрузка кнопок для пользователя:', currentUser.tg_first_name);
-    console.log('📋 Доступные кнопки:', availableButtons);
-    console.log('👤 Статус регистрации:', currentUser.is_registered);
+    console.log('🔄 ЗАГРУЗКА КНОПОК ДЛЯ ПОЛЬЗОВАТЕЛЯ:', currentUser.tg_first_name);
+    console.log('📋 ДОСТУПНЫЕ КНОПКИ ДЛЯ ОТОБРАЖЕНИЯ:', availableButtons);
+    console.log('👤 СТАТУС РЕГИСТРАЦИИ:', currentUser.is_registered);
     
     const allButtons = {
         'quiz': { text: '🎯 Пройти квиз', screen: 'quizzesScreen', color: 'btn-secondary', icon: '🎯' },
@@ -4089,7 +4091,9 @@ function loadAvailableButtons() {
     buttonsContainer.innerHTML = '';
     
     if (currentUser.is_registered) {
-        // СТРОГАЯ ФИЛЬТРАЦИЯ: показываем ТОЛЬКО доступные кнопки
+        // СТРОГАЯ ФИЛЬТРАЦИЯ: показываем ТОЛЬКО кнопки из availableButtons
+        const displayedButtons = [];
+        
         availableButtons.forEach(buttonKey => {
             if (allButtons[buttonKey]) {
                 const buttonInfo = allButtons[buttonKey];
@@ -4105,8 +4109,13 @@ function loadAvailableButtons() {
                     showScreen(buttonInfo.screen);
                 };
                 buttonsContainer.appendChild(featureCard);
+                displayedButtons.push(buttonKey);
+            } else {
+                console.log(`⚠️ Кнопка "${buttonKey}" не найдена в allButtons`);
             }
         });
+        
+        console.log('✅ Отображено кнопок:', displayedButtons.length, displayedButtons);
         
         // Если после фильтрации не осталось кнопок, показываем сообщение
         if (buttonsContainer.children.length === 0) {
@@ -4117,12 +4126,16 @@ function loadAvailableButtons() {
                         Для вашей роли и персонажа не доступны никакие действия.<br>
                         Обратитесь к администратору.
                     </p>
+                    <button class="btn" onclick="showScreen('changeRoleScreen')" style="margin-top: 12px;">
+                        🔄 Сменить роль/персонажа
+                    </button>
                 </div>
             `;
         }
         
     } else {
         // Для незарегистрированных пользователей показываем только кнопку регистрации
+        console.log('👶 Показываем кнопку регистрации для незарегистрированного пользователя');
         const featureCard = document.createElement('div');
         featureCard.className = 'feature-card';
         featureCard.style.cursor = 'pointer';
@@ -4134,7 +4147,7 @@ function loadAvailableButtons() {
         buttonsContainer.appendChild(featureCard);
     }
     
-    console.log('✅ Кнопки загружены, всего: ', buttonsContainer.children.length);
+    console.log('🎯 ЗАВЕРШЕНО: всего отображено кнопок -', buttonsContainer.children.length);
 }
 
 // ==================== СИСТЕМА ЭКРАНОВ ====================
@@ -4358,37 +4371,66 @@ function selectCharacter(character) {
 // Загрузка полных данных роли и персонажа
 async function loadUserRoleAndCharacterData() {
     try {
-        console.log('🔄 Загрузка данных роли и персонажа...');
+        console.log('🔄 ЗАГРУЗКА ДАННЫХ РОЛИ И ПЕРСОНАЖА...');
+        
+        let roleLoaded = false;
+        let characterLoaded = false;
         
         // Загружаем данные роли
         if (currentUser.class_id) {
+            console.log(`📥 Загрузка роли ID: ${currentUser.class_id}`);
             const roleResponse = await fetch(`/api/webapp/roles/${currentUser.class_id}`);
             if (roleResponse.ok) {
                 const roleData = await roleResponse.json();
                 currentUser.role_data = roleData;
-                console.log('🎭 Данные роли:', roleData);
+                roleLoaded = true;
+                console.log('✅ Данные роли загружены:', roleData);
+            } else {
+                console.error('❌ Ошибка загрузки роли:', roleResponse.status);
             }
+        } else {
+            console.log('⚠️ У пользователя нет class_id');
         }
         
         // Загружаем данные персонажа
         if (currentUser.character_id) {
+            console.log(`📥 Загрузка персонажа ID: ${currentUser.character_id}`);
             const characterResponse = await fetch(`/api/webapp/characters/${currentUser.character_id}`);
             if (characterResponse.ok) {
                 const characterData = await characterResponse.json();
                 currentUser.character_data = characterData;
-                console.log('👤 Данные персонажа:', characterData);
+                characterLoaded = true;
+                console.log('✅ Данные персонажа загружены:', characterData);
+            } else {
+                console.error('❌ Ошибка загрузки персонажа:', characterResponse.status);
             }
+        } else {
+            console.log('⚠️ У пользователя нет character_id');
         }
         
-        // Определяем доступные кнопки на основе роли и персонажа
+        // Если данные не загрузились, создаем пустые объекты
+        if (!roleLoaded) {
+            currentUser.role_data = { available_buttons: [] };
+            console.log('⚙️ Созданы пустые данные роли');
+        }
+        
+        if (!characterLoaded) {
+            currentUser.character_data = { available_buttons: [] };
+            console.log('⚙️ Созданы пустые данные персонажа');
+        }
+        
+        // Определяем доступные кнопки
         await calculateAvailableButtons();
+        debugUserData();
         
         showUserData();
         loadAvailableButtons();
         
     } catch (error) {
-        console.error('❌ Ошибка загрузки данных роли/персонажа:', error);
-        // Используем базовые настройки при ошибке
+        console.error('❌ КРИТИЧЕСКАЯ ошибка загрузки данных роли/персонажа:', error);
+        // Создаем минимальные данные для работы
+        currentUser.role_data = { available_buttons: [] };
+        currentUser.character_data = { available_buttons: [] };
         await calculateAvailableButtons();
         showUserData();
         loadAvailableButtons();
@@ -4444,48 +4486,61 @@ async function completeRegistration() {
 
 // Расчет доступных кнопок на основе роли и персонажа
 async function calculateAvailableButtons() {
-    console.log('🔧 Расчет доступных кнопок...');
+    console.log('🔧 ЗАПУСК РАСЧЕТА ДОСТУПНЫХ КНОПОК...');
     
+    // 1. Начинаем с пустого массива
     let availableButtons = [];
     
-    // Базовые кнопки по умолчанию
-    const defaultButtons = ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role', 'private_videos'];
-    
-    // Если есть данные роли, используем кнопки из роли
+    // 2. Получаем кнопки из роли (если есть)
     if (currentUser.role_data && currentUser.role_data.available_buttons) {
-        availableButtons = currentUser.role_data.available_buttons;
-        console.log('🎭 Кнопки из роли:', availableButtons);
-    } else {
-        availableButtons = defaultButtons;
-        console.log('⚙️ Используем кнопки по умолчанию');
+        const roleButtons = currentUser.role_data.available_buttons;
+        console.log('🎭 Кнопки из роли:', roleButtons);
+        
+        // Если роль имеет кнопки, используем их как основу
+        if (Array.isArray(roleButtons) && roleButtons.length > 0) {
+            availableButtons = [...roleButtons];
+        }
     }
     
-    // Если есть данные персонажа, применяем фильтр по кнопкам персонажа
+    // 3. Если роль не имеет кнопок, используем базовый набор
+    if (availableButtons.length === 0) {
+        availableButtons = ['quiz', 'marathon', 'works', 'activities', 'posts', 'shop', 'invite', 'interactives', 'change_role', 'private_videos'];
+        console.log('⚙️ Используем базовые кнопки:', availableButtons);
+    }
+    
+    // 4. Применяем фильтр персонажа (если есть данные)
     if (currentUser.character_data && currentUser.character_data.available_buttons) {
         const characterButtons = currentUser.character_data.available_buttons;
         console.log('👤 Кнопки из персонажа:', characterButtons);
         
-        // Фильтруем: оставляем только те кнопки, которые есть и в роли и в персонаже
-        availableButtons = availableButtons.filter(button => 
-            characterButtons.includes(button)
-        );
-        console.log('✅ Итоговые кнопки после фильтрации:', availableButtons);
+        if (Array.isArray(characterButtons) && characterButtons.length > 0) {
+            // ФИЛЬТРАЦИЯ: оставляем только те кнопки, которые есть в ОБОИХ массивах
+            availableButtons = availableButtons.filter(button => 
+                characterButtons.includes(button)
+            );
+            console.log('✅ Кнопки после фильтрации персонажем:', availableButtons);
+        } else {
+            console.log('⚠️ Персонаж не имеет кнопок, используем все кнопки роли');
+        }
+    } else {
+        console.log('⚠️ Данные персонажа не загружены, используем кнопки роли');
     }
     
-    // ВСЕГДА добавляем приватные материалы, даже если их нет в настройках
-    if (!availableButtons.includes('private_videos')) {
-        availableButtons.push('private_videos');
-        console.log('🎬 Принудительно добавлена кнопка приватных материалов');
-    }
+    // 5. Принудительно добавляем обязательные кнопки
+    const mandatoryButtons = ['change_role']; // Кнопки, которые всегда должны быть
     
-    // Всегда добавляем кнопку смены роли для зарегистрированных пользователей
-    if (currentUser.is_registered && !availableButtons.includes('change_role')) {
-        availableButtons.push('change_role');
-    }
+    mandatoryButtons.forEach(button => {
+        if (!availableButtons.includes(button)) {
+            availableButtons.push(button);
+            console.log(`🔧 Добавлена обязательная кнопка: ${button}`);
+        }
+    });
     
-    // Сохраняем итоговый список
+    // 6. Сохраняем итоговый список
     currentUser.available_buttons = availableButtons;
-    console.log('🎯 Финальный список доступных кнопок:', currentUser.available_buttons);
+    console.log('🎯 ФИНАЛЬНЫЙ список доступных кнопок:', currentUser.available_buttons);
+    
+    return availableButtons;
 }
     
 // ==================== СМЕНА РОЛИ ====================
