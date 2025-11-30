@@ -4813,7 +4813,6 @@ app.get('/api/mobile/health', (req, res) => {
 
 let bot;
 
-// Функция инициализации бота
 async function initializeBot() {
     try {
         if (!process.env.BOT_TOKEN) {
@@ -4821,9 +4820,8 @@ async function initializeBot() {
             return;
         }
 
-        console.log('🤖 Инициализация Telegram бота...');
+        console.log('🤖 Инициализация Telegram бота как Web App...');
         
-        // Создаем экземпляр бота с правильными опциями
         bot = new TelegramBot(process.env.BOT_TOKEN, {
             polling: {
                 interval: 300,
@@ -4836,15 +4834,45 @@ async function initializeBot() {
 
         console.log('✅ Telegram Bot создан');
 
-        // Настройка обработчиков команд
-        setupBotHandlers();
+        // Настройка Web App кнопки
+        await setupWebAppButton();
 
-        console.log('✅ Обработчики команд настроены');
-        console.log('🎯 Бот готов к работе!');
+        // Упрощенные обработчики
+        setupWebAppHandlers();
+
+        console.log('✅ Бот настроен как Web App');
+        console.log('🎯 Теперь в каналах будет кнопка для перехода в приложение!');
 
     } catch (error) {
         console.error('💥 Ошибка инициализации бота:', error);
     }
+}
+
+function setupWebAppHandlers() {
+    // Обработчик /start - сразу открывает приложение
+    bot.onText(/\/start/, async (msg) => {
+        try {
+            const chatId = msg.chat.id;
+            const userId = msg.from.id;
+            
+            const appUrl = `${process.env.APP_URL || 'https://yourdomain.com'}?tgWebAppStartParam=${userId}`;
+            
+            // Отправляем сообщение с кнопкой Web App
+            await bot.sendMessage(chatId, '🎨 Добро пожаловать в Мастерскую Вдохновения!', {
+                reply_markup: {
+                    inline_keyboard: [[
+                        {
+                            text: "🚀 Открыть приложение",
+                            web_app: { url: appUrl }
+                        }
+                    ]]
+                }
+            });
+
+        } catch (error) {
+            console.error('❌ Ошибка обработки /start:', error);
+        }
+    });
 }
 
 // Настройка обработчиков команд
@@ -4878,6 +4906,38 @@ bot.onText(/\/start/, async (msg) => {
     }
 });
 
+// Функция настройки Web App кнопки
+async function setupWebAppButton() {
+    try {
+        if (!TELEGRAM_BOT_TOKEN) return;
+
+        // Устанавливаем Web App как основную кнопку меню
+        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setChatMenuButton`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                menu_button: {
+                    type: 'web_app',
+                    text: '🎨 Мастерская',
+                    web_app: {
+                        url: process.env.APP_URL || 'https://yourdomain.com'
+                    }
+                }
+            })
+        });
+        
+        const result = await response.json();
+        if (result.ok) {
+            console.log('✅ Web App кнопка установлена для всех чатов');
+        } else {
+            console.log('⚠️ Не удалось установить Web App кнопку:', result.description);
+        }
+
+    } catch (error) {
+        console.error('❌ Ошибка настройки Web App кнопки:', error);
+    }
+}
+    
 // ✅ ИСПРАВЛЕННЫЙ TELEGRAM БОТ
 async function handlePrivateStart(chatId, userId, firstName, msg) {
     try {
